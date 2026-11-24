@@ -418,10 +418,10 @@ E3 and E5 are **re-run after Phase 7**, because the advisor and the injection gu
   - **Review agent (Fable):** reviews the PR, merges it, and closes the ticket. It never writes the code it reviews.
 - **Flow per ticket** (triggered in-session with "next ticket"):
   1. The development agent takes the top `Ready` ticket and sets it to `In progress`.
-  2. It creates issues and sub-issues, each with a goal, a test and a success measure.
+  2. It creates issues and sub-issues, each with a goal, a test and **success criteria** (a checklist of what must be delivered and true; ticket format in the backlog plan).
   3. It branches from `main`, works test-first, and makes atomic commits (under 200 lines where possible), each referencing its sub-issue.
   4. It pushes, opens a PR (`Closes #<issue>`), and sets the ticket to `Testing`.
-  5. The **review agent** (Fable) reviews against the success measures and the repo standards, and posts its verdict on the PR.
+  5. The **review agent** (Fable) reviews item by item against the success criteria and the repo standards, and posts its verdict on the PR.
   6. **Pass + green CI:** it merges (no squash, so atomic commits stay), the ticket goes to `Done`, and `main` is pushed to both remotes. **Fail:** back to `In progress`, with findings, for the development agent.
 - **Branch protection:** PRs only, required CI checks, no force-push. The gate is green CI plus the review agent's verdict comment, because a bot cannot approve its own PR.
 - **AGENTS.md** (with CLAUDE.md pointing to it) holds the project rules: this workflow, commit format and size, test-first, docs kept current (design doc, ADRs, status doc), the no-PDF-in-repo rule, the no-mako rule.

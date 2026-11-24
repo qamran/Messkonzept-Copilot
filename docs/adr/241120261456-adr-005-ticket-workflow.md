@@ -48,10 +48,10 @@ Issue numbers in the two repos diverge.
   - **Review agent (Fable):** reviews the PR, merges it, and closes the ticket. It never writes the code it reviews.
 - **Flow per ticket:**
   1. The **development agent** takes the highest-priority `Ready` ticket and sets it to `In progress`.
-  2. It breaks the ticket into issues and sub-issues, each with a goal, a test and a success measure.
+  2. It breaks the ticket into issues and sub-issues, each with a goal, a test and **success criteria**: a checklist of exactly what must be delivered and true before it counts as done (the ticket format in `docs/superpowers/plans/241120261500-ticket-backlog.md`).
   3. It branches `mkc-<n>-<slug>` from `main`, works test-first, and makes atomic commits (under 200 lines where possible), each referencing its sub-issue.
   4. It pushes the branch, opens a PR (body: `Closes #<issue>` and the key), and sets the ticket to `Testing`.
-  5. The **review agent** (Fable) reviews the PR against the ticket's success measures and the repo standards, and posts its verdict as a PR comment.
+  5. The **review agent** (Fable) reviews the PR item by item against the ticket's success criteria and the repo standards, and posts its verdict as a PR comment.
   6. **Pass + green CI:** the review agent merges (squash is not used, so the atomic commits are kept), the ticket closes, its status goes to `Done`, and `main` is pushed to both remotes.
   7. **Fail:** the ticket goes back to `In progress`, with the findings listed, and the development agent picks it up again.
 - **Branch protection on `main`:** PRs only; required CI checks (lint, types, tests, eval gate, Helm/kind); no force-push. A bot cannot formally approve its own PR, so the gate is green CI plus the review agent's verdict comment.

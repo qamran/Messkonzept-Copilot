@@ -1,13 +1,13 @@
 # Project status: Messkonzept-Copilot
 
-**Last updated:** 24.11.2026, 14:56
+**Last updated:** 24.11.2026, 15:00
 
 This is the living status document. It is updated whenever a decision is made or work is completed. Older brainstorming material lives in `brainstorming internal/` (gitignored and frozen).
 
 ## Where we are
 
 - **Phase:** planning. The design doc was **approved by the user on 24.11.2026** (after an independent review, verdict "approve with changes", all required changes applied). The design doc, ADRs and this status doc are committed and pushed to both remotes. No code yet.
-- **Next step:** write the development plan and turn it into tickets on the public Projects board (ADR 005).
+- **Next step:** MKC-1 sets up the public Projects board and creates all tickets from the backlog.
 
 ## Key documents
 
@@ -19,6 +19,7 @@ This is the living status document. It is updated whenever a decision is made or
 | ADR 003: Supabase instead of SQLite (+ restore drill) | `docs/adr/241120261430-adr-003-database.md` |
 | ADR 004: narrow RAG corpus and decision layer with LLM fallback | `docs/adr/241120261441-adr-004-rag-and-decision-layer.md` |
 | ADR 005: ticket workflow (GitHub Issues + public Projects board) | `docs/adr/241120261456-adr-005-ticket-workflow.md` |
+| Ticket backlog (implementation plan, MKC-1 to MKC-60) | `docs/superpowers/plans/241120261500-ticket-backlog.md` |
 | Official brief | `AE.CAP_afa.md` |
 
 ## Decisions so far (summary; the full log of 31 decisions is in design doc section 18)
@@ -57,7 +58,9 @@ This is the living status document. It is updated whenever a decision is made or
 ## Open items
 
 - [x] User approval of the design doc (24.11.2026)
-- [ ] Development plan and tickets
+- [x] Development plan written: ticket backlog MKC-1 to MKC-60, each with goal, scope, test and success criteria (24.11.2026)
+- [x] User review of the ticket backlog (approved 24.11.2026)
+- [ ] Tickets created on the board (MKC-1)
 - [ ] User setup tasks:
   - Supabase project (Postgres + private bucket)
   - Vercel account linked to the personal repo
