@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 24.11.2026, 16:34
+**Last updated:** 24.11.2026, 16:35
 
 This file is how agents resume work after a session restart.
 - **Updated:** in every commit, and after every important ticket change: status change, sub-issue created or closed, PR opened or merged, review verdict. A change made outside a branch (e.g. on the board) is recorded in the next commit.
@@ -33,20 +33,21 @@ This file is how agents resume work after a session restart.
 
 ## In progress
 
-- **MKC-4** (#4), backend skeleton. Status `In progress`, assigned to `qamran`. Branch `mkc-4-backend-skeleton`. Plan: `docs/superpowers/plans/241120261627-mkc-4-backend-skeleton.md`.
-- **MKC-4.1** (#73), FastAPI app, settings, health and version endpoints. `In progress`.
+- **MKC-4** (#4), backend skeleton. Status `Testing`, PR #75, assigned to `qamran`. Branch `mkc-4-backend-skeleton`. Plan: `docs/superpowers/plans/241120261627-mkc-4-backend-skeleton.md`.
+- **MKC-4.1** (#73), FastAPI app, settings, health and version endpoints. `Testing`.
   - [x] uv project in `backend/` (Python 3.12, ruff, mypy strict on `src/`); `uv sync` works
   - [x] tests for `/health` and `/api/version` (red: `No module named 'mkc.api'`)
   - [x] `mkc.config.Settings` + `mkc.api.app:create_app()` (green, 3 passed); ruff + mypy pass. Starlette warns that `httpx` for TestClient is deprecated (see Blocked).
-- **MKC-4.2** (#74), worker entrypoint with clean SIGTERM shutdown. `In progress`.
+- **MKC-4.2** (#74), worker entrypoint with clean SIGTERM shutdown. `Testing`.
   - [x] worker tests (red: `No module named 'mkc.worker'`)
   - [x] `mkc.worker.main:run()` + `mkc-worker` script (green); ruff + mypy pass. Tests fail on a timeout instead of hanging (watchdog; checked with a worker that ignores SIGTERM: fails after 5 s). Windows: 4 passed, 1 skipped; Linux container (Python 3.12): 5 passed, incl. the real-SIGTERM subprocess test.
 - [x] Status doc updated
-- [ ] PR; review agent; merge; push `main` to `turing`
+- [x] PR #75 opened (closes #4, #73, #74); all three to `Testing`
+- [ ] Review agent verdict; merge; push `main` to `turing`; check origin/main == turing/main
 
 ## Next steps
 
-1. Finish MKC-4 on `mkc-4-backend-skeleton` (checklist above).
+1. Finish MKC-4: review of PR #75, merge, push `main` to `turing` (checklist above).
 2. MKC-5 (database layer), then MKC-6 (secret hygiene and CI, required checks; also repo-wide markdown lint).
 
 ## Blocked / waiting on user
@@ -58,6 +59,7 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+- **24.11.2026 16:34** MKC-4: PR #75 opened (assigned to `qamran`; closes #4, #73, #74); #4, #73 and #74 to `Testing`.
 - **24.11.2026 16:34** MKC-4: README status line updated (backend skeleton); HANDOFF: the MKC-3 close-out line split by event time, `httpx2` decision and Docker moved under Blocked.
 - **24.11.2026 16:34** MKC-4.2: worker tests enforce their timeout (watchdog stop event, bounded stderr read); `run()` takes an optional stop event. Docker Desktop started; in a Linux container all 5 tests pass, incl. the real SIGTERM test.
 - **24.11.2026 16:29** MKC-4: status doc updated (MKC-3 done, MKC-4 current, first application code).
@@ -69,7 +71,7 @@ Newest first. Times are local (CET), taken from git and GitHub.
 - **24.11.2026 16:27** MKC-4: branch `mkc-4-backend-skeleton`; HANDOFF.md caught up after PR #72; plan written.
 - **24.11.2026 16:26** MKC-4 (#4) to `In progress`, assigned to `qamran`; sub-issues MKC-4.1 (#73) and MKC-4.2 (#74) created, assigned, `In progress`. Board auto-add found to be on.
 - **24.11.2026 16:25** `main` pushed to `turing` (git reflog 16:25:11); `origin/main` == `turing/main` == `6650cbd`. MKC-3 complete.
-- **24.11.2026 16:24** #3 and #71 criteria ticked and board `Done` (GitHub 15:24:51Z–15:24:53Z; GitHub's clock runs about 20 s behind the local one).
+- **24.11.2026 16:24** #3 and #71 criteria ticked and board `Done` (GitHub 15:24:51Z–15:24:53Z; the local and GitHub clocks differ by about 20 s).
 - **24.11.2026 16:24** PR #72 re-review **PASS**, merged `6650cbd` (merge commit); #3 and #71 closed.
 - **24.11.2026 16:23** MKC-3.3: fix commit for the PR #72 findings (15:56 log time; status doc names PR #72; AGENTS.md roles wording); #3 and #71 back to `Testing`.
 - **24.11.2026 16:23** #3 and #71 back to `In progress`.
