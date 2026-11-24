@@ -1,6 +1,6 @@
 # Project status: Messkonzept-Copilot
 
-**Last updated:** 24.11.2026, 15:32
+**Last updated:** 24.11.2026, 15:38
 
 This is the living status document. It is updated whenever a decision is made or work is completed. Older brainstorming material lives in `brainstorming internal/` (gitignored and frozen).
 
@@ -8,7 +8,9 @@ This is the living status document. It is updated whenever a decision is made or
 
 - **Phase:** planning. The design doc was **approved by the user on 24.11.2026** (after an independent review, verdict "approve with changes", all required changes applied). The design doc, ADRs and this status doc are committed and pushed to both remotes. No code yet.
 - **Board:** https://github.com/users/qamran/projects/1 (public). Tickets MKC-1 to MKC-60 exist as issues #1 to #60 (issue number = key).
-- **Current ticket:** MKC-1 (ticket workflow and repo setup), in `Testing` once its PR is open.
+- **Done:** MKC-1 (ticket workflow and repo setup), merged in PR #65 after a review-agent PASS. Both remotes at the merge commit.
+- **Current ticket:** MKC-3 (agent instructions); first sub-issue MKC-3.1 (#66) adds the assignment rule to the workflow docs.
+- **Ready next:** MKC-2 (issue mirror; needs the user's `TURING_ISSUES_TOKEN`).
 
 ## Key documents
 
