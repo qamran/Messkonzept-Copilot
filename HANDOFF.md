@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 24.11.2026, 15:54
+**Last updated:** 24.11.2026, 15:56
 
 This file is how agents resume work after a session restart.
 - **Updated:** in every commit, and after every important ticket change: status change, sub-issue created or closed, PR opened or merged, review verdict. A change made outside a branch (e.g. on the board) is recorded in the next commit.
@@ -42,7 +42,7 @@ This file is how agents resume work after a session restart.
   - [x] ADR 005: decision is fallback (c), code-only mirror; consequences without token
   - [x] Design doc section 14 + decision 32 wording + new decision 35 + feature 0; backlog MKC-2 entry
   - [x] `scripts/check_readme.py` test-first (fails on the old README)
-  - [ ] README.md with intro + links (board, issues, design doc, ADRs, HANDOFF.md)
+  - [x] README.md with intro + links (board, issues, design doc, ADRs, HANDOFF.md); check_readme.py green
   - [ ] Status doc; PR; review agent; merge; push `main` to `turing`
 - **MKC-3** (#3) stays `In progress`: MKC-3.1 and MKC-3.2 done; AGENTS.md + one-line CLAUDE.md still to do (new sub-issues, new branch).
 
@@ -60,6 +60,7 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+- **24.11.2026 15:56** MKC-2: README.md with intro and links; `check_readme.py` passes (green).
 - **24.11.2026 15:54** MKC-2: `scripts/check_readme.py` added; fails on the old one-line README (red).
 - **24.11.2026 15:52** MKC-2: design doc (section 14, decisions 32 and 35, feature 0) and backlog MKC-2 entry updated.
 - **24.11.2026 15:50** MKC-2: ADR 005 updated to fallback (c), code-only Turing mirror, no token.
