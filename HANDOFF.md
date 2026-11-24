@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 24.11.2026, 16:23
+**Last updated:** 24.11.2026, 16:27
 
 This file is how agents resume work after a session restart.
 - **Updated:** in every commit, and after every important ticket change: status change, sub-issue created or closed, PR opened or merged, review verdict. A change made outside a branch (e.g. on the board) is recorded in the next commit.
@@ -18,45 +18,47 @@ This file is how agents resume work after a session restart.
 
 ## Current state
 
-- **Design approved;** ADRs 001–005 accepted; backlog MKC-1 to MKC-60 on the public board (issue number = key).
+- **Design approved;** ADRs 001–005 accepted; backlog MKC-1 to MKC-60 on the public board (issue number = key). The board's auto-add workflow is on: new issues land on the board by themselves.
 - **Remotes:**
   - `origin` = qamran/Messkonzept-Copilot (home, public)
   - `turing` = TuringCollegeSubmissions/qshahz-AE.CAP.AFA.1.1 (code-only mirror, no issues; ADR 005 option (c), decision 35)
-  - Both at `7b11612` (merge of PR #70).
+  - Both at `6650cbd` (merge of PR #72).
 - **`main` is protected:** PRs only, enforced for admins. No required CI checks until MKC-6.
+- **Agent rules:** `AGENTS.md` (CLAUDE.md imports it). The development agent continues without asking and stops only for genuine decisions (decision 36).
 - **Done:**
   - MKC-1: board, labels, tickets, templates, branch protection (PR #65)
   - MKC-2: code-only Turing mirror, README with links, `scripts/check_readme.py` (PR #70)
-  - MKC-3.1: assignment rule in the workflow docs (PR #67)
-  - MKC-3.2: HANDOFF.md and its maintenance rule (PR #69, after one FAIL and a fix)
+  - MKC-3: assignment rule (PR #67), HANDOFF.md (PR #69), AGENTS.md + CLAUDE.md + `scripts/check_agents.py` (PR #72, after one FAIL and a fix)
 - **No application code yet.**
 
 ## In progress
 
-- **MKC-3** (#3), agent instructions. Status `Testing`. MKC-3.1 and MKC-3.2 done; MKC-3.3 in PR #72.
-- **MKC-3.3** (#71), AGENTS.md and CLAUDE.md. Status `Testing`, assigned to `qamran`, sub-issue of #3. Branch `mkc-3-agents-md`, PR #72.
-  - [x] HANDOFF.md caught up after PR #70; design doc "Remotes" line fixed
-  - [x] `scripts/check_agents.py` test-first (red: both files missing)
-  - [x] AGENTS.md with the required sections and the review checklist; `.markdownlint-cli2.jsonc` (MD013 off)
-  - [x] CLAUDE.md, one line `# Project rules for agents: @AGENTS.md`; check_agents.py green; markdown lint 0 errors
-  - [x] HANDOFF "Read this first" points to AGENTS.md; status doc; ADR 005 + design doc (decision 36: no permission questions)
-  - [x] PR #72 opened (closes #71 and #3); #3 and #71 to `Testing`
-  - [x] Review FAIL (one HANDOFF log time off by a minute); fix commit; #3 and #71 back to `Testing`
-  - [ ] Re-review verdict; merge; push `main` to `turing`; check origin/main == turing/main
+- **MKC-4** (#4), backend skeleton. Status `In progress`, assigned to `qamran`. Branch `mkc-4-backend-skeleton`. Plan: `docs/superpowers/plans/241120261627-mkc-4-backend-skeleton.md`.
+- **MKC-4.1** (#73), FastAPI app, settings, health and version endpoints. `In progress`.
+  - [ ] uv project in `backend/` (Python 3.12, ruff, mypy strict on `src/`)
+  - [ ] tests for `/health` and `/api/version` (red)
+  - [ ] `mkc.config.Settings` + `mkc.api.app:create_app()` (green); ruff + mypy pass
+- **MKC-4.2** (#74), worker entrypoint with clean SIGTERM shutdown. `In progress`.
+  - [ ] worker tests (red)
+  - [ ] `mkc.worker.main:run()` + `mkc-worker` script (green); ruff + mypy pass
+- [ ] Status doc; PR; review agent; merge; push `main` to `turing`
 
 ## Next steps
 
-1. Finish MKC-3.3: review of PR #72, merge, push `main` to `turing` (checklist above); MKC-3 closes with it.
-2. MKC-4 (backend skeleton); then MKC-5, MKC-6 (CI + required checks).
+1. Finish MKC-4 on `mkc-4-backend-skeleton` (checklist above).
+2. MKC-5 (database layer), then MKC-6 (secret hygiene and CI, required checks; also repo-wide markdown lint).
 
 ## Blocked / waiting on user
 
-- Optional: turn on the board's "Auto-add to project" workflow (board settings, UI only). Until then, the development agent adds new issues to the board itself.
-- Later setup tasks (listed in design doc section 13): Supabase project, Vercel account, provider API keys with caps, GitHub `production` environment, a domain with TLS.
+- Later setup tasks (listed in design doc section 13): Supabase project, Vercel account, provider API keys with caps, GitHub `production` environment, a domain with TLS. MKC-5 needs the Supabase project for its live part; its one-off Supabase check waits for that; migrations and tests use Docker Postgres.
 
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+- **24.11.2026 16:27** MKC-4: branch `mkc-4-backend-skeleton`; HANDOFF.md caught up after PR #72; plan written.
+- **24.11.2026 16:26** MKC-4 (#4) to `In progress`, assigned to `qamran`; sub-issues MKC-4.1 (#73) and MKC-4.2 (#74) created, assigned, `In progress`. Board auto-add found to be on.
+- **24.11.2026 16:25** `main` pushed to `turing`; `origin/main` == `turing/main` == `6650cbd`. #3 and #71 criteria ticked, both closed and `Done`. MKC-3 complete.
+- **24.11.2026 16:24** PR #72 re-review **PASS**, merged `6650cbd` (merge commit); #3 and #71 closed.
 - **24.11.2026 16:23** MKC-3.3: fix commit for the PR #72 findings (15:56 log time; status doc names PR #72; AGENTS.md roles wording); #3 and #71 back to `Testing`.
 - **24.11.2026 16:23** #3 and #71 back to `In progress`.
 - **24.11.2026 16:22** PR #72 review **FAIL**: the log line for the Turing push and #2 `Done` said 15:57; the events were at 15:56.
