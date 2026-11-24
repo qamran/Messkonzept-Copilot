@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 24.11.2026, 16:28
+**Last updated:** 24.11.2026, 16:29
 
 This file is how agents resume work after a session restart.
 - **Updated:** in every commit, and after every important ticket change: status change, sub-issue created or closed, PR opened or merged, review verdict. A change made outside a branch (e.g. on the board) is recorded in the next commit.
@@ -39,7 +39,7 @@ This file is how agents resume work after a session restart.
   - [x] tests for `/health` and `/api/version` (red: `No module named 'mkc.api'`)
   - [x] `mkc.config.Settings` + `mkc.api.app:create_app()` (green, 3 passed); ruff + mypy pass. Open: Starlette warns that `httpx` for TestClient is deprecated; switching to `httpx2` was not done (unvetted package, blocked by the permission check).
 - **MKC-4.2** (#74), worker entrypoint with clean SIGTERM shutdown. `In progress`.
-  - [ ] worker tests (red)
+  - [x] worker tests (red: `No module named 'mkc.worker'`)
   - [ ] `mkc.worker.main:run()` + `mkc-worker` script (green); ruff + mypy pass
 - [ ] Status doc; PR; review agent; merge; push `main` to `turing`
 
@@ -55,6 +55,7 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+- **24.11.2026 16:29** MKC-4.2: `tests/worker/test_worker.py` added; red (`mkc.worker` missing).
 - **24.11.2026 16:28** MKC-4.1: `mkc.config.Settings` and `mkc.api.app:create_app()`; API tests green; ruff, ruff format and mypy strict pass.
 - **24.11.2026 16:28** MKC-4.1: `tests/api/test_health.py` added; red (`mkc.api` missing).
 - **24.11.2026 16:28** MKC-4.1: uv project `backend/` (package `mkc`, Python 3.12, FastAPI, pydantic-settings, uvicorn; ruff, mypy strict, pytest); `uv sync` works.
