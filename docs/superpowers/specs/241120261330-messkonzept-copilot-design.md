@@ -406,7 +406,7 @@ E3 and E5 are **re-run after Phase 7**, because the advisor and the injection gu
     - GitHub Secrets and the protected `production` environment
     - a domain with TLS (also needed for Clerk production)
   - **Fallback** if k3s blocks deployment: keep the Helm chart tested on kind in CI, deploy with Compose on the same VM, and document the limitation.
-- **Remotes (set up 24.11.2026):** `origin` = https://github.com/qamran/Messkonzept-Copilot (personal, public, home); `turing` = https://github.com/TuringCollegeSubmissions/qshahz-AE.CAP.AFA.1.1 (submission mirror). Both at commit `2f2d0d0` since 24.11.2026; every later push goes to both.
+- **Remotes (set up 24.11.2026):** `origin` = https://github.com/qamran/Messkonzept-Copilot (personal, public, home); `turing` = https://github.com/TuringCollegeSubmissions/qshahz-AE.CAP.AFA.1.1 (submission mirror). `main` is pushed to both after every merge, so both show the same commit; the current one is in HANDOFF.md.
 
 ## 14. Agentic-coding practice and ticket workflow (review topic; ADR 005)
 
