@@ -8,7 +8,7 @@
 
 - **Postgres 17 with pgvector:** image `pgvector/pgvector:pg17`. Supabase's hosted platform defaults to Postgres 17 (Supabase changelog, checked 24.11.2026).
 - **Driver:** psycopg 3 (`psycopg[binary]`), with SQLAlchemy 2 and Alembic.
-- **Port:** compose binds `127.0.0.1:5433`, because a native Postgres service already uses 5432 on the dev machine. The default `DATABASE_URL` points to `localhost:5433`.
+- **Port:** compose binds `127.0.0.1:5433`, because a native Postgres service already uses 5432 on the dev machine. The default `DATABASE_URL` points to `127.0.0.1:5433`, not `localhost`: on the dev machine `localhost` tries IPv6 first and the connection stalls, because compose binds IPv4 only.
 - **Dev-only credentials:** `mkc` / `mkc` / database `mkc`. They're only valid for the local container, which listens only on 127.0.0.1. They are not secrets.
 
 ## Layout

@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     """How long the worker waits between polls for work."""
 
     database_url: str = Field(
-        default=f"{_PSYCOPG_SCHEME}mkc:mkc@localhost:5433/mkc",
+        default=f"{_PSYCOPG_SCHEME}mkc:mkc@127.0.0.1:5433/mkc",
         validation_alias=AliasChoices("DATABASE_URL", "MKC_DATABASE_URL"),
     )
     """SQLAlchemy URL from DATABASE_URL. Defaults to the `docker compose up db` service."""
