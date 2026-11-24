@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 24.11.2026, 16:17
+**Last updated:** 24.11.2026, 16:18
 
 This file is how agents resume work after a session restart.
 - **Updated:** in every commit, and after every important ticket change: status change, sub-issue created or closed, PR opened or merged, review verdict. A change made outside a branch (e.g. on the board) is recorded in the next commit.
@@ -33,18 +33,19 @@ This file is how agents resume work after a session restart.
 
 ## In progress
 
-- **MKC-3** (#3), agent instructions. Status `In progress`. MKC-3.1 and MKC-3.2 done.
-- **MKC-3.3** (#71), AGENTS.md and CLAUDE.md. Status `In progress`, assigned to `qamran`, sub-issue of #3. Branch `mkc-3-agents-md`.
+- **MKC-3** (#3), agent instructions. Status `Testing`. MKC-3.1 and MKC-3.2 done; MKC-3.3 in PR #72.
+- **MKC-3.3** (#71), AGENTS.md and CLAUDE.md. Status `Testing`, assigned to `qamran`, sub-issue of #3. Branch `mkc-3-agents-md`, PR #72.
   - [x] HANDOFF.md caught up after PR #70; design doc "Remotes" line fixed
   - [x] `scripts/check_agents.py` test-first (red: both files missing)
   - [x] AGENTS.md with the required sections and the review checklist; `.markdownlint-cli2.jsonc` (MD013 off)
   - [x] CLAUDE.md, one line `# Project rules for agents: @AGENTS.md`; check_agents.py green; markdown lint 0 errors
   - [x] HANDOFF "Read this first" points to AGENTS.md; status doc; ADR 005 + design doc (decision 36: no permission questions)
-  - [ ] PR; #3 and #71 to `Testing`; review agent; merge; push `main` to `turing`
+  - [x] PR #72 opened (closes #71 and #3); #3 and #71 to `Testing`
+  - [ ] Review agent verdict; merge; push `main` to `turing`; check origin/main == turing/main
 
 ## Next steps
 
-1. Finish MKC-3.3 on `mkc-3-agents-md` (checklist above); MKC-3 closes with it.
+1. Finish MKC-3.3: review of PR #72, merge, push `main` to `turing` (checklist above); MKC-3 closes with it.
 2. MKC-4 (backend skeleton); then MKC-5, MKC-6 (CI + required checks).
 
 ## Blocked / waiting on user
@@ -55,6 +56,7 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+- **24.11.2026 16:18** MKC-3.3: PR #72 opened (assigned to `qamran`, closes #71 and #3); #3 and #71 to `Testing`.
 - **24.11.2026 16:17** MKC-3.3: docs updated: HANDOFF "Read this first" points to AGENTS.md (roles moved there); status doc; ADR 005 and design doc decision 36 (user: continue without asking, stop only for genuine decisions).
 - **24.11.2026 16:17** MKC-3.3: CLAUDE.md added (one line importing AGENTS.md); `check_agents.py` passes (green); lint 0 errors.
 - **24.11.2026 16:17** MKC-3.3: AGENTS.md added (sections, rules, review checklist); markdown lint config with line length off.
