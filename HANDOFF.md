@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 24.11.2026, 21:49
+**Last updated:** 24.11.2026, 21:50
 
 This file is how agents resume work after a session restart.
 - **Updated:** in every commit, and after every important ticket change: status change, sub-issue created or closed, PR opened or merged, review verdict. A change made outside a branch (e.g. on the board) is recorded in the next commit.
@@ -47,6 +47,8 @@ This file is how agents resume work after a session restart.
 
 ## Blocked / waiting on user
 
+- **PR #80 review and merge.** Starting the review agent (Fable) with merge rights was denied by the session's permission check on 24.11.2026. The user reviews or merges PR #80, or allows the review agent to run. After the merge: push `main` to `turing` and check that both are the same commit.
+- **No ticket is `Ready`.** MKC-6 depends on MKC-5, which stays open until the Supabase check (#79). The development agent didn't start MKC-6 on top of the unmerged PR #80. The user decides whether MKC-6 may start once PR #80 is merged, with #5 still open for the Supabase check.
 - **Decision: `httpx` → `httpx2` for FastAPI's TestClient.** Starlette marks `httpx` as deprecated for TestClient and suggests `httpx2`. The development agent's attempt to switch the dev dependency was denied by the session's permission check, so `httpx` stays (tests pass, one deprecation warning). The user decides whether to allow the switch.
 - **Docker Desktop** must be running for MKC-5 (`docker compose up db`). The development agent started it on 24.11.2026; if it is stopped after a restart, start it again.
 - Later setup tasks (listed in design doc section 13): Supabase project, Vercel account, provider API keys with caps, GitHub `production` environment, a domain with TLS. MKC-5 needs the Supabase project for its live part; its one-off Supabase check waits for that; migrations and tests use Docker Postgres.
@@ -54,6 +56,7 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+- **24.11.2026 21:50** Review agent for PR #80 not started: denied by the session permission check. Stopped: PR #80 waits for review and merge; no `Ready` ticket; MKC-6 depends on MKC-5 (see Blocked).
 - **24.11.2026 21:49** MKC-5: HANDOFF records PR #80.
 - **24.11.2026 21:49** MKC-5: PR #80 opened (assigned to `qamran`; closes #76, #77, #78; #5 and #79 stay open for the Supabase check); #76, #77 and #78 to `Testing`; #5 stays `In progress`.
 - **24.11.2026 21:48** MKC-5.2: with Postgres unreachable the DB tests hung (timeout at 90 s, Windows retries refused connections); the fixture now uses `connect_timeout=5` and fails in about 5 s with "Postgres not reachable … start it with `docker compose up -d db`". Linux container on the compose network: 13 passed (incl. the POSIX SIGTERM test and a live `postgresql://` URL).
