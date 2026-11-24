@@ -29,7 +29,7 @@ This file is how agents resume work after a session restart.
   - MKC-1: board, labels, tickets, templates, branch protection (PR #65)
   - MKC-2: code-only Turing mirror, README with links, `scripts/check_readme.py` (PR #70)
   - MKC-3: assignment rule (PR #67), HANDOFF.md (PR #69), AGENTS.md + CLAUDE.md + `scripts/check_agents.py` (PR #72, after one FAIL and a fix)
-- **No application code yet.**
+- **Application code:** only what MKC-4 adds (`backend/`), once merged.
 
 ## In progress
 
@@ -41,7 +41,8 @@ This file is how agents resume work after a session restart.
 - **MKC-4.2** (#74), worker entrypoint with clean SIGTERM shutdown. `In progress`.
   - [x] worker tests (red: `No module named 'mkc.worker'`)
   - [x] `mkc.worker.main:run()` + `mkc-worker` script (green: 4 passed, 1 skipped); ruff + mypy pass. The real-SIGTERM subprocess test is skipped on Windows and first runs on Linux in CI (MKC-6); no Docker/WSL here to run it now.
-- [ ] Status doc; PR; review agent; merge; push `main` to `turing`
+- [x] Status doc updated
+- [ ] PR; review agent; merge; push `main` to `turing`
 
 ## Next steps
 
@@ -55,6 +56,7 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+- **24.11.2026 16:29** MKC-4: status doc updated (MKC-3 done, MKC-4 current, first application code).
 - **24.11.2026 16:29** MKC-4.2: `mkc.worker.main:run()` with SIGTERM/SIGINT stop flag and `mkc-worker` script; tests green on Windows (POSIX subprocess test skipped); ruff and mypy pass.
 - **24.11.2026 16:29** MKC-4.2: `tests/worker/test_worker.py` added; red (`mkc.worker` missing).
 - **24.11.2026 16:28** MKC-4.1: `mkc.config.Settings` and `mkc.api.app:create_app()`; API tests green; ruff, ruff format and mypy strict pass.

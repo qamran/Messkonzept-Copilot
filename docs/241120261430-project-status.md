@@ -1,18 +1,17 @@
 # Project status: Messkonzept-Copilot
 
-**Last updated:** 24.11.2026, 16:23
+**Last updated:** 24.11.2026, 16:29
 
 This is the living status document. It is updated whenever a decision is made or work is completed. Older brainstorming material lives in `brainstorming internal/` (gitignored and frozen).
 
 ## Where we are
 
-- **Phase:** implementation, Phase 0 (foundation). The design doc was **approved by the user on 24.11.2026** (after an independent review, verdict "approve with changes", all required changes applied). No application code yet.
+- **Phase:** implementation, Phase 0 (foundation). The design doc was **approved by the user on 24.11.2026** (after an independent review, verdict "approve with changes", all required changes applied). The backend skeleton (MKC-4) is the first application code.
 - **Restart file:** `HANDOFF.md` (repo root) is the agents' running log and next steps, updated with every commit and important ticket change (decision 34). This status doc stays the overview of decisions and documents.
 - **Board:** https://github.com/users/qamran/projects/1 (public). Tickets MKC-1 to MKC-60 exist as issues #1 to #60 (issue number = key).
-- **Done:** MKC-1 (ticket workflow and repo setup), merged in PR #65; MKC-2 (code-only Turing mirror, README with links), merged in PR #70. Both after a review-agent PASS; both remotes at the latest merge commit.
-- **Also done:** MKC-3.1 (#66), assignment rule in the workflow docs, merged in PR #67; MKC-3.2 (#68), HANDOFF.md, merged in PR #69.
-- **Current ticket:** MKC-3 (agent instructions). MKC-3.3 (#71): AGENTS.md with the project rules and the review agent's checklist, one-line CLAUDE.md importing it, checked by `scripts/check_agents.py`; markdown lint config. In review in PR #72.
-- **Next:** MKC-4 (backend skeleton), then MKC-5 and MKC-6 (CI + required checks).
+- **Done:** MKC-1 (ticket workflow and repo setup, PR #65), MKC-2 (code-only Turing mirror, README with links, PR #70), MKC-3 (agent instructions: assignment rule PR #67, HANDOFF.md PR #69, AGENTS.md + CLAUDE.md PR #72). Each after a review-agent PASS; both remotes at the latest merge commit.
+- **Current ticket:** MKC-4 (backend skeleton, plan `docs/superpowers/plans/241120261627-mkc-4-backend-skeleton.md`): uv project `backend/` with package `mkc` (Python 3.12); `mkc.config.Settings` (MKC_* env); FastAPI `create_app()` with `GET /health` and `GET /api/version`; worker `run()` that stops cleanly on SIGTERM; ruff and mypy strict. Run with `cd backend && uv sync && uv run pytest`.
+- **Next:** MKC-5 (database layer, Docker Postgres with pgvector), then MKC-6 (secret hygiene and CI, required checks).
 
 ## Key documents
 
