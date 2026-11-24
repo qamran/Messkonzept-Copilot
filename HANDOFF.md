@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 24.11.2026, 16:18
+**Last updated:** 24.11.2026, 16:23
 
 This file is how agents resume work after a session restart.
 - **Updated:** in every commit, and after every important ticket change: status change, sub-issue created or closed, PR opened or merged, review verdict. A change made outside a branch (e.g. on the board) is recorded in the next commit.
@@ -41,7 +41,8 @@ This file is how agents resume work after a session restart.
   - [x] CLAUDE.md, one line `# Project rules for agents: @AGENTS.md`; check_agents.py green; markdown lint 0 errors
   - [x] HANDOFF "Read this first" points to AGENTS.md; status doc; ADR 005 + design doc (decision 36: no permission questions)
   - [x] PR #72 opened (closes #71 and #3); #3 and #71 to `Testing`
-  - [ ] Review agent verdict; merge; push `main` to `turing`; check origin/main == turing/main
+  - [x] Review FAIL (one HANDOFF log time off by a minute); fix commit; #3 and #71 back to `Testing`
+  - [ ] Re-review verdict; merge; push `main` to `turing`; check origin/main == turing/main
 
 ## Next steps
 
@@ -56,6 +57,9 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+- **24.11.2026 16:23** MKC-3.3: fix commit for the PR #72 findings (15:56 log time; status doc names PR #72; AGENTS.md roles wording); #3 and #71 back to `Testing`.
+- **24.11.2026 16:23** #3 and #71 back to `In progress`.
+- **24.11.2026 16:22** PR #72 review **FAIL**: the log line for the Turing push and #2 `Done` said 15:57; the events were at 15:56.
 - **24.11.2026 16:18** MKC-3.3: PR #72 opened (assigned to `qamran`, closes #71 and #3); #3 and #71 to `Testing`.
 - **24.11.2026 16:17** MKC-3.3: docs updated: HANDOFF "Read this first" points to AGENTS.md (roles moved there); status doc; ADR 005 and design doc decision 36 (user: continue without asking, stop only for genuine decisions).
 - **24.11.2026 16:17** MKC-3.3: CLAUDE.md added (one line importing AGENTS.md); `check_agents.py` passes (green); lint 0 errors.
@@ -63,7 +67,7 @@ Newest first. Times are local (CET), taken from git and GitHub.
 - **24.11.2026 16:15** MKC-3.3: `scripts/check_agents.py` added; fails while AGENTS.md and CLAUDE.md are missing (red).
 - **24.11.2026 16:15** MKC-3: branch `mkc-3-agents-md`; HANDOFF.md caught up after PR #70; design doc "Remotes" line updated.
 - **24.11.2026 16:15** MKC-3.3 (#71) created as sub-issue of #3, assigned to `qamran`, on the board as `In progress`.
-- **24.11.2026 15:57** `main` pushed to `turing`; `origin/main` == `turing/main` == `7b11612`. #2 criteria ticked, board `Done`.
+- **24.11.2026 15:56** `main` pushed to `turing`; `origin/main` == `turing/main` == `7b11612`. #2 criteria ticked, board `Done`.
 - **24.11.2026 15:56** PR #70 review **PASS**, merged `7b11612` (merge commit); #2 closed.
 - **24.11.2026 15:53** MKC-2: PR #70 fix commit `29bb105` (HANDOFF log times corrected from git, PR #70 logged, ADR 005 context reworded, status doc points to PR #70).
 - **24.11.2026 15:52** MKC-2: PR #70 opened (assigned to `qamran`); #2 to `Testing`.

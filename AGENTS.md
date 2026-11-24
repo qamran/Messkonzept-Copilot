@@ -17,7 +17,7 @@ Messkonzept-Copilot reads German grid operators' Messkonzept PDFs and turns them
 
 - **Development agent (Claude Opus 5.5):** pulls a ticket, breaks it into sub-issues, works test-first in atomic commits, pushes a branch, opens the PR and moves the ticket to `Testing`. After each merge it pulls `main` and pushes it to the `turing` remote.
 - **Review agent (Fable):** reviews the PR item by item against the ticket's success criteria and this file, posts its verdict as a PR comment, and merges on PASS. It never writes or fixes the code it reviews.
-- **User (`qamran`):** owns decisions on scope and design, and the setup tasks only a human can do (accounts, keys, secrets). Agents do not ask the user for permission to start the next ticket or step; they stop only for a genuine decision.
+- **User (`qamran`):** owns decisions on scope and design, and the setup tasks only a human can do (accounts, keys, secrets). The development agent does not ask the user for permission to start the next ticket or step; it stops only for a genuine decision (decision 36).
 
 ## Ticket flow
 
