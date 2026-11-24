@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 24.11.2026, 15:40
+**Last updated:** 24.11.2026, 15:45
 
 This file is how agents resume work after a session restart.
 - **Updated:** in every commit, and after every important ticket change: status change, sub-issue created or closed, PR opened or merged, review verdict. A change made outside a branch (e.g. on the board) is recorded in the next commit.
@@ -41,7 +41,7 @@ This file is how agents resume work after a session restart.
   - **MKC-3.2 (#68): this file and its maintenance rule.** Branch `mkc-3-handoff`.
     - [x] `scripts/check_handoff.py` (failed before this file existed)
     - [x] `HANDOFF.md`
-    - [ ] rule in ADR 005 and design doc section 14
+    - [x] rule in ADR 005, design doc section 14 and decision 34 (incl. restart at about 80 % context)
     - [ ] PR + review
   - Still to do in MKC-3: AGENTS.md (roles, ticket flow, commit rules, TDD, docs-current incl. HANDOFF.md, data, model and safety rules, review checklist) and a one-line CLAUDE.md.
 
@@ -61,6 +61,7 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first.
+- **24.11.2026 15:45** HANDOFF rule added to ADR 005 + design doc (decision 34).
 - **24.11.2026 15:40** MKC-3.2 started (#68, board `In progress`); `check_handoff.py` + `HANDOFF.md` written on `mkc-3-handoff`.
 - **24.11.2026 15:35** PR #67 (MKC-3.1) review PASS, merged `7609490`, pushed to `turing`; #66 closed.
 - **24.11.2026 15:25** MKC-3 started; assignment rule added to ADR 005 + design doc (decision 33); PR #67.
