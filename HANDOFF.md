@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 24.11.2026, 15:48
+**Last updated:** 24.11.2026, 15:50
 
 This file is how agents resume work after a session restart.
 - **Updated:** in every commit, and after every important ticket change: status change, sub-issue created or closed, PR opened or merged, review verdict. A change made outside a branch (e.g. on the board) is recorded in the next commit.
@@ -38,8 +38,8 @@ This file is how agents resume work after a session restart.
 ## In progress
 
 - **MKC-2** (#2), code-only Turing mirror. Status `In progress`, assigned to `qamran`. Branch `mkc-2-code-only-mirror` (pushed).
-  - [x] HANDOFF.md brought up to date after PR #69 (this commit)
-  - [ ] ADR 005: decision becomes fallback (c), code-only mirror, no token (lines ~44, 62, 64)
+  - [x] HANDOFF.md brought up to date after PR #69
+  - [x] ADR 005: decision is fallback (c), code-only mirror; consequences without token
   - [ ] Design doc section 14 + decision 32 wording + new decision 35; backlog MKC-2 entry
   - [ ] `scripts/check_readme.py` test-first, then README.md with intro + links (board, issues, design doc, ADRs, HANDOFF.md)
   - [ ] Status doc; PR; review agent; merge; push `main` to `turing`
@@ -59,6 +59,7 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+- **24.11.2026 15:50** MKC-2: ADR 005 updated to fallback (c), code-only Turing mirror, no token.
 - **24.11.2026 15:48** MKC-2 to `In progress`; branch `mkc-2-code-only-mirror`; HANDOFF.md brought up to date. Session restart recommended by the development agent (context high).
 - **24.11.2026 15:47** PR #69 re-review **PASS**, merged `cb35b4b`, pushed to `turing`; #68 closed and `Done`, criteria ticked.
 - **24.11.2026 15:46** Fix commit for the PR #69 review findings: status doc updated, HANDOFF.md times corrected from git/GitHub, missing log lines added.
