@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 24.11.2026, 15:45
+**Last updated:** 24.11.2026, 15:46
 
 This file is how agents resume work after a session restart.
 - **Updated:** in every commit, and after every important ticket change: status change, sub-issue created or closed, PR opened or merged, review verdict. A change made outside a branch (e.g. on the board) is recorded in the next commit.
@@ -42,33 +42,37 @@ This file is how agents resume work after a session restart.
     - [x] `scripts/check_handoff.py` (failed before this file existed)
     - [x] `HANDOFF.md`
     - [x] rule in ADR 005, design doc section 14 and decision 34 (incl. restart at about 80 % context)
-    - [ ] PR + review
+    - [x] PR #69 opened → review **FAIL** (15:45) → findings fixed in a follow-up commit; re-review pending
   - Still to do in MKC-3: AGENTS.md (roles, ticket flow, commit rules, TDD, docs-current incl. HANDOFF.md, data, model and safety rules, review checklist) and a one-line CLAUDE.md.
 
 ## Next steps
 
 1. Finish MKC-3.2 → PR → review agent → merge → push `main` to `turing`.
 2. Finish MKC-3 (AGENTS.md, CLAUDE.md) as further sub-issues on new branches.
-3. MKC-2 (issue mirror), once the user provides `TURING_ISSUES_TOKEN`.
+3. MKC-2 (#2): code-only Turing mirror + README with links (user decision: no issue mirror, no token).
 4. MKC-4 (backend skeleton) once MKC-3 is done; then MKC-5, MKC-6 (CI + required checks).
 
 ## Blocked / waiting on user
 
-- `TURING_ISSUES_TOKEN`: a fine-grained token with issues read/write on the Turing repo, stored as a repo secret. Blocks MKC-2.
 - Optional: turn on the board's "Auto-add to project" workflow (board settings, UI only). Until then, the development agent adds new issues to the board itself.
 - Later setup tasks (listed in design doc section 13): Supabase project, Vercel account, provider API keys with caps, GitHub `production` environment, a domain with TLS.
 
 ## Recent log
 
-Newest first.
-- **24.11.2026 15:45** HANDOFF rule added to ADR 005 + design doc (decision 34).
-- **24.11.2026 15:40** MKC-3.2 started (#68, board `In progress`); `check_handoff.py` + `HANDOFF.md` written on `mkc-3-handoff`.
-- **24.11.2026 15:35** PR #67 (MKC-3.1) review PASS, merged `7609490`, pushed to `turing`; #66 closed.
-- **24.11.2026 15:25** MKC-3 started; assignment rule added to ADR 005 + design doc (decision 33); PR #67.
-- **24.11.2026 15:15** PR #65 (MKC-1) review PASS, merged `8f9b7d0`, pushed to `turing`. MKC-2 and MKC-3 set to `Ready`.
-- **24.11.2026 15:05** MKC-1: board, labels, 60 tickets, sub-issues #61–#64, templates, repo metadata, branch protection; PR #65.
-- **24.11.2026 15:00** Ticket backlog approved and committed; both remotes synced.
-- **24.11.2026** Design doc approved after an independent review; ADRs 001–005 written.
+Newest first. Times are local (CET), taken from git and GitHub.
+- **24.11.2026 15:46** Fix commit for the PR #69 review findings: status doc updated, HANDOFF.md times corrected from git/GitHub, missing log lines added.
+- **24.11.2026 15:45** PR #69 review **FAIL** (status doc not updated; wrong clock times in this log; missing log lines). #68 back to `In progress`.
+- **24.11.2026 15:44** MKC-2 (#2) redefined by user decision: no issue mirror, Turing repo is code-only, README links to the board; no token needed. Issue body rewritten, `user-task` label removed, assigned to `qamran`.
+- **24.11.2026 15:41** PR #69 (MKC-3.2) opened; #68 to `Testing`.
+- **24.11.2026 15:41** Commits `86a33f5` (check_handoff.py), `aea4d25` (HANDOFF.md), `3e20f51` (rule in ADR 005 + design doc, decision 34) on `mkc-3-handoff`.
+- **24.11.2026 15:40** MKC-3.2 (#68) created, added to the board as `In progress`.
+- **24.11.2026 15:39** PR #67 (MKC-3.1) review PASS, merged `7609490`, pushed to `turing`; #66 closed.
+- **24.11.2026 15:38** PR #67 opened (assignment rule in ADR 005 + design doc, decision 33; status doc refreshed).
+- **24.11.2026 15:37** MKC-3 to `In progress`; sub-issue MKC-3.1 (#66) created; MKC-1 and its sub-issues assigned to `qamran`.
+- **24.11.2026 15:35** PR #65 (MKC-1) review PASS, merged `8f9b7d0`, pushed to `turing`; #1 closed. MKC-2 and MKC-3 set to `Ready`.
+- **24.11.2026 15:32** PR #65 opened; MKC-1 to `Testing`.
+- **24.11.2026 15:24** MKC-1: 60 tickets created (#1–#60); sub-issues #61–#64; templates, repo metadata, branch protection.
+- **24.11.2026** Ticket backlog approved and committed; design doc approved after an independent review; ADRs 001–005 written.
 
 ## Key links
 
