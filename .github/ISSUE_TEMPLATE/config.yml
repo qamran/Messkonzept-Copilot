@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Ticket board
+    url: https://github.com/users/qamran/projects/1
+    about: All tickets (MKC-1 to MKC-60) and their status.

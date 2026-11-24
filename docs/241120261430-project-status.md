@@ -1,13 +1,14 @@
 # Project status: Messkonzept-Copilot
 
-**Last updated:** 24.11.2026, 15:00
+**Last updated:** 24.11.2026, 15:32
 
 This is the living status document. It is updated whenever a decision is made or work is completed. Older brainstorming material lives in `brainstorming internal/` (gitignored and frozen).
 
 ## Where we are
 
 - **Phase:** planning. The design doc was **approved by the user on 24.11.2026** (after an independent review, verdict "approve with changes", all required changes applied). The design doc, ADRs and this status doc are committed and pushed to both remotes. No code yet.
-- **Next step:** MKC-1 sets up the public Projects board and creates all tickets from the backlog.
+- **Board:** https://github.com/users/qamran/projects/1 (public). Tickets MKC-1 to MKC-60 exist as issues #1 to #60 (issue number = key).
+- **Current ticket:** MKC-1 (ticket workflow and repo setup), in `Testing` once its PR is open.
 
 ## Key documents
 
@@ -60,7 +61,7 @@ This is the living status document. It is updated whenever a decision is made or
 - [x] User approval of the design doc (24.11.2026)
 - [x] Development plan written: ticket backlog MKC-1 to MKC-60, each with goal, scope, test and success criteria (24.11.2026)
 - [x] User review of the ticket backlog (approved 24.11.2026)
-- [ ] Tickets created on the board (MKC-1)
+- [x] Tickets created on the board (MKC-1, 24.11.2026)
 - [ ] User setup tasks:
   - Supabase project (Postgres + private bucket)
   - Vercel account linked to the personal repo
