@@ -73,7 +73,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
 
 ### MKC-1: Ticket workflow and repo setup
 - **Goal:** the public board, templates and branch rules exist, so all later work follows ADR 005.
-- **Scope:** features 0 and 1, without the mirror Action (MKC-2). Repo description and topics for the showcase.
+- **Scope:** features 0 and 1, without the Turing mirror part (MKC-2). Repo description and topics for the showcase.
 - **Depends on:** none. The user must first grant `gh auth refresh -s project`.
 - **Test:**
   - a dummy issue created from the template appears on the board in `Backlog`
@@ -87,18 +87,20 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] Repo description, topics and website field set
   - [ ] All tickets in this backlog created on the board, with keys `MKC-<n>` in their titles
 
-### MKC-2: Issue mirror to the Turing repo
-- **Goal:** every issue in the home repo exists in the Turing repo with the same key, a link back, and synced open/closed state.
-- **Scope:** feature 0 (mirror part); fallback option (c) of ADR 005 if the Turing organisation blocks it.
-- **Depends on:** MKC-1. The user provides a fine-grained token (Turing repo, issues: write) as the secret `TURING_ISSUES_TOKEN`.
-- **Test:**
-  - workflow test: opening, editing and closing an issue in the home repo creates, updates and closes its mirror
-  - unit test of the title/body mapping (key kept, back-link added)
+### MKC-2: Turing repo as code-only mirror (no issue mirror)
+*Changed 24.11.2026 by user decision: ADR 005 option (c) instead of an issue-mirror Action (decision 35).*
+- **Goal:** the Turing submission repo carries the same code as the home repo, and reviewers find the tickets through links, without an issue mirror or token.
+- **Scope:** feature 0 (mirror part). Out: issue-mirror Action, `TURING_ISSUES_TOKEN`.
+- **Depends on:** MKC-1.
+- **Interfaces:**
+  - **Produces:** `README.md` (replaces the one-line Turing bot README; the full README follows in MKC-44), `scripts/check_readme.py`.
+- **Test:** `scripts/check_readme.py` asserts README.md links to the board URL and the issues URL; after merge, both remotes show the same `main` commit.
 - **Success criteria:**
-  - [ ] `.github/workflows/mirror-issues.yml` runs on `issues` events and is idempotent (re-runs never duplicate a mirror)
-  - [ ] Mirror title `MKC-<n>: …`, body starting with "Mirror of qamran/Messkonzept-Copilot#<n>"
-  - [ ] Backfill: all existing tickets are mirrored once
-  - [ ] If blocked: ADR 005 updated with fallback (c), and the Turing README links the board
+  - [ ] ADR 005 updated: decision is option (c), code-only mirror; consequences without token
+  - [ ] Design doc section 14 + decision 35; this entry updated; HANDOFF.md and status doc updated
+  - [ ] README.md with intro + links to the board, the issue list, design doc, ADRs, HANDOFF.md
+  - [ ] Check script for the README links, added test-first
+  - [ ] After merge: `origin/main` == `turing/main`
 
 ### MKC-3: Agent instructions (AGENTS.md, CLAUDE.md)
 - **Goal:** both agents get the project rules from the repo, not from memory.
