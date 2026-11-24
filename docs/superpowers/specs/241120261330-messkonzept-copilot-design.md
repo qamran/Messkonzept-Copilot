@@ -417,7 +417,7 @@ E3 and E5 are **re-run after Phase 7**, because the advisor and the injection gu
   - **Development agent (Claude Opus 5.5):** pulls a ticket, breaks it into issues and sub-issues, works it in atomic commits (under 200 lines where possible) that each reference their issue, pushes to a separate branch, and moves the ticket to `Testing`.
   - **Review agent (Fable):** reviews the PR, merges it, and closes the ticket. It never writes the code it reviews.
 - **Flow per ticket** (triggered in-session with "next ticket"):
-  1. The development agent takes the top `Ready` ticket and sets it to `In progress`.
+  1. The development agent takes the top `Ready` ticket, sets it to `In progress` and **assigns it, its sub-issues and its PR to the user (`qamran`)**.
   2. It creates issues and sub-issues, each with a goal, a test and **success criteria** (a checklist of what must be delivered and true; ticket format in the backlog plan).
   3. It branches from `main`, works test-first, and makes atomic commits (under 200 lines where possible), each referencing its sub-issue.
   4. It pushes, opens a PR (`Closes #<issue>`), and sets the ticket to `Testing`.
@@ -494,6 +494,7 @@ The build follows the phases in section 20, ordered by dependency:
 | 30 | E4 gets a no-fault arm; fault mechanics on replayed responses | agent, after review |
 | 31 | Public read-only demo; primary user MSB/VNB/energy-IT staff; §14a Modul 3 out of scope; CI/CD hardening for a public repo; Clerk preview check | agent, after review |
 | 32 | Ticket workflow: GitHub Issues + sub-issues on a public Projects board; `MKC-<n>` keys; issue mirror Action to the Turing repo; branch per ticket; development agent (Opus 5.5) builds, review agent (Fable) reviews and merges after green CI (ADR 005) | user (agent recommended; agent roles and models: user) |
+| 33 | Tickets being worked on, their sub-issues and PRs are assigned to the user (`qamran`) | user |
 
 ## 19. Course coverage
 

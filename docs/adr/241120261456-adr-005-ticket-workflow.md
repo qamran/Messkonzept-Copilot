@@ -47,7 +47,7 @@ Issue numbers in the two repos diverge.
   - **Development agent (Claude Opus 5.5):** pulls a ticket, breaks it into issues and sub-issues, works it in atomic commits (under 200 lines where possible) that each reference their issue, pushes to a separate branch, and moves the ticket to `Testing`.
   - **Review agent (Fable):** reviews the PR, merges it, and closes the ticket. It never writes the code it reviews.
 - **Flow per ticket:**
-  1. The **development agent** takes the highest-priority `Ready` ticket and sets it to `In progress`.
+  1. The **development agent** takes the highest-priority `Ready` ticket, sets it to `In progress` and **assigns it to the user (`qamran`)**. The same applies to every sub-issue it creates and to the PR. *(Added 24.11.2026 at the user's request.)*
   2. It breaks the ticket into issues and sub-issues, each with a goal, a test and **success criteria**: a checklist of exactly what must be delivered and true before it counts as done (the ticket format in `docs/superpowers/plans/241120261500-ticket-backlog.md`).
   3. It branches `mkc-<n>-<slug>` from `main`, works test-first, and makes atomic commits (under 200 lines where possible), each referencing its sub-issue.
   4. It pushes the branch, opens a PR (body: `Closes #<issue>` and the key), and sets the ticket to `Testing`.
