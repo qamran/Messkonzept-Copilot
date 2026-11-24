@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 24.11.2026, 16:35
+**Last updated:** 24.11.2026, 16:46
 
 This file is how agents resume work after a session restart.
 - **Updated:** in every commit, and after every important ticket change: status change, sub-issue created or closed, PR opened or merged, review verdict. A change made outside a branch (e.g. on the board) is recorded in the next commit.
@@ -18,37 +18,31 @@ This file is how agents resume work after a session restart.
 
 ## Current state
 
-- **Design approved;** ADRs 001–005 accepted; backlog MKC-1 to MKC-60 on the public board (issue number = key). The board's auto-add workflow is on: new issues land on the board by themselves.
+- **Design approved;** ADRs 001–005 accepted; backlog MKC-1 to MKC-60 on the public board (issue number = key). The board's auto-add workflow is on.
 - **Remotes:**
   - `origin` = qamran/Messkonzept-Copilot (home, public)
   - `turing` = TuringCollegeSubmissions/qshahz-AE.CAP.AFA.1.1 (code-only mirror, no issues; ADR 005 option (c), decision 35)
-  - Both at `6650cbd` (merge of PR #72).
+  - Both at `1555a92` (merge of PR #75).
 - **`main` is protected:** PRs only, enforced for admins. No required CI checks until MKC-6.
 - **Agent rules:** `AGENTS.md` (CLAUDE.md imports it). The development agent continues without asking and stops only for genuine decisions (decision 36).
 - **Done:**
   - MKC-1: board, labels, tickets, templates, branch protection (PR #65)
   - MKC-2: code-only Turing mirror, README with links, `scripts/check_readme.py` (PR #70)
-  - MKC-3: assignment rule (PR #67), HANDOFF.md (PR #69), AGENTS.md + CLAUDE.md + `scripts/check_agents.py` (PR #72, after one FAIL and a fix)
-- **Application code:** only what MKC-4 adds (`backend/`), once merged.
+  - MKC-3: assignment rule (PR #67), HANDOFF.md (PR #69), AGENTS.md + CLAUDE.md + `scripts/check_agents.py` (PR #72)
+  - MKC-4: backend skeleton in `backend/` (uv, Python 3.12, package `mkc`): Settings, FastAPI `/health` + `/api/version`, worker with clean SIGTERM shutdown; ruff + mypy strict (PR #75)
+- **How to test the backend:** `cd backend && uv sync && uv run pytest` (Windows skips one POSIX-only test; run it in Linux with the Docker command in PR #75).
 
 ## In progress
 
-- **MKC-4** (#4), backend skeleton. Status `Testing`, PR #75, assigned to `qamran`. Branch `mkc-4-backend-skeleton`. Plan: `docs/superpowers/plans/241120261627-mkc-4-backend-skeleton.md`.
-- **MKC-4.1** (#73), FastAPI app, settings, health and version endpoints. `Testing`.
-  - [x] uv project in `backend/` (Python 3.12, ruff, mypy strict on `src/`); `uv sync` works
-  - [x] tests for `/health` and `/api/version` (red: `No module named 'mkc.api'`)
-  - [x] `mkc.config.Settings` + `mkc.api.app:create_app()` (green, 3 passed); ruff + mypy pass. Starlette warns that `httpx` for TestClient is deprecated (see Blocked).
-- **MKC-4.2** (#74), worker entrypoint with clean SIGTERM shutdown. `Testing`.
-  - [x] worker tests (red: `No module named 'mkc.worker'`)
-  - [x] `mkc.worker.main:run()` + `mkc-worker` script (green); ruff + mypy pass. Tests fail on a timeout instead of hanging (watchdog; checked with a worker that ignores SIGTERM: fails after 5 s). Windows: 4 passed, 1 skipped; Linux container (Python 3.12): 5 passed, incl. the real-SIGTERM subprocess test.
-- [x] Status doc updated
-- [x] PR #75 opened (closes #4, #73, #74); all three to `Testing`
-- [ ] Review agent verdict; merge; push `main` to `turing`; check origin/main == turing/main
+- **MKC-5** (#5), database layer. Status `In progress`, assigned to `qamran`. Branch `mkc-5-database-layer`. Sub-issues and plan not yet written.
+  - [ ] First: fix the two non-blocking findings from the PR #75 review in `backend/tests/worker/test_worker.py`: (1) cancel the `sigterm` timer in the `finally` too (otherwise a failing `run()` lets the timer kill pytest); (2) give the watchdog check a margin (a `timed_out` event set by the watchdog instead of `elapsed < TIMEOUT`).
+  - [ ] Break MKC-5 into sub-issues (backlog entry MKC-5: Docker Postgres with pgvector via `docker compose up db`, Alembic in `backend/migrations/`, `mkc.db.session.get_session()`, `mkc.db.base.Base`, `DATABASE_URL`; tests `test_upgrade_downgrade_roundtrip`, `test_session_rolls_back_on_error`); write the plan file.
+  - [ ] The one-off Supabase check waits for the user's Supabase project (see Blocked).
 
 ## Next steps
 
-1. Finish MKC-4: review of PR #75, merge, push `main` to `turing` (checklist above).
-2. MKC-5 (database layer), then MKC-6 (secret hygiene and CI, required checks; also repo-wide markdown lint).
+1. MKC-5 (checklist above).
+2. MKC-6 (secret hygiene and CI, required checks; Linux CI runs the POSIX SIGTERM test; repo-wide markdown lint).
 
 ## Blocked / waiting on user
 
@@ -59,6 +53,10 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+- **24.11.2026 16:46** MKC-5 (#5) to `In progress`, assigned to `qamran`; branch `mkc-5-database-layer`; HANDOFF.md caught up after PR #75.
+- **24.11.2026 16:46** #4, #73 and #74 criteria ticked, board `Done`. MKC-4 complete.
+- **24.11.2026 16:45** `main` pushed to `turing` (reflog 16:45:54); `origin/main` == `turing/main` == `1555a92`.
+- **24.11.2026 16:45** PR #75 review **PASS**, merged `1555a92` (merge commit); #4, #73, #74 closed. Two non-blocking test findings (see In progress).
 - **24.11.2026 16:34** MKC-4: PR #75 opened (assigned to `qamran`; closes #4, #73, #74); #4, #73 and #74 to `Testing`.
 - **24.11.2026 16:34** MKC-4: README status line updated (backend skeleton); HANDOFF: the MKC-3 close-out line split by event time, `httpx2` decision and Docker moved under Blocked.
 - **24.11.2026 16:34** MKC-4.2: worker tests enforce their timeout (watchdog stop event, bounded stderr read); `run()` takes an optional stop event. Docker Desktop started; in a Linux container all 5 tests pass, incl. the real SIGTERM test.
