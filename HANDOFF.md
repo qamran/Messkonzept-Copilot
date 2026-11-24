@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 24.11.2026, 16:27
+**Last updated:** 24.11.2026, 16:28
 
 This file is how agents resume work after a session restart.
 - **Updated:** in every commit, and after every important ticket change: status change, sub-issue created or closed, PR opened or merged, review verdict. A change made outside a branch (e.g. on the board) is recorded in the next commit.
@@ -35,7 +35,7 @@ This file is how agents resume work after a session restart.
 
 - **MKC-4** (#4), backend skeleton. Status `In progress`, assigned to `qamran`. Branch `mkc-4-backend-skeleton`. Plan: `docs/superpowers/plans/241120261627-mkc-4-backend-skeleton.md`.
 - **MKC-4.1** (#73), FastAPI app, settings, health and version endpoints. `In progress`.
-  - [ ] uv project in `backend/` (Python 3.12, ruff, mypy strict on `src/`)
+  - [x] uv project in `backend/` (Python 3.12, ruff, mypy strict on `src/`); `uv sync` works
   - [ ] tests for `/health` and `/api/version` (red)
   - [ ] `mkc.config.Settings` + `mkc.api.app:create_app()` (green); ruff + mypy pass
 - **MKC-4.2** (#74), worker entrypoint with clean SIGTERM shutdown. `In progress`.
@@ -55,6 +55,7 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+- **24.11.2026 16:28** MKC-4.1: uv project `backend/` (package `mkc`, Python 3.12, FastAPI, pydantic-settings, uvicorn; ruff, mypy strict, pytest); `uv sync` works.
 - **24.11.2026 16:27** MKC-4: branch `mkc-4-backend-skeleton`; HANDOFF.md caught up after PR #72; plan written.
 - **24.11.2026 16:26** MKC-4 (#4) to `In progress`, assigned to `qamran`; sub-issues MKC-4.1 (#73) and MKC-4.2 (#74) created, assigned, `In progress`. Board auto-add found to be on.
 - **24.11.2026 16:25** `main` pushed to `turing`; `origin/main` == `turing/main` == `6650cbd`. #3 and #71 criteria ticked, both closed and `Done`. MKC-3 complete.
