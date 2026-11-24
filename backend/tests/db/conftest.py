@@ -24,7 +24,8 @@ def db_url() -> Iterator[URL]:
         pytest.skip("MKC_SKIP_DB_TESTS=1")
     server = make_url(Settings().database_url)
     name = f"mkc_test_{uuid.uuid4().hex[:12]}"
-    admin = create_engine(server, isolation_level="AUTOCOMMIT")
+    # connect_timeout: an unreachable server must fail fast, not hang (Windows retries SYNs).
+    admin = create_engine(server, isolation_level="AUTOCOMMIT", connect_args={"connect_timeout": 5})
     try:
         with admin.connect() as conn:
             conn.execute(text(f'CREATE DATABASE "{name}"'))
@@ -32,7 +33,8 @@ def db_url() -> Iterator[URL]:
         admin.dispose()
         pytest.fail(
             f"Postgres not reachable at {server.render_as_string(hide_password=True)}: "
-            f"start it with `docker compose up -d db` or set MKC_SKIP_DB_TESTS=1 ({exc})"
+            f"start it with `docker compose up -d db` or set MKC_SKIP_DB_TESTS=1 ({exc})",
+            pytrace=False,
         )
     try:
         yield server.set(database=name)
