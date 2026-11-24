@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 24.11.2026, 16:47
+**Last updated:** 24.11.2026, 21:33
 
 This file is how agents resume work after a session restart.
 - **Updated:** in every commit, and after every important ticket change: status change, sub-issue created or closed, PR opened or merged, review verdict. A change made outside a branch (e.g. on the board) is recorded in the next commit.
@@ -34,10 +34,11 @@ This file is how agents resume work after a session restart.
 
 ## In progress
 
-- **MKC-5** (#5), database layer. Status `In progress`, assigned to `qamran`. Branch `mkc-5-database-layer`. Sub-issues and plan not yet written.
-  - [ ] First: fix the two non-blocking findings from the PR #75 review in `backend/tests/worker/test_worker.py`: (1) cancel the `sigterm` timer in the `finally` too (otherwise a failing `run()` lets the timer kill pytest); (2) give the watchdog check a margin (a `timed_out` event set by the watchdog instead of `elapsed < TIMEOUT`).
-  - [ ] Break MKC-5 into sub-issues (backlog entry MKC-5: Docker Postgres with pgvector via `docker compose up db`, Alembic in `backend/migrations/`, `mkc.db.session.get_session()`, `mkc.db.base.Base`, `DATABASE_URL`; tests `test_upgrade_downgrade_roundtrip`, `test_session_rolls_back_on_error`); write the plan file.
-  - [ ] The one-off Supabase check waits for the user's Supabase project (see Blocked).
+- **MKC-5** (#5), database layer. Status `In progress`, assigned to `qamran`. Branch `mkc-5-database-layer`. Plan: `docs/superpowers/plans/241120262130-mkc-5-database-layer.md`.
+  - MKC-5.1 (#76): worker test hardening from the PR #75 review. Done on the branch.
+  - MKC-5.2 (#77): `docker compose up db` (pgvector, Postgres 17), `DATABASE_URL`, `Base`, `get_session()`.
+  - MKC-5.3 (#78): Alembic in `backend/migrations/`, round-trip test.
+  - MKC-5.4 (#79): one-off Supabase check. **Blocked on the user** (Supabase project). #5 and #79 stay open after the PR for 5.1–5.3.
 
 ## Next steps
 
@@ -53,6 +54,8 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+- **24.11.2026 21:33** MKC-5.1: `test_run_stops_on_sigterm` cancels the `sigterm` timer in `finally` and asserts on a `timed_out` event. Red shown: with a `run()` that ignores SIGTERM the test fails via `timed_out`; with a `run()` that fails early the old test let SIGTERM kill pytest (exit 3, no summary), the new one reports the failure.
+- **24.11.2026 21:30** MKC-5 sub-issues MKC-5.1 (#76), 5.2 (#77), 5.3 (#78), 5.4 (#79) created, linked to #5, assigned to `qamran`, `In progress`.
 - **24.11.2026 16:46** MKC-5 (#5) to `In progress`, assigned to `qamran`; branch `mkc-5-database-layer`; HANDOFF.md caught up after PR #75.
 - **24.11.2026 16:46** #4, #73 and #74 criteria ticked. MKC-4 complete.
 - **24.11.2026 16:45** `main` pushed to `turing` (reflog 16:45:54); `origin/main` == `turing/main` == `1555a92`.
