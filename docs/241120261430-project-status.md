@@ -1,17 +1,22 @@
 # Project status: Messkonzept-Copilot
 
-**Last updated:** 24.11.2026, 16:29
+**Last updated:** 24.11.2026, 21:42
 
 This is the living status document. It is updated whenever a decision is made or work is completed. Older brainstorming material lives in `brainstorming internal/` (gitignored and frozen).
 
 ## Where we are
 
-- **Phase:** implementation, Phase 0 (foundation). The design doc was **approved by the user on 24.11.2026** (after an independent review, verdict "approve with changes", all required changes applied). The backend skeleton (MKC-4) is the first application code.
+- **Phase:** implementation, Phase 0 (foundation). The design doc was **approved by the user on 24.11.2026** (after an independent review, verdict "approve with changes", all required changes applied). The backend skeleton (MKC-4) is the first application code; MKC-5 adds the database layer.
 - **Restart file:** `HANDOFF.md` (repo root) is the agents' running log and next steps, updated with every commit and important ticket change (decision 34). This status doc stays the overview of decisions and documents.
 - **Board:** https://github.com/users/qamran/projects/1 (public). Tickets MKC-1 to MKC-60 exist as issues #1 to #60 (issue number = key).
-- **Done:** MKC-1 (ticket workflow and repo setup, PR #65), MKC-2 (code-only Turing mirror, README with links, PR #70), MKC-3 (agent instructions: assignment rule PR #67, HANDOFF.md PR #69, AGENTS.md + CLAUDE.md PR #72). Each after a review-agent PASS; both remotes at the latest merge commit.
-- **Current ticket:** MKC-4 (backend skeleton, plan `docs/superpowers/plans/241120261627-mkc-4-backend-skeleton.md`): uv project `backend/` with package `mkc` (Python 3.12); `mkc.config.Settings` (MKC_* env); FastAPI `create_app()` with `GET /health` and `GET /api/version`; worker `run()` that stops cleanly on SIGTERM; ruff and mypy strict. Run with `cd backend && uv sync && uv run pytest`.
-- **Next:** MKC-5 (database layer, Docker Postgres with pgvector), then MKC-6 (secret hygiene and CI, required checks).
+- **Done:** MKC-1 (ticket workflow and repo setup, PR #65), MKC-2 (code-only Turing mirror, README with links, PR #70), MKC-3 (agent instructions: assignment rule PR #67, HANDOFF.md PR #69, AGENTS.md + CLAUDE.md PR #72), MKC-4 (backend skeleton: uv project `backend/`, package `mkc`, FastAPI `/health` and `/api/version`, worker with clean SIGTERM shutdown, ruff and mypy strict, PR #75). Each after a review-agent PASS; both remotes at the latest merge commit.
+- **Current ticket:** MKC-5 (database layer, plan `docs/superpowers/plans/241120262130-mkc-5-database-layer.md`), sub-issues MKC-5.1 to MKC-5.4 (#76–#79):
+  - `docker compose up db` (repo root): Postgres 17 with pgvector (`pgvector/pgvector:pg17`; Supabase hosts Postgres 17) on `127.0.0.1:5433`, dev-only credentials
+  - `DATABASE_URL` setting, mapped to the psycopg 3 driver; SQLAlchemy 2; `mkc.db.base.Base`, `mkc.db.session.get_session()`
+  - Alembic in `backend/migrations/`; revision `0001` enables `vector`; the round-trip test runs in a throwaway database
+  - DB tests fail when Postgres is unreachable (`MKC_SKIP_DB_TESTS=1` skips them on purpose); MKC-6 needs a pgvector service container in CI
+  - **Open:** the one-off Supabase check (MKC-5.4) waits for the user's Supabase project. #5 stays open until then.
+- **Next:** MKC-6 (secret hygiene and CI, required checks).
 
 ## Key documents
 

@@ -30,20 +30,20 @@ This file is how agents resume work after a session restart.
   - MKC-2: code-only Turing mirror, README with links, `scripts/check_readme.py` (PR #70)
   - MKC-3: assignment rule (PR #67), HANDOFF.md (PR #69), AGENTS.md + CLAUDE.md + `scripts/check_agents.py` (PR #72)
   - MKC-4: backend skeleton in `backend/` (uv, Python 3.12, package `mkc`): Settings, FastAPI `/health` + `/api/version`, worker with clean SIGTERM shutdown; ruff + mypy strict (PR #75)
-- **How to test the backend:** `cd backend && uv sync && uv run pytest` (Windows skips one POSIX-only test; run it in Linux with the Docker command in PR #75).
+- **How to test the backend:** `docker compose up -d db` (repo root; Postgres 17 + pgvector on `127.0.0.1:5433`), then `cd backend && uv sync && uv run pytest`. The DB tests fail if the db is down; `MKC_SKIP_DB_TESTS=1` skips them on purpose. Windows skips one POSIX-only worker test; run it in Linux with the Docker command in PR #75.
 
 ## In progress
 
 - **MKC-5** (#5), database layer. Status `In progress`, assigned to `qamran`. Branch `mkc-5-database-layer`. Plan: `docs/superpowers/plans/241120262130-mkc-5-database-layer.md`.
   - MKC-5.1 (#76): worker test hardening from the PR #75 review. Done on the branch.
-  - MKC-5.2 (#77): `docker compose up db` (pgvector, Postgres 17), `DATABASE_URL`, `Base`, `get_session()`.
-  - MKC-5.3 (#78): Alembic in `backend/migrations/`, round-trip test.
+  - MKC-5.2 (#77): `docker compose up db` (pgvector, Postgres 17), `DATABASE_URL`, `Base`, `get_session()`. Done on the branch.
+  - MKC-5.3 (#78): Alembic in `backend/migrations/`, round-trip test. Done on the branch.
   - MKC-5.4 (#79): one-off Supabase check. **Blocked on the user** (Supabase project). #5 and #79 stay open after the PR for 5.1–5.3.
 
 ## Next steps
 
 1. MKC-5 (checklist above).
-2. MKC-6 (secret hygiene and CI, required checks; Linux CI runs the POSIX SIGTERM test; repo-wide markdown lint).
+2. MKC-6 (secret hygiene and CI, required checks; Linux CI runs the POSIX SIGTERM test; a `pgvector/pgvector:pg17` service container for the DB tests; repo-wide markdown lint).
 
 ## Blocked / waiting on user
 
@@ -54,6 +54,7 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+- **24.11.2026 21:41** MKC-5: status doc (MKC-4 done, MKC-5 current with Postgres 17, psycopg 3, port 5433, Supabase check open) and README (start the db before the tests) updated; HANDOFF test instructions and next steps updated.
 - **24.11.2026 21:41** MKC-5.3: Alembic in `backend/migrations/` (`env.py` takes the URL from `Settings` and passes the engine directly; `script_location = %(here)s/migrations`); revision `0001` enables `vector`. Round-trip test green; `uv run alembic upgrade head`, `current`, `downgrade base` work from `backend/` and with `-c backend/alembic.ini` from the repo root. 12 passed; ruff and mypy pass.
 - **24.11.2026 21:40** MKC-5.3: `tests/db/test_migrations.py::test_upgrade_downgrade_roundtrip` added; red (no `alembic.ini`, "No script_location").
 - **24.11.2026 21:40** MKC-5.2: `mkc.db.base.Base`, `mkc.db.session.get_engine()` (lazy, one engine per URL) and `get_session()` (commit, rollback, close); all 11 tests green incl. the 3 DB tests against the compose db (throwaway database dropped afterwards); ruff and mypy pass.
