@@ -1,6 +1,6 @@
 # Project status: Messkonzept-Copilot
 
-**Last updated:** 24.11.2026, 15:58
+**Last updated:** 24.11.2026, 15:53
 
 This is the living status document. It is updated whenever a decision is made or work is completed. Older brainstorming material lives in `brainstorming internal/` (gitignored and frozen).
 
@@ -11,7 +11,7 @@ This is the living status document. It is updated whenever a decision is made or
 - **Board:** https://github.com/users/qamran/projects/1 (public). Tickets MKC-1 to MKC-60 exist as issues #1 to #60 (issue number = key).
 - **Done:** MKC-1 (ticket workflow and repo setup), merged in PR #65 after a review-agent PASS. Both remotes at the merge commit.
 - **Also done:** MKC-3.1 (#66), assignment rule in the workflow docs, merged in PR #67; MKC-3.2 (#68), HANDOFF.md, merged in PR #69.
-- **Current ticket:** MKC-2 (#2), code-only Turing mirror (decision 35): ADR 005, design doc and backlog updated; README.md with links to the board, issues, design doc, ADRs and HANDOFF.md, checked by `scripts/check_readme.py`. In review.
+- **Current ticket:** MKC-2 (#2), code-only Turing mirror (decision 35): ADR 005, design doc and backlog updated; README.md with links to the board, issues, design doc, ADRs and HANDOFF.md, checked by `scripts/check_readme.py`. In review in PR #70.
 - **Next:** MKC-3 (agent instructions): AGENTS.md and CLAUDE.md still to do.
 
 ## Key documents

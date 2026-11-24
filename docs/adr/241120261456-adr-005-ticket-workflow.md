@@ -15,7 +15,7 @@ The project has two remotes:
 - `origin`: the personal public repo, which is home
 - `turing`: the Turing College submission mirror
 
-Issue numbers in the two repos diverge.
+Issue numbers in the two repos would diverge if both held issues.
 
 ## Options considered
 
