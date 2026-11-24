@@ -54,6 +54,7 @@ Issue numbers in the two repos diverge.
   5. The **review agent** (Fable) reviews the PR item by item against the ticket's success criteria and the repo standards, and posts its verdict as a PR comment.
   6. **Pass + green CI:** the review agent merges (squash is not used, so the atomic commits are kept), the ticket closes, its status goes to `Done`, and `main` is pushed to both remotes.
   7. **Fail:** the ticket goes back to `In progress`, with the findings listed, and the development agent picks it up again.
+- **HANDOFF.md** (repo root) is the restart file for agents: what is done, in progress, next, blocked, and a newest-first log. It is updated in every commit and after every important ticket change (status change, sub-issue created or closed, PR opened or merged, review verdict); changes made outside a branch are recorded in the next commit. `scripts/check_handoff.py` checks its sections. When a session's context passes about 80 %, the development agent tells the user and recommends a restart, after making sure HANDOFF.md is current. *(Added 24.11.2026 at the user's request.)*
 - **Branch protection on `main`:** PRs only; required CI checks (lint, types, tests, eval gate, Helm/kind); no force-push. A bot cannot formally approve its own PR, so the gate is green CI plus the review agent's verdict comment.
 
 ## Consequences

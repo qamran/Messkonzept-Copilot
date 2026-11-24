@@ -423,6 +423,7 @@ E3 and E5 are **re-run after Phase 7**, because the advisor and the injection gu
   4. It pushes, opens a PR (`Closes #<issue>`), and sets the ticket to `Testing`.
   5. The **review agent** (Fable) reviews item by item against the success criteria and the repo standards, and posts its verdict on the PR.
   6. **Pass + green CI:** it merges (no squash, so atomic commits stay), the ticket goes to `Done`, and `main` is pushed to both remotes. **Fail:** back to `In progress`, with findings, for the development agent.
+- **HANDOFF.md** (repo root) is the restart file for agents: what is done, in progress, next, blocked, and a newest-first log. It is updated in every commit and after every important ticket change (status change, sub-issue created or closed, PR opened or merged, review verdict); changes made outside a branch are recorded in the next commit. `scripts/check_handoff.py` checks its sections. When a session's context passes about 80 %, the development agent tells the user and recommends a restart, after making sure HANDOFF.md is current. *(Added 24.11.2026 at the user's request.)*
 - **Branch protection:** PRs only, required CI checks, no force-push. The gate is green CI plus the review agent's verdict comment, because a bot cannot approve its own PR.
 - **AGENTS.md** (with CLAUDE.md pointing to it) holds the project rules: this workflow, commit format and size, test-first, docs kept current (design doc, ADRs, status doc), the no-PDF-in-repo rule, the no-mako rule.
 - Planning through spec → plan → tickets. Skills used: brainstorming, writing-plans, TDD, code review.
@@ -495,6 +496,7 @@ The build follows the phases in section 20, ordered by dependency:
 | 31 | Public read-only demo; primary user MSB/VNB/energy-IT staff; §14a Modul 3 out of scope; CI/CD hardening for a public repo; Clerk preview check | agent, after review |
 | 32 | Ticket workflow: GitHub Issues + sub-issues on a public Projects board; `MKC-<n>` keys; issue mirror Action to the Turing repo; branch per ticket; development agent (Opus 5.5) builds, review agent (Fable) reviews and merges after green CI (ADR 005) | user (agent recommended; agent roles and models: user) |
 | 33 | Tickets being worked on, their sub-issues and PRs are assigned to the user (`qamran`) | user |
+| 34 | HANDOFF.md as the agents' restart file, updated with every commit and important ticket change; restart recommended at about 80 % context | user |
 
 ## 19. Course coverage
 
