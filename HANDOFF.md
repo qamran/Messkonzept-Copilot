@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 24.11.2026, 16:29
+**Last updated:** 24.11.2026, 16:34
 
 This file is how agents resume work after a session restart.
 - **Updated:** in every commit, and after every important ticket change: status change, sub-issue created or closed, PR opened or merged, review verdict. A change made outside a branch (e.g. on the board) is recorded in the next commit.
@@ -40,7 +40,7 @@ This file is how agents resume work after a session restart.
   - [x] `mkc.config.Settings` + `mkc.api.app:create_app()` (green, 3 passed); ruff + mypy pass. Open: Starlette warns that `httpx` for TestClient is deprecated; switching to `httpx2` was not done (unvetted package, blocked by the permission check).
 - **MKC-4.2** (#74), worker entrypoint with clean SIGTERM shutdown. `In progress`.
   - [x] worker tests (red: `No module named 'mkc.worker'`)
-  - [x] `mkc.worker.main:run()` + `mkc-worker` script (green: 4 passed, 1 skipped); ruff + mypy pass. The real-SIGTERM subprocess test is skipped on Windows and first runs on Linux in CI (MKC-6); no Docker/WSL here to run it now.
+  - [x] `mkc.worker.main:run()` + `mkc-worker` script (green); ruff + mypy pass. Tests fail on a timeout instead of hanging (watchdog; checked with a worker that ignores SIGTERM: fails after 5 s). Windows: 4 passed, 1 skipped; Linux container (Python 3.12): 5 passed, incl. the real-SIGTERM subprocess test.
 - [x] Status doc updated
 - [ ] PR; review agent; merge; push `main` to `turing`
 
@@ -56,6 +56,7 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+- **24.11.2026 16:34** MKC-4.2: worker tests enforce their timeout (watchdog stop event, bounded stderr read); `run()` takes an optional stop event. Docker Desktop started; in a Linux container all 5 tests pass, incl. the real SIGTERM test.
 - **24.11.2026 16:29** MKC-4: status doc updated (MKC-3 done, MKC-4 current, first application code).
 - **24.11.2026 16:29** MKC-4.2: `mkc.worker.main:run()` with SIGTERM/SIGINT stop flag and `mkc-worker` script; tests green on Windows (POSIX subprocess test skipped); ruff and mypy pass.
 - **24.11.2026 16:29** MKC-4.2: `tests/worker/test_worker.py` added; red (`mkc.worker` missing).

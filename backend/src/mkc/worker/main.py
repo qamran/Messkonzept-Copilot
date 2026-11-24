@@ -12,14 +12,15 @@ log = logging.getLogger("mkc.worker")
 _STOP_SIGNALS = (signal.SIGTERM, signal.SIGINT)
 
 
-def run() -> None:
-    """Poll for work until SIGTERM or SIGINT, then return cleanly.
+def run(stop: threading.Event | None = None) -> None:
+    """Poll for work until SIGTERM or SIGINT (or `stop` is set), then return cleanly.
 
     Must be called from the main thread (Python only installs signal handlers there).
+    `stop` lets a caller, such as a test watchdog, end the loop from another thread.
     """
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(message)s")
     settings = get_settings()
-    stop = threading.Event()
+    stop = stop or threading.Event()
 
     def request_stop(signum: int, _frame: FrameType | None) -> None:
         log.info("signal %s received, stopping", signal.Signals(signum).name)
