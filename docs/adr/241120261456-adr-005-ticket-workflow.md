@@ -42,7 +42,8 @@ Issue numbers in the two repos would diverge if both held issues.
   - Commit format: `MKC-<n>: <summary>` with a trailer `Refs: qamran/Messkonzept-Copilot#<issue>`.
   - This stays unambiguous across both repos.
 - **Turing mirror: option (c), code only.** The Turing repo receives the same commits as the home repo (`main` is pushed to both remotes) but no issues. The README in the repo root links to the public board, the issue list, the design doc, the ADRs and HANDOFF.md, so reviewers of either repo find the tickets. *(Changed 24.11.2026 by user decision in MKC-2; first decision was option (a), an issue-mirror Action.)*
-- **Trigger:** in-session to start ("next ticket"). A loop or schedule may come later.
+- **Trigger:** in-session to start ("next ticket"). A loop or schedule may come later. Once started, the development agent goes on to the next ticket or step without asking the user for permission; it stops only for a genuine decision (scope or design choices, user-only setup tasks). *(Added 24.11.2026 at the user's request.)*
+- **Agent instructions:** `AGENTS.md` (repo root) holds these rules for both agents, including the review agent's checklist; `CLAUDE.md` is one line importing it (MKC-3).
 - **Roles:**
   - **Development agent (Claude Opus 5.5):** pulls a ticket, breaks it into issues and sub-issues, works it in atomic commits (under 200 lines where possible) that each reference their issue, pushes to a separate branch, and moves the ticket to `Testing`.
   - **Review agent (Fable):** reviews the PR, merges it, and closes the ticket. It never writes the code it reviews.

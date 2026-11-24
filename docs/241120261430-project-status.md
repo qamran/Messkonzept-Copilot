@@ -1,6 +1,6 @@
 # Project status: Messkonzept-Copilot
 
-**Last updated:** 24.11.2026, 15:53
+**Last updated:** 24.11.2026, 16:23
 
 This is the living status document. It is updated whenever a decision is made or work is completed. Older brainstorming material lives in `brainstorming internal/` (gitignored and frozen).
 
@@ -9,10 +9,10 @@ This is the living status document. It is updated whenever a decision is made or
 - **Phase:** implementation, Phase 0 (foundation). The design doc was **approved by the user on 24.11.2026** (after an independent review, verdict "approve with changes", all required changes applied). No application code yet.
 - **Restart file:** `HANDOFF.md` (repo root) is the agents' running log and next steps, updated with every commit and important ticket change (decision 34). This status doc stays the overview of decisions and documents.
 - **Board:** https://github.com/users/qamran/projects/1 (public). Tickets MKC-1 to MKC-60 exist as issues #1 to #60 (issue number = key).
-- **Done:** MKC-1 (ticket workflow and repo setup), merged in PR #65 after a review-agent PASS. Both remotes at the merge commit.
+- **Done:** MKC-1 (ticket workflow and repo setup), merged in PR #65; MKC-2 (code-only Turing mirror, README with links), merged in PR #70. Both after a review-agent PASS; both remotes at the latest merge commit.
 - **Also done:** MKC-3.1 (#66), assignment rule in the workflow docs, merged in PR #67; MKC-3.2 (#68), HANDOFF.md, merged in PR #69.
-- **Current ticket:** MKC-2 (#2), code-only Turing mirror (decision 35): ADR 005, design doc and backlog updated; README.md with links to the board, issues, design doc, ADRs and HANDOFF.md, checked by `scripts/check_readme.py`. In review in PR #70.
-- **Next:** MKC-3 (agent instructions): AGENTS.md and CLAUDE.md still to do.
+- **Current ticket:** MKC-3 (agent instructions). MKC-3.3 (#71): AGENTS.md with the project rules and the review agent's checklist, one-line CLAUDE.md importing it, checked by `scripts/check_agents.py`; markdown lint config. In review in PR #72.
+- **Next:** MKC-4 (backend skeleton), then MKC-5 and MKC-6 (CI + required checks).
 
 ## Key documents
 
@@ -24,12 +24,13 @@ This is the living status document. It is updated whenever a decision is made or
 | ADR 003: Supabase instead of SQLite (+ restore drill) | `docs/adr/241120261430-adr-003-database.md` |
 | ADR 004: narrow RAG corpus and decision layer with LLM fallback | `docs/adr/241120261441-adr-004-rag-and-decision-layer.md` |
 | ADR 005: ticket workflow (GitHub Issues + public Projects board) | `docs/adr/241120261456-adr-005-ticket-workflow.md` |
+| AGENTS.md (project rules for agents; CLAUDE.md imports it) | `AGENTS.md` |
 | HANDOFF.md (agents' restart file) | `HANDOFF.md` |
 | Ticket backlog (implementation plan, MKC-1 to MKC-60) | `docs/superpowers/plans/241120261500-ticket-backlog.md` |
 | README (intro + links for both repos) | `README.md` |
 | Official brief | `AE.CAP_afa.md` |
 
-## Decisions so far (summary; the full log of 35 decisions is in design doc section 18)
+## Decisions so far (summary; the full log of 36 decisions is in design doc section 18)
 
 - **Idea:** Messkonzept-Copilot. It extracts operator Messkonzept PDFs into structured, LBS-keyed records with human approval, and gives household site advice with citations.
 - **Primary user:** MSB, VNB and energy-IT staff working across grid areas; installers are secondary; plus a public read-only demo.
@@ -56,8 +57,8 @@ This is the living status document. It is updated whenever a decision is made or
   - Docker, GitHub Actions (CI + eval gate + CD in a protected environment, SSH deploy), GHCR, Helm
   - kind in CI, k3s on Oracle Always Free, Vercel for the frontend
   - nightly backups to Oracle Object Storage plus one restore drill
-- **Repos:** `origin` = https://github.com/qamran/Messkonzept-Copilot (personal, public, home); `turing` = the Turing submission mirror. `main` is pushed to both after every merge; both at `cb35b4b` (merge of PR #69). Turing's initial commit incl. their brief `AE.CAP_afa.md` was pushed to `origin` on 24.11.2026 with the user's OK.
-- **Ticket workflow (ADR 005):** GitHub Issues + sub-issues on a public Projects board (`Backlog → Ready → In progress → Testing → Done`); `MKC-<n>` keys in titles, branches and commits; the Turing repo as a code-only mirror with no issues and no token, the README linking the board (ADR 005 option (c), decision 35); tickets, sub-issues and PRs assigned to `qamran` (decision 33); one branch per ticket; the **development agent (Opus 5.5)** builds and moves tickets to Testing, the **review agent (Fable)** reviews, merges after green CI and closes; started in-session with "next ticket".
+- **Repos:** `origin` = https://github.com/qamran/Messkonzept-Copilot (personal, public, home); `turing` = the Turing submission mirror. `main` is pushed to both after every merge; both at the latest merge commit (named in HANDOFF.md). Turing's initial commit incl. their brief `AE.CAP_afa.md` was pushed to `origin` on 24.11.2026 with the user's OK.
+- **Ticket workflow (ADR 005):** GitHub Issues + sub-issues on a public Projects board (`Backlog → Ready → In progress → Testing → Done`); `MKC-<n>` keys in titles, branches and commits; the Turing repo as a code-only mirror with no issues and no token, the README linking the board (ADR 005 option (c), decision 35); tickets, sub-issues and PRs assigned to `qamran` (decision 33); the development agent continues without asking and stops only for genuine decisions (decision 36); rules for both agents in `AGENTS.md`; one branch per ticket; the **development agent (Opus 5.5)** builds and moves tickets to Testing, the **review agent (Fable)** reviews, merges after green CI and closes; started in-session with "next ticket".
 - **Not used:** hupe1980/mako, in any form.
 - **Budgets:** LLM €20–30; user verification 10–12 h.
 - **Feature list:** 82 features across Phases 0–8, plus a deferred list. **Phase 6 is the submittable release;** RAG and the decision layer follow in Phase 7.
