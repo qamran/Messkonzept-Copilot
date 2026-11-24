@@ -8,18 +8,13 @@ This file is how agents resume work after a session restart.
 
 ## Read this first
 
-1. `AGENTS.md`, once MKC-3 is merged. Until then, ADR 005: `docs/adr/241120261456-adr-005-ticket-workflow.md`.
+1. `AGENTS.md`: the project rules, roles, ticket flow and the review agent's checklist.
 2. This file, top to bottom.
 3. The ticket you are about to work on: `gh issue view <n> -R qamran/Messkonzept-Copilot`.
 4. Background when needed:
    - design doc: `docs/superpowers/specs/241120261330-messkonzept-copilot-design.md`
    - backlog: `docs/superpowers/plans/241120261500-ticket-backlog.md`
    - ADRs: `docs/adr/`
-
-**Roles:**
-- **Development agent** (Claude Opus 5.5): pulls a ticket, sets it to `In progress`, assigns the ticket, sub-issues and PR to `qamran`, works test-first in atomic commits (`MKC-<n>: …` + `Refs:`), pushes a branch, opens a PR, and sets the ticket to `Testing`.
-- **Review agent** (Fable): checks the PR against the success criteria, posts its verdict, and merges on PASS.
-- **After each merge:** the development agent pulls `main` and pushes it to the `turing` remote.
 
 ## Current state
 
@@ -44,7 +39,7 @@ This file is how agents resume work after a session restart.
   - [x] `scripts/check_agents.py` test-first (red: both files missing)
   - [x] AGENTS.md with the required sections and the review checklist; `.markdownlint-cli2.jsonc` (MD013 off)
   - [x] CLAUDE.md, one line `# Project rules for agents: @AGENTS.md`; check_agents.py green; markdown lint 0 errors
-  - [ ] HANDOFF "Read this first" points to AGENTS.md; status doc
+  - [x] HANDOFF "Read this first" points to AGENTS.md; status doc; ADR 005 + design doc (decision 36: no permission questions)
   - [ ] PR; #3 and #71 to `Testing`; review agent; merge; push `main` to `turing`
 
 ## Next steps
@@ -60,6 +55,7 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+- **24.11.2026 16:17** MKC-3.3: docs updated: HANDOFF "Read this first" points to AGENTS.md (roles moved there); status doc; ADR 005 and design doc decision 36 (user: continue without asking, stop only for genuine decisions).
 - **24.11.2026 16:17** MKC-3.3: CLAUDE.md added (one line importing AGENTS.md); `check_agents.py` passes (green); lint 0 errors.
 - **24.11.2026 16:17** MKC-3.3: AGENTS.md added (sections, rules, review checklist); markdown lint config with line length off.
 - **24.11.2026 16:15** MKC-3.3: `scripts/check_agents.py` added; fails while AGENTS.md and CLAUDE.md are missing (red).

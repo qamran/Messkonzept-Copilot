@@ -416,7 +416,7 @@ E3 and E5 are **re-run after Phase 7**, because the advisor and the injection gu
 - **Roles:**
   - **Development agent (Claude Opus 5.5):** pulls a ticket, breaks it into issues and sub-issues, works it in atomic commits (under 200 lines where possible) that each reference their issue, pushes to a separate branch, and moves the ticket to `Testing`.
   - **Review agent (Fable):** reviews the PR, merges it, and closes the ticket. It never writes the code it reviews.
-- **Flow per ticket** (triggered in-session with "next ticket"):
+- **Flow per ticket** (triggered in-session with "next ticket"; after that the development agent continues to the next ticket or step without asking, and stops only for a genuine decision, decision 36):
   1. The development agent takes the top `Ready` ticket, sets it to `In progress` and **assigns it, its sub-issues and its PR to the user (`qamran`)**.
   2. It creates issues and sub-issues, each with a goal, a test and **success criteria** (a checklist of what must be delivered and true; ticket format in the backlog plan).
   3. It branches from `main`, works test-first, and makes atomic commits (under 200 lines where possible), each referencing its sub-issue.
@@ -425,7 +425,7 @@ E3 and E5 are **re-run after Phase 7**, because the advisor and the injection gu
   6. **Pass + green CI:** it merges (no squash, so atomic commits stay), the ticket goes to `Done`, and `main` is pushed to both remotes. **Fail:** back to `In progress`, with findings, for the development agent.
 - **HANDOFF.md** (repo root) is the restart file for agents: what is done, in progress, next, blocked, and a newest-first log. It is updated in every commit and after every important ticket change (status change, sub-issue created or closed, PR opened or merged, review verdict); changes made outside a branch are recorded in the next commit. `scripts/check_handoff.py` checks its sections. When a session's context passes about 80 %, the development agent tells the user and recommends a restart, after making sure HANDOFF.md is current. *(Added 24.11.2026 at the user's request.)*
 - **Branch protection:** PRs only, required CI checks, no force-push. The gate is green CI plus the review agent's verdict comment, because a bot cannot approve its own PR.
-- **AGENTS.md** (with CLAUDE.md pointing to it) holds the project rules: this workflow, commit format and size, test-first, docs kept current (design doc, ADRs, status doc), the no-PDF-in-repo rule, the no-mako rule.
+- **AGENTS.md** (with CLAUDE.md, one line importing it; added in MKC-3) holds the project rules and the review agent's checklist, checked by `scripts/check_agents.py`: this workflow, commit format and size, test-first, docs kept current (design doc, ADRs, status doc), the no-PDF-in-repo rule, the no-mako rule.
 - Planning through spec → plan → tickets. Skills used: brainstorming, writing-plans, TDD, code review.
 
 ## 15. Build order
@@ -498,6 +498,7 @@ The build follows the phases in section 20, ordered by dependency:
 | 33 | Tickets being worked on, their sub-issues and PRs are assigned to the user (`qamran`) | user |
 | 34 | HANDOFF.md as the agents' restart file, updated with every commit and important ticket change; restart recommended at about 80 % context | user |
 | 35 | Turing repo is a code-only mirror (ADR 005 option (c)): no issue-mirror Action and no token; the README links to the board, issues, design doc, ADRs and HANDOFF.md | user |
+| 36 | The development agent continues to the next ticket or step without asking for permission; it stops only for genuine decisions (scope or design choices, user-only setup tasks) | user |
 
 ## 19. Course coverage
 
