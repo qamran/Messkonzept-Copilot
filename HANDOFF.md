@@ -41,7 +41,7 @@ This file is how agents resume work after a session restart.
 - **MKC-3** (#3), agent instructions. Status `In progress`. MKC-3.1 and MKC-3.2 done.
 - **MKC-3.3** (#71), AGENTS.md and CLAUDE.md. Status `In progress`, assigned to `qamran`, sub-issue of #3. Branch `mkc-3-agents-md`.
   - [x] HANDOFF.md caught up after PR #70; design doc "Remotes" line fixed
-  - [ ] `scripts/check_agents.py` test-first (red)
+  - [x] `scripts/check_agents.py` test-first (red: both files missing)
   - [ ] AGENTS.md with the required sections and the review checklist
   - [ ] CLAUDE.md, one line pointing to AGENTS.md (check green); markdown lint
   - [ ] HANDOFF "Read this first" points to AGENTS.md; status doc
@@ -60,6 +60,7 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+- **24.11.2026 16:15** MKC-3.3: `scripts/check_agents.py` added; fails while AGENTS.md and CLAUDE.md are missing (red).
 - **24.11.2026 16:15** MKC-3: branch `mkc-3-agents-md`; HANDOFF.md caught up after PR #70; design doc "Remotes" line updated.
 - **24.11.2026 16:15** MKC-3.3 (#71) created as sub-issue of #3, assigned to `qamran`, on the board as `In progress`.
 - **24.11.2026 15:57** `main` pushed to `turing`; `origin/main` == `turing/main` == `7b11612`. #2 criteria ticked, board `Done`.
