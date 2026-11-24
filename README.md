@@ -2,7 +2,7 @@
 
 Messkonzept-Copilot reads grid operators' Messkonzept PDFs and turns them into structured records keyed by Lokationsbündelstruktur (LBS). A person approves each record before it is saved. It also gives household site advice with citations. It is the capstone project for the Turing College AI Engineering course (Case 5, agent harness).
 
-**Status:** Phase 0 (foundation). No application code yet. A full README comes with MKC-44.
+**Status:** Phase 0 (foundation). The backend skeleton is in `backend/` (run `cd backend && uv sync && uv run pytest`). A full README comes with MKC-44.
 
 ## Where to find things
 

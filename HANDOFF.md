@@ -37,7 +37,7 @@ This file is how agents resume work after a session restart.
 - **MKC-4.1** (#73), FastAPI app, settings, health and version endpoints. `In progress`.
   - [x] uv project in `backend/` (Python 3.12, ruff, mypy strict on `src/`); `uv sync` works
   - [x] tests for `/health` and `/api/version` (red: `No module named 'mkc.api'`)
-  - [x] `mkc.config.Settings` + `mkc.api.app:create_app()` (green, 3 passed); ruff + mypy pass. Open: Starlette warns that `httpx` for TestClient is deprecated; switching to `httpx2` was not done (unvetted package, blocked by the permission check).
+  - [x] `mkc.config.Settings` + `mkc.api.app:create_app()` (green, 3 passed); ruff + mypy pass. Starlette warns that `httpx` for TestClient is deprecated (see Blocked).
 - **MKC-4.2** (#74), worker entrypoint with clean SIGTERM shutdown. `In progress`.
   - [x] worker tests (red: `No module named 'mkc.worker'`)
   - [x] `mkc.worker.main:run()` + `mkc-worker` script (green); ruff + mypy pass. Tests fail on a timeout instead of hanging (watchdog; checked with a worker that ignores SIGTERM: fails after 5 s). Windows: 4 passed, 1 skipped; Linux container (Python 3.12): 5 passed, incl. the real-SIGTERM subprocess test.
@@ -51,11 +51,14 @@ This file is how agents resume work after a session restart.
 
 ## Blocked / waiting on user
 
+- **Decision: `httpx` → `httpx2` for FastAPI's TestClient.** Starlette marks `httpx` as deprecated for TestClient and suggests `httpx2`. The development agent's attempt to switch the dev dependency was denied by the session's permission check, so `httpx` stays (tests pass, one deprecation warning). The user decides whether to allow the switch.
+- **Docker Desktop** must be running for MKC-5 (`docker compose up db`). The development agent started it on 24.11.2026; if it is stopped after a restart, start it again.
 - Later setup tasks (listed in design doc section 13): Supabase project, Vercel account, provider API keys with caps, GitHub `production` environment, a domain with TLS. MKC-5 needs the Supabase project for its live part; its one-off Supabase check waits for that; migrations and tests use Docker Postgres.
 
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+- **24.11.2026 16:34** MKC-4: README status line updated (backend skeleton); HANDOFF: the MKC-3 close-out line split by event time, `httpx2` decision and Docker moved under Blocked.
 - **24.11.2026 16:34** MKC-4.2: worker tests enforce their timeout (watchdog stop event, bounded stderr read); `run()` takes an optional stop event. Docker Desktop started; in a Linux container all 5 tests pass, incl. the real SIGTERM test.
 - **24.11.2026 16:29** MKC-4: status doc updated (MKC-3 done, MKC-4 current, first application code).
 - **24.11.2026 16:29** MKC-4.2: `mkc.worker.main:run()` with SIGTERM/SIGINT stop flag and `mkc-worker` script; tests green on Windows (POSIX subprocess test skipped); ruff and mypy pass.
@@ -65,7 +68,8 @@ Newest first. Times are local (CET), taken from git and GitHub.
 - **24.11.2026 16:28** MKC-4.1: uv project `backend/` (package `mkc`, Python 3.12, FastAPI, pydantic-settings, uvicorn; ruff, mypy strict, pytest); `uv sync` works.
 - **24.11.2026 16:27** MKC-4: branch `mkc-4-backend-skeleton`; HANDOFF.md caught up after PR #72; plan written.
 - **24.11.2026 16:26** MKC-4 (#4) to `In progress`, assigned to `qamran`; sub-issues MKC-4.1 (#73) and MKC-4.2 (#74) created, assigned, `In progress`. Board auto-add found to be on.
-- **24.11.2026 16:25** `main` pushed to `turing`; `origin/main` == `turing/main` == `6650cbd`. #3 and #71 criteria ticked, both closed and `Done`. MKC-3 complete.
+- **24.11.2026 16:25** `main` pushed to `turing` (git reflog 16:25:11); `origin/main` == `turing/main` == `6650cbd`. MKC-3 complete.
+- **24.11.2026 16:24** #3 and #71 criteria ticked and board `Done` (GitHub 15:24:51Z–15:24:53Z; GitHub's clock runs about 20 s behind the local one).
 - **24.11.2026 16:24** PR #72 re-review **PASS**, merged `6650cbd` (merge commit); #3 and #71 closed.
 - **24.11.2026 16:23** MKC-3.3: fix commit for the PR #72 findings (15:56 log time; status doc names PR #72; AGENTS.md roles wording); #3 and #71 back to `Testing`.
 - **24.11.2026 16:23** #3 and #71 back to `In progress`.
