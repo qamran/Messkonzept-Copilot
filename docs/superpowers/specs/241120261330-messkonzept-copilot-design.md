@@ -412,7 +412,7 @@ E3 and E5 are **re-run after Phase 7**, because the advisor and the injection gu
 
 - **Tickets** live as GitHub Issues (with native sub-issues) in `qamran/Messkonzept-Copilot`, on a **public GitHub Projects board**. Status: `Backlog → Ready → In progress → Testing → Done`.
 - **Stable keys:** `MKC-<n>` in the issue title, the branch name (`mkc-<n>-<slug>`) and every commit (`MKC-<n>: <summary>` plus `Refs: qamran/Messkonzept-Copilot#<issue>`). Unambiguous across both remotes.
-- **Turing mirror:** a GitHub Action copies issues to the Turing repo (same key, link back) and syncs open/closed state. Code goes to both remotes.
+- **Turing mirror (code only, decision 35):** `main` is pushed to both remotes, so the Turing repo has the same commits but no issues. The README links to the public board, the issue list, the design doc, the ADRs and HANDOFF.md; `scripts/check_readme.py` checks the board and issue links. No token or secret is needed.
 - **Roles:**
   - **Development agent (Claude Opus 5.5):** pulls a ticket, breaks it into issues and sub-issues, works it in atomic commits (under 200 lines where possible) that each reference their issue, pushes to a separate branch, and moves the ticket to `Testing`.
   - **Review agent (Fable):** reviews the PR, merges it, and closes the ticket. It never writes the code it reviews.
@@ -494,9 +494,10 @@ The build follows the phases in section 20, ordered by dependency:
 | 29 | Independent gold: a different drafting model, blind subsets, a dev/test split | agent, after review |
 | 30 | E4 gets a no-fault arm; fault mechanics on replayed responses | agent, after review |
 | 31 | Public read-only demo; primary user MSB/VNB/energy-IT staff; §14a Modul 3 out of scope; CI/CD hardening for a public repo; Clerk preview check | agent, after review |
-| 32 | Ticket workflow: GitHub Issues + sub-issues on a public Projects board; `MKC-<n>` keys; issue mirror Action to the Turing repo; branch per ticket; development agent (Opus 5.5) builds, review agent (Fable) reviews and merges after green CI (ADR 005) | user (agent recommended; agent roles and models: user) |
+| 32 | Ticket workflow: GitHub Issues + sub-issues on a public Projects board; `MKC-<n>` keys; Turing repo as a code-only mirror (decision 35; first planned as an issue-mirror Action); branch per ticket; development agent (Opus 5.5) builds, review agent (Fable) reviews and merges after green CI (ADR 005) | user (agent recommended; agent roles and models: user) |
 | 33 | Tickets being worked on, their sub-issues and PRs are assigned to the user (`qamran`) | user |
 | 34 | HANDOFF.md as the agents' restart file, updated with every commit and important ticket change; restart recommended at about 80 % context | user |
+| 35 | Turing repo is a code-only mirror (ADR 005 option (c)): no issue-mirror Action and no token; the README links to the board, issues, design doc, ADRs and HANDOFF.md | user |
 
 ## 19. Course coverage
 
@@ -553,7 +554,7 @@ The course concepts (Key-Concepts.md, sections 1–18) are mapped to where the p
 Each phase ends in something that runs. Phases are ordered by dependency. **Phase 6 is the submittable release.** Phase 8 is optional, and the deferred list holds features cut in review, kept for later.
 
 ### Phase 0: Foundation and pipeline
-0. Ticket workflow setup (ADR 005): public Projects board with the status field, labels, issue and PR templates, the issue-mirror Action to the Turing repo, branch protection with required checks.
+0. Ticket workflow setup (ADR 005): public Projects board with the status field, labels, issue and PR templates, a README linking the board (the Turing repo is a code-only mirror), branch protection with required checks.
 1. Repo setup: remotes already configured (`origin` = personal, `turing` = mirror); first push to `origin` and `turing`; branch protection on `main`; repo description and topics for the showcase.
 2. AGENTS.md + CLAUDE.md. The ADRs in `docs/adr/` are kept current, and new decisions get a new ADR.
 3. Backend skeleton: uv, FastAPI, `/health` and `/api/version`, config via environment, ruff/mypy/pytest; API and worker entrypoints.

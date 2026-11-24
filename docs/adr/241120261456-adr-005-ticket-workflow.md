@@ -15,7 +15,7 @@ The project has two remotes:
 - `origin`: the personal public repo, which is home
 - `turing`: the Turing College submission mirror
 
-Issue numbers in the two repos diverge.
+Issue numbers in the two repos would diverge if both held issues.
 
 ## Options considered
 
@@ -41,7 +41,7 @@ Issue numbers in the two repos diverge.
 - **Stable keys:** every ticket gets a key `MKC-<n>`, used in the issue title, the branch name (`mkc-<n>-<slug>`) and every commit message.
   - Commit format: `MKC-<n>: <summary>` with a trailer `Refs: qamran/Messkonzept-Copilot#<issue>`.
   - This stays unambiguous across both repos.
-- **Turing mirror:** a GitHub Action in the home repo copies each issue to the Turing repo (same key, with a link back) and syncs open/closed state. Code is pushed to both remotes.
+- **Turing mirror: option (c), code only.** The Turing repo receives the same commits as the home repo (`main` is pushed to both remotes) but no issues. The README in the repo root links to the public board, the issue list, the design doc, the ADRs and HANDOFF.md, so reviewers of either repo find the tickets. *(Changed 24.11.2026 by user decision in MKC-2; first decision was option (a), an issue-mirror Action.)*
 - **Trigger:** in-session to start ("next ticket"). A loop or schedule may come later.
 - **Roles:**
   - **Development agent (Claude Opus 5.5):** pulls a ticket, breaks it into issues and sub-issues, works it in atomic commits (under 200 lines where possible) that each reference their issue, pushes to a separate branch, and moves the ticket to `Testing`.
@@ -59,7 +59,7 @@ Issue numbers in the two repos diverge.
 
 ## Consequences
 
-- A small amount of automation to build in Phase 0: the board setup, labels, issue and PR templates, the mirror Action, and the branch protection.
+- A small amount of automation to build in Phase 0: the board setup, labels, issue and PR templates, and the branch protection. No mirror Action.
 - The review verdicts and the ticket history are public evidence for the "agentic coding" review topic.
-- The mirror Action needs a fine-grained token, with write access to the Turing repo's issues only, stored as a secret.
-- If the Turing organisation disallows issues or Actions tokens, fall back to option (c) and document it.
+- No token or secret for the Turing repo is needed; the Turing repo has no issues of its own, and `scripts/check_readme.py` checks that the README links to the board and the issue list.
+- Issue numbers and keys exist only in the home repo, so the `MKC-<n>` key in each commit is the link from Turing's history back to its ticket.

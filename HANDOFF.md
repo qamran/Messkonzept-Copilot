@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 24.11.2026, 15:46
+**Last updated:** 24.11.2026, 15:53
 
 This file is how agents resume work after a session restart.
 - **Updated:** in every commit, and after every important ticket change: status change, sub-issue created or closed, PR opened or merged, review verdict. A change made outside a branch (e.g. on the board) is recorded in the next commit.
@@ -27,30 +27,32 @@ This file is how agents resume work after a session restart.
 - **Remotes:**
   - `origin` = qamran/Messkonzept-Copilot (home, public)
   - `turing` = TuringCollegeSubmissions/qshahz-AE.CAP.AFA.1.1 (mirror)
-  - Both at `7609490` (merge of PR #67).
+  - Both at `cb35b4b` (merge of PR #69).
 - **`main` is protected:** PRs only, enforced for admins. No required CI checks until MKC-6.
 - **Done:**
   - MKC-1: board, labels, tickets, templates, branch protection (PR #65)
   - MKC-3.1: assignment rule in the workflow docs (PR #67)
+  - MKC-3.2: HANDOFF.md and its maintenance rule (PR #69, after one FAIL and a fix)
 - **No application code yet.**
 
 ## In progress
 
-- **MKC-3** (#3), agent instructions. Status `In progress`, assigned to `qamran`.
-  - MKC-3.1 (#66): done.
-  - **MKC-3.2 (#68): this file and its maintenance rule.** Branch `mkc-3-handoff`.
-    - [x] `scripts/check_handoff.py` (failed before this file existed)
-    - [x] `HANDOFF.md`
-    - [x] rule in ADR 005, design doc section 14 and decision 34 (incl. restart at about 80 % context)
-    - [x] PR #69 opened → review **FAIL** (15:45) → findings fixed in a follow-up commit; re-review pending
-  - Still to do in MKC-3: AGENTS.md (roles, ticket flow, commit rules, TDD, docs-current incl. HANDOFF.md, data, model and safety rules, review checklist) and a one-line CLAUDE.md.
+- **MKC-2** (#2), code-only Turing mirror. Status `Testing`, assigned to `qamran`. Branch `mkc-2-code-only-mirror`, PR #70.
+  - [x] HANDOFF.md brought up to date after PR #69
+  - [x] ADR 005: decision is fallback (c), code-only mirror; consequences without token
+  - [x] Design doc section 14 + decision 32 wording + new decision 35 + feature 0; backlog MKC-2 entry
+  - [x] `scripts/check_readme.py` test-first (fails on the old README)
+  - [x] README.md with intro + links (board, issues, design doc, ADRs, HANDOFF.md); check_readme.py green
+  - [x] Status doc updated (decision 35, README, PR #69 merge)
+  - [x] PR #70 opened; #2 set to `Testing`
+  - [ ] Review agent verdict; merge; push `main` to `turing`; check origin/main == turing/main
+- **MKC-3** (#3) stays `In progress`: MKC-3.1 and MKC-3.2 done; AGENTS.md + one-line CLAUDE.md still to do (new sub-issues, new branch).
 
 ## Next steps
 
-1. Finish MKC-3.2 → PR → review agent → merge → push `main` to `turing`.
-2. Finish MKC-3 (AGENTS.md, CLAUDE.md) as further sub-issues on new branches.
-3. MKC-2 (#2): code-only Turing mirror + README with links (user decision: no issue mirror, no token).
-4. MKC-4 (backend skeleton) once MKC-3 is done; then MKC-5, MKC-6 (CI + required checks).
+1. Finish MKC-2: review of PR #70, merge, push `main` to `turing` (checklist above).
+2. Finish MKC-3 (AGENTS.md incl. the HANDOFF and assignment rules, CLAUDE.md) as further sub-issues on a new branch.
+3. MKC-4 (backend skeleton) once MKC-3 is done; then MKC-5, MKC-6 (CI + required checks).
 
 ## Blocked / waiting on user
 
@@ -60,6 +62,14 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+- **24.11.2026 15:52** MKC-2: PR #70 opened (assigned to `qamran`); #2 to `Testing`.
+- **24.11.2026 15:51** MKC-2: status doc updated (current ticket, decision 35, README, remotes at `cb35b4b`).
+- **24.11.2026 15:51** MKC-2: README.md with intro and links; `check_readme.py` passes (green).
+- **24.11.2026 15:51** MKC-2: `scripts/check_readme.py` added; fails on the old one-line README (red).
+- **24.11.2026 15:50** MKC-2: design doc (section 14, decisions 32 and 35, feature 0) and backlog MKC-2 entry updated.
+- **24.11.2026 15:50** MKC-2: ADR 005 updated to fallback (c), code-only Turing mirror, no token.
+- **24.11.2026 15:48** MKC-2 to `In progress`; branch `mkc-2-code-only-mirror`; HANDOFF.md brought up to date. Session restart recommended by the development agent (context high).
+- **24.11.2026 15:47** PR #69 re-review **PASS**, merged `cb35b4b`, pushed to `turing`; #68 closed and `Done`, criteria ticked.
 - **24.11.2026 15:46** Fix commit for the PR #69 review findings: status doc updated, HANDOFF.md times corrected from git/GitHub, missing log lines added.
 - **24.11.2026 15:45** PR #69 review **FAIL** (status doc not updated; wrong clock times in this log; missing log lines). #68 back to `In progress`.
 - **24.11.2026 15:44** MKC-2 (#2) redefined by user decision: no issue mirror, Turing repo is code-only, README links to the board; no token needed. Issue body rewritten, `user-task` label removed, assigned to `qamran`.
