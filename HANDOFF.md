@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 24.11.2026, 16:15
+**Last updated:** 24.11.2026, 16:17
 
 This file is how agents resume work after a session restart.
 - **Updated:** in every commit, and after every important ticket change: status change, sub-issue created or closed, PR opened or merged, review verdict. A change made outside a branch (e.g. on the board) is recorded in the next commit.
@@ -42,7 +42,7 @@ This file is how agents resume work after a session restart.
 - **MKC-3.3** (#71), AGENTS.md and CLAUDE.md. Status `In progress`, assigned to `qamran`, sub-issue of #3. Branch `mkc-3-agents-md`.
   - [x] HANDOFF.md caught up after PR #70; design doc "Remotes" line fixed
   - [x] `scripts/check_agents.py` test-first (red: both files missing)
-  - [ ] AGENTS.md with the required sections and the review checklist
+  - [x] AGENTS.md with the required sections and the review checklist; `.markdownlint-cli2.jsonc` (MD013 off)
   - [ ] CLAUDE.md, one line pointing to AGENTS.md (check green); markdown lint
   - [ ] HANDOFF "Read this first" points to AGENTS.md; status doc
   - [ ] PR; #3 and #71 to `Testing`; review agent; merge; push `main` to `turing`
@@ -60,6 +60,7 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+- **24.11.2026 16:17** MKC-3.3: AGENTS.md added (sections, rules, review checklist); markdown lint config with line length off.
 - **24.11.2026 16:15** MKC-3.3: `scripts/check_agents.py` added; fails while AGENTS.md and CLAUDE.md are missing (red).
 - **24.11.2026 16:15** MKC-3: branch `mkc-3-agents-md`; HANDOFF.md caught up after PR #70; design doc "Remotes" line updated.
 - **24.11.2026 16:15** MKC-3.3 (#71) created as sub-issue of #3, assigned to `qamran`, on the board as `In progress`.

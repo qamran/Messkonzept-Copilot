@@ -1,0 +1,6 @@
+// markdownlint-cli2 config (MKC-3.3). Docs keep one line per paragraph or list item, so line length is not limited.
+{
+  "config": {
+    "MD013": false
+  }
+}
