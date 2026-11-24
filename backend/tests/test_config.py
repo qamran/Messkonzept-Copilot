@@ -8,7 +8,7 @@ from mkc.config import Settings
 def test_database_url_defaults_to_compose_db(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("DATABASE_URL", raising=False)
     monkeypatch.delenv("MKC_DATABASE_URL", raising=False)
-    assert Settings().database_url == "postgresql+psycopg://mkc:mkc@localhost:5433/mkc"
+    assert Settings().database_url == "postgresql+psycopg://mkc:mkc@127.0.0.1:5433/mkc"
 
 
 def test_database_url_read_from_database_url(monkeypatch: pytest.MonkeyPatch) -> None:
