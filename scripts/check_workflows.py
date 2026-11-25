@@ -8,6 +8,8 @@
   permission anywhere (`write`, `write-all`), also not per job.
 - Every action is pinned to a full commit SHA (docker images to a digest).
 - The dependency-scan job audits the frontend packages with `npm audit` (MKC-7.2).
+- The image job (MKC-8.3) runs the Compose smoke test, scans the image with Grype and
+  builds `linux/amd64,linux/arm64`.
 - No `paths:` / `paths-ignore:` filters: a required check that never runs would block PRs.
 
 Usage: python scripts/check_workflows.py  (exit code 0 = ok, 1 = problems)
@@ -20,7 +22,12 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 WORKFLOWS = Path(".github/workflows")
 CI = WORKFLOWS / "ci.yml"
-REQUIRED_JOBS = ["backend", "frontend", "gitleaks", "dependency-scan", "docs"]
+REQUIRED_JOBS = ["backend", "frontend", "gitleaks", "dependency-scan", "docs", "image"]
+IMAGE_STEPS = {
+    "scripts/compose_smoke.sh": "run the Compose smoke test",
+    "grype": "scan the image with Grype",
+    "linux/amd64,linux/arm64": "build linux/amd64,linux/arm64",
+}
 
 USES = re.compile(r"^\s*(?:-\s+)?uses:\s*['\"]?([^\s'\"#]+)", re.MULTILINE)
 PINNED_ACTION = re.compile(r"^[\w.-]+/[\w./-]+@[0-9a-f]{40}$")
@@ -77,6 +84,10 @@ def problems(root: Path = ROOT) -> list[str]:
     scan = job_text(ci.read_text(encoding="utf-8"), "dependency-scan")
     if "dependency-scan" in jobs and not re.search(r"\bnpm audit\b", _strip_comments(scan)):
         found.append(f"{CI.as_posix()}: job 'dependency-scan' must run 'npm audit'")
+    image = _strip_comments(job_text(ci.read_text(encoding="utf-8"), "image"))
+    if "image" in jobs:
+        found += [f"{CI.as_posix()}: job 'image' must {what}"
+                  for needle, what in IMAGE_STEPS.items() if needle not in image]
     return found
 
 
