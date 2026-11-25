@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 24.11.2026, 16:35
+**Last updated:** 25.11.2026, 09:26
 
 This file is how agents resume work after a session restart.
 - **Updated:** in every commit, and after every important ticket change: status change, sub-issue created or closed, PR opened or merged, review verdict. A change made outside a branch (e.g. on the board) is recorded in the next commit.
@@ -18,47 +18,74 @@ This file is how agents resume work after a session restart.
 
 ## Current state
 
-- **Design approved;** ADRs 001–005 accepted; backlog MKC-1 to MKC-60 on the public board (issue number = key). The board's auto-add workflow is on: new issues land on the board by themselves.
+- **Design approved;** ADRs 001–005 accepted; backlog MKC-1 to MKC-60 on the public board (issue number = key). The board's auto-add workflow is on.
 - **Remotes:**
   - `origin` = qamran/Messkonzept-Copilot (home, public)
   - `turing` = TuringCollegeSubmissions/qshahz-AE.CAP.AFA.1.1 (code-only mirror, no issues; ADR 005 option (c), decision 35)
-  - Both at `6650cbd` (merge of PR #72).
+  - Both at `1555a92` (merge of PR #75).
 - **`main` is protected:** PRs only, enforced for admins. No required CI checks until MKC-6.
 - **Agent rules:** `AGENTS.md` (CLAUDE.md imports it). The development agent continues without asking and stops only for genuine decisions (decision 36).
 - **Done:**
   - MKC-1: board, labels, tickets, templates, branch protection (PR #65)
   - MKC-2: code-only Turing mirror, README with links, `scripts/check_readme.py` (PR #70)
-  - MKC-3: assignment rule (PR #67), HANDOFF.md (PR #69), AGENTS.md + CLAUDE.md + `scripts/check_agents.py` (PR #72, after one FAIL and a fix)
-- **Application code:** only what MKC-4 adds (`backend/`), once merged.
+  - MKC-3: assignment rule (PR #67), HANDOFF.md (PR #69), AGENTS.md + CLAUDE.md + `scripts/check_agents.py` (PR #72)
+  - MKC-4: backend skeleton in `backend/` (uv, Python 3.12, package `mkc`): Settings, FastAPI `/health` + `/api/version`, worker with clean SIGTERM shutdown; ruff + mypy strict (PR #75)
+- **How to test the backend:** `docker compose up -d db` (repo root; Postgres 17 + pgvector on `127.0.0.1:5433`), then `cd backend && uv sync && uv run pytest`. The DB tests fail if the db is down; `MKC_SKIP_DB_TESTS=1` skips them on purpose. Windows skips one POSIX-only worker test; run it in Linux with the Docker command in PR #75.
 
 ## In progress
 
-- **MKC-4** (#4), backend skeleton. Status `Testing`, PR #75, assigned to `qamran`. Branch `mkc-4-backend-skeleton`. Plan: `docs/superpowers/plans/241120261627-mkc-4-backend-skeleton.md`.
-- **MKC-4.1** (#73), FastAPI app, settings, health and version endpoints. `Testing`.
-  - [x] uv project in `backend/` (Python 3.12, ruff, mypy strict on `src/`); `uv sync` works
-  - [x] tests for `/health` and `/api/version` (red: `No module named 'mkc.api'`)
-  - [x] `mkc.config.Settings` + `mkc.api.app:create_app()` (green, 3 passed); ruff + mypy pass. Starlette warns that `httpx` for TestClient is deprecated (see Blocked).
-- **MKC-4.2** (#74), worker entrypoint with clean SIGTERM shutdown. `Testing`.
-  - [x] worker tests (red: `No module named 'mkc.worker'`)
-  - [x] `mkc.worker.main:run()` + `mkc-worker` script (green); ruff + mypy pass. Tests fail on a timeout instead of hanging (watchdog; checked with a worker that ignores SIGTERM: fails after 5 s). Windows: 4 passed, 1 skipped; Linux container (Python 3.12): 5 passed, incl. the real-SIGTERM subprocess test.
-- [x] Status doc updated
-- [x] PR #75 opened (closes #4, #73, #74); all three to `Testing`
-- [ ] Review agent verdict; merge; push `main` to `turing`; check origin/main == turing/main
+- **MKC-5** (#5), database layer. Status `Testing`, assigned to `qamran`. Branch `mkc-5-database-layer`. Plan: `docs/superpowers/plans/241120262130-mkc-5-database-layer.md`.
+  - MKC-5.1 (#76): worker test hardening from the PR #75 review. Done on the branch.
+  - MKC-5.2 (#77): `docker compose up db` (pgvector, Postgres 17), `DATABASE_URL`, `Base`, `get_session()`. Done on the branch.
+  - MKC-5.3 (#78): Alembic in `backend/migrations/`, round-trip test. Done on the branch.
+  - MKC-5.4 (#79): `python -m mkc.db.check` (read-only) and its tests. Done on the branch; the live run against the user's Supabase project passed (PostgreSQL 17.12, `vector` 0.8.2 available). Run it with `cd backend && uv run --env-file .env python -m mkc.db.check`; the Session pooler string lives only in the gitignored `backend/.env`.
+  - PR #80 now covers 5.1–5.4 and closes #5. Review FAIL at 09:25 (docs only: status doc header, plan default URL and closing line, one HANDOFF log time); fixed, waiting for the re-review.
 
 ## Next steps
 
-1. Finish MKC-4: review of PR #75, merge, push `main` to `turing` (checklist above).
-2. MKC-5 (database layer), then MKC-6 (secret hygiene and CI, required checks; also repo-wide markdown lint).
+1. MKC-5: review and merge PR #80, push `main` to `turing`.
+2. MKC-6 (secret hygiene and CI, required checks; Linux CI runs the POSIX SIGTERM test; a `pgvector/pgvector:pg17` service container for the DB tests; repo-wide markdown lint).
 
 ## Blocked / waiting on user
 
 - **Decision: `httpx` → `httpx2` for FastAPI's TestClient.** Starlette marks `httpx` as deprecated for TestClient and suggests `httpx2`. The development agent's attempt to switch the dev dependency was denied by the session's permission check, so `httpx` stays (tests pass, one deprecation warning). The user decides whether to allow the switch.
 - **Docker Desktop** must be running for MKC-5 (`docker compose up db`). The development agent started it on 24.11.2026; if it is stopped after a restart, start it again.
-- Later setup tasks (listed in design doc section 13): Supabase project, Vercel account, provider API keys with caps, GitHub `production` environment, a domain with TLS. MKC-5 needs the Supabase project for its live part; its one-off Supabase check waits for that; migrations and tests use Docker Postgres.
+- Later setup tasks (listed in design doc section 13): Vercel account, provider API keys with caps, GitHub `production` environment, a domain with TLS. The Supabase project exists (created by the user on 25.11.2026).
 
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+- **25.11.2026 09:26** PR #80 text: skip count with `MKC_SKIP_DB_TESTS=1` updated (`9 passed, 8 skipped`); #5 and #76–#79 back to `Testing` for the re-review.
+- **25.11.2026 09:26** Fixes for the PR #80 review: status doc header from git; plan default URL `127.0.0.1` and closing line (#5 and #79 now closed by the PR); the 24.11. 21:30 log line split by event time (board status at 21:31); 09:16 line sourced.
+- **25.11.2026 09:25** #5 and #76–#79 back to `In progress`.
+- **25.11.2026 09:25** PR #80 review **FAIL** (docs only; code, tests and secrets pass): status doc header stale, plan contradicts code and PR, one HANDOFF log time off by a minute.
+- **25.11.2026 09:17** PR #80 updated to cover MKC-5.4 (title `MKC-5: Database layer`; now closes #5, #76, #77, #78, #79); #5 and #79 to `Testing`.
+- **25.11.2026 09:17** MKC-5.4: Supabase result recorded in the status doc and the MKC-5 plan; HANDOFF updated.
+- **25.11.2026 09:16** MKC-5.4 (same shell command as commit `a497afb`, 09:16): live check against the user's Supabase project (Session pooler, port 5432, eu-west-1): PostgreSQL 17.12, `vector` 0.8.2 available, not installed; exit 0. Password masked in the output.
+- **25.11.2026 09:16** MKC-5.4: `mkc.db.check` added; 16 passed, 1 skipped (POSIX-only); ruff and mypy pass. The password test now checks `user:password@`, because the local password `mkc` also occurs in the test database name.
+- **25.11.2026 09:15** MKC-5.4: `tests/db/test_check.py` added; red (`mkc.db.check` missing).
+- **25.11.2026** User decisions: run the review agent for PR #80; the user created the Supabase project and put the Session pooler string in `backend/.env`; `httpx2` still open.
+- **24.11.2026 21:50** Review agent for PR #80 not started: denied by the session permission check. Stopped: PR #80 waits for review and merge; no `Ready` ticket; MKC-6 depends on MKC-5 (see Blocked).
+- **24.11.2026 21:49** MKC-5: HANDOFF records PR #80.
+- **24.11.2026 21:49** MKC-5: PR #80 opened (assigned to `qamran`; closes #76, #77, #78; #5 and #79 stay open for the Supabase check); #76, #77 and #78 to `Testing`; #5 stays `In progress`.
+- **24.11.2026 21:48** MKC-5.2: with Postgres unreachable the DB tests hung (timeout at 90 s, Windows retries refused connections); the fixture now uses `connect_timeout=5` and fails in about 5 s with "Postgres not reachable … start it with `docker compose up -d db`". Linux container on the compose network: 13 passed (incl. the POSIX SIGTERM test and a live `postgresql://` URL).
+- **24.11.2026 21:41** MKC-5: status doc (MKC-4 done, MKC-5 current with Postgres 17, psycopg 3, port 5433, Supabase check open) and README (start the db before the tests) updated; HANDOFF test instructions and next steps updated.
+- **24.11.2026 21:41** MKC-5.3: Alembic in `backend/migrations/` (`env.py` takes the URL from `Settings` and passes the engine directly; `script_location = %(here)s/migrations`); revision `0001` enables `vector`. Round-trip test green; `uv run alembic upgrade head`, `current`, `downgrade base` work from `backend/` and with `-c backend/alembic.ini` from the repo root. 12 passed; ruff and mypy pass.
+- **24.11.2026 21:40** MKC-5.3: `tests/db/test_migrations.py::test_upgrade_downgrade_roundtrip` added; red (no `alembic.ini`, "No script_location").
+- **24.11.2026 21:40** MKC-5.2: `mkc.db.base.Base`, `mkc.db.session.get_engine()` (lazy, one engine per URL) and `get_session()` (commit, rollback, close); all 11 tests green incl. the 3 DB tests against the compose db (throwaway database dropped afterwards); ruff and mypy pass.
+- **24.11.2026 21:40** MKC-5.2: default `DATABASE_URL` uses `127.0.0.1:5433`; plan notes why; config tests green.
+- **24.11.2026 21:40** MKC-5.2: default-URL test now expects `127.0.0.1:5433`; red. Found because the session tests hung: `localhost` tries IPv6 first and stalls (5 s with `connect_timeout`, open-ended without), while compose binds IPv4 only.
+- **24.11.2026 21:36** MKC-5.2: `tests/db/conftest.py` (throwaway database per test session; fails if Postgres is unreachable unless `MKC_SKIP_DB_TESTS=1`) and `tests/db/test_session.py` added; red (`mkc.db` missing).
+- **24.11.2026 21:35** MKC-5.2: `Settings.database_url` from `DATABASE_URL` (or `MKC_DATABASE_URL`), default the compose db, `postgres://` and `postgresql://` mapped to `postgresql+psycopg://`; config tests green; ruff and mypy pass.
+- **24.11.2026 21:35** MKC-5.2: `tests/test_config.py` added; red (`Settings` has no `database_url`).
+- **24.11.2026 21:35** MKC-5.2: plan written; `docker-compose.yml` with service `db` (`pgvector/pgvector:pg17`, `127.0.0.1:5433`, because a native Postgres holds 5432); `docker compose up -d --wait db` gives PostgreSQL 17.12 with `vector` 0.8.7 available. Dependencies: SQLAlchemy 2, psycopg 3, Alembic.
+- **24.11.2026 21:33** MKC-5.1: `test_run_stops_on_sigterm` cancels the `sigterm` timer in `finally` and asserts on a `timed_out` event. Red shown: with a `run()` that ignores SIGTERM the test fails via `timed_out`; with a `run()` that fails early the old test let SIGTERM kill pytest (exit 3, no summary), the new one reports the failure.
+- **24.11.2026 21:31** MKC-5 sub-issues #76–#79 to `In progress` on the board (GitHub 20:31:01Z–20:31:04Z).
+- **24.11.2026 21:30** MKC-5 sub-issues MKC-5.1 (#76), 5.2 (#77), 5.3 (#78), 5.4 (#79) created, linked to #5, assigned to `qamran`.
+- **24.11.2026 16:46** MKC-5 (#5) to `In progress`, assigned to `qamran`; branch `mkc-5-database-layer`; HANDOFF.md caught up after PR #75.
+- **24.11.2026 16:46** #4, #73 and #74 criteria ticked. MKC-4 complete.
+- **24.11.2026 16:45** `main` pushed to `turing` (reflog 16:45:54); `origin/main` == `turing/main` == `1555a92`.
+- **24.11.2026 16:45** PR #75 review **PASS**, merged `1555a92` (merge commit); #4, #73, #74 closed and set to `Done` by the board's automation. Two non-blocking test findings (see In progress).
 - **24.11.2026 16:34** MKC-4: PR #75 opened (assigned to `qamran`; closes #4, #73, #74); #4, #73 and #74 to `Testing`.
 - **24.11.2026 16:34** MKC-4: README status line updated (backend skeleton); HANDOFF: the MKC-3 close-out line split by event time, `httpx2` decision and Docker moved under Blocked.
 - **24.11.2026 16:34** MKC-4.2: worker tests enforce their timeout (watchdog stop event, bounded stderr read); `run()` takes an optional stop event. Docker Desktop started; in a Linux container all 5 tests pass, incl. the real SIGTERM test.
