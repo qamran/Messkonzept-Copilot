@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 25.11.2026, 11:50
+**Last updated:** 25.11.2026, 12:00
 
 This file is how agents resume work after a session restart.
 
@@ -37,14 +37,14 @@ This file is how agents resume work after a session restart.
 
 ## In progress
 
-- **MKC-7** (#7), frontend skeleton with Clerk. Status `Testing` (PR #91), assigned to `qamran`. Branch `mkc-7-frontend-skeleton`. Plan: `docs/superpowers/plans/251120261119-mkc-7-frontend-skeleton.md`.
-  - Sub-issues (all `Testing`, assigned to `qamran`, linked to #7): MKC-7.1 (#87) backend token check, MKC-7.2 (#88) frontend scaffold and CI, MKC-7.3 (#89) `apiFetch` and `RequireAdmin`, MKC-7.4 (#90) Clerk decision and local check.
+- **MKC-7** (#7), frontend skeleton with Clerk. Status `In progress` (PR #91 review FAIL, fixing), assigned to `qamran`. Branch `mkc-7-frontend-skeleton`. Plan: `docs/superpowers/plans/251120261119-mkc-7-frontend-skeleton.md`.
+  - Sub-issues (all `In progress`, assigned to `qamran`, linked to #7): MKC-7.1 (#87) backend token check, MKC-7.2 (#88) frontend scaffold and CI, MKC-7.3 (#89) `apiFetch` and `RequireAdmin`, MKC-7.4 (#90) Clerk decision and local check.
   - **User decision (25.11.2026):** Clerk development instance for every environment, permanently (no Vercel Pro, so production keys can't run on `*.vercel.app` previews). Sign-in by email and Google; the user's Google account is the admin. Recorded in ADR 002 and design doc decision 39.
   - **Clerk setup done by the user:** development instance; session-token claim `"role": "{{user.public_metadata.role}}"`; admin = public metadata `{"role": "admin"}`; test non-admins without a role: a second Gmail account (real email code) and a `+clerk_test@example.com` user (code `424242`, test mode is on). Publishable key in `frontend/.env.local` (gitignored). Issuer `https://better-cicada-5480.clerk.accounts.dev` (public) in `backend/.env` as `MKC_CLERK_ISSUER`.
 
 ## Next steps
 
-1. Review of PR #91 by the review agent; on PASS merge, push `main` to `turing`, tick criteria.
+1. Fix the PR #91 review findings (`apiFetch` host escape; backend 500s on odd claim types; JWKS outage → 503; status doc duplicate), then back to `Testing` and re-review.
 2. MKC-8 (backend container image on GHCR; image scan in CI).
 
 ## Blocked / waiting on user
@@ -55,6 +55,10 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+
+- **25.11.2026 12:00** MKC-7.3: red tests for the review finding: `apiFetch` must reject paths with a backslash, tab, newline or `//`, and refuse to run when `VITE_API_URL` is empty or relative; a base path in `VITE_API_URL` is kept. 5 of 12 fail.
+- **25.11.2026 11:59** #7 and #87–#90 back to `In progress`.
+- **25.11.2026 11:58** PR #91 review **FAIL** (comment 10:58:49Z): `apiFetch` could send the token to another host when `VITE_API_URL` is empty (`/\evil.example/x`, tab or newline after the first `/`). Non-blocking: list-valued `azp` or `role` gives 500 instead of 401; JWKS outage gives 401 instead of 503; two commits without HANDOFF; three commits over 200 lines; AppShell red and green in one commit; status doc names PR #86 twice; PR body cites an older CI run. Everything else passed (JWT check sound, CORS, RequireAdmin, CI, docs, secrets).
 
 - **25.11.2026 11:50** HANDOFF corrected: `424242` failed because the test user was a real Gmail address, not because test mode was off (Clerk's docs: test mode is on by default for development instances). The user added a `+clerk_test@example.com` user without a role; it signs in with `424242`.
 - **25.11.2026 11:42** Review agent for PR #91 not started: denied by the session permission check (as for PR #80). PR #91 waits for the user's go-ahead to run the review agent.

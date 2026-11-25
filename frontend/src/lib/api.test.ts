@@ -69,4 +69,44 @@ describe('apiFetch', () => {
     await expect(apiFetch('https://evil.example/x')).rejects.toThrow(/path/)
     expect(fetchMock).not.toHaveBeenCalled()
   })
+
+  // PR #91 review: URL parsing treats "\" as "/" and drops tabs and newlines.
+  it.each([
+    ['backslash', '/\\evil.example/x'],
+    ['tab', '/\t/evil.example/x'],
+    ['newline', '/\n/evil.example/x'],
+    ['protocol-relative', '//evil.example/x'],
+  ])('rejects a path that could leave the API host (%s)', async (_name, path) => {
+    vi.mocked(getToken).mockResolvedValue('tok_123')
+
+    await expect(apiFetch(path)).rejects.toThrow()
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['empty', ''],
+    ['relative', '/api'],
+  ])('refuses to run when VITE_API_URL is %s', async (_name, value) => {
+    vi.stubEnv('VITE_API_URL', value)
+    vi.mocked(getToken).mockResolvedValue('tok_123')
+
+    try {
+      await expect(apiFetch('/api/me')).rejects.toThrow(/VITE_API_URL/)
+      expect(fetchMock).not.toHaveBeenCalled()
+    } finally {
+      vi.unstubAllEnvs()
+    }
+  })
+
+  it('keeps a base path in VITE_API_URL', async () => {
+    vi.stubEnv('VITE_API_URL', 'http://api.test/base/')
+    vi.mocked(getToken).mockResolvedValue(null)
+
+    try {
+      await apiFetch('/api/me')
+      expect(sentRequest().url).toBe('http://api.test/base/api/me')
+    } finally {
+      vi.unstubAllEnvs()
+    }
+  })
 })
