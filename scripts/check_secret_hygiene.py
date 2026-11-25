@@ -71,25 +71,28 @@ def settings_env_names(config: Path) -> set[str]:
             field = stmt.target.id
             if field == "model_config":
                 continue
-            alias = _first_alias(stmt.value)
-            names.add(alias or f"MKC_{field.upper()}")
+            aliases = _aliases(stmt.value)
+            names.update(aliases or {f"MKC_{field.upper()}"})
     return names
 
 
-def _first_alias(value: ast.expr | None) -> str | None:
+def _aliases(value: ast.expr | None) -> set[str]:
+    """Every name in `validation_alias` (a string or `AliasChoices(...)`); empty if none."""
     if not isinstance(value, ast.Call):
-        return None
+        return set()
     for kw in value.keywords:
         if kw.arg != "validation_alias":
             continue
         alias = kw.value
         if isinstance(alias, ast.Constant) and isinstance(alias.value, str):
-            return alias.value
-        if isinstance(alias, ast.Call) and alias.args:
-            first = alias.args[0]
-            if isinstance(first, ast.Constant) and isinstance(first.value, str):
-                return first.value
-    return None
+            return {alias.value}
+        if isinstance(alias, ast.Call):
+            return {
+                arg.value
+                for arg in alias.args
+                if isinstance(arg, ast.Constant) and isinstance(arg.value, str)
+            }
+    return set()
 
 
 def env_example_problems(root: Path = ROOT) -> list[str]:
