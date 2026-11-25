@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 24.11.2026, 21:50
+**Last updated:** 25.11.2026, 09:17
 
 This file is how agents resume work after a session restart.
 - **Updated:** in every commit, and after every important ticket change: status change, sub-issue created or closed, PR opened or merged, review verdict. A change made outside a branch (e.g. on the board) is recorded in the next commit.
@@ -38,24 +38,28 @@ This file is how agents resume work after a session restart.
   - MKC-5.1 (#76): worker test hardening from the PR #75 review. Done on the branch.
   - MKC-5.2 (#77): `docker compose up db` (pgvector, Postgres 17), `DATABASE_URL`, `Base`, `get_session()`. Done on the branch.
   - MKC-5.3 (#78): Alembic in `backend/migrations/`, round-trip test. Done on the branch.
-  - MKC-5.4 (#79): one-off Supabase check. **Blocked on the user** (Supabase project). PR #80 covers 5.1–5.3 and waits for the review agent; #5 and #79 stay open.
+  - MKC-5.4 (#79): `python -m mkc.db.check` (read-only) and its tests. Done on the branch; the live run against the user's Supabase project passed (PostgreSQL 17.12, `vector` 0.8.2 available). Run it with `cd backend && uv run --env-file .env python -m mkc.db.check`; the Session pooler string lives only in the gitignored `backend/.env`.
+  - PR #80 now covers 5.1–5.4 and closes #5. Next: the review agent (Fable) reviews and merges it (the user agreed on 25.11.2026).
 
 ## Next steps
 
-1. MKC-5 (checklist above).
+1. MKC-5: review and merge PR #80, push `main` to `turing`.
 2. MKC-6 (secret hygiene and CI, required checks; Linux CI runs the POSIX SIGTERM test; a `pgvector/pgvector:pg17` service container for the DB tests; repo-wide markdown lint).
 
 ## Blocked / waiting on user
 
-- **PR #80 review and merge.** Starting the review agent (Fable) with merge rights was denied by the session's permission check on 24.11.2026. The user reviews or merges PR #80, or allows the review agent to run. After the merge: push `main` to `turing` and check that both are the same commit.
-- **No ticket is `Ready`.** MKC-6 depends on MKC-5, which stays open until the Supabase check (#79). The development agent didn't start MKC-6 on top of the unmerged PR #80. The user decides whether MKC-6 may start once PR #80 is merged, with #5 still open for the Supabase check.
 - **Decision: `httpx` → `httpx2` for FastAPI's TestClient.** Starlette marks `httpx` as deprecated for TestClient and suggests `httpx2`. The development agent's attempt to switch the dev dependency was denied by the session's permission check, so `httpx` stays (tests pass, one deprecation warning). The user decides whether to allow the switch.
 - **Docker Desktop** must be running for MKC-5 (`docker compose up db`). The development agent started it on 24.11.2026; if it is stopped after a restart, start it again.
-- Later setup tasks (listed in design doc section 13): Supabase project, Vercel account, provider API keys with caps, GitHub `production` environment, a domain with TLS. MKC-5 needs the Supabase project for its live part; its one-off Supabase check waits for that; migrations and tests use Docker Postgres.
+- Later setup tasks (listed in design doc section 13): Vercel account, provider API keys with caps, GitHub `production` environment, a domain with TLS. The Supabase project exists (created by the user on 25.11.2026).
 
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+- **25.11.2026 09:17** MKC-5.4: Supabase result recorded in the status doc and the MKC-5 plan; HANDOFF updated.
+- **25.11.2026 09:16** MKC-5.4: live check against the user's Supabase project (Session pooler, port 5432, eu-west-1): PostgreSQL 17.12, `vector` 0.8.2 available, not installed; exit 0. Password masked in the output.
+- **25.11.2026 09:16** MKC-5.4: `mkc.db.check` added; 16 passed, 1 skipped (POSIX-only); ruff and mypy pass. The password test now checks `user:password@`, because the local password `mkc` also occurs in the test database name.
+- **25.11.2026 09:15** MKC-5.4: `tests/db/test_check.py` added; red (`mkc.db.check` missing).
+- **25.11.2026** User decisions: run the review agent for PR #80; the user created the Supabase project and put the Session pooler string in `backend/.env`; `httpx2` still open.
 - **24.11.2026 21:50** Review agent for PR #80 not started: denied by the session permission check. Stopped: PR #80 waits for review and merge; no `Ready` ticket; MKC-6 depends on MKC-5 (see Blocked).
 - **24.11.2026 21:49** MKC-5: HANDOFF records PR #80.
 - **24.11.2026 21:49** MKC-5: PR #80 opened (assigned to `qamran`; closes #76, #77, #78; #5 and #79 stay open for the Supabase check); #76, #77 and #78 to `Testing`; #5 stays `In progress`.

@@ -61,7 +61,7 @@ backend/
 3. **MKC-5.3:** `tests/db/test_migrations.py::test_upgrade_downgrade_roundtrip` (red) → `alembic.ini`, `migrations/`, revision `0001`.
 4. **MKC-5.4:**
    - `tests/db/test_check.py` (red) → `mkc.db.check`.
-   - The live run against Supabase waits for the user's Supabase project.
+   - The live run against Supabase: `cd backend && uv run --env-file .env python -m mkc.db.check` (done 25.11.2026; result in the status doc).
 
 ## Done when
 

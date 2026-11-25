@@ -15,7 +15,8 @@ This is the living status document. It is updated whenever a decision is made or
   - `DATABASE_URL` setting, mapped to the psycopg 3 driver; SQLAlchemy 2; `mkc.db.base.Base`, `mkc.db.session.get_session()`
   - Alembic in `backend/migrations/`; revision `0001` enables `vector`; the round-trip test runs in a throwaway database
   - DB tests fail when Postgres is unreachable (`MKC_SKIP_DB_TESTS=1` skips them on purpose); MKC-6 needs a pgvector service container in CI
-  - **Open:** the one-off Supabase check (MKC-5.4) waits for the user's Supabase project. #5 stays open until then.
+  - Supabase check (MKC-5.4), 25.11.2026: `python -m mkc.db.check` (read-only) against the user's Supabase project, via the Session pooler (port 5432, IPv4; region eu-west-1). Result: PostgreSQL 17.12, `vector` 0.8.2 available, not yet installed (the migrations install it; running them on Supabase belongs to the deploy tickets). The connection string lives only in the gitignored `backend/.env`; `Settings` does not read `.env`, so the tests never touch Supabase. Run it with `cd backend && uv run --env-file .env python -m mkc.db.check`.
+  - Supabase project settings: use the Session pooler, not the direct connection (IPv6 only) or the Transaction pooler (port 6543, no session state). The Data API is not used by the backend.
 - **Next:** MKC-6 (secret hygiene and CI, required checks).
 
 ## Key documents
