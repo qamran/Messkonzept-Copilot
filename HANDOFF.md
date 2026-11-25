@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 25.11.2026, 13:35
+**Last updated:** 25.11.2026, 13:38
 
 This file is how agents resume work after a session restart.
 
@@ -55,6 +55,7 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **25.11.2026 13:38** MKC-8.2: `scripts/compose_smoke.sh` added (own project `mkc-smoke` on ports 15433/18000/15173, so the local stack and its db volume are never touched; checks `/health`, `/api/version` commit, worker running, frontend `index.html` and `/admin`). Red: `compose.yaml` missing.
 - **25.11.2026 13:35** MKC-8.1: `backend/Dockerfile` (builder + runtime on `python:3.12-slim-trixie`, uv 0.12.18, both by index digest; uid 10001; `MKC_COMMIT` last) and `backend/.dockerignore`. Local build with `MKC_COMMIT=test123`: `/health` 200, `/api/version` gives `test123`, `id` gives uid 10001, `mkc-worker` stops on SIGTERM with exit 0 (container log 13:31). Image 287 MB. `check_containers.py` has no backend findings left (frontend and Compose follow in MKC-8.2).
 - **25.11.2026 13:33** MKC-8.1: `scripts/check_containers.py` added (Dockerfiles multi-stage, digest-pinned, numeric non-root `USER`, exec form, `MKC_COMMIT`; `.dockerignore` entries; `compose.yaml` services db, api, worker, frontend, one Compose file). Red: both Dockerfiles and `compose.yaml` missing, `docker-compose.yml` still there.
 - **25.11.2026 13:29** MKC-8 sub-issues MKC-8.1 (#92) to 8.5 (#96) created, assigned to `qamran`, linked to #8 and set to `In progress`.
