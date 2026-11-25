@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 25.11.2026, 11:31
+**Last updated:** 25.11.2026, 11:33
 
 This file is how agents resume work after a session restart.
 
@@ -58,6 +58,8 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+
+- **25.11.2026 11:33** MKC-7.3: red tests for `apiFetch` (Bearer token, no header when signed out, `VITE_API_URL` prefix, caller headers kept, absolute URLs rejected) and `RequireAdmin` (loading, signed out → sign-in, non-admin blocked, other role blocked, admin renders); both files fail to resolve (`./api`, `./RequireAdmin` missing).
 
 - **25.11.2026 11:31** MKC-7.2: CI frontend job runs `npm ci`, lint, typecheck, test and build (the "no frontend yet" switch is gone); dependency-scan runs `npm audit --omit=dev` (any level) and `npm audit --audit-level=high` (all packages). `check_workflows.py` and `check_secret_hygiene.py` green.
 - **25.11.2026 11:30** MKC-7.2: frontend scaffold committed (`572c915`, without a HANDOFF change; logged here). Vite react-ts template, Tailwind 4, shadcn/ui `radix-nova` (button, card), ESLint, vitest + jsdom + Testing Library, `@clerk/react` 6, `react-router` 8; TypeScript stays 5.9 (template). AppShell smoke test red (module missing), then green. `shadcn` moved to dev dependencies: as a runtime dependency it pulled `ts-morph` → `minimatch` (4 moderate advisories); now `npm audit --omit=dev` 0 and `--audit-level=high` 0. lint, typecheck, test and build pass.
