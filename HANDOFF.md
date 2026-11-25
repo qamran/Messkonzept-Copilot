@@ -56,6 +56,8 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **25.11.2026 12:00** MKC-7.3: `apiFetch` fix: `VITE_API_URL` must be an absolute http(s) URL; paths with `\`, control characters or `//` are refused; the final URL must have the API origin. 21 frontend tests pass; lint and typecheck pass. `frontend/.env.example` says `VITE_API_URL` is required.
+
 - **25.11.2026 12:00** MKC-7.3: red tests for the review finding: `apiFetch` must reject paths with a backslash, tab, newline or `//`, and refuse to run when `VITE_API_URL` is empty or relative; a base path in `VITE_API_URL` is kept. 5 of 12 fail.
 - **25.11.2026 11:59** #7 and #87–#90 back to `In progress`.
 - **25.11.2026 11:58** PR #91 review **FAIL** (comment 10:58:49Z): `apiFetch` could send the token to another host when `VITE_API_URL` is empty (`/\evil.example/x`, tab or newline after the first `/`). Non-blocking: list-valued `azp` or `role` gives 500 instead of 401; JWKS outage gives 401 instead of 503; two commits without HANDOFF; three commits over 200 lines; AppShell red and green in one commit; status doc names PR #86 twice; PR body cites an older CI run. Everything else passed (JWT check sound, CORS, RequireAdmin, CI, docs, secrets).
