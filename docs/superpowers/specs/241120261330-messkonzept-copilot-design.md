@@ -387,6 +387,7 @@ E3 and E5 are **re-run after Phase 7**, because the advisor and the injection gu
 - **Version sync:** the backend exposes `/api/version`. The frontend warns on a mismatched API version, and CD deploys the backend before promoting the frontend.
 - **Containers:** one backend image (API and worker entrypoints), multi-arch (amd64 + arm64), on GHCR. The frontend container is only for local Compose.
 - **Local:** Docker Compose (`compose.yaml`: API, worker, Postgres, frontend; decision 41).
+- **Server:** Oracle VM `mkc-k3s` with k3s, Traefik and cert-manager; API host `92-6-240-17.sslip.io` (decisions 43, 44; runbook `docs/251120261645-runbook.md`).
 - **Kubernetes:** one Helm chart, `deploy/helm/mkc/` (API and worker Deployments, Service, Ingress with cert-manager TLS, Secret; decision 42). `scripts/kind_smoke.sh` installs it on a throwaway kind cluster, locally and in CI.
 - **CI (GitHub Actions, personal repo):**
   - ruff, mypy, pytest
@@ -411,13 +412,13 @@ E3 and E5 are **re-run after Phase 7**, because the advisor and the injection gu
 - **Config:** env vars and Helm values; the provider per role is set in config.
 - **Observability:** Langfuse Cloud (free tier), plus structured app logs.
 - **Turing repo:** receives pushes of the same commits for submission, with no deploy secrets.
-- **Accounts in place (2026-11-24):** Oracle Always Free ARM VM (running), Clerk, Langfuse, the personal GitHub repo.
+- **Accounts in place (2026-11-24):** Oracle Cloud account, Clerk, Langfuse, the personal GitHub repo. *Correction 25.11.2026:* the Oracle VM did not exist yet; it was created on 25.11.2026 in MKC-10 (decision 44, runbook "Server setup").
   - **User-only setup tasks at the start:**
-    - a Supabase project (Postgres + private Storage bucket)
-    - a Vercel account linked to the personal repo
+    - a Supabase project (Postgres + private Storage bucket) (done 25.11.2026)
+    - a Vercel account linked to the personal repo (done 25.11.2026: project `messkonzept-copilot`)
     - provider API keys with spending caps (OpenRouter with zero-data-retention routing, Gemini, Anthropic, Meta Llama)
-    - GitHub Secrets and the protected `production` environment
-    - a domain with TLS (for the backend API; Clerk needs none, decision 39)
+    - GitHub Secrets and the protected `production` environment (done 25.11.2026: `VERCEL_TOKEN`)
+    - a domain with TLS (for the backend API; Clerk needs none, decision 39) (done 25.11.2026: `92-6-240-17.sslip.io`, decision 43)
   - **Fallback** if k3s blocks deployment: keep the Helm chart tested on kind in CI, deploy with Compose on the same VM, and document the limitation.
 - **Remotes (set up 24.11.2026):** `origin` = <https://github.com/qamran/Messkonzept-Copilot> (personal, public, home); `turing` = <https://github.com/TuringCollegeSubmissions/qshahz-AE.CAP.AFA.1.1> (submission mirror). `main` is pushed to both after every merge, so both show the same commit; the current one is in HANDOFF.md.
 
@@ -519,6 +520,8 @@ The build follows the phases in section 20, ordered by dependency:
 | 40 | Admin role = Clerk public metadata `{"role": "admin"}`, carried as the session-token claim `role`; the backend verifies tokens with the instance's public JWKS only (RS256, `exp`, `nbf`, `iss`, `sub`, `azp` allow-list), no Clerk secret key; the CI frontend job runs lint, typecheck, test and build; the dependency scan adds `npm audit` (shipped packages at any level, all packages at high) (MKC-7) | agent |
 | 41 | Containers (MKC-8): one backend image (`backend/Dockerfile`, multi-stage, uid 10001, base images pinned by digest, `MKC_COMMIT` build argument; API by default, `mkc-worker` for the worker); `compose.yaml` (db, api, worker, frontend) replaces `docker-compose.yml`; CI job `image` runs a Compose smoke test, a Grype scan (high or critical with a fix fails) and a `linux/amd64,linux/arm64` build on every PR; the only write permission in CI is `packages: write` in the job `publish`, which runs only on a push to `main` in `qamran/Messkonzept-Copilot` (Actions also run on the Turing mirror) and logs in with `github.token`, not a stored secret; image `ghcr.io/qamran/messkonzept-copilot-backend`, tags `<commit sha>` and `main`; `image` is a required check on `main`, `publish` is not (ADR 002, ADR 005) | agent |
 | 42 | Helm chart (MKC-9): `deploy/helm/mkc/` deploys the API (replicas from values) and the worker (`replicas: 1` in the template, `strategy: Recreate`); probes on `/health` for the API and `mkc-worker-health` (heartbeat file) for the worker; uid 10001, read-only root filesystem; secrets from values or an existing Secret, never in `values.yaml`; Ingress TLS via a cert-manager annotation (no `Certificate` or `ClusterIssuer` in the chart). Worker `terminationGracePeriodSeconds: 300` = turn budget: model call 180 s + tool calls 60 s + checkpoint and lease release 30 s + margin 30 s; the `ModelClient` timeout must stay at or below 180 s and MKC-10's `helm upgrade --timeout` must be longer than 300 s; once turns run (MKC-17, MKC-20), the worker must beat its heartbeat during a turn or the 30 s max age must be raised. CI job `kind` (Helm 4.3.1, kind 0.33.0, node v1.37.0 like k3s stable) runs `helm lint --strict` and `scripts/kind_smoke.sh` on every PR and is a required check; `publish` needs it (ADR 002, ADR 005) | agent |
+| 43 | API host name `92-6-240-17.sslip.io` (sslip.io: free, no sign-up, no DNS record; tied to the VM's IP; Let's Encrypt rate limits may be shared). An own domain can replace it later by changing the Helm values, `VITE_API_URL` and CORS (ADR 002, runbook) | user |
+| 44 | Server (MKC-10 setup, 25.11.2026): Oracle VM `mkc-k3s`, `VM.Standard.A1.Flex` 4 OCPUs / 24 GB, Ubuntu 24.04 arm64, ephemeral public IP; ports 80 and 443 open in the security list and in iptables (plus the k3s pod and service ranges; Oracle's FORWARD reject removed), 6443 never opened; k3s v1.37.2+k3s1 with Traefik; cert-manager v1.21.3 with HTTP-01 ClusterIssuers `letsencrypt-staging` and `letsencrypt-prod`, no ACME e-mail; Vercel project `messkonzept-copilot` (root `frontend`, Node 24, preview per PR); GitHub environment `production` (required reviewer `qamran`, protected branches only, secret `VERCEL_TOKEN`). Steps in `docs/251120261645-runbook.md` (ADR 002) | agent |
 
 ## 19. Course coverage
 
