@@ -38,7 +38,7 @@ backend/
 
 `Settings.database_url`:
 - read from `DATABASE_URL` (also `MKC_DATABASE_URL`)
-- default `postgresql+psycopg://mkc:mkc@localhost:5433/mkc`
+- default `postgresql+psycopg://mkc:mkc@127.0.0.1:5433/mkc`
 - `postgres://` and `postgresql://` are rewritten to `postgresql+psycopg://`. A bare scheme would make SQLAlchemy look for psycopg2. Supabase hands out `postgresql://` URLs.
 
 ## Session layer
@@ -68,4 +68,4 @@ backend/
 - `docker compose up db` provides Postgres 17 with pgvector.
 - `cd backend && uv run pytest` passes with the DB tests running, not skipped. `ruff check`, `ruff format --check` and `mypy` pass.
 - `uv run alembic upgrade head` and `downgrade base` work against the compose database.
-- The PR closes #76, #77 and #78. #5 and #79 stay open until the Supabase check is done.
+- The PR closes #5, #76, #77, #78 and #79 (the Supabase check was done on 25.11.2026).
