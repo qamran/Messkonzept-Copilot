@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 25.11.2026, 17:36
+**Last updated:** 25.11.2026, 17:41
 
 This file is how agents resume work after a session restart.
 
@@ -44,9 +44,9 @@ This file is how agents resume work after a session restart.
 
 ## In progress
 
-- **MKC-10** (#10), continuous deployment (k3s + Vercel). Status `In progress`, assigned to `qamran`. Branch `mkc-10-cd` from `1f16ba8`. Plan: `docs/superpowers/plans/251120261710-mkc-10-cd.md`.
+- **MKC-10** (#10), continuous deployment (k3s + Vercel). Status `Testing`, assigned to `qamran`. Branch `mkc-10-cd` from `1f16ba8`; PR #109 (CI run 45655887382 on `36644d7` green). Plan: `docs/superpowers/plans/251120261710-mkc-10-cd.md`.
   - Branch pushed. Since the review: the forced command deploys only commits on `main`; namespace `mkc` enforces Pod Security `restricted`; SSH keepalive; CR stripped from the key.
-  - Sub-issues MKC-10.1 (#106), 10.2 (#105), 10.3 (#104), 10.4 (#107), 10.5 (#108): all linked to #10, assigned to `qamran`, `In progress`. Code and docs for all five are on the branch.
+  - Sub-issues MKC-10.1 (#106), 10.2 (#105), 10.3 (#104), 10.4 (#107), 10.5 (#108): all linked to #10, assigned to `qamran`, `Testing`. Code and docs for all five are on the branch.
   - Live: `https://92-6-240-17.sslip.io/api/version` = `1f16ba85…` (Helm revision 3 after the drill).
   - Vercel Git deployments switched on again (previews per PR; `main` off by `frontend/vercel.json`).
   - **Waiting on the user:** the deploy key must go into the `production` environment as `DEPLOY_SSH_KEY` (the agent's `gh secret set` was blocked by the permission check). Command in Next steps 1. Until then the post-merge `cd.yml` run fails in `backend`.
@@ -55,7 +55,7 @@ This file is how agents resume work after a session restart.
 
 1. MKC-10:
    - the user stores the deploy key (runbook "Deploy and rollback", "Store the deploy key in GitHub"; PowerShell: `Get-Content -Raw '<key file>' | gh secret set DEPLOY_SSH_KEY --env production -R qamran/Messkonzept-Copilot`). The key file is in this session's scratchpad (`deploykey/mkc_deploy`); the agent gives the full path in the chat. Then the agent checks the secret name and deletes the local key folder.
-   - open the PR, set #10 and #104–#108 to `Testing`, start the review agent once the secret is in place
+   - start the review agent on PR #109 once the secret is in place (PR opened, board set to `Testing`)
    - after the merge: the user approves `backend`, then `frontend` in `production`; check `cd.yml` green, `/api/version` = merge commit, the Vercel site and `/admin` load without the warning, no Git-made Vercel production deployment for the merge commit (`main: false` works); a preview signs in and calls `/api/me` (CORS and `azp` via the new pattern; only possible once the merge commit runs on the VM); push `main` to `turing`
 2. Non-blocking follow-ups from the PR #103 review (for later tickets):
    - N1 (MKC-17/MKC-20): the heartbeat is only touched between polls; with max age 30 s and liveness 3 × 30 s, a turn of up to 240 s would get a healthy worker restarted. Beat during a turn or raise the max age (noted in ADR 002 and decision 42).
@@ -84,6 +84,8 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **25.11.2026 17:40** CI run 45655887382 on `36644d7` green (16:40:45Z): backend, frontend, gitleaks, dependency-scan, docs (incl. both deploy script tests), image, kind; publish skipped. `DEPLOY_SSH_KEY` not yet in `production` (only `VERCEL_TOKEN`); review agent waits for it.
+- **25.11.2026 17:37** PR #109 opened (16:37:23Z, assigned to `qamran`; closes #10, #104–#108); #10 and #104–#108 to `Testing`.
 - **25.11.2026 17:36** Docs after the review: runbook (two approvals; deploy-key commands for PowerShell and Git Bash; the `main` check and Pod Security in the setup and checks; the 17:34 deploy), ADR 002 (a leaked key deploys only commits on `main`; Pod Security), decision 47, status doc (#108). HANDOFF: no local path; "Blocked" names the deploy-key secret; log times taken from GitHub and Vercel.
 - **25.11.2026 17:34–17:35** Branch pushed (`mkc-10-cd`). On the VM with the deploy key: `deploy 310b2b8…` (branch commit, ahead of `main`) and `deploy 0000…` refused (exit 4, "not a commit on main"). Deploy of `1f16ba8` through `cd_deploy.sh`: revision 4, smoke test passed on the first try (17:34:53–17:35:04). Vercel built preview `messkonzept-copilot-6o9a7kauj-qamran.vercel.app` for `310b2b8` (READY; matches the preview pattern). Note: Vercel's current production deployment (`i7324q3rw`) came from this branch when the project was linked (16:39), before `vercel.json`; the first CD run replaces it.
 - **25.11.2026 17:36** MKC-10.3: `mkc-deploy` checks the commit with GitHub's compare API (`behind`/`identical` only); `rbac.yaml` labels `mkc` Pod Security `restricted` (server dry run: no existing pod breaks it; applied on the VM; as `mkc-deploy` a privileged pod is forbidden); `cd_deploy.sh` `ServerAliveInterval=30`; `cd.yml` strips CR from the key. Tests: `test_mkc_deploy.sh` and `test_cd_deploy.sh` all ok; `check_workflows.py` ok.
