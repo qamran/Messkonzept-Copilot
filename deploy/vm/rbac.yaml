@@ -1,0 +1,39 @@
+# Kubernetes rights for the deploy user (MKC-10.3): the built-in "admin" role inside the
+# namespace mkc only. No cluster-wide rights, no other namespaces. Applied by the admin:
+#   sudo k3s kubectl apply -f rbac.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mkc
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mkc-deployer
+  namespace: mkc
+automountServiceAccountToken: false
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: mkc-deployer-admin
+  namespace: mkc
+subjects:
+  - kind: ServiceAccount
+    name: mkc-deployer
+    namespace: mkc
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: admin
+---
+# Long-lived token for the deploy user's kubeconfig (the API listens on 127.0.0.1:6443 only
+# from the deploy user's point of view; 6443 is closed from outside).
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mkc-deployer-token
+  namespace: mkc
+  annotations:
+    kubernetes.io/service-account.name: mkc-deployer
+type: kubernetes.io/service-account-token

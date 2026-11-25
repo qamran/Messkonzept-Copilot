@@ -1,2 +1,5 @@
 # Shell scripts run on Linux (CI, containers): always LF, also in a Windows checkout (MKC-8).
 *.sh text eol=lf
+
+# Scripts without .sh that run on Linux (MKC-10).
+deploy/vm/mkc-deploy text eol=lf

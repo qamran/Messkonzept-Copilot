@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+# Forced command for the VM user mkc-deploy (MKC-10.3). Installed root-owned as
+# /usr/local/bin/mkc-deploy; authorized_keys: restrict,command="/usr/local/bin/mkc-deploy" <key>
+#
+# The SSH client can ask for exactly one of:
+#   deploy <40-hex commit>   chart from GitHub at that commit, image tag = that commit
+#   rollback                 back to the previous Helm revision
+#   status                   the last Helm revisions
+# Anything else is refused (exit 2) before anything runs. The chart comes from the fixed
+# repository and the values from the root-owned /etc/mkc/values.yaml, never from the client.
+# Exit codes: 0 ok, 1 failed, 2 refused, 3 nothing to roll back to.
+#
+# The MKC_DEPLOY_* variables exist for scripts/test_mkc_deploy.sh. An SSH client can't set
+# them: sshd accepts only LANG and LC_* (AcceptEnv) and PermitUserEnvironment is off.
+set -euo pipefail
+umask 077
+
+REPO="qamran/Messkonzept-Copilot"
+RELEASE="mkc"
+NAMESPACE="mkc"
+TIMEOUT="600s" # longer than the worker's 300 s grace period (decision 42)
+HELM="${MKC_DEPLOY_HELM:-/usr/local/bin/helm}"
+CURL="${MKC_DEPLOY_CURL:-/usr/bin/curl}"
+VALUES="${MKC_DEPLOY_VALUES:-/etc/mkc/values.yaml}"
+
+request="${SSH_ORIGINAL_COMMAND:-}"
+work="" # temporary folder of a deploy, removed on exit
+trap '[ -n "$work" ] && rm -rf "$work"' EXIT
+
+refuse() {
+  echo "mkc-deploy: refused. Allowed: 'deploy <40-hex commit>', 'rollback', 'status'." >&2
+  exit 2
+}
+
+deploy() {
+  local sha="$1"
+  work="$(mktemp -d)"
+  echo "mkc-deploy: fetching the chart at $sha"
+  "$CURL" -fsSL --proto '=https' --max-time 120 \
+    "https://codeload.github.com/$REPO/tar.gz/$sha" -o "$work/source.tar.gz"
+  mkdir "$work/source"
+  tar -xzf "$work/source.tar.gz" -C "$work/source" --strip-components=1 \
+    --wildcards '*/deploy/helm/mkc/*'
+  local chart="$work/source/deploy/helm/mkc"
+  [ -f "$chart/Chart.yaml" ] || { echo "mkc-deploy: no chart at $sha" >&2; exit 1; }
+  echo "mkc-deploy: helm upgrade to $sha"
+  "$HELM" upgrade --install "$RELEASE" "$chart" --namespace "$NAMESPACE" -f "$VALUES" \
+    --set "image.tag=$sha" --rollback-on-failure --wait=watcher --timeout "$TIMEOUT"
+}
+
+rollback() {
+  local revisions
+  revisions="$("$HELM" history "$RELEASE" --namespace "$NAMESPACE" --max 2 -o json \
+    | grep -o '"revision"' | wc -l)"
+  if [ "$revisions" -lt 2 ]; then
+    echo "mkc-deploy: no earlier revision to roll back to" >&2
+    exit 3
+  fi
+  echo "mkc-deploy: helm rollback to the previous revision"
+  "$HELM" rollback "$RELEASE" --namespace "$NAMESPACE" --wait=watcher --timeout "$TIMEOUT"
+}
+
+# Whole-string matches: bash =~ anchors ^ and $ at the ends of the string, not at newlines.
+if [[ "$request" =~ ^deploy\ ([0-9a-f]{40})$ ]]; then
+  deploy "${BASH_REMATCH[1]}"
+elif [ "$request" = "rollback" ]; then
+  rollback
+elif [ "$request" = "status" ]; then
+  "$HELM" history "$RELEASE" --namespace "$NAMESPACE" --max 5
+else
+  refuse
+fi

@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 25.11.2026, 16:59
+**Last updated:** 25.11.2026, 17:03
 
 This file is how agents resume work after a session restart.
 
@@ -49,6 +49,7 @@ This file is how agents resume work after a session restart.
   - The new sub-issues are not yet on the board or linked to #10 (same outage).
   - MKC-10.1 done on the branch: `MKC_CORS_ORIGIN_REGEX` feeds CORS and the `azp` check.
   - MKC-10.2 done on the branch: `VersionWarning` (compares `VITE_COMMIT` with `/api/version`), `frontend/vercel.json`, `scripts/check_vercel.py`. Vercel Git deployments are still `disabled` in the project; switch them on after this is pushed (then PRs get previews and `main` stays off).
+  - MKC-10.3 done on the branch and on the VM: user `mkc-deploy` (no password, no sudo), forced command `/usr/local/bin/mkc-deploy`, ServiceAccount `mkc-deployer` (`admin` in namespace `mkc` only), `/etc/mkc/values.yaml`, Helm v4.3.1 arm64, Secret `mkc-secrets` (`DATABASE_URL`). The deploy key (`SHA256:ji3KOS7f…`) is in the session scratchpad `deploykey/` until it goes into the `production` environment as `DEPLOY_SSH_KEY` (MKC-10.4); delete the local copy after that.
   - MKC-10.4 is #107. MKC-10.5 still not created (HTTP 500/502).
 
 ## Next steps
@@ -80,6 +81,10 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+
+- **25.11.2026 17:03** MKC-10.3: `deploy/vm/mkc-deploy` (forced command: `deploy <40-hex>`, `rollback`, `status`; chart from GitHub at the commit; values from `/etc/mkc/values.yaml`; `--rollback-on-failure --wait=watcher --timeout 600s`; rollback refused with one revision), `deploy/vm/values-production.yaml`, `deploy/vm/rbac.yaml`; `.gitattributes` keeps `mkc-deploy` LF. `scripts/test_mkc_deploy.sh`: 27 ok. `helm lint --strict` with the production values green.
+- **25.11.2026 17:02–17:06** VM (agent, SSH): Helm v4.3.1 arm64 (`sha256sum -c` OK, `8cf8f66e…`); `rbac.yaml` applied; user `mkc-deploy`; kubeconfig from the ServiceAccount token (server `127.0.0.1:6443`); `can-i`: create deployments, secrets, ingresses in `mkc` yes; secrets in `kube-system`, deployments in `default`, nodes, clusterrolebindings, clusterissuers no; `sudo -l`: not allowed. `mkc-secrets` created from `backend/.env` over stdin (109 chars, `postgresql://`). Deploy key installed with `restrict,command=…` (root-owned `authorized_keys`). Over SSH with the deploy key: empty command, `id`, `bash -i`, `deploy abc`, `deploy 1f16ba8`, `status; id`, `cat …/.kube/config` all refused (exit 2); PTY refused; sftp closed; `-L 16443:127.0.0.1:6443` → `administratively prohibited`; `status` → `release: not found` (nothing deployed yet). From outside 6443: curl exit 28 (timeout).
+- **25.11.2026 17:01** MKC-10.3: red `scripts/test_mkc_deploy.sh` (`deploy/vm/mkc-deploy missing`).
 
 - **25.11.2026 16:59** MKC-10.2: `VersionWarning` in the page frame (warning only when `VITE_COMMIT` is set and differs from the API's `commit`; a failed fetch shows nothing); `frontend/vercel.json` (`main` off, SPA rewrite). vitest 26 passed; lint, typecheck and build green; `check_vercel.py` ok.
 - **25.11.2026 16:58** MKC-10.2: red tests `VersionWarning.test.tsx` (import fails: component missing) and `scripts/check_vercel.py` (`frontend/vercel.json: file missing`).
