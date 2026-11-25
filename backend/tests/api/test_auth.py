@@ -180,3 +180,29 @@ def test_cors_rejects_other_origins(client: TestClient) -> None:
         headers={"Origin": "https://evil.example", "Access-Control-Request-Method": "GET"},
     )
     assert "access-control-allow-origin" not in response.headers
+
+
+# PR #91 review: odd claim types must give 401, not 500; a JWKS outage is 503, not 401.
+@pytest.mark.parametrize(
+    "claims",
+    [
+        pytest.param({"azp": [ORIGIN]}, id="azp-list"),
+        pytest.param({"role": ["admin"]}, id="role-list"),
+        pytest.param({"role": {"name": "admin"}}, id="role-object"),
+        pytest.param({"role": 1}, id="role-number"),
+        pytest.param({"sub": 123}, id="sub-number"),
+    ],
+)
+def test_odd_claim_types_are_401(
+    client: TestClient, make_token: TokenFactory, claims: dict[str, Any]
+) -> None:
+    assert _get(client, "/api/me", make_token(**claims)).status_code == 401
+
+
+def test_jwks_unreachable_is_503(make_token: TokenFactory) -> None:
+    def unreachable(_token: str) -> Any:
+        raise jwt.PyJWKClientConnectionError("connection refused")
+
+    settings = Settings(clerk_issuer=ISSUER, clerk_authorized_parties=[ORIGIN])
+    client = TestClient(create_app(settings, key_resolver=unreachable))
+    assert _get(client, "/api/me", make_token()).status_code == 503

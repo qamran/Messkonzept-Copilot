@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 25.11.2026, 12:00
+**Last updated:** 25.11.2026, 12:01
 
 This file is how agents resume work after a session restart.
 
@@ -55,6 +55,8 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+
+- **25.11.2026 12:01** MKC-7.1: red tests from the review's non-blocking points: list `azp`, list/object/number `role` → 401 (now 500: `TypeError`, pydantic `ValidationError`); JWKS unreachable → 503 (now 401). Numeric `sub` already gives 401 (PyJWT checks it). 5 failed, 26 passed.
 
 - **25.11.2026 12:00** MKC-7.3: `apiFetch` fix: `VITE_API_URL` must be an absolute http(s) URL; paths with `\`, control characters or `//` are refused; the final URL must have the API origin. 21 frontend tests pass; lint and typecheck pass. `frontend/.env.example` says `VITE_API_URL` is required.
 
