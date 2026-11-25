@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 25.11.2026, 15:51
+**Last updated:** 25.11.2026, 15:36
 
 This file is how agents resume work after a session restart.
 
@@ -66,6 +66,7 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **25.11.2026 15:36** MKC-9.3: `scripts/kind_smoke.sh` (own cluster `mkc-smoke`, temporary `KUBECONFIG`, refuses an existing cluster, image loaded as an archive, `helm install --wait`, `/health` and `/api/version` through the Service, worker Ready with 0 restarts twice 20 s apart, worker pod deleted → `signal SIGTERM received` and `worker stopped`, new worker Ready; diagnostics on failure; cluster delete retried). The chart came first, so the red run used a wrong expected commit: `MKC_EXPECT_COMMIT=wrong-commit` → `FAIL: /api/version does not report commit wrong-commit`, diagnostics printed, exit 1 (15:31). Its cluster delete failed once on Docker Desktop (`did not receive an exit event`); removed by hand, and the script now retries the delete. Green run 15:33:03–15:34:20 (exit 0): commit `green-ebfc204` returned, worker stopped 1 s after the delete. `~/.kube` has no config file afterwards (only a `cache` folder).
 - **25.11.2026 15:51** MKC-9.2: chart part 2: API Deployment (replicas from values; startup, readiness and liveness probes on `/health`), worker Deployment (`replicas: 1`, `Recreate`, grace period 300 s with the budget in a comment, `mkc-worker-health` exec probes, heartbeat in `/tmp`), Ingress (class from values; TLS with the cert-manager annotation; host and issuer required). Both pods: uid 10001, read-only root, no privilege escalation, all capabilities dropped, no service-account token. `check_helm.py` green; `helm lint --strict` (v4.3.1) green with `--set image.tag=lint` and with `ci-values.yaml`. `helm template` refuses `latest`, a missing tag, a missing host and a missing issuer. A mutated copy (grace 120, replicas from values, RollingUpdate, no cert-manager annotation, writable root, a secret and `latest` in values, Ingress off in the CI values) gives eight findings.
 - **25.11.2026 15:50** MKC-9.2: chart part 1: `Chart.yaml` (0.1.0), `values.yaml` (image tag required, no secrets, requests and limits), `ci-values.yaml` (kind test: local image, Ingress and TLS on, placeholder `DATABASE_URL`), helpers (image tag required and `latest` refused; checksum annotations), ConfigMap from `env`, Secret from `secrets` unless `existingSecret`, Service. `check_helm.py` still red (Deployments and Ingress follow).
 - **25.11.2026 15:38** MKC-9.2: `scripts/check_helm.py` added (stdlib text checks: chart files; API replicas from values, three probes on `/health`; worker `replicas: 1`, `Recreate`, grace period ≥ 300, `mkc-worker-health` probes; both non-root, read-only root, `envFrom` Secret; Ingress class, TLS, cert-manager annotation; `values.yaml` without secrets or `latest`, with requests and limits; `ci-values.yaml` with Ingress and TLS on). Red: all nine chart files missing.
