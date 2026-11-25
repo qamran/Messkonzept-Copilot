@@ -2,8 +2,10 @@
 
 - `.github/workflows/ci.yml` exists and has the jobs backend, frontend, gitleaks,
   dependency-scan and docs.
-- No workflow uses `pull_request_target` or reads `secrets.` (fork PRs get no secrets).
-- Every workflow sets top-level `permissions: contents: read`.
+- No workflow uses `pull_request_target` or secrets (`secrets.x`, `secrets['x']`,
+  `secrets: inherit`), so fork PRs get no secrets.
+- Every workflow sets top-level `permissions: contents: read` and grants no write
+  permission anywhere (`write`, `write-all`), also not per job.
 - Every action is pinned to a full commit SHA (docker images to a digest).
 - No `paths:` / `paths-ignore:` filters: a required check that never runs would block PRs.
 
@@ -23,6 +25,10 @@ USES = re.compile(r"^\s*(?:-\s+)?uses:\s*['\"]?([^\s'\"#]+)", re.MULTILINE)
 PINNED_ACTION = re.compile(r"^[\w.-]+/[\w./-]+@[0-9a-f]{40}$")
 PINNED_IMAGE = re.compile(r"^docker://.+@sha256:[0-9a-f]{64}$")
 TOP_PERMISSIONS = re.compile(r"^permissions:\s*\n\s+contents:\s*read\s*$", re.MULTILINE)
+# secrets.X, secrets['X'] and `secrets: inherit` for reusable workflows.
+SECRETS = re.compile(r"\bsecrets\s*[.\[]|^\s*secrets:\s*inherit\b", re.MULTILINE)
+# Any `<scope>: write` or `permissions: write-all`, top-level or per job.
+WRITE_PERMISSION = re.compile(r":\s*write(-all)?\s*$", re.MULTILINE)
 
 
 def _strip_comments(text: str) -> str:
@@ -35,8 +41,10 @@ def workflow_problems(path: Path, rel: str) -> list[str]:
     found: list[str] = []
     if "pull_request_target" in text:
         found.append(f"{rel}: uses pull_request_target")
-    if re.search(r"\bsecrets\.", text):
-        found.append(f"{rel}: reads secrets.*; CI must not need secrets")
+    if SECRETS.search(text):
+        found.append(f"{rel}: uses secrets; CI must not need secrets")
+    if WRITE_PERMISSION.search(text):
+        found.append(f"{rel}: grants a write permission; CI is read-only")
     if re.search(r"^\s*paths(-ignore)?:", text, re.MULTILINE):
         found.append(f"{rel}: has a paths filter; required checks must always run")
     if not TOP_PERMISSIONS.search(text):
