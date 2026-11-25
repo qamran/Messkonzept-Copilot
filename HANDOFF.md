@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 25.11.2026, 10:04
+**Last updated:** 25.11.2026, 10:05
 
 This file is how agents resume work after a session restart.
 
@@ -57,6 +57,7 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **25.11.2026 10:05** MKC-6: PR #86 body lists the review fixes; #6 and #81–#85 to `Testing` for the re-review.
 - **25.11.2026 10:04** MKC-6: HANDOFF fixes from the PR #86 review: "Current state" names the required checks; the Docker line no longer says MKC-5; the 09:34 line split into 09:33 and 09:34 by event time; FAIL and status changes logged.
 - **25.11.2026 10:03** MKC-6.4: `check_workflows.py` also rejects `secrets['x']`, `secrets: inherit` and any `write`/`write-all` permission (review observation). Before: a sample workflow with all three reported nothing; after: both rules fire; `ci.yml` still green.
 - **25.11.2026 10:02** MKC-6.2: `.env.example` lists `MKC_DATABASE_URL` and says an empty value means the default; `check_secret_hygiene.py` green; config tests pass.
