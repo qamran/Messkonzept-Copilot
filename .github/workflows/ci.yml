@@ -158,6 +158,11 @@ jobs:
             python3 "$script" || fail=1
           done
           exit "$fail"
+      # MKC-10: the deploy scripts with stub ssh, curl and helm (no VM, no network).
+      - name: Deploy script tests
+        run: |
+          bash scripts/test_mkc_deploy.sh
+          bash scripts/test_cd_deploy.sh
 
   # MKC-8.3: build the backend image, run the whole Compose stack, scan the image,
   # then build both platforms. Read-only token, no push (the push is MKC-8.4, main only).

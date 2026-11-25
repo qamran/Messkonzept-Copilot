@@ -1,0 +1,119 @@
+# CD (MKC-10.4). A push to main deploys the backend to k3s, then the frontend to Vercel.
+# Safety rules (checked by scripts/check_workflows.py):
+# - push to main only, home repo only (the Turing mirror runs Actions too)
+# - secrets only in jobs that run in the protected "production" environment
+#   (required reviewer qamran, protected branches only)
+# - the k3s API is never used from here: SSH to the deploy user's forced command only
+# - read-only token; every action pinned to a commit SHA; a running deploy is never cancelled
+name: cd
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cd-production
+  cancel-in-progress: false
+
+env:
+  IMAGE: ghcr.io/qamran/messkonzept-copilot-backend
+  API_URL: https://92-6-240-17.sslip.io
+  SITE_URL: https://messkonzept-copilot.vercel.app
+
+jobs:
+  # No secrets: waits until the CI job publish has pushed :<commit> (both architectures),
+  # so the approval request only appears once there is something to deploy.
+  image:
+    if: github.repository == 'qamran/Messkonzept-Copilot'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Wait for the image of this commit
+        run: |
+          ref="${IMAGE#ghcr.io/}"
+          for i in $(seq 1 80); do
+            token="$(curl -fsS "https://ghcr.io/token?scope=repository:${ref}:pull"               | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')"
+            if index="$(curl -fsS -H "Authorization: Bearer $token"                 -H "Accept: application/vnd.oci.image.index.v1+json"                 "https://ghcr.io/v2/${ref}/manifests/${GITHUB_SHA}")"; then
+              if grep -Eq '"architecture": *"arm64"' <<<"$index"; then
+                echo "${IMAGE}:${GITHUB_SHA} is published (arm64 included)"
+                exit 0
+              fi
+              echo "::error::${IMAGE}:${GITHUB_SHA} has no arm64 image"
+              exit 1
+            fi
+            echo "attempt $i/80: ${IMAGE}:${GITHUB_SHA} not published yet"
+            sleep 30
+          done
+          echo "::error::${IMAGE}:${GITHUB_SHA} did not appear in 40 minutes (is the ci run green?)"
+          exit 1
+
+  backend:
+    needs: [image]
+    if: github.repository == 'qamran/Messkonzept-Copilot'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: production
+    env:
+      # The VM's SSH host key, pinned (public; checked with ssh-keyscan on 25.11.2026).
+      KNOWN_HOSTS: "92.6.240.17 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINOiFN0MdbhOpKfb43IkyRjrWbVkoUUmkBeIMtdyMeII"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: The k3s API is not reachable from outside
+        run: |
+          rc=0
+          curl -sk --connect-timeout 10 -o /dev/null https://92.6.240.17:6443/version || rc=$?
+          if [ "$rc" -ne 28 ] && [ "$rc" -ne 7 ]; then
+            echo "::error::port 6443 answered (curl exit $rc); it must stay closed"
+            exit 1
+          fi
+          echo "6443 closed from outside (curl exit $rc)"
+      - name: Deploy, smoke test, roll back on failure
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          umask 077
+          printf '%s\n' "$DEPLOY_SSH_KEY" > "$RUNNER_TEMP/deploy_key"
+          printf '%s\n' "$KNOWN_HOSTS" > "$RUNNER_TEMP/known_hosts"
+          MKC_DEPLOY_KEY_FILE="$RUNNER_TEMP/deploy_key"             MKC_KNOWN_HOSTS_FILE="$RUNNER_TEMP/known_hosts"             MKC_API_URL="$API_URL" bash scripts/cd_deploy.sh "$GITHUB_SHA"
+      - name: Remove the key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/deploy_key"
+
+  frontend:
+    needs: [backend]
+    if: github.repository == 'qamran/Messkonzept-Copilot'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: production
+    env:
+      VERCEL_ORG_ID: team_ZkqFvKeHOhLKgHQvkkSrHePC
+      VERCEL_PROJECT_ID: prj_2XaiHCUguTbGK4ZAXZCyJBBWzSzH
+      VERCEL_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+      - name: Vercel CLI (pinned)
+        run: npm install --global --ignore-scripts vercel@65.14.0
+      - name: Build and deploy to Vercel production
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          # The page compares this with the API's commit (decision 46).
+          VITE_COMMIT: ${{ github.sha }}
+        run: |
+          vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+          vercel build --prod --token="$VERCEL_TOKEN"
+          vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+      - name: The production site answers
+        run: |
+          curl -fsS --proto '=https' --max-time 20 -o /dev/null "$SITE_URL/"
+          curl -fsS --proto '=https' --max-time 20 -o /dev/null "$SITE_URL/admin"
+          echo "$SITE_URL and /admin answer"
