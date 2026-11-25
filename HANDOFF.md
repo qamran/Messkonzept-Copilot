@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 25.11.2026, 16:56
+**Last updated:** 25.11.2026, 16:59
 
 This file is how agents resume work after a session restart.
 
@@ -48,6 +48,8 @@ This file is how agents resume work after a session restart.
   - Sub-issues created so far: MKC-10.1 (#106), MKC-10.2 (#105), MKC-10.3 (#104). MKC-10.4 and 10.5 not yet: GitHub returned HTTP 500/502 on issue creation (16:52–17:00); retry, and check for duplicates first.
   - The new sub-issues are not yet on the board or linked to #10 (same outage).
   - MKC-10.1 done on the branch: `MKC_CORS_ORIGIN_REGEX` feeds CORS and the `azp` check.
+  - MKC-10.2 done on the branch: `VersionWarning` (compares `VITE_COMMIT` with `/api/version`), `frontend/vercel.json`, `scripts/check_vercel.py`. Vercel Git deployments are still `disabled` in the project; switch them on after this is pushed (then PRs get previews and `main` stays off).
+  - MKC-10.4 is #107. MKC-10.5 still not created (HTTP 500/502).
 
 ## Next steps
 
@@ -78,6 +80,10 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+
+- **25.11.2026 16:59** MKC-10.2: `VersionWarning` in the page frame (warning only when `VITE_COMMIT` is set and differs from the API's `commit`; a failed fetch shows nothing); `frontend/vercel.json` (`main` off, SPA rewrite). vitest 26 passed; lint, typecheck and build green; `check_vercel.py` ok.
+- **25.11.2026 16:58** MKC-10.2: red tests `VersionWarning.test.tsx` (import fails: component missing) and `scripts/check_vercel.py` (`frontend/vercel.json: file missing`).
+- **25.11.2026 16:57** MKC-10.4 created as #107 (assigned to `qamran`). Linking to #10 and the board still fail with HTTP 502.
 
 - **25.11.2026 16:56** MKC-10.1: `MKC_CORS_ORIGIN_REGEX` (full match, checked at start) used by CORS and by the token's `azp` check; `.env.example`. 78 passed, 8 skipped (DB skipped on purpose); ruff and mypy pass.
 - **25.11.2026 16:55** MKC-10.1: red tests `tests/api/test_origins.py` (production and preview hosts pass CORS and `azp`; `http://`, suffix, prefix, other team, port, path refused; empty regex allows nothing). Red: `cors_origin_regex` unknown (`extra_forbidden`).
