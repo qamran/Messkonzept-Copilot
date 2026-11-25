@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 25.11.2026, 15:37
+**Last updated:** 25.11.2026, 15:42
 
 This file is how agents resume work after a session restart.
 
@@ -24,7 +24,7 @@ This file is how agents resume work after a session restart.
   - `origin` = qamran/Messkonzept-Copilot (home, public)
   - `turing` = TuringCollegeSubmissions/qshahz-AE.CAP.AFA.1.1 (code-only mirror, no issues; ADR 005 option (c), decision 35)
   - Both at `35dc1fe` (merge of PR #97).
-- **`main` is protected:** PRs only, enforced for admins. Required checks: the `ci` jobs `backend`, `frontend`, `gitleaks`, `dependency-scan` and `docs` (since 25.11.2026 09:50, MKC-6.5) and `image` (since 13:52, MKC-8); the branch must be up to date with `main`. `publish` is not required (skipped on PRs).
+- **`main` is protected:** PRs only, enforced for admins. Required checks: the `ci` jobs `backend`, `frontend`, `gitleaks`, `dependency-scan` and `docs` (since 25.11.2026 09:50, MKC-6.5) `image` (since 13:52, MKC-8) and `kind` (since 15:42, MKC-9); the branch must be up to date with `main`. `publish` is not required (skipped on PRs).
 - **Agent rules:** `AGENTS.md` (CLAUDE.md imports it). The development agent continues without asking and stops only for genuine decisions (decision 36).
 - **Done:**
   - MKC-1: board, labels, tickets, templates, branch protection (PR #65)
@@ -67,6 +67,9 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **25.11.2026 15:42** `kind` added to the required checks on `main` (PATCH at 15:42:17; before/after diff of the protection: only the `kind` check added).
+- **25.11.2026 15:41** CI run 45636218952 on `d26910c` green (14:41:31Z): backend, frontend, gitleaks, dependency-scan, docs, image, kind; publish skipped. `kind` (14:38:11–14:39:44Z): Helm, kind and kubectl checksums OK; `/api/version` returned the PR merge commit `b6647fd…`; worker `ready=true restarts=0` twice; worker pod deleted after 2 s with `signal SIGTERM received` and `worker stopped`; new worker Ready; `kind smoke test passed`.
+- **25.11.2026 15:38** MKC-9: PR #103 opened (14:38:02Z; assigned to `qamran`; closes #9, #98–#102). #9 and #98–#102 to `Testing`. CI run 45636218952 started.
 - **25.11.2026 15:37** MKC-9.5: design doc decision 42 (chart, 300 s turn budget, kind job) and lines in 8.4 and 13; ADR 002 section "Helm chart and kind test" (turn budget table, options); ADR 005 notes `kind` as a required check; status doc MKC-9 details and 42 decisions; README names the chart and the kind script; HANDOFF "How to test the Helm chart". markdownlint 0 errors; all `scripts/check_*.py` pass.
 - **25.11.2026 15:36** MKC-9.4: CI job `kind` (Helm v4.3.1, kind v0.33.0, kubectl v1.37.0, each `sha256sum -c`; `helm lint --strict` with a tag and with `ci-values.yaml`; `helm template`; `scripts/kind_smoke.sh` with `MKC_COMMIT=github.sha`); `publish` needs `kind`. `check_workflows.py` green; all `scripts/check_*.py` pass.
 - **25.11.2026 15:35** MKC-9.4: `check_workflows.py` requires a job `kind` (`helm lint --strict`, `sha256sum -c` on the downloads, `scripts/kind_smoke.sh`) and that `publish` needs every required job. Red: `job 'kind' missing`, `job 'publish' must need 'kind'`; a sample with `needs: [backend, docs]` reports the five missing jobs.
