@@ -1,0 +1,9 @@
+# Build context for frontend/Dockerfile (MKC-8). Secrets and local state never go in.
+.env
+.env.*
+node_modules
+dist
+.vite
+coverage
+Dockerfile
+.dockerignore

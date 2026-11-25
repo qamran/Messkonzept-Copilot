@@ -26,7 +26,7 @@ jobs:
       db:
         image: pgvector/pgvector:pg17
         env:
-          # Throwaway CI database; same placeholder credentials as docker-compose.yml.
+          # Throwaway CI database; same placeholder credentials as compose.yaml.
           POSTGRES_USER: mkc
           POSTGRES_PASSWORD: mkc
           POSTGRES_DB: mkc
