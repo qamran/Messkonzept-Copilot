@@ -34,7 +34,7 @@ This file is how agents resume work after a session restart.
 
 ## In progress
 
-- **MKC-5** (#5), database layer. Status `In progress`, assigned to `qamran`. Branch `mkc-5-database-layer`. Plan: `docs/superpowers/plans/241120262130-mkc-5-database-layer.md`.
+- **MKC-5** (#5), database layer. Status `Testing`, assigned to `qamran`. Branch `mkc-5-database-layer`. Plan: `docs/superpowers/plans/241120262130-mkc-5-database-layer.md`.
   - MKC-5.1 (#76): worker test hardening from the PR #75 review. Done on the branch.
   - MKC-5.2 (#77): `docker compose up db` (pgvector, Postgres 17), `DATABASE_URL`, `Base`, `get_session()`. Done on the branch.
   - MKC-5.3 (#78): Alembic in `backend/migrations/`, round-trip test. Done on the branch.
@@ -55,6 +55,7 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+- **25.11.2026 09:26** PR #80 text: skip count with `MKC_SKIP_DB_TESTS=1` updated (`9 passed, 8 skipped`); #5 and #76–#79 back to `Testing` for the re-review.
 - **25.11.2026 09:26** Fixes for the PR #80 review: status doc header from git; plan default URL `127.0.0.1` and closing line (#5 and #79 now closed by the PR); the 24.11. 21:30 log line split by event time (board status at 21:31); 09:16 line sourced.
 - **25.11.2026 09:25** #5 and #76–#79 back to `In progress`.
 - **25.11.2026 09:25** PR #80 review **FAIL** (docs only; code, tests and secrets pass): status doc header stale, plan contradicts code and PR, one HANDOFF log time off by a minute.
