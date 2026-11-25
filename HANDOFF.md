@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 25.11.2026, 15:35
+**Last updated:** 25.11.2026, 15:36
 
 This file is how agents resume work after a session restart.
 
@@ -66,7 +66,8 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
-- **25.11.2026 15:35** MKC-9.4: `check_workflows.py` requires a job `kind` (`helm lint --strict`, `sha256sum -c` on the downloads, `scripts/kind_smoke.sh`) and that `publish` needs every required job. Red: `job 'kind' missing`, `job 'publish' must need 'kind'`; a sample with `needs: [backend, docs]` reports the five missing jobs. (The 15:37 line above is the 15:35 commit.)
+- **25.11.2026 15:36** MKC-9.4: CI job `kind` (Helm v4.3.1, kind v0.33.0, kubectl v1.37.0, each `sha256sum -c`; `helm lint --strict` with a tag and with `ci-values.yaml`; `helm template`; `scripts/kind_smoke.sh` with `MKC_COMMIT=github.sha`); `publish` needs `kind`. `check_workflows.py` green; all `scripts/check_*.py` pass.
+- **25.11.2026 15:35** MKC-9.4: `check_workflows.py` requires a job `kind` (`helm lint --strict`, `sha256sum -c` on the downloads, `scripts/kind_smoke.sh`) and that `publish` needs every required job. Red: `job 'kind' missing`, `job 'publish' must need 'kind'`; a sample with `needs: [backend, docs]` reports the five missing jobs.
 - **25.11.2026 15:35** HANDOFF log times for MKC-9.1 to 9.3 corrected to the git commit times (15:23–15:34); the earlier lines had estimated times, against the rule.
 - **25.11.2026 15:34** MKC-9.3: `scripts/kind_smoke.sh` (own cluster `mkc-smoke`, temporary `KUBECONFIG`, refuses an existing cluster, image loaded as an archive, `helm install --wait`, `/health` and `/api/version` through the Service, worker Ready with 0 restarts twice 20 s apart, worker pod deleted → `signal SIGTERM received` and `worker stopped`, new worker Ready; diagnostics on failure; cluster delete retried). The chart came first, so the red run used a wrong expected commit: `MKC_EXPECT_COMMIT=wrong-commit` → `FAIL: /api/version does not report commit wrong-commit`, diagnostics printed, exit 1 (just before the green run; the run has no timestamps). Its cluster delete failed once on Docker Desktop (`did not receive an exit event`); removed by hand, and the script now retries the delete. Green run 15:33:03–15:34:20 (exit 0): commit `green-ebfc204` returned, worker stopped 1 s after the delete. `~/.kube` has no config file afterwards (only a `cache` folder).
 - **25.11.2026 15:28** MKC-9.2: chart part 2: API Deployment (replicas from values; startup, readiness and liveness probes on `/health`), worker Deployment (`replicas: 1`, `Recreate`, grace period 300 s with the budget in a comment, `mkc-worker-health` exec probes, heartbeat in `/tmp`), Ingress (class from values; TLS with the cert-manager annotation; host and issuer required). Both pods: uid 10001, read-only root, no privilege escalation, all capabilities dropped, no service-account token. `check_helm.py` green; `helm lint --strict` (v4.3.1) green with `--set image.tag=lint` and with `ci-values.yaml`. `helm template` refuses `latest`, a missing tag, a missing host and a missing issuer. A mutated copy (grace 120, replicas from values, RollingUpdate, no cert-manager annotation, writable root, a secret and `latest` in values, Ingress off in the CI values) gives eight findings.
