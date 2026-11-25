@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 25.11.2026, 11:41
+**Last updated:** 25.11.2026, 11:50
 
 This file is how agents resume work after a session restart.
 
@@ -40,7 +40,7 @@ This file is how agents resume work after a session restart.
 - **MKC-7** (#7), frontend skeleton with Clerk. Status `Testing` (PR #91), assigned to `qamran`. Branch `mkc-7-frontend-skeleton`. Plan: `docs/superpowers/plans/251120261119-mkc-7-frontend-skeleton.md`.
   - Sub-issues (all `Testing`, assigned to `qamran`, linked to #7): MKC-7.1 (#87) backend token check, MKC-7.2 (#88) frontend scaffold and CI, MKC-7.3 (#89) `apiFetch` and `RequireAdmin`, MKC-7.4 (#90) Clerk decision and local check.
   - **User decision (25.11.2026):** Clerk development instance for every environment, permanently (no Vercel Pro, so production keys can't run on `*.vercel.app` previews). Sign-in by email and Google; the user's Google account is the admin. Recorded in ADR 002 and design doc decision 39.
-  - **Clerk setup done by the user:** development instance; session-token claim `"role": "{{user.public_metadata.role}}"`; admin = public metadata `{"role": "admin"}`; one test non-admin (`mkc-user+clerk_test@example.com`, code `424242`). Publishable key in `frontend/.env.local` (gitignored). Issuer `https://better-cicada-5480.clerk.accounts.dev` (public) in `backend/.env` as `MKC_CLERK_ISSUER`.
+  - **Clerk setup done by the user:** development instance; session-token claim `"role": "{{user.public_metadata.role}}"`; admin = public metadata `{"role": "admin"}`; test non-admins without a role: a second Gmail account (real email code) and a `+clerk_test@example.com` user (code `424242`, test mode is on). Publishable key in `frontend/.env.local` (gitignored). Issuer `https://better-cicada-5480.clerk.accounts.dev` (public) in `backend/.env` as `MKC_CLERK_ISSUER`.
 
 ## Next steps
 
@@ -56,12 +56,15 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **25.11.2026 11:50** HANDOFF corrected: `424242` failed because the test user was a real Gmail address, not because test mode was off (Clerk's docs: test mode is on by default for development instances). The user added a `+clerk_test@example.com` user without a role; it signs in with `424242`.
+- **25.11.2026 11:42** Review agent for PR #91 not started: denied by the session permission check (as for PR #80). PR #91 waits for the user's go-ahead to run the review agent.
+
 - **25.11.2026 11:41** MKC-7: PR #91 body updated with the local-check evidence; #7 and #87–#90 to `Testing`.
 - **25.11.2026 11:41** MKC-7.4 (log read at 11:41; the access log has no timestamps): local check of the three login states with the user, against the real Clerk development instance:
   - signed out: start page shows the sign-in hint; `/admin` redirects to `/sign-in` (user confirmed)
   - test user (no role): `GET /api/me` 200, card shows role none, admin no; `/admin` shows "Admin role required" (client guard; the backend 403 is covered by `test_admin_route_rejects_a_normal_user`)
   - user's Google account (admin): `GET /api/me` 200 with role admin; `/admin` shows "Backend admin check passed", `GET /api/admin/ping` 200
-  - `+clerk_test` code `424242` was rejected (instance test mode off); the user signed in the test user another way
+  - the test user in this check was a real Gmail address, so Clerk sent a real code and rejected `424242` (that code only works for `+clerk_test` addresses)
 - **25.11.2026 11:35** MKC-7: PR #91 opened (assigned to `qamran`; closes #7, #87–#90). CI run 45596478608 green: backend, frontend, dependency-scan, docs, gitleaks.
 
 - **25.11.2026 11:35** MKC-7.4: ADR 002 section "Clerk instance" (decision, why, options, accepted limits, wiring); design doc decisions 39 (user) and 40 (agent), section 13 updated; status doc and README updated; plan corrected (`apiFetch` uses `getToken()`). markdownlint 0 errors; all `scripts/check_*.py` pass.
