@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 25.11.2026, 10:11
+**Last updated:** 25.11.2026, 12:02
 
 This file is how agents resume work after a session restart.
 
@@ -23,7 +23,7 @@ This file is how agents resume work after a session restart.
 - **Remotes:**
   - `origin` = qamran/Messkonzept-Copilot (home, public)
   - `turing` = TuringCollegeSubmissions/qshahz-AE.CAP.AFA.1.1 (code-only mirror, no issues; ADR 005 option (c), decision 35)
-  - Both at `8d88c38` (merge of PR #80).
+  - Both at `410a178` (merge of PR #86).
 - **`main` is protected:** PRs only, enforced for admins. Required checks since 25.11.2026 09:50 (MKC-6.5): the `ci` jobs `backend`, `frontend`, `gitleaks`, `dependency-scan` and `docs`; the branch must be up to date with `main`.
 - **Agent rules:** `AGENTS.md` (CLAUDE.md imports it). The development agent continues without asking and stops only for genuine decisions (decision 36).
 - **Done:**
@@ -32,21 +32,20 @@ This file is how agents resume work after a session restart.
   - MKC-3: assignment rule (PR #67), HANDOFF.md (PR #69), AGENTS.md + CLAUDE.md + `scripts/check_agents.py` (PR #72)
   - MKC-4: backend skeleton in `backend/` (uv, Python 3.12, package `mkc`): Settings, FastAPI `/health` + `/api/version`, worker with clean SIGTERM shutdown; ruff + mypy strict (PR #75)
   - MKC-5: database layer: compose Postgres 17 + pgvector on `127.0.0.1:5433`, SQLAlchemy 2, Alembic, `python -m mkc.db.check`; Supabase connection checked via the Session pooler (PR #80)
+  - MKC-6: secret hygiene (`.gitignore`, `.env.example`, pre-commit), markdown lint, CI (`backend`, `frontend`, `gitleaks`, `dependency-scan`, `docs`) as required checks on `main`; `httpx2` (PR #86)
 - **How to test the backend:** `docker compose up -d db` (repo root; Postgres 17 + pgvector on `127.0.0.1:5433`), then `cd backend && uv sync && uv run pytest`. The DB tests fail if the db is down; `MKC_SKIP_DB_TESTS=1` skips them on purpose. Windows skips one POSIX-only worker test; run it in Linux with the Docker command in PR #75.
 
 ## In progress
 
-- **MKC-6** (#6), secret hygiene and CI. Status `Testing`, assigned to `qamran`. Branch `mkc-6-secret-hygiene-ci`. Plan: `docs/superpowers/plans/251120260935-mkc-6-secret-hygiene-ci.md`. PR #86: review FAIL at 10:00 (`.env.example` empty values, missing alias, two HANDOFF items; fixed) and re-review FAIL at 10:10 (status doc test count; fixed).
-  - MKC-6.1 (#81): `httpx` → `httpx2`; `StarletteDeprecationWarning` is an error in pytest (user decision 25.11.2026: switch now). Done on the branch.
-  - MKC-6.2 (#82): `.gitignore`, `.env.example`, `.pre-commit-config.yaml`, `scripts/check_secret_hygiene.py`. Done on the branch.
-  - MKC-6.3 (#83): all tracked Markdown passes markdownlint. Done on the branch.
-  - MKC-6.4 (#84): `.github/workflows/ci.yml`, `scripts/check_workflows.py`. Done on the branch; CI run 45579604956 on `a7cb041` green (backend 17 passed, none skipped).
-  - MKC-6.5 (#85): CI jobs as required checks on `main`. Done (09:50).
+- **MKC-7** (#7), frontend skeleton with Clerk. Status `In progress` (PR #91 review FAIL, fixing), assigned to `qamran`. Branch `mkc-7-frontend-skeleton`. Plan: `docs/superpowers/plans/251120261119-mkc-7-frontend-skeleton.md`.
+  - Sub-issues (all `In progress`, assigned to `qamran`, linked to #7): MKC-7.1 (#87) backend token check, MKC-7.2 (#88) frontend scaffold and CI, MKC-7.3 (#89) `apiFetch` and `RequireAdmin`, MKC-7.4 (#90) Clerk decision and local check.
+  - **User decision (25.11.2026):** Clerk development instance for every environment, permanently (no Vercel Pro, so production keys can't run on `*.vercel.app` previews). Sign-in by email and Google; the user's Google account is the admin. Recorded in ADR 002 and design doc decision 39.
+  - **Clerk setup done by the user:** development instance; session-token claim `"role": "{{user.public_metadata.role}}"`; admin = public metadata `{"role": "admin"}`; test non-admins without a role: a second Gmail account (real email code) and a `+clerk_test@example.com` user (code `424242`, test mode is on). Publishable key in `frontend/.env.local` (gitignored). Issuer `https://better-cicada-5480.clerk.accounts.dev` (public) in `backend/.env` as `MKC_CLERK_ISSUER`.
 
 ## Next steps
 
-1. MKC-6 (checklist above).
-2. MKC-7 (frontend skeleton; turns on the CI frontend job).
+1. Fix the PR #91 review findings (`apiFetch` host escape; backend 500s on odd claim types; JWKS outage → 503; status doc duplicate), then back to `Testing` and re-review.
+2. MKC-8 (backend container image on GHCR; image scan in CI).
 
 ## Blocked / waiting on user
 
@@ -57,6 +56,56 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **25.11.2026 12:02** MKC-7: status doc no longer names PR #86 twice and mentions the `apiFetch` origin rule; ADR 002 lists the 401/403/503 mapping.
+
+- **25.11.2026 12:01** MKC-7.1: `TokenVerifier` rejects a non-string `azp` or `role` (401); `require_user` maps `PyJWKClientConnectionError` to 503 ("Login provider unreachable"). 52 passed, 1 skipped (POSIX-only); ruff and mypy pass.
+
+- **25.11.2026 12:01** MKC-7.1: red tests from the review's non-blocking points: list `azp`, list/object/number `role` → 401 (now 500: `TypeError`, pydantic `ValidationError`); JWKS unreachable → 503 (now 401). Numeric `sub` already gives 401 (PyJWT checks it). 5 failed, 26 passed.
+
+- **25.11.2026 12:00** MKC-7.3: `apiFetch` fix: `VITE_API_URL` must be an absolute http(s) URL; paths with `\`, control characters or `//` are refused; the final URL must have the API origin. 21 frontend tests pass; lint and typecheck pass. `frontend/.env.example` says `VITE_API_URL` is required.
+
+- **25.11.2026 12:00** MKC-7.3: red tests for the review finding: `apiFetch` must reject paths with a backslash, tab, newline or `//`, and refuse to run when `VITE_API_URL` is empty or relative; a base path in `VITE_API_URL` is kept. 5 of 12 fail.
+- **25.11.2026 11:59** #7 and #87–#90 back to `In progress`.
+- **25.11.2026 11:58** PR #91 review **FAIL** (comment 10:58:49Z): `apiFetch` could send the token to another host when `VITE_API_URL` is empty (`/\evil.example/x`, tab or newline after the first `/`). Non-blocking: list-valued `azp` or `role` gives 500 instead of 401; JWKS outage gives 401 instead of 503; two commits without HANDOFF; three commits over 200 lines; AppShell red and green in one commit; status doc names PR #86 twice; PR body cites an older CI run. Everything else passed (JWT check sound, CORS, RequireAdmin, CI, docs, secrets).
+
+- **25.11.2026 11:50** HANDOFF corrected: `424242` failed because the test user was a real Gmail address, not because test mode was off (Clerk's docs: test mode is on by default for development instances). The user added a `+clerk_test@example.com` user without a role; it signs in with `424242`.
+- **25.11.2026 11:42** Review agent for PR #91 not started: denied by the session permission check (as for PR #80). PR #91 waits for the user's go-ahead to run the review agent.
+
+- **25.11.2026 11:41** MKC-7: PR #91 body updated with the local-check evidence; #7 and #87–#90 to `Testing`.
+- **25.11.2026 11:41** MKC-7.4 (log read at 11:41; the access log has no timestamps): local check of the three login states with the user, against the real Clerk development instance:
+  - signed out: start page shows the sign-in hint; `/admin` redirects to `/sign-in` (user confirmed)
+  - test user (no role): `GET /api/me` 200, card shows role none, admin no; `/admin` shows "Admin role required" (client guard; the backend 403 is covered by `test_admin_route_rejects_a_normal_user`)
+  - user's Google account (admin): `GET /api/me` 200 with role admin; `/admin` shows "Backend admin check passed", `GET /api/admin/ping` 200
+  - the test user in this check was a real Gmail address, so Clerk sent a real code and rejected `424242` (that code only works for `+clerk_test` addresses)
+- **25.11.2026 11:35** MKC-7: PR #91 opened (assigned to `qamran`; closes #7, #87–#90). CI run 45596478608 green: backend, frontend, dependency-scan, docs, gitleaks.
+
+- **25.11.2026 11:35** MKC-7.4: ADR 002 section "Clerk instance" (decision, why, options, accepted limits, wiring); design doc decisions 39 (user) and 40 (agent), section 13 updated; status doc and README updated; plan corrected (`apiFetch` uses `getToken()`). markdownlint 0 errors; all `scripts/check_*.py` pass.
+- **25.11.2026 11:33** Branch pushed to `origin` (`a6b57bf`). Local run: API on `127.0.0.1:8000` with `MKC_CLERK_ISSUER` from `backend/.env` (`/api/me` gives 401 without and with a bad token), Vite on `localhost:5173` (200).
+
+- **25.11.2026 11:33** MKC-7.3: pages and routes: `/` `HomePage` (shows `/api/me`), `/sign-in/*` Clerk `SignIn`, `/admin` `AdminPage` behind `RequireAdmin` (calls `/api/admin/ping`). 14 tests pass; lint and build pass.
+
+- **25.11.2026 11:33** MKC-7.3: `HomePage` test added; red (`./HomePage` missing). Covers: signed out → sign-in hint and no protected call; signed in → shows `/api/me`; backend error → status shown.
+
+- **25.11.2026 11:32** MKC-7.3: `src/lib/api.ts` (`apiFetch` with Clerk's `getToken()`, which works outside React, so no token bridge is needed), `src/lib/roles.ts` (`isAdmin`: `role` exactly `admin`, as in the backend), `src/components/RequireAdmin.tsx`. 11 tests pass; lint and typecheck pass.
+
+- **25.11.2026 11:31** MKC-7.3: red tests for `apiFetch` (Bearer token, no header when signed out, `VITE_API_URL` prefix, caller headers kept, absolute URLs rejected) and `RequireAdmin` (loading, signed out → sign-in, non-admin blocked, other role blocked, admin renders); both files fail to resolve (`./api`, `./RequireAdmin` missing).
+
+- **25.11.2026 11:31** MKC-7.2: CI frontend job runs `npm ci`, lint, typecheck, test and build (the "no frontend yet" switch is gone); dependency-scan runs `npm audit --omit=dev` (any level) and `npm audit --audit-level=high` (all packages). `check_workflows.py` and `check_secret_hygiene.py` green.
+- **25.11.2026 11:30** MKC-7.2: frontend scaffold committed (`572c915`, without a HANDOFF change; logged here). Vite react-ts template, Tailwind 4, shadcn/ui `radix-nova` (button, card), ESLint, vitest + jsdom + Testing Library, `@clerk/react` 6, `react-router` 8; TypeScript stays 5.9 (template). AppShell smoke test red (module missing), then green. `shadcn` moved to dev dependencies: as a runtime dependency it pulled `ts-morph` → `minimatch` (4 moderate advisories); now `npm audit --omit=dev` 0 and `--audit-level=high` 0. lint, typecheck, test and build pass.
+
+- **25.11.2026 11:24** MKC-7.2: `check_secret_hygiene.py` requires `frontend/.env.example` (both `VITE_` names, no values); `check_workflows.py` requires `npm audit` in the dependency-scan job. Both red (`frontend/.env.example: file missing`; `job 'dependency-scan' must run 'npm audit'`).
+
+- **25.11.2026 11:23** MKC-7.1: `mkc.api.auth` (`TokenVerifier`, `require_user`, `require_admin`, JWKS resolver), `GET /api/me`, `GET /api/admin/ping`, CORS allow-list; settings `MKC_CLERK_ISSUER`, `MKC_CLERK_AUTHORIZED_PARTIES`, `MKC_CORS_ORIGINS` in `.env.example`. 46 passed, 1 skipped (POSIX-only); ruff, mypy and `check_secret_hygiene.py` pass.
+- **25.11.2026 11:21** MKC-7.1: plan and red tests committed (`2e01edb`): `tests/api/test_auth.py` fails at collection (`mkc.api.auth` missing); 3 config tests fail (`Settings` has no Clerk fields). PyJWT 2.15.1 with `cryptography` added.
+- **25.11.2026 11:20** #87–#90 linked to #7 and set to `In progress`.
+- **25.11.2026 11:19** MKC-7 sub-issues MKC-7.1 (#87), 7.2 (#88), 7.3 (#89), 7.4 (#90) created (11:19:46–11:20:02), assigned to `qamran`.
+- **25.11.2026** User decision: Clerk development instance for all environments, permanently; user set up the instance, the `role` claim, the admin and a test user. Instance JWKS checked: one RS256 key.
+
+- **25.11.2026 10:15** HANDOFF and status doc caught up after PR #86 (MKC-6 done, MKC-7 current; Clerk application needed from the user).
+- **25.11.2026 10:14** MKC-7 (#7) assigned to `qamran`, to `In progress`; branch `mkc-7-frontend-skeleton` (reflog 10:14:55).
+- **25.11.2026 10:14** #6 and #81–#85 criteria ticked. MKC-6 complete.
+- **25.11.2026 10:13** `main` pushed to `turing` (reflog 10:13:59); `origin/main` == `turing/main` == `410a178`.
+- **25.11.2026 10:13** PR #86 third review **PASS** (comment 10:13:28), merged `410a178` (merge commit, 10:13:32); #6 and #81–#85 closed and `Done`. Non-blocking: service image not pinned by digest; `Refs:` not parsed as a git trailer (same on `main`); the 09:50 protection time can't be checked from git or the API.
 - **25.11.2026 10:11** MKC-6: status doc test count replaced by "every backend test runs on Linux, none skipped"; status doc notes empty = default and the MKC-10 deploy exception; HANDOFF names both FAIL rounds; PR #86 body updated; #6 and #81–#85 to `Testing`.
 - **25.11.2026 10:10** #6 and #81–#85 back to `In progress`.
 - **25.11.2026 10:10** PR #86 re-review **FAIL** (comment 09:10:01Z): all four findings fixed, but the status doc still said "all 17 tests" while the head has 19.

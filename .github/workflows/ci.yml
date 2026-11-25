@@ -57,33 +57,23 @@ jobs:
       - run: uv run pytest -v
 
   frontend:
-    # Reports success until MKC-7 adds frontend/. The condition sits on the steps, not on
-    # the job, so this required check always reports a result.
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: frontend
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - id: detect
-        run: |
-          if [ -f frontend/package.json ]; then
-            echo "present=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "present=false" >> "$GITHUB_OUTPUT"
-            echo "No frontend/ yet (MKC-7); nothing to check."
-          fi
-      - if: steps.detect.outputs.present == 'true'
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "24"
-      - if: steps.detect.outputs.present == 'true'
-        working-directory: frontend
-        run: |
-          npm ci
-          npm run lint
-          npm run typecheck
-          npm test
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
 
   gitleaks:
     runs-on: ubuntu-24.04
@@ -138,6 +128,14 @@ jobs:
         run: uv export --frozen --all-groups --no-emit-project -o /tmp/requirements.txt
       - name: pip-audit against known vulnerabilities
         run: uvx pip-audit@2.10.1 --strict --require-hashes --disable-pip -r /tmp/requirements.txt
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+      - name: npm audit (frontend; shipped packages at any level, build tools at high)
+        working-directory: frontend
+        run: |
+          npm audit --omit=dev
+          npm audit --audit-level=high
       # The image scan follows with the backend image in MKC-8.
 
   docs:

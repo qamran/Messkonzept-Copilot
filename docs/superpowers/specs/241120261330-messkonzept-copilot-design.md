@@ -382,7 +382,7 @@ E3 and E5 are **re-run after Phase 7**, because the advisor and the injection gu
 - **Glue between the two:**
   - CORS allow-list on the backend: the production Vercel domain plus the preview-domain pattern
   - `VITE_API_URL` per Vercel environment
-  - **Clerk:** a production instance for the production domain. Whether Vercel preview domains can use it (or need Clerk's development instance) is **verified in Phase 0**; production Clerk instances need an owned domain.
+  - **Clerk:** the **development instance for every environment** (local, previews, production; decision 39, ADR 002). Clerk production keys don't work on `*.vercel.app` previews, and the workaround needs Vercel Pro. Accepted limits: the "Development" badge, at most 100 users, a relaxed security posture.
   - Preview frontends point at the production backend; only admin users can start runs or approve.
 - **Version sync:** the backend exposes `/api/version`. The frontend warns on a mismatched API version, and CD deploys the backend before promoting the frontend.
 - **Containers:** one backend image (API and worker entrypoints), multi-arch (amd64 + arm64), on GHCR. The frontend container is only for local Compose.
@@ -416,7 +416,7 @@ E3 and E5 are **re-run after Phase 7**, because the advisor and the injection gu
     - a Vercel account linked to the personal repo
     - provider API keys with spending caps (OpenRouter with zero-data-retention routing, Gemini, Anthropic, Meta Llama)
     - GitHub Secrets and the protected `production` environment
-    - a domain with TLS (also needed for Clerk production)
+    - a domain with TLS (for the backend API; Clerk needs none, decision 39)
   - **Fallback** if k3s blocks deployment: keep the Helm chart tested on kind in CI, deploy with Compose on the same VM, and document the limitation.
 - **Remotes (set up 24.11.2026):** `origin` = <https://github.com/qamran/Messkonzept-Copilot> (personal, public, home); `turing` = <https://github.com/TuringCollegeSubmissions/qshahz-AE.CAP.AFA.1.1> (submission mirror). `main` is pushed to both after every merge, so both show the same commit; the current one is in HANDOFF.md.
 
@@ -514,6 +514,8 @@ The build follows the phases in section 20, ordered by dependency:
 | 36 | The development agent continues to the next ticket or step without asking for permission; it stops only for genuine decisions (scope or design choices, user-only setup tasks) | user |
 | 37 | FastAPI's test client uses `httpx2` instead of the deprecated `httpx`; Starlette deprecation warnings fail the tests (MKC-6.1) | user |
 | 38 | CI (MKC-6): jobs backend, frontend, gitleaks, dependency-scan and docs are required checks on `main`, pinned to the GitHub Actions app, with "branch must be up to date" on; no `paths` filters, so every job always reports; the frontend job reports success until MKC-7; gitleaks runs as a checksum-pinned release binary with a fake-key self-test; dependency scan is pip-audit on the hashed `uv export`; all tracked Markdown must pass markdownlint (ADR 005) | agent |
+| 39 | Clerk development instance for every environment (local, Vercel previews, Vercel production), permanently; no production instance. Reason: production keys don't work on `*.vercel.app` and the workaround needs Vercel Pro. Sign-in by email and Google; the user's Google account is the admin (ADR 002) | user (agent laid out the options) |
+| 40 | Admin role = Clerk public metadata `{"role": "admin"}`, carried as the session-token claim `role`; the backend verifies tokens with the instance's public JWKS only (RS256, `exp`, `nbf`, `iss`, `sub`, `azp` allow-list), no Clerk secret key; the CI frontend job runs lint, typecheck, test and build; the dependency scan adds `npm audit` (shipped packages at any level, all packages at high) (MKC-7) | agent |
 
 ## 19. Course coverage
 

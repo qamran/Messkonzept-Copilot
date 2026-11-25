@@ -1,10 +1,16 @@
 """Settings from environment variables (prefix MKC_)."""
 
+from typing import Annotated
+
 from pydantic import AliasChoices, Field, field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 _PSYCOPG_SCHEME = "postgresql+psycopg://"
 _BARE_SCHEMES = ("postgres://", "postgresql://")
+_LOCAL_VITE = ["http://localhost:5173", "http://127.0.0.1:5173"]
+
+OriginList = Annotated[list[str], NoDecode]
+"""A list read from one comma-separated environment variable."""
 
 
 class Settings(BaseSettings):
@@ -24,6 +30,27 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("DATABASE_URL", "MKC_DATABASE_URL"),
     )
     """SQLAlchemy URL from DATABASE_URL. Defaults to the `docker compose up db` service."""
+
+    clerk_issuer: str = ""
+    """Clerk instance (Frontend API URL). Empty = auth not configured; protected routes give 503."""
+
+    clerk_authorized_parties: OriginList = Field(default_factory=lambda: list(_LOCAL_VITE))
+    """Origins allowed in a token's `azp` claim (comma-separated)."""
+
+    cors_origins: OriginList = Field(default_factory=lambda: list(_LOCAL_VITE))
+    """Browser origins allowed to call the API (comma-separated)."""
+
+    @field_validator("clerk_authorized_parties", "cors_origins", mode="before")
+    @classmethod
+    def _split_commas(cls, value: object) -> object:
+        if isinstance(value, str):
+            return [item.strip() for item in value.split(",") if item.strip()]
+        return value
+
+    @field_validator("clerk_issuer")
+    @classmethod
+    def _strip_trailing_slash(cls, issuer: str) -> str:
+        return issuer.rstrip("/")
 
     @field_validator("database_url")
     @classmethod

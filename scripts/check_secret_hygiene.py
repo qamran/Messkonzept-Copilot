@@ -2,6 +2,7 @@
 
 - `.gitignore` ignores PDFs, caches, renders and every `.env*` file, but not `.env.example`.
 - `.env.example` lists every environment variable the backend `Settings` reads, with no values.
+- `frontend/.env.example` lists the `VITE_` variables the frontend reads, with no values (MKC-7.2).
 - `.pre-commit-config.yaml` runs gitleaks, ruff and the end-of-file fixer, each at a pinned rev.
 
 Usage: python scripts/check_secret_hygiene.py  (exit code 0 = ok, 1 = problems)
@@ -35,7 +36,8 @@ MUST_IGNORE = [
     "frontend/node_modules/x",
     "frontend/dist/x",
 ]
-MUST_TRACK = [".env.example", "backend/.env.example"]
+MUST_TRACK = [".env.example", "backend/.env.example", "frontend/.env.example"]
+FRONTEND_ENV = {"VITE_API_URL", "VITE_CLERK_PUBLISHABLE_KEY"}
 
 PRE_COMMIT_HOOKS = {
     "https://github.com/gitleaks/gitleaks": "gitleaks",
@@ -95,10 +97,10 @@ def _aliases(value: ast.expr | None) -> set[str]:
     return set()
 
 
-def env_example_problems(root: Path = ROOT) -> list[str]:
-    path = root / ".env.example"
+def _env_file_problems(path: Path, rel: str, expected: set[str]) -> list[str]:
+    """`NAME=` lines only, no values, every expected name listed."""
     if not path.is_file():
-        return [".env.example: file missing"]
+        return [f"{rel}: file missing"]
     listed: set[str] = set()
     found: list[str] = []
     for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
@@ -107,15 +109,25 @@ def env_example_problems(root: Path = ROOT) -> list[str]:
             continue
         match = re.fullmatch(r"([A-Z][A-Z0-9_]*)=(.*)", stripped)
         if not match:
-            found.append(f".env.example:{n}: not a NAME= line")
+            found.append(f"{rel}:{n}: not a NAME= line")
             continue
         name, value = match.groups()
         listed.add(name)
         if value.strip():
-            found.append(f".env.example:{n}: {name} has a value; leave it empty")
-    expected = settings_env_names(root / "backend" / "src" / "mkc" / "config.py")
-    found += [f".env.example: missing {name}" for name in sorted(expected - listed)]
+            found.append(f"{rel}:{n}: {name} has a value; leave it empty")
+    found += [f"{rel}: missing {name}" for name in sorted(expected - listed)]
     return found
+
+
+def env_example_problems(root: Path = ROOT) -> list[str]:
+    expected = settings_env_names(root / "backend" / "src" / "mkc" / "config.py")
+    return _env_file_problems(root / ".env.example", ".env.example", expected)
+
+
+def frontend_env_example_problems(root: Path = ROOT) -> list[str]:
+    return _env_file_problems(
+        root / "frontend" / ".env.example", "frontend/.env.example", FRONTEND_ENV
+    )
 
 
 def pre_commit_problems(root: Path = ROOT) -> list[str]:
@@ -144,7 +156,12 @@ def pre_commit_problems(root: Path = ROOT) -> list[str]:
 
 
 def problems(root: Path = ROOT) -> list[str]:
-    return gitignore_problems(root) + env_example_problems(root) + pre_commit_problems(root)
+    return (
+        gitignore_problems(root)
+        + env_example_problems(root)
+        + frontend_env_example_problems(root)
+        + pre_commit_problems(root)
+    )
 
 
 if __name__ == "__main__":
