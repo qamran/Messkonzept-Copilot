@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 25.11.2026, 10:03
+**Last updated:** 25.11.2026, 10:04
 
 This file is how agents resume work after a session restart.
 
@@ -24,7 +24,7 @@ This file is how agents resume work after a session restart.
   - `origin` = qamran/Messkonzept-Copilot (home, public)
   - `turing` = TuringCollegeSubmissions/qshahz-AE.CAP.AFA.1.1 (code-only mirror, no issues; ADR 005 option (c), decision 35)
   - Both at `8d88c38` (merge of PR #80).
-- **`main` is protected:** PRs only, enforced for admins. No required CI checks until MKC-6.
+- **`main` is protected:** PRs only, enforced for admins. Required checks since 25.11.2026 09:50 (MKC-6.5): the `ci` jobs `backend`, `frontend`, `gitleaks`, `dependency-scan` and `docs`; the branch must be up to date with `main`.
 - **Agent rules:** `AGENTS.md` (CLAUDE.md imports it). The development agent continues without asking and stops only for genuine decisions (decision 36).
 - **Done:**
   - MKC-1: board, labels, tickets, templates, branch protection (PR #65)
@@ -50,18 +50,21 @@ This file is how agents resume work after a session restart.
 
 ## Blocked / waiting on user
 
-- **Docker Desktop** must be running for MKC-5 (`docker compose up db`). The development agent started it on 24.11.2026; if it is stopped after a restart, start it again.
+- **Docker Desktop** must be running for the local DB tests (`docker compose up -d db`). If it is stopped after a restart, start it again. CI uses its own Postgres service.
 - Later setup tasks (listed in design doc section 13): Vercel account, provider API keys with caps, GitHub `production` environment, a domain with TLS. The Supabase project exists (created by the user on 25.11.2026).
 
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **25.11.2026 10:04** MKC-6: HANDOFF fixes from the PR #86 review: "Current state" names the required checks; the Docker line no longer says MKC-5; the 09:34 line split into 09:33 and 09:34 by event time; FAIL and status changes logged.
 - **25.11.2026 10:03** MKC-6.4: `check_workflows.py` also rejects `secrets['x']`, `secrets: inherit` and any `write`/`write-all` permission (review observation). Before: a sample workflow with all three reported nothing; after: both rules fire; `ci.yml` still green.
 - **25.11.2026 10:02** MKC-6.2: `.env.example` lists `MKC_DATABASE_URL` and says an empty value means the default; `check_secret_hygiene.py` green; config tests pass.
 - **25.11.2026 10:02** MKC-6.2: `check_secret_hygiene.py` now requires every `validation_alias` name, not only the first; red (`.env.example: missing MKC_DATABASE_URL`).
 - **25.11.2026 10:02** MKC-6.2: `Settings` uses `env_ignore_empty=True`; 18 passed, 1 skipped; a copy of `.env.example` loaded with `uv run --env-file` gives the defaults and `python -m mkc.db.check` reaches the compose db.
 - **25.11.2026 10:01** MKC-6.2: two config tests added (empty variables fall back to defaults; `.env.example` as-is gives the defaults); red (`ValidationError` on the empty `MKC_WORKER_POLL_SECONDS`).
+- **25.11.2026 10:01** #6 and #81–#85 back to `In progress`.
+- **25.11.2026 10:00** PR #86 review **FAIL** (comment 09:00:43Z): (1) `.env.example` says empty = default, but `Settings` read `""` as a value and crashed; (2) `.env.example` missed `MKC_DATABASE_URL`, which the check couldn't see; (3) stale HANDOFF lines on required checks and Docker; (4) the 09:34 log line mixed two minutes. CI, red-to-green, protection and secrets passed.
 - **25.11.2026 09:53** Status doc header set to the time of its last commit.
 - **25.11.2026 09:53** MKC-6: PR #86 body filled in (criteria with evidence); #6 and #81–#85 to `Testing`. HANDOFF: the 09:51 log line corrected to the commit time 09:52 (`fdddf8b`).
 - **25.11.2026 09:52** MKC-6: design doc decisions 37 (`httpx2`, user) and 38 (CI and required checks, agent); ADR 005 branch-protection note; status doc and README updated.
@@ -77,7 +80,8 @@ Newest first. Times are local (CET), taken from git and GitHub.
 - **25.11.2026 09:36** MKC-6.1: dev dependency `httpx` → `httpx2` 2.16.2 (adds `truststore` 0.10.5); 16 passed, 1 skipped, **no warnings**; ruff and mypy pass.
 - **25.11.2026 09:35** MKC-6.1: pytest turns `StarletteDeprecationWarning` into an error; red (`tests/api/test_health.py` fails at collection: "Using `httpx` with `starlette.testclient` is deprecated").
 - **25.11.2026 09:35** MKC-6: plan written; status doc (MKC-5 done, MKC-6 current) and HANDOFF caught up after PR #80. Pre-checks: gitleaks v8.30.1 finds no leaks in the 62 commits of history and does flag a runtime-built fake `ghp_` token; `httpx2` 2.16.2 is from the pydantic org; the `gh` token has the `workflow` scope; markdownlint-cli2 0.18.1 reports about 270 errors on tracked Markdown.
-- **25.11.2026 09:34** MKC-6 sub-issues MKC-6.1 (#81), 6.2 (#82), 6.3 (#83), 6.4 (#84), 6.5 (#85) created, linked to #6, assigned to `qamran`, `In progress`; branch `mkc-6-secret-hygiene-ci`.
+- **25.11.2026 09:34** #85 assigned to `qamran` (09:34:01); #81–#85 linked to #6 (09:34:10–09:34:18) and set to `In progress` (09:34:22–09:34:42).
+- **25.11.2026 09:33** Branch `mkc-6-secret-hygiene-ci` created (reflog 09:33:20); MKC-6 sub-issues MKC-6.1 (#81), 6.2 (#82), 6.3 (#83), 6.4 (#84), 6.5 (#85) created (09:33:43–09:33:59), #81–#84 assigned to `qamran`.
 - **25.11.2026 09:33** MKC-6 (#6) assigned to `qamran`, to `In progress`.
 - **25.11.2026 09:30** #5 and #76–#79 criteria ticked. MKC-5 complete.
 - **25.11.2026 09:30** `main` pushed to `turing` (reflog 09:30:03); `origin/main` == `turing/main` == `8d88c38`.
