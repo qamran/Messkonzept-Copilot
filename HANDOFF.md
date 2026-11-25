@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 25.11.2026, 12:15
+**Last updated:** 25.11.2026, 13:30
 
 This file is how agents resume work after a session restart.
 
@@ -39,11 +39,11 @@ This file is how agents resume work after a session restart.
 
 ## In progress
 
-- **MKC-8** (#8), containers and local Compose. Status `In progress`, assigned to `qamran`. Branch `mkc-8-containers-compose`. Plan and sub-issues follow.
+- **MKC-8** (#8), containers and local Compose. Status `In progress`, assigned to `qamran`. Branch `mkc-8-containers-compose`. Plan: `docs/superpowers/plans/251120261327-mkc-8-containers-compose.md`. Sub-issues (all `In progress`, assigned to `qamran`): MKC-8.1 Dockerfile (#92), 8.2 Compose and smoke test (#93), 8.3 CI image job (#94), 8.4 GHCR publish (#95), 8.5 docs (#96).
 
 ## Next steps
 
-1. MKC-8: plan, sub-issues, then `backend/Dockerfile` (multi-stage, non-root, `MKC_COMMIT`), `compose.yaml` (db, api, worker, frontend), multi-arch build in CI and push to GHCR on `main`. Open question for the plan: pushing to GHCR needs `packages: write`, which `scripts/check_workflows.py` bans today; the rule must be narrowed for that job on `main` and recorded as a decision.
+1. MKC-8: work the sub-issues in order 8.1 → 8.5 (see the plan). `packages: write` is allowed only in the `publish` job on `main` in `qamran/Messkonzept-Copilot` (Actions also run on the Turing mirror). Criterion 3 (GHCR tags) is ticked only after the `main` run's `publish` job is green.
 2. Optional follow-ups from the PR #91 re-review (non-blocking): `apiBase()` could refuse a query, fragment or userinfo in `VITE_API_URL`; an empty `sub` is accepted; falsy non-string roles read as "no role".
 
 ## Blocked / waiting on user
@@ -55,6 +55,8 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **25.11.2026 13:29** MKC-8 sub-issues MKC-8.1 (#92) to 8.5 (#96) created, assigned to `qamran`, linked to #8 and set to `In progress`.
+- **25.11.2026 13:27** MKC-8 plan written. Checked: Actions run on the Turing mirror (two `ci` push runs), so the GHCR push needs a repository guard; action SHAs and base-image index digests looked up.
 - **25.11.2026 12:15** HANDOFF and status doc caught up after PR #91 (MKC-7 done, MKC-8 current).
 - **25.11.2026 12:14** MKC-8 (#8) assigned to `qamran`, to `In progress`; branch `mkc-8-containers-compose` (reflog 12:14:46).
 - **25.11.2026 12:14** #7 and #87–#90 criteria ticked. MKC-7 complete.

@@ -26,3 +26,6 @@ __pycache__/
 # Node (frontend, MKC-7)
 node_modules/
 dist/
+
+# Vite cache (MKC-8)
+frontend/.vite/
