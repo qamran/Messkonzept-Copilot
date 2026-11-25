@@ -512,6 +512,8 @@ The build follows the phases in section 20, ordered by dependency:
 | 34 | HANDOFF.md as the agents' restart file, updated with every commit and important ticket change; restart recommended at about 80 % context | user |
 | 35 | Turing repo is a code-only mirror (ADR 005 option (c)): no issue-mirror Action and no token; the README links to the board, issues, design doc, ADRs and HANDOFF.md | user |
 | 36 | The development agent continues to the next ticket or step without asking for permission; it stops only for genuine decisions (scope or design choices, user-only setup tasks) | user |
+| 37 | FastAPI's test client uses `httpx2` instead of the deprecated `httpx`; Starlette deprecation warnings fail the tests (MKC-6.1) | user |
+| 38 | CI (MKC-6): jobs backend, frontend, gitleaks, dependency-scan and docs are required checks on `main`, pinned to the GitHub Actions app, with "branch must be up to date" on; no `paths` filters, so every job always reports; the frontend job reports success until MKC-7; gitleaks runs as a checksum-pinned release binary with a fake-key self-test; dependency scan is pip-audit on the hashed `uv export`; all tracked Markdown must pass markdownlint (ADR 005) | agent |
 
 ## 19. Course coverage
 

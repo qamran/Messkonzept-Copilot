@@ -1,6 +1,6 @@
 # Project status: Messkonzept-Copilot
 
-**Last updated:** 25.11.2026, 09:35
+**Last updated:** 25.11.2026, 09:51
 
 This is the living status document. It is updated whenever a decision is made or work is completed. Older brainstorming material lives in `brainstorming internal/` (gitignored and frozen).
 
@@ -17,7 +17,12 @@ This is the living status document. It is updated whenever a decision is made or
   - DB tests fail when Postgres is unreachable (`MKC_SKIP_DB_TESTS=1` skips them on purpose); MKC-6 needs a pgvector service container in CI
   - Supabase check (MKC-5.4), 25.11.2026: `python -m mkc.db.check` (read-only) against the user's Supabase project, via the Session pooler (port 5432, IPv4; region eu-west-1). Result: PostgreSQL 17.12, `vector` 0.8.2 available, not yet installed (the migrations install it; running them on Supabase belongs to the deploy tickets). The connection string lives only in the gitignored `backend/.env`; `Settings` does not read `.env`, so the tests never touch Supabase. Run it with `cd backend && uv run --env-file .env python -m mkc.db.check`.
   - Supabase project settings: use the Session pooler, not the direct connection (IPv6 only) or the Transaction pooler (port 6543, no session state). The Data API is not used by the backend.
-- **Current ticket:** MKC-6 (secret hygiene and CI, plan `docs/superpowers/plans/251120260935-mkc-6-secret-hygiene-ci.md`), sub-issues MKC-6.1 to MKC-6.5 (#81–#85): `httpx2` for the test client, `.gitignore`/`.env.example`/pre-commit, markdown lint clean, `ci.yml` (backend with a pgvector service, frontend placeholder, gitleaks, dependency scan, docs), required checks on `main`.
+- **Current ticket:** MKC-6 (secret hygiene and CI, plan `docs/superpowers/plans/251120260935-mkc-6-secret-hygiene-ci.md`, PR #86), sub-issues MKC-6.1 to MKC-6.5 (#81–#85):
+  - `httpx2` for the test client; Starlette deprecation warnings fail the tests (decision 37)
+  - `.gitignore` (PDFs, `.env*` except `.env.example`, renders, caches), `.env.example`, `.pre-commit-config.yaml` (gitleaks, ruff, end-of-file fixer; install with `uvx pre-commit install`)
+  - all tracked Markdown passes markdownlint
+  - `.github/workflows/ci.yml`: backend (pgvector service; all 17 tests run on Linux, none skipped), frontend (placeholder until MKC-7), gitleaks (fake-key self-test, full history), dependency-scan (pip-audit), docs (markdownlint, check scripts)
+  - the five jobs are required checks on `main`, branch must be up to date (decision 38, ADR 005)
 - **Next:** MKC-7 (frontend skeleton).
 
 ## Key documents

@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 25.11.2026, 09:48
+**Last updated:** 25.11.2026, 09:51
 
 This file is how agents resume work after a session restart.
 
@@ -40,8 +40,8 @@ This file is how agents resume work after a session restart.
   - MKC-6.1 (#81): `httpx` → `httpx2`; `StarletteDeprecationWarning` is an error in pytest (user decision 25.11.2026: switch now). Done on the branch.
   - MKC-6.2 (#82): `.gitignore`, `.env.example`, `.pre-commit-config.yaml`, `scripts/check_secret_hygiene.py`. Done on the branch.
   - MKC-6.3 (#83): all tracked Markdown passes markdownlint. Done on the branch.
-  - MKC-6.4 (#84): `.github/workflows/ci.yml`, `scripts/check_workflows.py`.
-  - MKC-6.5 (#85): CI jobs as required checks on `main` (only after CI is green on the PR).
+  - MKC-6.4 (#84): `.github/workflows/ci.yml`, `scripts/check_workflows.py`. Done on the branch; CI run 45579604956 on `a7cb041` green (backend 17 passed, none skipped).
+  - MKC-6.5 (#85): CI jobs as required checks on `main`. Done (09:50).
 
 ## Next steps
 
@@ -57,6 +57,10 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **25.11.2026 09:51** MKC-6: design doc decisions 37 (`httpx2`, user) and 38 (CI and required checks, agent); ADR 005 branch-protection note; status doc and README updated.
+- **25.11.2026 09:50** MKC-6.5: required status checks set on `main` (`backend`, `frontend`, `gitleaks`, `dependency-scan`, `docs`; GitHub Actions app 15368; branch must be up to date). The API's PATCH needs checks already on, so a full PUT built from the saved settings was used; before/after diff: only `required_status_checks` changed (PR reviews, admin enforcement, no force-push, no deletion, conversation resolution unchanged). PR #86 `CLEAN`.
+- **25.11.2026 09:49** MKC-6.4: CI run 45579604956 on `a7cb041` green: backend 17 passed (none skipped, incl. the SIGTERM test), gitleaks self-test caught the fake key and 71 commits had no leaks, pip-audit found no known vulnerabilities, markdownlint 0 errors, all six check scripts pass, frontend reports "No frontend/ yet".
+- **25.11.2026 09:48** MKC-6: PR #86 opened (assigned to `qamran`; closes #6, #81–#85).
 - **25.11.2026 09:48** MKC-6.4: `.github/workflows/ci.yml` with jobs backend (pgvector service, ruff, mypy, pytest), frontend (reports success until MKC-7), gitleaks (v8.30.1 binary, checksum pinned; self-test with a runtime-built fake key; full-history scan), dependency-scan (pip-audit 2.10.1 on the hashed `uv export`; locally: no known vulnerabilities) and docs (markdownlint, check scripts). Actions pinned to SHAs. `check_workflows.py` green.
 - **25.11.2026 09:46** MKC-6.4: `scripts/check_workflows.py` added; red (`ci.yml` missing). Against a bad sample workflow it reports `pull_request_target`, `secrets.`, a `paths` filter, missing `contents: read`, an unpinned action and the missing jobs.
 - **25.11.2026 09:46** MKC-6.3: HANDOFF log line moved below the blank line the lint fixer added (MD032); lint 0 errors.
