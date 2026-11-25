@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 25.11.2026, 13:47
+**Last updated:** 25.11.2026, 13:53
 
 This file is how agents resume work after a session restart.
 
@@ -24,7 +24,7 @@ This file is how agents resume work after a session restart.
   - `origin` = qamran/Messkonzept-Copilot (home, public)
   - `turing` = TuringCollegeSubmissions/qshahz-AE.CAP.AFA.1.1 (code-only mirror, no issues; ADR 005 option (c), decision 35)
   - Both at `02ddb84` (merge of PR #91).
-- **`main` is protected:** PRs only, enforced for admins. Required checks since 25.11.2026 09:50 (MKC-6.5): the `ci` jobs `backend`, `frontend`, `gitleaks`, `dependency-scan` and `docs`; the branch must be up to date with `main`.
+- **`main` is protected:** PRs only, enforced for admins. Required checks: the `ci` jobs `backend`, `frontend`, `gitleaks`, `dependency-scan` and `docs` (since 25.11.2026 09:50, MKC-6.5) and `image` (since 13:52, MKC-8); the branch must be up to date with `main`. `publish` is not required (skipped on PRs).
 - **Agent rules:** `AGENTS.md` (CLAUDE.md imports it). The development agent continues without asking and stops only for genuine decisions (decision 36).
 - **Done:**
   - MKC-1: board, labels, tickets, templates, branch protection (PR #65)
@@ -35,7 +35,7 @@ This file is how agents resume work after a session restart.
   - MKC-6: secret hygiene (`.gitignore`, `.env.example`, pre-commit), markdown lint, CI (`backend`, `frontend`, `gitleaks`, `dependency-scan`, `docs`) as required checks on `main`; `httpx2` (PR #86)
   - MKC-7: frontend skeleton (`frontend/`: Vite, React, TS, Tailwind, shadcn/ui, `@clerk/react`, `apiFetch`, `RequireAdmin`); backend Clerk token check (`mkc.api.auth`, `/api/me`, `/api/admin/ping`); Clerk development instance everywhere (ADR 002, decision 39) (PR #91)
 - **How to run the frontend:** `frontend/.env.local` holds `VITE_CLERK_PUBLISHABLE_KEY` and `VITE_API_URL=http://127.0.0.1:8000` (gitignored). Run the API with `cd backend && uv run --env-file .env uvicorn mkc.api.app:create_app --factory --port 8000` (`backend/.env` has `MKC_CLERK_ISSUER`), then `cd frontend && npm run dev` (`localhost:5173`). Test sign-ins: the user's Google account (admin); a `+clerk_test@example.com` user (code `424242`) and a second Gmail account (both no role).
-- **How to run the whole stack in containers:** `docker compose --env-file frontend/.env.local up --build` (repo root; the env file gives the frontend build its Clerk key; without it the page says the key is missing). API on `127.0.0.1:8000`, frontend on `localhost:5173`, db on `127.0.0.1:5433`; `backend/.env` is loaded when present. `bash scripts/compose_smoke.sh` checks the stack as its own project (`mkc-smoke`, ports 15433/18000/15173) and removes it afterwards.
+- **How to run the whole stack in containers:** `docker compose --env-file frontend/.env.local up --build` (repo root; the env file gives the frontend build its Clerk key; without it the page says the key is missing). API on `127.0.0.1:8000`, frontend on `localhost:5173`, db on `127.0.0.1:5433`; `backend/.env` is loaded when present. `bash scripts/compose_smoke.sh` checks the stack as its own project (`mkc-smoke`, ports 15433/18000/15173, images tagged `smoke`) and removes its containers and volume afterwards.
 - **How to test the backend:** `docker compose up -d db` (repo root; Postgres 17 + pgvector on `127.0.0.1:5433`), then `cd backend && uv sync && uv run pytest`. The DB tests fail if the db is down; `MKC_SKIP_DB_TESTS=1` skips them on purpose. Windows skips one POSIX-only worker test; run it in Linux with the Docker command in PR #75.
 
 ## In progress
@@ -44,11 +44,16 @@ This file is how agents resume work after a session restart.
 
 ## Next steps
 
-1. MKC-8: work the sub-issues in order 8.1 → 8.5 (see the plan). `packages: write` is allowed only in the `publish` job on `main` in `qamran/Messkonzept-Copilot` (Actions also run on the Turing mirror). Criterion 3 (GHCR tags) is ticked only after the `main` run's `publish` job is green.
+1. MKC-8: PR #97 waits for the review agent. After PASS and merge:
+   - push `main` to `turing`; check that `origin/main` and `turing/main` are the same commit
+   - read the `main` run's `publish` log: both tags (`<merge sha>`, `main`) with `linux/amd64` and `linux/arm64`
+   - only then tick criterion 3 on #8 and the post-merge criterion on #95
+   - if `publish` fails: reopen #8 and #95, set them to `In progress` and fix forward under MKC-8
 2. Optional follow-ups from the PR #91 re-review (non-blocking): `apiBase()` could refuse a query, fragment or userinfo in `VITE_API_URL`; an empty `sub` is accepted; falsy non-string roles read as "no role".
 
 ## Blocked / waiting on user
 
+- **GHCR package visibility:** the first push creates `ghcr.io/qamran/messkonzept-copilot-backend`, which may start private. The k3s pull (MKC-10) needs it public, or a pull secret; changing it is a user setting on the package page.
 - **Docker Desktop** must be running for the local DB tests (`docker compose up -d db`). If it is stopped after a restart, start it again. CI uses its own Postgres service.
 - Later setup tasks (listed in design doc section 13): Vercel account, provider API keys with caps, GitHub `production` environment, a domain with TLS. The Supabase project exists (created by the user on 25.11.2026).
 
@@ -56,8 +61,11 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **25.11.2026 13:53** MKC-8 fixes before review: `.gitattributes` keeps `*.sh` LF (a Windows checkout gave `compose_smoke.sh` CRLF); the smoke test builds its own image tag `smoke` (`MKC_IMAGE_TAG`) and CI scans `mkc-backend:smoke`; `check_workflows.py` also requires `--fail-on high` (red on a sample without it); `compose_smoke.sh` green again locally; `docker compose --env-file frontend/.env.local config` gives the frontend a `pk_test_` key and `VITE_API_URL=http://127.0.0.1:8000`. ADR 005, decision 41, status doc and plan record the `image` required check; HANDOFF next steps are the post-merge list; GHCR visibility under "Blocked".
+- **25.11.2026 13:52** `image` added to the required checks on `main` (PATCH at 13:52:30; before/after diff of the protection: only the `image` check added).
+- **25.11.2026 13:47** PR #97 body updated with the CI evidence of run 45616477619.
 - **25.11.2026 13:47** HANDOFF log times for MKC-8 corrected to the git commit times (13:30–13:42); earlier lines had estimated times, against the rule.
-- **25.11.2026 13:46** CI run 45616477619 on `7cde086` green (12:46:08Z): backend, frontend, gitleaks, dependency-scan, docs, image; publish skipped. `image`: smoke test OK with the PR merge commit `579d99f`, worker `running restarts=0`; Grype only medium, low and unknown (base `pip` 25.0.1, Python 3.12.16, `libzstd1`); `linux/amd64,linux/arm64` build 12:45:03–12:46:08Z. PR body updated with the evidence.
+- **25.11.2026 13:46** CI run 45616477619 on `7cde086` green (12:46:08Z): backend, frontend, gitleaks, dependency-scan, docs, image; publish skipped. `image`: smoke test OK with the PR merge commit `579d99f`, worker `running restarts=0`; Grype only medium, low and unknown (base `pip` 25.0.1, Python 3.12.16, `libzstd1`); `linux/amd64,linux/arm64` build 12:45:03–12:46:08Z.
 - **25.11.2026 13:44** #8 and #92–#96 to `Testing`.
 - **25.11.2026 13:43** MKC-8: PR #97 opened (12:43:12Z; assigned to `qamran`; closes #8, #92–#96).
 - **25.11.2026 13:42** MKC-8.5: design doc decision 41 (agent) and section 13 local line; ADR 002 section "Images and the GHCR push"; status doc MKC-8 details, the narrowed write rule and the decision count; README names `compose.yaml` and the smoke test; HANDOFF "How to run the whole stack in containers".

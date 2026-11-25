@@ -182,7 +182,7 @@ jobs:
           tar -xzf /tmp/grype.tgz -C /tmp grype
           /tmp/grype version
       - name: Scan the backend image (fail on high or critical with a fix)
-        run: /tmp/grype mkc-backend:local --only-fixed --fail-on high
+        run: /tmp/grype mkc-backend:smoke --only-fixed --fail-on high
       - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
       - name: Build linux/amd64,linux/arm64 (no push)

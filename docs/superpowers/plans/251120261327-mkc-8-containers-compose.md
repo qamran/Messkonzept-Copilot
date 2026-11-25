@@ -40,7 +40,7 @@
   - image `ghcr.io/qamran/messkonzept-copilot-backend` (lower case, written out, not from `github.repository`); tags `<full commit sha>` and `main`.
   - the last step inspects both tags and prints both platforms, as evidence in the `main` run's log.
 - **`check_workflows.py` narrowing:** `packages: write` is allowed only in the job `publish` of `ci.yml`, only with that exact `if:` guard. Every other write permission is still refused. Red samples first.
-- **Required checks:** `image` becomes a required check on `main` after the merge (it runs on every PR). `publish` is never required (it is skipped on PRs).
+- **Required checks:** `image` is a required check on `main` (set during the PR on 25.11.2026 13:52, as MKC-6.5 did for the first five). `publish` is never required (it is skipped on PRs).
 
 ## What the reviewer can check before the merge
 

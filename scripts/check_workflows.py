@@ -10,8 +10,8 @@
   job-level guard PUBLISH_GUARD (a push to main in the home repo).
 - Every action is pinned to a full commit SHA (docker images to a digest).
 - The dependency-scan job audits the frontend packages with `npm audit` (MKC-7.2).
-- The image job (MKC-8.3) runs the Compose smoke test, scans the image with Grype and
-  builds `linux/amd64,linux/arm64`.
+- The image job (MKC-8.3) runs the Compose smoke test, scans the image with Grype
+  (`--fail-on high`) and builds `linux/amd64,linux/arm64`.
 - No `paths:` / `paths-ignore:` filters: a required check that never runs would block PRs.
 
 Usage: python scripts/check_workflows.py  (exit code 0 = ok, 1 = problems)
@@ -28,6 +28,7 @@ REQUIRED_JOBS = ["backend", "frontend", "gitleaks", "dependency-scan", "docs", "
 IMAGE_STEPS = {
     "scripts/compose_smoke.sh": "run the Compose smoke test",
     "grype": "scan the image with Grype",
+    "--fail-on high": "fail the scan on high or critical (--fail-on high)",
     "linux/amd64,linux/arm64": "build linux/amd64,linux/arm64",
 }
 

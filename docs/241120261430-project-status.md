@@ -1,6 +1,6 @@
 # Project status: Messkonzept-Copilot
 
-**Last updated:** 25.11.2026, 13:42
+**Last updated:** 25.11.2026, 13:53
 
 This is the living status document. It is updated whenever a decision is made or work is completed. Older brainstorming material lives in `brainstorming internal/` (gitignored and frozen).
 
@@ -32,7 +32,7 @@ This is the living status document. It is updated whenever a decision is made or
 - **MKC-8 details** (containers and local Compose, in progress; plan `docs/superpowers/plans/251120261327-mkc-8-containers-compose.md`), sub-issues MKC-8.1 to MKC-8.5 (#92–#96):
   - `backend/Dockerfile`: one image, multi-stage, uid 10001, base images pinned by digest, `MKC_COMMIT` build argument; API by default, `mkc-worker` for the worker
   - `compose.yaml` (replaces `docker-compose.yml`): db, api, worker, frontend; `backend/.env` optional; `scripts/compose_smoke.sh` checks the whole stack as its own project on other ports
-  - CI job `image`: smoke test, Grype scan, `linux/amd64,linux/arm64` build; CI job `publish`: pushes `ghcr.io/qamran/messkonzept-copilot-backend` (`<commit sha>`, `main`) on `main` only
+  - CI job `image` (a required check on `main` since 25.11.2026 13:52): smoke test, Grype scan, `linux/amd64,linux/arm64` build; CI job `publish`: pushes `ghcr.io/qamran/messkonzept-copilot-backend` (`<commit sha>`, `main`) on `main` only
   - `scripts/check_containers.py`; `scripts/check_workflows.py` allows `packages: write` only in the guarded `publish` job (decision 41, ADR 002)
 - **Current ticket:** MKC-8 (containers and local Compose, #8).
 - **Next:** MKC-9 (Helm chart and kind smoke test).

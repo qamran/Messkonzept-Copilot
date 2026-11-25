@@ -5,8 +5,9 @@
 # - the worker container is still running after a few seconds
 # - the frontend serves index.html
 #
-# Runs as its own Compose project on other host ports, so it never touches the
-# local `docker compose up` stack or its database volume. Removes everything at the end.
+# Runs as its own Compose project on other host ports with its own image tag
+# (mkc-backend:smoke, mkc-frontend:smoke), so it leaves the local `docker compose up`
+# stack, its images and its database volume alone. Removes its containers and volume at the end.
 #
 # Usage: bash scripts/compose_smoke.sh   (exit code 0 = ok)
 # Env: MKC_COMMIT (default smoke-<time>), KEEP=1 keeps the stack running.
@@ -16,6 +17,7 @@ cd "$(dirname "$0")/.."
 
 export MKC_COMMIT="${MKC_COMMIT:-smoke-$(date +%s)}"
 export MKC_DB_PORT=15433 MKC_API_PORT=18000 MKC_WEB_PORT=15173
+export MKC_IMAGE_TAG=smoke
 compose=(docker compose --project-name mkc-smoke --file compose.yaml)
 api="http://127.0.0.1:${MKC_API_PORT}"
 web="http://127.0.0.1:${MKC_WEB_PORT}"
