@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 25.11.2026, 14:03
+**Last updated:** 25.11.2026, 13:47
 
 This file is how agents resume work after a session restart.
 
@@ -40,7 +40,7 @@ This file is how agents resume work after a session restart.
 
 ## In progress
 
-- **MKC-8** (#8), containers and local Compose. Status `In progress`, assigned to `qamran`. Branch `mkc-8-containers-compose`. Plan: `docs/superpowers/plans/251120261327-mkc-8-containers-compose.md`. Sub-issues (all `In progress`, assigned to `qamran`): MKC-8.1 Dockerfile (#92), 8.2 Compose and smoke test (#93), 8.3 CI image job (#94), 8.4 GHCR publish (#95), 8.5 docs (#96).
+- **MKC-8** (#8), containers and local Compose. Status `Testing`, PR #97 (CI green), waiting for the review agent, assigned to `qamran`. Branch `mkc-8-containers-compose`. Plan: `docs/superpowers/plans/251120261327-mkc-8-containers-compose.md`. Sub-issues (all `Testing`, assigned to `qamran`): MKC-8.1 Dockerfile (#92), 8.2 Compose and smoke test (#93), 8.3 CI image job (#94), 8.4 GHCR publish (#95), 8.5 docs (#96).
 
 ## Next steps
 
@@ -56,16 +56,20 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
-- **25.11.2026 14:03** MKC-8.5: design doc decision 41 (agent) and section 13 local line; ADR 002 section "Images and the GHCR push"; status doc MKC-8 details, the narrowed write rule and the decision count; README names `compose.yaml` and the smoke test; HANDOFF "How to run the whole stack in containers".
-- **25.11.2026 13:57** MKC-8.4: `check_workflows.py` allows exactly one write: `packages: write` in ci.yml's job `publish` with the exact job-level guard. `ci.yml` green. Eight samples refused: no guard; guard without the repository check; `contents: write` in publish; `packages: write` in `image`; job renamed; a second `packages: write`; the same job in another workflow; login with `secrets.GITHUB_TOKEN`.
-- **25.11.2026 13:52** MKC-8.4: CI job `publish` (needs all jobs; `if:` push to `main` in `qamran/Messkonzept-Copilot`; job-level `packages: write`; login with `github.token`; tags `<sha>` and `main`, both platforms; last step inspects both tags). Red: `check_workflows.py` reports `grants a write permission; CI is read-only`.
-- **25.11.2026 13:49** MKC-8.3: CI job `image`: Compose smoke test with `MKC_COMMIT=github.sha`, Grype v0.121.2 (checksum pinned; `--only-fixed --fail-on high`), QEMU + buildx `linux/amd64,linux/arm64` build without push (GHA cache). `check_workflows.py` green. Local Grype run on the image: exit 0, no high or critical (mediums in the base image's `pip` and Python 3.12.16).
-- **25.11.2026 13:45** MKC-8.3: `check_workflows.py` requires a job `image` that runs `scripts/compose_smoke.sh`, Grype and a `linux/amd64,linux/arm64` build. Red: `job 'image' missing`; a sample with an empty `image` job reports all three steps.
-- **25.11.2026 13:42** MKC-8.2: `docker-compose.yml` → `compose.yaml` (`git mv`) with db, api, worker, frontend; `backend/.env` optional; api and worker use `db:5432`; host ports movable (`MKC_DB_PORT`, `MKC_API_PORT`, `MKC_WEB_PORT`). `frontend/Dockerfile` (node 24 build, `nginx-unprivileged` on 8080, uid 101, SPA fallback). `check_containers.py` green; `compose_smoke.sh` green locally (commit `smoke-1795609974`, worker `running restarts=0`, frontend and `/admin` 200).
-- **25.11.2026 13:38** MKC-8.2: `scripts/compose_smoke.sh` added (own project `mkc-smoke` on ports 15433/18000/15173, so the local stack and its db volume are never touched; checks `/health`, `/api/version` commit, worker running, frontend `index.html` and `/admin`). Red: `compose.yaml` missing.
-- **25.11.2026 13:35** MKC-8.1: `backend/Dockerfile` (builder + runtime on `python:3.12-slim-trixie`, uv 0.12.18, both by index digest; uid 10001; `MKC_COMMIT` last) and `backend/.dockerignore`. Local build with `MKC_COMMIT=test123`: `/health` 200, `/api/version` gives `test123`, `id` gives uid 10001, `mkc-worker` stops on SIGTERM with exit 0 (container log 13:31). Image 287 MB. `check_containers.py` has no backend findings left (frontend and Compose follow in MKC-8.2).
-- **25.11.2026 13:33** MKC-8.1: `scripts/check_containers.py` added (Dockerfiles multi-stage, digest-pinned, numeric non-root `USER`, exec form, `MKC_COMMIT`; `.dockerignore` entries; `compose.yaml` services db, api, worker, frontend, one Compose file). Red: both Dockerfiles and `compose.yaml` missing, `docker-compose.yml` still there.
-- **25.11.2026 13:29** MKC-8 sub-issues MKC-8.1 (#92) to 8.5 (#96) created, assigned to `qamran`, linked to #8 and set to `In progress`.
+- **25.11.2026 13:47** HANDOFF log times for MKC-8 corrected to the git commit times (13:30–13:42); earlier lines had estimated times, against the rule.
+- **25.11.2026 13:46** CI run 45616477619 on `7cde086` green (12:46:08Z): backend, frontend, gitleaks, dependency-scan, docs, image; publish skipped. `image`: smoke test OK with the PR merge commit `579d99f`, worker `running restarts=0`; Grype only medium, low and unknown (base `pip` 25.0.1, Python 3.12.16, `libzstd1`); `linux/amd64,linux/arm64` build 12:45:03–12:46:08Z. PR body updated with the evidence.
+- **25.11.2026 13:44** #8 and #92–#96 to `Testing`.
+- **25.11.2026 13:43** MKC-8: PR #97 opened (12:43:12Z; assigned to `qamran`; closes #8, #92–#96).
+- **25.11.2026 13:42** MKC-8.5: design doc decision 41 (agent) and section 13 local line; ADR 002 section "Images and the GHCR push"; status doc MKC-8 details, the narrowed write rule and the decision count; README names `compose.yaml` and the smoke test; HANDOFF "How to run the whole stack in containers".
+- **25.11.2026 13:41** MKC-8.4: `check_workflows.py` allows exactly one write: `packages: write` in ci.yml's job `publish` with the exact job-level guard. `ci.yml` green. Eight samples refused: no guard; guard without the repository check; `contents: write` in publish; `packages: write` in `image`; job renamed; a second `packages: write`; the same job in another workflow; login with `secrets.GITHUB_TOKEN`.
+- **25.11.2026 13:40** MKC-8.4: CI job `publish` (needs all jobs; `if:` push to `main` in `qamran/Messkonzept-Copilot`; job-level `packages: write`; login with `github.token`; tags `<sha>` and `main`, both platforms; last step inspects both tags). Red: `check_workflows.py` reports `grants a write permission; CI is read-only`.
+- **25.11.2026 13:40** MKC-8.3: CI job `image`: Compose smoke test with `MKC_COMMIT=github.sha`, Grype v0.121.2 (checksum pinned; `--only-fixed --fail-on high`), QEMU + buildx `linux/amd64,linux/arm64` build without push (GHA cache). `check_workflows.py` green. Local Grype run on the image: exit 0, no high or critical (mediums in the base image's `pip` and Python 3.12.16).
+- **25.11.2026 13:36** MKC-8.3: `check_workflows.py` requires a job `image` that runs `scripts/compose_smoke.sh`, Grype and a `linux/amd64,linux/arm64` build. Red: `job 'image' missing`; a sample with an empty `image` job reports all three steps.
+- **25.11.2026 13:35** MKC-8.2: `docker-compose.yml` → `compose.yaml` (`git mv`) with db, api, worker, frontend; `backend/.env` optional; api and worker use `db:5432`; host ports movable (`MKC_DB_PORT`, `MKC_API_PORT`, `MKC_WEB_PORT`). `frontend/Dockerfile` (node 24 build, `nginx-unprivileged` on 8080, uid 101, SPA fallback). `check_containers.py` green; `compose_smoke.sh` green locally (commit `smoke-1795609974`, worker `running restarts=0`, frontend and `/admin` 200).
+- **25.11.2026 13:32** MKC-8.2: `scripts/compose_smoke.sh` added (own project `mkc-smoke` on ports 15433/18000/15173, so the local stack and its db volume are never touched; checks `/health`, `/api/version` commit, worker running, frontend `index.html` and `/admin`). Red: `compose.yaml` missing.
+- **25.11.2026 13:31** MKC-8.1: `backend/Dockerfile` (builder + runtime on `python:3.12-slim-trixie`, uv 0.12.18, both by index digest; uid 10001; `MKC_COMMIT` last) and `backend/.dockerignore`. Local build with `MKC_COMMIT=test123`: `/health` 200, `/api/version` gives `test123`, `id` gives uid 10001, `mkc-worker` stops on SIGTERM with exit 0 (container log 13:31). Image 287 MB. `check_containers.py` has no backend findings left (frontend and Compose follow in MKC-8.2).
+- **25.11.2026 13:30** MKC-8.1: `scripts/check_containers.py` added (Dockerfiles multi-stage, digest-pinned, numeric non-root `USER`, exec form, `MKC_COMMIT`; `.dockerignore` entries; `compose.yaml` services db, api, worker, frontend, one Compose file). Red: both Dockerfiles and `compose.yaml` missing, `docker-compose.yml` still there.
+- **25.11.2026 13:29** MKC-8 sub-issues MKC-8.1 (#92) to 8.5 (#96) created (13:28:34–13:28:49), assigned to `qamran`, linked to #8 and set to `In progress`.
 - **25.11.2026 13:27** MKC-8 plan written. Checked: Actions run on the Turing mirror (two `ci` push runs), so the GHCR push needs a repository guard; action SHAs and base-image index digests looked up.
 - **25.11.2026 12:15** HANDOFF and status doc caught up after PR #91 (MKC-7 done, MKC-8 current).
 - **25.11.2026 12:14** MKC-8 (#8) assigned to `qamran`, to `In progress`; branch `mkc-8-containers-compose` (reflog 12:14:46).
