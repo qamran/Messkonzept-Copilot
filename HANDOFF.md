@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 25.11.2026, 09:51
+**Last updated:** 25.11.2026, 09:53
 
 This file is how agents resume work after a session restart.
 
@@ -36,7 +36,7 @@ This file is how agents resume work after a session restart.
 
 ## In progress
 
-- **MKC-6** (#6), secret hygiene and CI. Status `In progress`, assigned to `qamran`. Branch `mkc-6-secret-hygiene-ci`. Plan: `docs/superpowers/plans/251120260935-mkc-6-secret-hygiene-ci.md`.
+- **MKC-6** (#6), secret hygiene and CI. Status `Testing`, assigned to `qamran`. Branch `mkc-6-secret-hygiene-ci`. Plan: `docs/superpowers/plans/251120260935-mkc-6-secret-hygiene-ci.md`.
   - MKC-6.1 (#81): `httpx` → `httpx2`; `StarletteDeprecationWarning` is an error in pytest (user decision 25.11.2026: switch now). Done on the branch.
   - MKC-6.2 (#82): `.gitignore`, `.env.example`, `.pre-commit-config.yaml`, `scripts/check_secret_hygiene.py`. Done on the branch.
   - MKC-6.3 (#83): all tracked Markdown passes markdownlint. Done on the branch.
@@ -57,7 +57,8 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
-- **25.11.2026 09:51** MKC-6: design doc decisions 37 (`httpx2`, user) and 38 (CI and required checks, agent); ADR 005 branch-protection note; status doc and README updated.
+- **25.11.2026 09:53** MKC-6: PR #86 body filled in (criteria with evidence); #6 and #81–#85 to `Testing`. HANDOFF: the 09:51 log line corrected to the commit time 09:52 (`fdddf8b`).
+- **25.11.2026 09:52** MKC-6: design doc decisions 37 (`httpx2`, user) and 38 (CI and required checks, agent); ADR 005 branch-protection note; status doc and README updated.
 - **25.11.2026 09:50** MKC-6.5: required status checks set on `main` (`backend`, `frontend`, `gitleaks`, `dependency-scan`, `docs`; GitHub Actions app 15368; branch must be up to date). The API's PATCH needs checks already on, so a full PUT built from the saved settings was used; before/after diff: only `required_status_checks` changed (PR reviews, admin enforcement, no force-push, no deletion, conversation resolution unchanged). PR #86 `CLEAN`.
 - **25.11.2026 09:49** MKC-6.4: CI run 45579604956 on `a7cb041` green: backend 17 passed (none skipped, incl. the SIGTERM test), gitleaks self-test caught the fake key and 71 commits had no leaks, pip-audit found no known vulnerabilities, markdownlint 0 errors, all six check scripts pass, frontend reports "No frontend/ yet".
 - **25.11.2026 09:48** MKC-6: PR #86 opened (assigned to `qamran`; closes #6, #81–#85).
