@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 25.11.2026, 13:53
+**Last updated:** 25.11.2026, 15:51
 
 This file is how agents resume work after a session restart.
 
@@ -23,8 +23,8 @@ This file is how agents resume work after a session restart.
 - **Remotes:**
   - `origin` = qamran/Messkonzept-Copilot (home, public)
   - `turing` = TuringCollegeSubmissions/qshahz-AE.CAP.AFA.1.1 (code-only mirror, no issues; ADR 005 option (c), decision 35)
-  - Both at `02ddb84` (merge of PR #91).
-- **`main` is protected:** PRs only, enforced for admins. Required checks: the `ci` jobs `backend`, `frontend`, `gitleaks`, `dependency-scan` and `docs` (since 25.11.2026 09:50, MKC-6.5) and `image` (since 13:52, MKC-8); the branch must be up to date with `main`. `publish` is not required (skipped on PRs).
+  - Both at `35dc1fe` (merge of PR #97).
+- **`main` is protected:** PRs only, enforced for admins. Required checks: the `ci` jobs `backend`, `frontend`, `gitleaks`, `dependency-scan` and `docs` (since 25.11.2026 09:50, MKC-6.5) `image` (since 13:52, MKC-8) and `kind` (since 15:42, MKC-9); the branch must be up to date with `main`. `publish` is not required (skipped on PRs).
 - **Agent rules:** `AGENTS.md` (CLAUDE.md imports it). The development agent continues without asking and stops only for genuine decisions (decision 36).
 - **Done:**
   - MKC-1: board, labels, tickets, templates, branch protection (PR #65)
@@ -34,26 +34,45 @@ This file is how agents resume work after a session restart.
   - MKC-5: database layer: compose Postgres 17 + pgvector on `127.0.0.1:5433`, SQLAlchemy 2, Alembic, `python -m mkc.db.check`; Supabase connection checked via the Session pooler (PR #80)
   - MKC-6: secret hygiene (`.gitignore`, `.env.example`, pre-commit), markdown lint, CI (`backend`, `frontend`, `gitleaks`, `dependency-scan`, `docs`) as required checks on `main`; `httpx2` (PR #86)
   - MKC-7: frontend skeleton (`frontend/`: Vite, React, TS, Tailwind, shadcn/ui, `@clerk/react`, `apiFetch`, `RequireAdmin`); backend Clerk token check (`mkc.api.auth`, `/api/me`, `/api/admin/ping`); Clerk development instance everywhere (ADR 002, decision 39) (PR #91)
+  - MKC-8: backend image (`backend/Dockerfile`), `compose.yaml` (db, api, worker, frontend), `scripts/compose_smoke.sh`, CI jobs `image` (required check) and `publish`; image `ghcr.io/qamran/messkonzept-copilot-backend` (public, tags `<sha>` and `main`, amd64 + arm64) (decision 41, PR #97)
 - **How to run the frontend:** `frontend/.env.local` holds `VITE_CLERK_PUBLISHABLE_KEY` and `VITE_API_URL=http://127.0.0.1:8000` (gitignored). Run the API with `cd backend && uv run --env-file .env uvicorn mkc.api.app:create_app --factory --port 8000` (`backend/.env` has `MKC_CLERK_ISSUER`), then `cd frontend && npm run dev` (`localhost:5173`). Test sign-ins: the user's Google account (admin); a `+clerk_test@example.com` user (code `424242`) and a second Gmail account (both no role).
 - **How to run the whole stack in containers:** `docker compose --env-file frontend/.env.local up --build` (repo root; the env file gives the frontend build its Clerk key; without it the page says the key is missing). API on `127.0.0.1:8000`, frontend on `localhost:5173`, db on `127.0.0.1:5433`; `backend/.env` is loaded when present. `bash scripts/compose_smoke.sh` checks the stack as its own project (`mkc-smoke`, ports 15433/18000/15173, images tagged `smoke`) and removes its containers and volume afterwards.
+- **How to test the Helm chart:** `python scripts/check_helm.py` (static rules), then `bash scripts/kind_smoke.sh` (repo root; needs Docker Desktop running, plus `kind`, `helm` and `kubectl` on the PATH or in `KIND`, `HELM`, `KUBECTL`). It creates and deletes its own cluster `mkc-smoke` and never touches `~/.kube/config`. Lint: `helm lint --strict deploy/helm/mkc --set image.tag=lint`.
 - **How to test the backend:** `docker compose up -d db` (repo root; Postgres 17 + pgvector on `127.0.0.1:5433`), then `cd backend && uv sync && uv run pytest`. The DB tests fail if the db is down; `MKC_SKIP_DB_TESTS=1` skips them on purpose. Windows skips one POSIX-only worker test; run it in Linux with the Docker command in PR #75.
 
 ## In progress
 
-- **MKC-8** (#8), containers and local Compose. Status `Testing`, PR #97 (CI green), waiting for the review agent, assigned to `qamran`. Branch `mkc-8-containers-compose`. Plan: `docs/superpowers/plans/251120261327-mkc-8-containers-compose.md`. Sub-issues (all `Testing`, assigned to `qamran`): MKC-8.1 Dockerfile (#92), 8.2 Compose and smoke test (#93), 8.3 CI image job (#94), 8.4 GHCR publish (#95), 8.5 docs (#96).
+- **MKC-9** (#9), Helm chart and kind smoke test. Branch `mkc-9-helm-kind`. Plan: `docs/superpowers/plans/251120261520-mkc-9-helm-kind.md`. **PR #103** (assigned to `qamran`; closes #9, #98–#102).
+  - Status `In progress` after the review FAIL of 15:49 (blocking: this section was stale). Fixes are on the branch; after green CI on the new head, #9 and #98–#102 go back to `Testing` and the review agent re-reviews.
+  - Sub-issues (assigned to `qamran`): MKC-9.1 (#98) worker heartbeat and health command; MKC-9.2 (#99) Helm chart; MKC-9.3 (#100) kind smoke script; MKC-9.4 (#101) CI job `kind` as a required check; MKC-9.5 (#102) docs. All work done; `kind` is a required check since 15:42.
+  - First green CI: run 45636218952 (`d26910c`) and run 45637034228 (`0cc68b2`).
+  - Local tools (not in the repo): Helm v4.3.1, kind v0.33.0 and kubectl v1.37.0, checksum-checked, in the session scratchpad. CI downloads its own pinned copies.
 
 ## Next steps
 
-1. MKC-8: PR #97 waits for the review agent. After PASS and merge:
-   - push `main` to `turing`; check that `origin/main` and `turing/main` are the same commit
-   - read the `main` run's `publish` log: both tags (`<merge sha>`, `main`) with `linux/amd64` and `linux/arm64`
-   - only then tick criterion 3 on #8 and the post-merge criterion on #95
-   - if `publish` fails: reopen #8 and #95, set them to `In progress` and fix forward under MKC-8
-2. Optional follow-ups from the PR #91 re-review (non-blocking): `apiBase()` could refuse a query, fragment or userinfo in `VITE_API_URL`; an empty `sub` is accepted; falsy non-string roles read as "no role".
+1. PR #103: green CI on the new head → #9 and #98–#102 to `Testing` → PR body names the fixes → review agent re-review. On PASS + merge:
+   - push `main` to `turing` and check `origin/main` == `turing/main`
+   - check the `main` run, including `publish` (now after `kind`)
+   - tick the criteria of #9 and #98–#102; status doc "Done" line for MKC-9; then MKC-10 (#10)
+2. Non-blocking follow-ups from the PR #103 review (for later tickets):
+   - N1 (MKC-17/MKC-20): the heartbeat is only touched between polls; with max age 30 s and liveness 3 × 30 s, a turn of up to 240 s would get a healthy worker restarted. Beat during a turn or raise the max age (noted in ADR 002 and decision 42).
+   - N2: `/tmp` is an `emptyDir` and survives a container restart, so an old heartbeat can make a restarted worker look Ready for up to 30 s; remove the file on start or add a `startupProbe`.
+   - N3: the smoke test does not prove the heartbeat is refreshed (its checks fall within 30 s of the start); only the unit test does.
+   - N4: the kind script was written after the chart; its red run used a wrong expected commit (disclosed in the PR).
+   - N6: `check_workflows.py` and `check_helm.py` are text-based and easy to fool (`if: false`, `|| true`, probes under `{{- if false }}`, a decoy grace period, a secret under `env:`); mutated samples are not kept as tests. Same class as the PR #97 findings.
+   - N7: the smoke script only prints the Ingress annotation and TLS secret; it does not assert them.
+   - N11 (MKC-10): `checksum/secret` does not change with `existingSecret`; the secret checksum is visible in pod specs; API readiness does not check the database; the script leaves `mkc-backend:kind` in local Docker; a narrow race if the cluster name is taken after the guard.
+3. Non-blocking follow-ups from the PR #97 review (fold into a later CI-hardening ticket or MKC-9 where they touch the same files):
+   - check scripts are substring-based: flow-style `permissions: {…: write}`, `toJSON(secrets)`, `|| true` / `continue-on-error` on the scan, `if: false` on `image`, indented `USER root`, `USER 10001:0`, `COPY --chown --from=<unpinned>`, `!.env` after `.env`, `compose.override.yaml` all pass
+   - no kept tests rerun the bad samples (they live only in the PR body and HANDOFF)
+   - `cancel-in-progress: true` also applies on `main`: two quick merges can cancel a `publish`
+   - the Grype database is not pinned, so a new high finding can turn unrelated PRs red
+   - remove `pip` from the runtime image (source of most medium findings); `pgvector/pgvector:pg17` not digest-pinned; `publish` rebuilds instead of pushing the scanned image
+   - the MKC-8 plan still lists `docker/metadata-action` (not used)
+4. Optional follow-ups from the PR #91 re-review (non-blocking): `apiBase()` could refuse a query, fragment or userinfo in `VITE_API_URL`; an empty `sub` is accepted; falsy non-string roles read as "no role".
 
 ## Blocked / waiting on user
 
-- **GHCR package visibility:** the first push creates `ghcr.io/qamran/messkonzept-copilot-backend`, which may start private. The k3s pull (MKC-10) needs it public, or a pull secret; changing it is a user setting on the package page.
 - **Docker Desktop** must be running for the local DB tests (`docker compose up -d db`). If it is stopped after a restart, start it again. CI uses its own Postgres service.
 - Later setup tasks (listed in design doc section 13): Vercel account, provider API keys with caps, GitHub `production` environment, a domain with TLS. The Supabase project exists (created by the user on 25.11.2026).
 
@@ -61,6 +80,34 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **25.11.2026 15:51** PR #103 fix B1: HANDOFF "In progress" names PR #103, the review FAIL and the CI runs; "Next steps" is the path to merge and the post-merge list, plus the non-blocking findings N1–N11. ADR 002 and decision 42 note N1 (heartbeat during long turns, for MKC-17/MKC-20). Status doc header updated. #98 text corrected (the code default is empty; the chart sets the path, N8).
+- **25.11.2026 15:50** PR #103 fix N5: an all-digit `image.tag` broke the render (`--set image.tag=1234567`: `incompatible types for comparison: int64 and string`); the `mkc.image` helper now applies `toString`. After: renders `…:1234567`; `latest` and a missing tag are still refused; `helm lint --strict` green.
+- **25.11.2026 15:50** #9 and #98–#102 back to `In progress`.
+- **25.11.2026 15:49** PR #103 review **FAIL** (comment 14:49:34Z). Blocking: HANDOFF "In progress" and "Next steps" were stale at the PR head (still `In progress`, no PR #103, next step MKC-9.1). Everything else passed: CI run 45637034228 on `0cc68b2` green, `kind` required, pins match upstream, commits, assignment, secrets, pod hardening. Non-blocking N1–N11 (see Next steps).
+- **25.11.2026 15:42** `kind` added to the required checks on `main` (PATCH at 15:42:17; before/after diff of the protection: only the `kind` check added).
+- **25.11.2026 15:41** CI run 45636218952 on `d26910c` green (14:41:31Z): backend, frontend, gitleaks, dependency-scan, docs, image, kind; publish skipped. `kind` (14:38:11–14:39:44Z): Helm, kind and kubectl checksums OK; `/api/version` returned the PR merge commit `b6647fd…`; worker `ready=true restarts=0` twice; worker pod deleted after 2 s with `signal SIGTERM received` and `worker stopped`; new worker Ready; `kind smoke test passed`.
+- **25.11.2026 15:38** MKC-9: PR #103 opened (14:38:02Z; assigned to `qamran`; closes #9, #98–#102). #9 and #98–#102 to `Testing`. CI run 45636218952 started.
+- **25.11.2026 15:37** MKC-9.5: design doc decision 42 (chart, 300 s turn budget, kind job) and lines in 8.4 and 13; ADR 002 section "Helm chart and kind test" (turn budget table, options); ADR 005 notes `kind` as a required check; status doc MKC-9 details and 42 decisions; README names the chart and the kind script; HANDOFF "How to test the Helm chart". markdownlint 0 errors; all `scripts/check_*.py` pass.
+- **25.11.2026 15:36** MKC-9.4: CI job `kind` (Helm v4.3.1, kind v0.33.0, kubectl v1.37.0, each `sha256sum -c`; `helm lint --strict` with a tag and with `ci-values.yaml`; `helm template`; `scripts/kind_smoke.sh` with `MKC_COMMIT=github.sha`); `publish` needs `kind`. `check_workflows.py` green; all `scripts/check_*.py` pass.
+- **25.11.2026 15:35** MKC-9.4: `check_workflows.py` requires a job `kind` (`helm lint --strict`, `sha256sum -c` on the downloads, `scripts/kind_smoke.sh`) and that `publish` needs every required job. Red: `job 'kind' missing`, `job 'publish' must need 'kind'`; a sample with `needs: [backend, docs]` reports the five missing jobs.
+- **25.11.2026 15:35** HANDOFF log times for MKC-9.1 to 9.3 corrected to the git commit times (15:23–15:34); the earlier lines had estimated times, against the rule.
+- **25.11.2026 15:34** MKC-9.3: `scripts/kind_smoke.sh` (own cluster `mkc-smoke`, temporary `KUBECONFIG`, refuses an existing cluster, image loaded as an archive, `helm install --wait`, `/health` and `/api/version` through the Service, worker Ready with 0 restarts twice 20 s apart, worker pod deleted → `signal SIGTERM received` and `worker stopped`, new worker Ready; diagnostics on failure; cluster delete retried). The chart came first, so the red run used a wrong expected commit: `MKC_EXPECT_COMMIT=wrong-commit` → `FAIL: /api/version does not report commit wrong-commit`, diagnostics printed, exit 1 (just before the green run; the run has no timestamps). Its cluster delete failed once on Docker Desktop (`did not receive an exit event`); removed by hand, and the script now retries the delete. Green run 15:33:03–15:34:20 (exit 0): commit `green-ebfc204` returned, worker stopped 1 s after the delete. `~/.kube` has no config file afterwards (only a `cache` folder).
+- **25.11.2026 15:28** MKC-9.2: chart part 2: API Deployment (replicas from values; startup, readiness and liveness probes on `/health`), worker Deployment (`replicas: 1`, `Recreate`, grace period 300 s with the budget in a comment, `mkc-worker-health` exec probes, heartbeat in `/tmp`), Ingress (class from values; TLS with the cert-manager annotation; host and issuer required). Both pods: uid 10001, read-only root, no privilege escalation, all capabilities dropped, no service-account token. `check_helm.py` green; `helm lint --strict` (v4.3.1) green with `--set image.tag=lint` and with `ci-values.yaml`. `helm template` refuses `latest`, a missing tag, a missing host and a missing issuer. A mutated copy (grace 120, replicas from values, RollingUpdate, no cert-manager annotation, writable root, a secret and `latest` in values, Ingress off in the CI values) gives eight findings.
+- **25.11.2026 15:28** MKC-9.2: chart part 1: `Chart.yaml` (0.1.0), `values.yaml` (image tag required, no secrets, requests and limits), `ci-values.yaml` (kind test: local image, Ingress and TLS on, placeholder `DATABASE_URL`), helpers (image tag required and `latest` refused; checksum annotations), ConfigMap from `env`, Secret from `secrets` unless `existingSecret`, Service. `check_helm.py` still red (Deployments and Ingress follow).
+- **25.11.2026 15:26** MKC-9.2: `scripts/check_helm.py` added (stdlib text checks: chart files; API replicas from values, three probes on `/health`; worker `replicas: 1`, `Recreate`, grace period ≥ 300, `mkc-worker-health` probes; both non-root, read-only root, `envFrom` Secret; Ingress class, TLS, cert-manager annotation; `values.yaml` without secrets or `latest`, with requests and limits; `ci-values.yaml` with Ingress and TLS on). Red: all nine chart files missing.
+- **25.11.2026 15:25** MKC-9.1: `check_secret_hygiene.py` was red after the last commit (`.env.example: missing MKC_WORKER_HEARTBEAT_FILE` and `…_MAX_AGE_SECONDS`); both added to `.env.example`. All `scripts/check_*.py` pass.
+- **25.11.2026 15:24** MKC-9.1: settings `MKC_WORKER_HEARTBEAT_FILE` (empty = off) and `MKC_WORKER_HEARTBEAT_MAX_AGE_SECONDS` (30); the worker touches the file on start and every poll (a failed write is logged); `mkc-worker-health` (`mkc.worker.health`). 60 passed, 1 skipped (POSIX-only); ruff and mypy pass.
+- **25.11.2026 15:23** MKC-9.1: red tests `tests/worker/test_heartbeat.py` (heartbeat written on start and refreshed on every poll, none when not configured; `mkc-worker-health` exit codes for fresh, stale, missing, not configured). Collection fails: `mkc.worker.health` missing.
+- **25.11.2026 15:23** MKC-9 plan written (`251120261520-mkc-9-helm-kind.md`). Checked: Helm v4.3.1, kind v0.33.0 (node `v1.37.0` by digest), kubectl v1.37.0, all older than two weeks; k3s stable is v1.37.2. Grace-period budget 300 s (decision 42 in MKC-9.5).
+- **25.11.2026 15:21** MKC-9 sub-issues MKC-9.1 (#98) to 9.5 (#102) created (15:21:35–15:21:55), assigned to `qamran`, linked to #9 and set to `In progress`.
+- **25.11.2026 14:38** HANDOFF and status doc caught up after PR #97 (MKC-8 done, MKC-9 current).
+- **25.11.2026 14:36** MKC-9 (#9) assigned to `qamran`, to `In progress`; branch `mkc-9-helm-kind` from `35dc1fe`.
+- **25.11.2026 14:36** #8 and #92–#96 criteria ticked. MKC-8 complete. The GHCR package is public (anonymous pull token 200, no local login), so MKC-10 needs no pull secret.
+- **25.11.2026 14:34** `main` run 45624241353 on `35dc1fe` green; `publish` 13:34:41Z: `:35dc1fee…` and `:main` are the same index `sha256:704a208a…` with `linux/amd64` and `linux/arm64` (plus two attestation entries).
+- **25.11.2026 14:31** `main` pushed to `turing` (14:31:07); `origin/main` == `turing/main` == `35dc1fe`.
+- **25.11.2026 14:30** PR #97 review **PASS** (comment 14:30:01), merged `35dc1fe` (merge commit, 14:30:11); #8 and #92–#96 closed and `Done`. Non-blocking findings: see Next steps 2. The user gave standing permission to start the review agent and merge on PASS without asking.
+- **25.11.2026 13:56** Review agent for PR #97 not started: denied by the session permission check (as for PR #80 and #91). PR #97 waits for the user's go-ahead to run the review agent. This commit stays local until then, so the PR head (`32b92da`) keeps its CI evidence.
+- **25.11.2026 13:56** PR #97 body updated: CI run 45618105862 on `32b92da` green (12:55:34Z; publish skipped; smoke test OK, Grype on `mkc-backend:smoke` passed); section "Fixes before review".
 - **25.11.2026 13:53** MKC-8 fixes before review: `.gitattributes` keeps `*.sh` LF (a Windows checkout gave `compose_smoke.sh` CRLF); the smoke test builds its own image tag `smoke` (`MKC_IMAGE_TAG`) and CI scans `mkc-backend:smoke`; `check_workflows.py` also requires `--fail-on high` (red on a sample without it); `compose_smoke.sh` green again locally; `docker compose --env-file frontend/.env.local config` gives the frontend a `pk_test_` key and `VITE_API_URL=http://127.0.0.1:8000`. ADR 005, decision 41, status doc and plan record the `image` required check; HANDOFF next steps are the post-merge list; GHCR visibility under "Blocked".
 - **25.11.2026 13:52** `image` added to the required checks on `main` (PATCH at 13:52:30; before/after diff of the protection: only the `image` check added).
 - **25.11.2026 13:47** PR #97 body updated with the CI evidence of run 45616477619.

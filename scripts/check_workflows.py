@@ -1,7 +1,7 @@
 """Check the GitHub Actions workflows against the CI safety rules (MKC-6.4, AGENTS.md safety rules).
 
 - `.github/workflows/ci.yml` exists and has the jobs backend, frontend, gitleaks,
-  dependency-scan and docs.
+  dependency-scan, docs, image and kind.
 - No workflow uses `pull_request_target` or secrets (`secrets.x`, `secrets['x']`,
   `secrets: inherit`), so fork PRs get no secrets.
 - Every workflow sets top-level `permissions: contents: read` and grants no write
@@ -12,6 +12,8 @@
 - The dependency-scan job audits the frontend packages with `npm audit` (MKC-7.2).
 - The image job (MKC-8.3) runs the Compose smoke test, scans the image with Grype
   (`--fail-on high`) and builds `linux/amd64,linux/arm64`.
+- The kind job (MKC-9.4) lints the chart, checks its tool downloads and runs
+  `scripts/kind_smoke.sh`; `publish` needs every required job.
 - No `paths:` / `paths-ignore:` filters: a required check that never runs would block PRs.
 
 Usage: python scripts/check_workflows.py  (exit code 0 = ok, 1 = problems)
@@ -24,12 +26,17 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 WORKFLOWS = Path(".github/workflows")
 CI = WORKFLOWS / "ci.yml"
-REQUIRED_JOBS = ["backend", "frontend", "gitleaks", "dependency-scan", "docs", "image"]
+REQUIRED_JOBS = ["backend", "frontend", "gitleaks", "dependency-scan", "docs", "image", "kind"]
 IMAGE_STEPS = {
     "scripts/compose_smoke.sh": "run the Compose smoke test",
     "grype": "scan the image with Grype",
     "--fail-on high": "fail the scan on high or critical (--fail-on high)",
     "linux/amd64,linux/arm64": "build linux/amd64,linux/arm64",
+}
+KIND_STEPS = {
+    "helm lint --strict": "lint the chart (helm lint --strict)",
+    "scripts/kind_smoke.sh": "run the kind smoke test",
+    "sha256sum -c": "check the Helm, kind and kubectl downloads (sha256sum -c)",
 }
 
 USES = re.compile(r"^\s*(?:-\s+)?uses:\s*['\"]?([^\s'\"#]+)", re.MULTILINE)
@@ -108,7 +115,23 @@ def problems(root: Path = ROOT) -> list[str]:
     if "image" in jobs:
         found += [f"{CI.as_posix()}: job 'image' must {what}"
                   for needle, what in IMAGE_STEPS.items() if needle not in image]
+    kind = _strip_comments(job_text(ci.read_text(encoding="utf-8"), "kind"))
+    if "kind" in jobs:
+        found += [f"{CI.as_posix()}: job 'kind' must {what}"
+                  for needle, what in KIND_STEPS.items() if needle not in kind]
+    found += _publish_needs_problems(ci.read_text(encoding="utf-8"))
     return found
+
+
+def _publish_needs_problems(text: str) -> list[str]:
+    """`publish` must wait for every required job, so a red check never ships an image."""
+    job = _strip_comments(job_text(text, PUBLISH_JOB))
+    if not job:
+        return []
+    match = re.search(r"^    needs:\s*\[([^\]]*)\]", job, re.MULTILINE)
+    needs = {n.strip() for n in match.group(1).split(",")} if match else set()
+    return [f"{CI.as_posix()}: job '{PUBLISH_JOB}' must need '{j}'"
+            for j in REQUIRED_JOBS if j not in needs]
 
 
 def job_text(text: str, job: str) -> str:

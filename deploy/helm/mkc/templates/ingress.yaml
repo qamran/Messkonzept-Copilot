@@ -1,0 +1,34 @@
+{{- if .Values.ingress.enabled }}
+{{- $host := required "ingress.host is required when the Ingress is on" .Values.ingress.host }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "mkc.fullname" . }}-api
+  labels:
+    {{- include "mkc.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api
+  {{- if .Values.ingress.tls.enabled }}
+  annotations:
+    # cert-manager (installed outside the chart) issues the certificate into tls.secretName.
+    cert-manager.io/cluster-issuer: {{ required "ingress.tls.clusterIssuer is required when TLS is on" .Values.ingress.tls.clusterIssuer | quote }}
+  {{- end }}
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- if .Values.ingress.tls.enabled }}
+  tls:
+    - hosts:
+        - {{ $host | quote }}
+      secretName: {{ .Values.ingress.tls.secretName }}
+  {{- end }}
+  rules:
+    - host: {{ $host | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "mkc.fullname" . }}-api
+                port:
+                  name: http
+{{- end }}

@@ -63,6 +63,7 @@ Issue numbers in the two repos would diverge if both held issues.
 - **Branch protection on `main`:** PRs only; required CI checks (lint, types, tests, eval gate, Helm/kind); no force-push. A bot cannot formally approve its own PR, so the gate is green CI plus the review agent's verdict comment.
   - *Set 25.11.2026 in MKC-6 (decision 38):* the required checks are the `ci` jobs `backend`, `frontend`, `gitleaks`, `dependency-scan` and `docs`, pinned to the GitHub Actions app, with "branch must be up to date before merging". A PR branch that falls behind `main` must merge `main` in before it can be merged. The eval gate and Helm/kind checks are added with their tickets. `scripts/check_workflows.py` keeps the workflows free of `pull_request_target`, secrets and `paths` filters.
   - *Added 25.11.2026 in MKC-8 (decision 41):* the `ci` job `image` (Compose smoke test, image scan, multi-arch build) is a required check too. The job `publish` is not: it is skipped on PRs.
+  - *Added 25.11.2026 in MKC-9 (decision 42):* the `ci` job `kind` (`helm lint --strict` and the kind smoke test) is a required check too.
 
 ## Consequences
 

@@ -15,6 +15,7 @@ dependencies = [
 
 [project.scripts]
 mkc-worker = "mkc.worker.main:run"
+mkc-worker-health = "mkc.worker.health:main"
 
 [dependency-groups]
 dev = [

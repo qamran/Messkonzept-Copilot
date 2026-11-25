@@ -1,15 +1,15 @@
 # Project status: Messkonzept-Copilot
 
-**Last updated:** 25.11.2026, 13:53
+**Last updated:** 25.11.2026, 15:51
 
 This is the living status document. It is updated whenever a decision is made or work is completed. Older brainstorming material lives in `brainstorming internal/` (gitignored and frozen).
 
 ## Where we are
 
-- **Phase:** implementation, Phase 0 (foundation). The design doc was **approved by the user on 24.11.2026** (after an independent review, verdict "approve with changes", all required changes applied). The backend skeleton (MKC-4) is the first application code; MKC-5 added the database layer; MKC-6 added secret hygiene and CI; MKC-7 added the frontend and the login check; MKC-8 adds containers.
+- **Phase:** implementation, Phase 0 (foundation). The design doc was **approved by the user on 24.11.2026** (after an independent review, verdict "approve with changes", all required changes applied). The backend skeleton (MKC-4) is the first application code; MKC-5 added the database layer; MKC-6 added secret hygiene and CI; MKC-7 added the frontend and the login check; MKC-8 added containers; MKC-9 adds the Helm chart and the kind test.
 - **Restart file:** `HANDOFF.md` (repo root) is the agents' running log and next steps, updated with every commit and important ticket change (decision 34). This status doc stays the overview of decisions and documents.
 - **Board:** <https://github.com/users/qamran/projects/1> (public). Tickets MKC-1 to MKC-60 exist as issues #1 to #60 (issue number = key).
-- **Done:** MKC-1 (ticket workflow and repo setup, PR #65), MKC-2 (code-only Turing mirror, README with links, PR #70), MKC-3 (agent instructions: assignment rule PR #67, HANDOFF.md PR #69, AGENTS.md + CLAUDE.md PR #72), MKC-4 (backend skeleton: uv project `backend/`, package `mkc`, FastAPI `/health` and `/api/version`, worker with clean SIGTERM shutdown, ruff and mypy strict, PR #75), MKC-5 (database layer: compose Postgres 17 + pgvector, SQLAlchemy 2, Alembic, `python -m mkc.db.check`, Supabase connection checked; PR #80), MKC-6 (secret hygiene, markdown lint, CI with required checks; PR #86), MKC-7 (frontend skeleton with Clerk; PR #91). Each after a review-agent PASS; both remotes at the latest merge commit.
+- **Done:** MKC-1 (ticket workflow and repo setup, PR #65), MKC-2 (code-only Turing mirror, README with links, PR #70), MKC-3 (agent instructions: assignment rule PR #67, HANDOFF.md PR #69, AGENTS.md + CLAUDE.md PR #72), MKC-4 (backend skeleton: uv project `backend/`, package `mkc`, FastAPI `/health` and `/api/version`, worker with clean SIGTERM shutdown, ruff and mypy strict, PR #75), MKC-5 (database layer: compose Postgres 17 + pgvector, SQLAlchemy 2, Alembic, `python -m mkc.db.check`, Supabase connection checked; PR #80), MKC-6 (secret hygiene, markdown lint, CI with required checks; PR #86), MKC-7 (frontend skeleton with Clerk; PR #91), MKC-8 (containers, Compose, GHCR image; PR #97). Each after a review-agent PASS; both remotes at the latest merge commit.
 - **MKC-5 details** (database layer, PR #80, plan `docs/superpowers/plans/241120262130-mkc-5-database-layer.md`):
   - `docker compose up db` (repo root; the file is `compose.yaml` since MKC-8): Postgres 17 with pgvector (`pgvector/pgvector:pg17`; Supabase hosts Postgres 17) on `127.0.0.1:5433`, dev-only credentials
   - `DATABASE_URL` setting, mapped to the psycopg 3 driver; SQLAlchemy 2; `mkc.db.base.Base`, `mkc.db.session.get_session()`
@@ -29,13 +29,19 @@ This is the living status document. It is updated whenever a decision is made or
   - backend `mkc.api.auth`: `require_user`, `require_admin`, `GET /api/me`, `GET /api/admin/ping`; tokens checked with the public JWKS only (decision 40); `apiFetch` keeps every request on the `VITE_API_URL` origin (review fix); CORS allow-list for the local Vite dev server
   - `frontend/`: Vite, React, TypeScript, Tailwind, shadcn/ui, `@clerk/react`, `react-router`; `apiFetch`, `RequireAdmin`; vitest
   - CI: the frontend job runs lint, typecheck, test and build; the dependency scan adds `npm audit`
-- **MKC-8 details** (containers and local Compose, in progress; plan `docs/superpowers/plans/251120261327-mkc-8-containers-compose.md`), sub-issues MKC-8.1 to MKC-8.5 (#92–#96):
+- **MKC-8 details** (containers and local Compose, merged in PR #97; plan `docs/superpowers/plans/251120261327-mkc-8-containers-compose.md`), sub-issues MKC-8.1 to MKC-8.5 (#92–#96):
   - `backend/Dockerfile`: one image, multi-stage, uid 10001, base images pinned by digest, `MKC_COMMIT` build argument; API by default, `mkc-worker` for the worker
   - `compose.yaml` (replaces `docker-compose.yml`): db, api, worker, frontend; `backend/.env` optional; `scripts/compose_smoke.sh` checks the whole stack as its own project on other ports
   - CI job `image` (a required check on `main` since 25.11.2026 13:52): smoke test, Grype scan, `linux/amd64,linux/arm64` build; CI job `publish`: pushes `ghcr.io/qamran/messkonzept-copilot-backend` (`<commit sha>`, `main`) on `main` only
   - `scripts/check_containers.py`; `scripts/check_workflows.py` allows `packages: write` only in the guarded `publish` job (decision 41, ADR 002)
-- **Current ticket:** MKC-8 (containers and local Compose, #8).
-- **Next:** MKC-9 (Helm chart and kind smoke test).
+  - first push from `main` (`35dc1fe`): `ghcr.io/qamran/messkonzept-copilot-backend:35dc1fe…` and `:main`, amd64 + arm64; the package is public
+- **MKC-9 details** (Helm chart and kind test, in progress; plan `docs/superpowers/plans/251120261520-mkc-9-helm-kind.md`), sub-issues MKC-9.1 to MKC-9.5 (#98–#102):
+  - worker heartbeat file (`MKC_WORKER_HEARTBEAT_FILE`) and `mkc-worker-health`, so the worker pod has a real probe
+  - `deploy/helm/mkc/`: API Deployment (replicas from values), worker Deployment (`replicas: 1`, `Recreate`, grace period 300 s), Service, Ingress (cert-manager TLS), Secret from values or `existingSecret`, ConfigMap from `env`; probes, limits, uid 10001, read-only root (decision 42, ADR 002)
+  - `scripts/check_helm.py` (static chart rules) and `scripts/kind_smoke.sh` (install on kind)
+  - CI job `kind`: `helm lint --strict` and the kind smoke test; a required check on `main`; `publish` needs it
+- **Current ticket:** MKC-9 (Helm chart and kind smoke test, #9).
+- **Next:** MKC-10 (continuous deployment, k3s + Vercel).
 
 ## Key documents
 
@@ -53,7 +59,7 @@ This is the living status document. It is updated whenever a decision is made or
 | README (intro + links for both repos) | `README.md` |
 | Official brief | `AE.CAP_afa.md` |
 
-## Decisions so far (summary; the full log of 41 decisions is in design doc section 18)
+## Decisions so far (summary; the full log of 42 decisions is in design doc section 18)
 
 - **Idea:** Messkonzept-Copilot. It extracts operator Messkonzept PDFs into structured, LBS-keyed records with human approval, and gives household site advice with citations.
 - **Primary user:** MSB, VNB and energy-IT staff working across grid areas; installers are secondary; plus a public read-only demo.

@@ -25,6 +25,12 @@ class Settings(BaseSettings):
     worker_poll_seconds: float = 1.0
     """How long the worker waits between polls for work."""
 
+    worker_heartbeat_file: str = ""
+    """File the worker touches on start and every poll. Empty = off (the Helm chart sets it)."""
+
+    worker_heartbeat_max_age_seconds: float = 30.0
+    """`mkc-worker-health` fails when the heartbeat is older than this."""
+
     database_url: str = Field(
         default=f"{_PSYCOPG_SCHEME}mkc:mkc@127.0.0.1:5433/mkc",
         validation_alias=AliasChoices("DATABASE_URL", "MKC_DATABASE_URL"),

@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "mkc.fullname" . }}-worker
+  labels:
+    {{- include "mkc.labels" . | nindent 4 }}
+    app.kubernetes.io/component: worker
+spec:
+  # Always one worker: it holds the Postgres lease on runs (design doc decision 26).
+  replicas: 1
+  # Stop the old pod before the new one starts, so two workers never run at once.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "mkc.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: worker
+  template:
+    metadata:
+      labels:
+        {{- include "mkc.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: worker
+      annotations:
+        {{- include "mkc.checksums" . | nindent 8 }}
+    spec:
+      # On SIGTERM the worker finishes its current turn, checkpoints and releases the lease.
+      # Turn budget (decision 42): model call 180 s + tool calls 60 s
+      # + checkpoint and lease release 30 s + margin 30 s = 300 s.
+      terminationGracePeriodSeconds: 300
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      # uid/gid 10001, as in backend/Dockerfile.
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: worker
+          image: {{ include "mkc.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["mkc-worker"]
+          envFrom:
+            - configMapRef:
+                name: {{ include "mkc.fullname" . }}-config
+            - secretRef:
+                name: {{ include "mkc.secretName" . }}
+          env:
+            # Touched on start and every poll; the probes check its age (MKC-9.1).
+            - name: MKC_WORKER_HEARTBEAT_FILE
+              value: /tmp/mkc-worker-heartbeat
+          # No HTTP port: the probes run mkc-worker-health (exit 0 = fresh heartbeat).
+          readinessProbe:
+            exec:
+              command: ["mkc-worker-health"]
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            exec:
+              command: ["mkc-worker-health"]
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.worker.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
