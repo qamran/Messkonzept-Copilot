@@ -3,6 +3,7 @@
 import logging
 import signal
 import threading
+from pathlib import Path
 from types import FrameType
 
 from mkc.config import get_settings
@@ -29,12 +30,25 @@ def run(stop: threading.Event | None = None) -> None:
     previous = {sig: signal.signal(sig, request_stop) for sig in _STOP_SIGNALS}
     try:
         log.info("worker started")
+        heartbeat = Path(settings.worker_heartbeat_file) if settings.worker_heartbeat_file else None
+        _beat(heartbeat)
         while not stop.wait(settings.worker_poll_seconds):
-            pass  # the harness queue is polled here (MKC-17 and later)
+            _beat(heartbeat)
+            # the harness queue is polled here (MKC-17 and later)
     finally:
         for sig, handler in previous.items():
             signal.signal(sig, handler)
     log.info("worker stopped")
+
+
+def _beat(heartbeat: Path | None) -> None:
+    """Touch the heartbeat file; a failed write is logged and shows up as a failing probe."""
+    if heartbeat is None:
+        return
+    try:
+        heartbeat.touch()
+    except OSError as exc:
+        log.warning("heartbeat %s not written: %s", heartbeat, exc)
 
 
 if __name__ == "__main__":
