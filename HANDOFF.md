@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 25.11.2026, 09:26
+**Last updated:** 25.11.2026, 09:35
 
 This file is how agents resume work after a session restart.
 - **Updated:** in every commit, and after every important ticket change: status change, sub-issue created or closed, PR opened or merged, review verdict. A change made outside a branch (e.g. on the board) is recorded in the next commit.
@@ -22,7 +22,7 @@ This file is how agents resume work after a session restart.
 - **Remotes:**
   - `origin` = qamran/Messkonzept-Copilot (home, public)
   - `turing` = TuringCollegeSubmissions/qshahz-AE.CAP.AFA.1.1 (code-only mirror, no issues; ADR 005 option (c), decision 35)
-  - Both at `1555a92` (merge of PR #75).
+  - Both at `8d88c38` (merge of PR #80).
 - **`main` is protected:** PRs only, enforced for admins. No required CI checks until MKC-6.
 - **Agent rules:** `AGENTS.md` (CLAUDE.md imports it). The development agent continues without asking and stops only for genuine decisions (decision 36).
 - **Done:**
@@ -30,31 +30,38 @@ This file is how agents resume work after a session restart.
   - MKC-2: code-only Turing mirror, README with links, `scripts/check_readme.py` (PR #70)
   - MKC-3: assignment rule (PR #67), HANDOFF.md (PR #69), AGENTS.md + CLAUDE.md + `scripts/check_agents.py` (PR #72)
   - MKC-4: backend skeleton in `backend/` (uv, Python 3.12, package `mkc`): Settings, FastAPI `/health` + `/api/version`, worker with clean SIGTERM shutdown; ruff + mypy strict (PR #75)
+  - MKC-5: database layer: compose Postgres 17 + pgvector on `127.0.0.1:5433`, SQLAlchemy 2, Alembic, `python -m mkc.db.check`; Supabase connection checked via the Session pooler (PR #80)
 - **How to test the backend:** `docker compose up -d db` (repo root; Postgres 17 + pgvector on `127.0.0.1:5433`), then `cd backend && uv sync && uv run pytest`. The DB tests fail if the db is down; `MKC_SKIP_DB_TESTS=1` skips them on purpose. Windows skips one POSIX-only worker test; run it in Linux with the Docker command in PR #75.
 
 ## In progress
 
-- **MKC-5** (#5), database layer. Status `Testing`, assigned to `qamran`. Branch `mkc-5-database-layer`. Plan: `docs/superpowers/plans/241120262130-mkc-5-database-layer.md`.
-  - MKC-5.1 (#76): worker test hardening from the PR #75 review. Done on the branch.
-  - MKC-5.2 (#77): `docker compose up db` (pgvector, Postgres 17), `DATABASE_URL`, `Base`, `get_session()`. Done on the branch.
-  - MKC-5.3 (#78): Alembic in `backend/migrations/`, round-trip test. Done on the branch.
-  - MKC-5.4 (#79): `python -m mkc.db.check` (read-only) and its tests. Done on the branch; the live run against the user's Supabase project passed (PostgreSQL 17.12, `vector` 0.8.2 available). Run it with `cd backend && uv run --env-file .env python -m mkc.db.check`; the Session pooler string lives only in the gitignored `backend/.env`.
-  - PR #80 now covers 5.1–5.4 and closes #5. Review FAIL at 09:25 (docs only: status doc header, plan default URL and closing line, one HANDOFF log time); fixed, waiting for the re-review.
+- **MKC-6** (#6), secret hygiene and CI. Status `In progress`, assigned to `qamran`. Branch `mkc-6-secret-hygiene-ci`. Plan: `docs/superpowers/plans/251120260935-mkc-6-secret-hygiene-ci.md`.
+  - MKC-6.1 (#81): `httpx` → `httpx2`; `StarletteDeprecationWarning` is an error in pytest (user decision 25.11.2026: switch now).
+  - MKC-6.2 (#82): `.gitignore`, `.env.example`, `.pre-commit-config.yaml`, `scripts/check_secret_hygiene.py`.
+  - MKC-6.3 (#83): all tracked Markdown passes markdownlint.
+  - MKC-6.4 (#84): `.github/workflows/ci.yml`, `scripts/check_workflows.py`.
+  - MKC-6.5 (#85): CI jobs as required checks on `main` (only after CI is green on the PR).
 
 ## Next steps
 
-1. MKC-5: review and merge PR #80, push `main` to `turing`.
-2. MKC-6 (secret hygiene and CI, required checks; Linux CI runs the POSIX SIGTERM test; a `pgvector/pgvector:pg17` service container for the DB tests; repo-wide markdown lint).
+1. MKC-6 (checklist above).
+2. MKC-7 (frontend skeleton; turns on the CI frontend job).
 
 ## Blocked / waiting on user
 
-- **Decision: `httpx` → `httpx2` for FastAPI's TestClient.** Starlette marks `httpx` as deprecated for TestClient and suggests `httpx2`. The development agent's attempt to switch the dev dependency was denied by the session's permission check, so `httpx` stays (tests pass, one deprecation warning). The user decides whether to allow the switch.
 - **Docker Desktop** must be running for MKC-5 (`docker compose up db`). The development agent started it on 24.11.2026; if it is stopped after a restart, start it again.
 - Later setup tasks (listed in design doc section 13): Vercel account, provider API keys with caps, GitHub `production` environment, a domain with TLS. The Supabase project exists (created by the user on 25.11.2026).
 
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+- **25.11.2026 09:35** MKC-6: plan written; status doc (MKC-5 done, MKC-6 current) and HANDOFF caught up after PR #80. Pre-checks: gitleaks v8.30.1 finds no leaks in the 62 commits of history and does flag a runtime-built fake `ghp_` token; `httpx2` 2.16.2 is from the pydantic org; the `gh` token has the `workflow` scope; markdownlint-cli2 0.18.1 reports about 270 errors on tracked Markdown.
+- **25.11.2026 09:34** MKC-6 sub-issues MKC-6.1 (#81), 6.2 (#82), 6.3 (#83), 6.4 (#84), 6.5 (#85) created, linked to #6, assigned to `qamran`, `In progress`; branch `mkc-6-secret-hygiene-ci`.
+- **25.11.2026 09:33** MKC-6 (#6) assigned to `qamran`, to `In progress`.
+- **25.11.2026 09:30** #5 and #76–#79 criteria ticked. MKC-5 complete.
+- **25.11.2026 09:30** `main` pushed to `turing` (reflog 09:30:03); `origin/main` == `turing/main` == `8d88c38`.
+- **25.11.2026 09:29** PR #80 re-review **PASS**, merged `8d88c38` (merge commit); #5 and #76–#79 closed and set to `Done` by the board's automation. Non-blocking: `8e6dc56` and `a497afb` did not touch HANDOFF.md.
+- **25.11.2026** User decision: switch to `httpx2` now, after the PR #80 review (MKC-6.1).
 - **25.11.2026 09:26** PR #80 text: skip count with `MKC_SKIP_DB_TESTS=1` updated (`9 passed, 8 skipped`); #5 and #76–#79 back to `Testing` for the re-review.
 - **25.11.2026 09:26** Fixes for the PR #80 review: status doc header from git; plan default URL `127.0.0.1` and closing line (#5 and #79 now closed by the PR); the 24.11. 21:30 log line split by event time (board status at 21:31); 09:16 line sourced.
 - **25.11.2026 09:25** #5 and #76–#79 back to `In progress`.
