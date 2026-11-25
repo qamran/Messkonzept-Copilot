@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 25.11.2026, 14:38
+**Last updated:** 25.11.2026, 15:23
 
 This file is how agents resume work after a session restart.
 
@@ -41,11 +41,13 @@ This file is how agents resume work after a session restart.
 
 ## In progress
 
-- **MKC-9** (#9), Helm chart and kind smoke test. Status `In progress`, assigned to `qamran`. Branch `mkc-9-helm-kind`. Plan and sub-issues follow.
+- **MKC-9** (#9), Helm chart and kind smoke test. Status `In progress`, assigned to `qamran`. Branch `mkc-9-helm-kind`. Plan: `docs/superpowers/plans/251120261520-mkc-9-helm-kind.md`.
+  - Sub-issues (all `In progress`, assigned to `qamran`): MKC-9.1 (#98) worker heartbeat and health command; MKC-9.2 (#99) Helm chart; MKC-9.3 (#100) kind smoke script; MKC-9.4 (#101) CI job `kind` as a required check; MKC-9.5 (#102) docs.
+  - Local tools (not in the repo): Helm v4.3.1, kind v0.33.0 and kubectl v1.37.0, checksum-checked, in the session scratchpad. CI downloads its own pinned copies.
 
 ## Next steps
 
-1. MKC-9: plan, sub-issues, then the chart and the kind smoke test in CI.
+1. MKC-9: MKC-9.1 (heartbeat) first, then the chart, the smoke script, the CI job and the docs (order in the plan).
 2. Non-blocking follow-ups from the PR #97 review (fold into a later CI-hardening ticket or MKC-9 where they touch the same files):
    - check scripts are substring-based: flow-style `permissions: {…: write}`, `toJSON(secrets)`, `|| true` / `continue-on-error` on the scan, `if: false` on `image`, indented `USER root`, `USER 10001:0`, `COPY --chown --from=<unpinned>`, `!.env` after `.env`, `compose.override.yaml` all pass
    - no kept tests rerun the bad samples (they live only in the PR body and HANDOFF)
@@ -64,6 +66,8 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **25.11.2026 15:23** MKC-9 plan written (`251120261520-mkc-9-helm-kind.md`). Checked: Helm v4.3.1, kind v0.33.0 (node `v1.37.0` by digest), kubectl v1.37.0, all older than two weeks; k3s stable is v1.37.2. Grace-period budget 300 s (decision 42 in MKC-9.5).
+- **25.11.2026 15:21** MKC-9 sub-issues MKC-9.1 (#98) to 9.5 (#102) created (15:21:35–15:21:55), assigned to `qamran`, linked to #9 and set to `In progress`.
 - **25.11.2026 14:38** HANDOFF and status doc caught up after PR #97 (MKC-8 done, MKC-9 current).
 - **25.11.2026 14:36** MKC-9 (#9) assigned to `qamran`, to `In progress`; branch `mkc-9-helm-kind` from `35dc1fe`.
 - **25.11.2026 14:36** #8 and #92–#96 criteria ticked. MKC-8 complete. The GHCR package is public (anonymous pull token 200, no local login), so MKC-10 needs no pull secret.
