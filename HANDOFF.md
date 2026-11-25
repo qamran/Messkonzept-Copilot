@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 25.11.2026, 10:11
+**Last updated:** 25.11.2026, 10:15
 
 This file is how agents resume work after a session restart.
 
@@ -23,7 +23,7 @@ This file is how agents resume work after a session restart.
 - **Remotes:**
   - `origin` = qamran/Messkonzept-Copilot (home, public)
   - `turing` = TuringCollegeSubmissions/qshahz-AE.CAP.AFA.1.1 (code-only mirror, no issues; ADR 005 option (c), decision 35)
-  - Both at `8d88c38` (merge of PR #80).
+  - Both at `410a178` (merge of PR #86).
 - **`main` is protected:** PRs only, enforced for admins. Required checks since 25.11.2026 09:50 (MKC-6.5): the `ci` jobs `backend`, `frontend`, `gitleaks`, `dependency-scan` and `docs`; the branch must be up to date with `main`.
 - **Agent rules:** `AGENTS.md` (CLAUDE.md imports it). The development agent continues without asking and stops only for genuine decisions (decision 36).
 - **Done:**
@@ -32,24 +32,22 @@ This file is how agents resume work after a session restart.
   - MKC-3: assignment rule (PR #67), HANDOFF.md (PR #69), AGENTS.md + CLAUDE.md + `scripts/check_agents.py` (PR #72)
   - MKC-4: backend skeleton in `backend/` (uv, Python 3.12, package `mkc`): Settings, FastAPI `/health` + `/api/version`, worker with clean SIGTERM shutdown; ruff + mypy strict (PR #75)
   - MKC-5: database layer: compose Postgres 17 + pgvector on `127.0.0.1:5433`, SQLAlchemy 2, Alembic, `python -m mkc.db.check`; Supabase connection checked via the Session pooler (PR #80)
+  - MKC-6: secret hygiene (`.gitignore`, `.env.example`, pre-commit), markdown lint, CI (`backend`, `frontend`, `gitleaks`, `dependency-scan`, `docs`) as required checks on `main`; `httpx2` (PR #86)
 - **How to test the backend:** `docker compose up -d db` (repo root; Postgres 17 + pgvector on `127.0.0.1:5433`), then `cd backend && uv sync && uv run pytest`. The DB tests fail if the db is down; `MKC_SKIP_DB_TESTS=1` skips them on purpose. Windows skips one POSIX-only worker test; run it in Linux with the Docker command in PR #75.
 
 ## In progress
 
-- **MKC-6** (#6), secret hygiene and CI. Status `Testing`, assigned to `qamran`. Branch `mkc-6-secret-hygiene-ci`. Plan: `docs/superpowers/plans/251120260935-mkc-6-secret-hygiene-ci.md`. PR #86: review FAIL at 10:00 (`.env.example` empty values, missing alias, two HANDOFF items; fixed) and re-review FAIL at 10:10 (status doc test count; fixed).
-  - MKC-6.1 (#81): `httpx` → `httpx2`; `StarletteDeprecationWarning` is an error in pytest (user decision 25.11.2026: switch now). Done on the branch.
-  - MKC-6.2 (#82): `.gitignore`, `.env.example`, `.pre-commit-config.yaml`, `scripts/check_secret_hygiene.py`. Done on the branch.
-  - MKC-6.3 (#83): all tracked Markdown passes markdownlint. Done on the branch.
-  - MKC-6.4 (#84): `.github/workflows/ci.yml`, `scripts/check_workflows.py`. Done on the branch; CI run 45579604956 on `a7cb041` green (backend 17 passed, none skipped).
-  - MKC-6.5 (#85): CI jobs as required checks on `main`. Done (09:50).
+- **MKC-7** (#7), frontend skeleton with Clerk. Status `In progress`, assigned to `qamran`. Branch `mkc-7-frontend-skeleton`. Sub-issues and plan follow.
+  - Needs from the user: a Clerk application (see Blocked).
 
 ## Next steps
 
-1. MKC-6 (checklist above).
-2. MKC-7 (frontend skeleton; turns on the CI frontend job).
+1. MKC-7: plan, sub-issues, then the frontend (`frontend/`: Vite + React + TS + shadcn/ui, `apiFetch`, `RequireAdmin`) and backend JWT checks (`mkc.api.auth.require_user`, `require_admin`), tested with signed test tokens. The CI frontend job turns on when `frontend/package.json` exists.
+2. MKC-8 (backend container image on GHCR; image scan in CI).
 
 ## Blocked / waiting on user
 
+- **Clerk application for MKC-7.** The user creates a Clerk application (development instance first) and puts the keys in local `.env` files, never in chat or the repo. The choice for Vercel previews (production vs development instance) is recorded in ADR 002 during MKC-7.
 - **Docker Desktop** must be running for the local DB tests (`docker compose up -d db`). If it is stopped after a restart, start it again. CI uses its own Postgres service.
 - Later setup tasks (listed in design doc section 13): Vercel account, provider API keys with caps, GitHub `production` environment, a domain with TLS. The Supabase project exists (created by the user on 25.11.2026).
 
@@ -57,6 +55,11 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **25.11.2026 10:15** HANDOFF and status doc caught up after PR #86 (MKC-6 done, MKC-7 current; Clerk application needed from the user).
+- **25.11.2026 10:14** MKC-7 (#7) assigned to `qamran`, to `In progress`; branch `mkc-7-frontend-skeleton` (reflog 10:14:55).
+- **25.11.2026 10:14** #6 and #81–#85 criteria ticked. MKC-6 complete.
+- **25.11.2026 10:13** `main` pushed to `turing` (reflog 10:13:59); `origin/main` == `turing/main` == `410a178`.
+- **25.11.2026 10:13** PR #86 third review **PASS** (comment 10:13:28), merged `410a178` (merge commit, 10:13:32); #6 and #81–#85 closed and `Done`. Non-blocking: service image not pinned by digest; `Refs:` not parsed as a git trailer (same on `main`); the 09:50 protection time can't be checked from git or the API.
 - **25.11.2026 10:11** MKC-6: status doc test count replaced by "every backend test runs on Linux, none skipped"; status doc notes empty = default and the MKC-10 deploy exception; HANDOFF names both FAIL rounds; PR #86 body updated; #6 and #81–#85 to `Testing`.
 - **25.11.2026 10:10** #6 and #81–#85 back to `In progress`.
 - **25.11.2026 10:10** PR #86 re-review **FAIL** (comment 09:10:01Z): all four findings fixed, but the status doc still said "all 17 tests" while the head has 19.
