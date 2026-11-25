@@ -1,6 +1,6 @@
 # Project status: Messkonzept-Copilot
 
-**Last updated:** 25.11.2026, 11:35
+**Last updated:** 25.11.2026, 12:02
 
 This is the living status document. It is updated whenever a decision is made or work is completed. Older brainstorming material lives in `brainstorming internal/` (gitignored and frozen).
 
@@ -17,7 +17,7 @@ This is the living status document. It is updated whenever a decision is made or
   - DB tests fail when Postgres is unreachable (`MKC_SKIP_DB_TESTS=1` skips them on purpose); MKC-6 needs a pgvector service container in CI
   - Supabase check (MKC-5.4), 25.11.2026: `python -m mkc.db.check` (read-only) against the user's Supabase project, via the Session pooler (port 5432, IPv4; region eu-west-1). Result: PostgreSQL 17.12, `vector` 0.8.2 available, not yet installed (the migrations install it; running them on Supabase belongs to the deploy tickets). The connection string lives only in the gitignored `backend/.env`; `Settings` does not read `.env`, so the tests never touch Supabase. Run it with `cd backend && uv run --env-file .env python -m mkc.db.check`.
   - Supabase project settings: use the Session pooler, not the direct connection (IPv6 only) or the Transaction pooler (port 6543, no session state). The Data API is not used by the backend.
-- **MKC-6 details** (secret hygiene and CI, merged in PR #86; plan `docs/superpowers/plans/251120260935-mkc-6-secret-hygiene-ci.md`, PR #86), sub-issues MKC-6.1 to MKC-6.5 (#81–#85):
+- **MKC-6 details** (secret hygiene and CI, merged in PR #86; plan `docs/superpowers/plans/251120260935-mkc-6-secret-hygiene-ci.md`), sub-issues MKC-6.1 to MKC-6.5 (#81–#85):
   - `httpx2` for the test client; Starlette deprecation warnings fail the tests (decision 37)
   - `.gitignore` (PDFs, `.env*` except `.env.example`, renders, caches), `.env.example` (an empty value means "use the default": `Settings` ignores empty variables), `.pre-commit-config.yaml` (gitleaks, ruff, end-of-file fixer; install with `uvx pre-commit install`)
   - all tracked Markdown passes markdownlint
@@ -26,7 +26,7 @@ This is the living status document. It is updated whenever a decision is made or
   - `scripts/check_workflows.py` bans secrets and write permissions in every workflow. The deploy workflow (MKC-10) will need both, in the protected `production` environment; that ticket must narrow the rule to the deploy workflow on `main` and record it as a decision.
 - **Current ticket:** MKC-7 (frontend skeleton with Clerk, #7; plan `docs/superpowers/plans/251120261119-mkc-7-frontend-skeleton.md`), sub-issues MKC-7.1 to MKC-7.4 (#87–#90):
   - Clerk development instance for every environment (decision 39, ADR 002); the user created it, with the `role` session-token claim, the admin (the user's Google account) and a test user
-  - backend `mkc.api.auth`: `require_user`, `require_admin`, `GET /api/me`, `GET /api/admin/ping`; tokens checked with the public JWKS only (decision 40); CORS allow-list for the local Vite dev server
+  - backend `mkc.api.auth`: `require_user`, `require_admin`, `GET /api/me`, `GET /api/admin/ping`; tokens checked with the public JWKS only (decision 40); `apiFetch` keeps every request on the `VITE_API_URL` origin (review fix); CORS allow-list for the local Vite dev server
   - `frontend/`: Vite, React, TypeScript, Tailwind, shadcn/ui, `@clerk/react`, `react-router`; `apiFetch`, `RequireAdmin`; vitest
   - CI: the frontend job runs lint, typecheck, test and build; the dependency scan adds `npm audit`
 - **Next:** MKC-8 (backend container image).

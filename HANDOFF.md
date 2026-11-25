@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 25.11.2026, 12:01
+**Last updated:** 25.11.2026, 12:02
 
 This file is how agents resume work after a session restart.
 
@@ -55,6 +55,8 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+
+- **25.11.2026 12:02** MKC-7: status doc no longer names PR #86 twice and mentions the `apiFetch` origin rule; ADR 002 lists the 401/403/503 mapping.
 
 - **25.11.2026 12:01** MKC-7.1: `TokenVerifier` rejects a non-string `azp` or `role` (401); `require_user` maps `PyJWKClientConnectionError` to 503 ("Login provider unreachable"). 52 passed, 1 skipped (POSIX-only); ruff and mypy pass.
 
