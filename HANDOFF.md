@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 25.11.2026, 11:23
+**Last updated:** 25.11.2026, 11:30
 
 This file is how agents resume work after a session restart.
 
@@ -58,6 +58,8 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+
+- **25.11.2026 11:30** MKC-7.2: `check_secret_hygiene.py` requires `frontend/.env.example` (both `VITE_` names, no values); `check_workflows.py` requires `npm audit` in the dependency-scan job. Both red (`frontend/.env.example: file missing`; `job 'dependency-scan' must run 'npm audit'`).
 
 - **25.11.2026 11:23** MKC-7.1: `mkc.api.auth` (`TokenVerifier`, `require_user`, `require_admin`, JWKS resolver), `GET /api/me`, `GET /api/admin/ping`, CORS allow-list; settings `MKC_CLERK_ISSUER`, `MKC_CLERK_AUTHORIZED_PARTIES`, `MKC_CORS_ORIGINS` in `.env.example`. 46 passed, 1 skipped (POSIX-only); ruff, mypy and `check_secret_hygiene.py` pass.
 - **25.11.2026 11:21** MKC-7.1: plan and red tests committed (`2e01edb`): `tests/api/test_auth.py` fails at collection (`mkc.api.auth` missing); 3 config tests fail (`Settings` has no Clerk fields). PyJWT 2.15.1 with `cryptography` added.

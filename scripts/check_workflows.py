@@ -7,6 +7,7 @@
 - Every workflow sets top-level `permissions: contents: read` and grants no write
   permission anywhere (`write`, `write-all`), also not per job.
 - Every action is pinned to a full commit SHA (docker images to a digest).
+- The dependency-scan job audits the frontend packages with `npm audit` (MKC-7.2).
 - No `paths:` / `paths-ignore:` filters: a required check that never runs would block PRs.
 
 Usage: python scripts/check_workflows.py  (exit code 0 = ok, 1 = problems)
@@ -73,7 +74,17 @@ def problems(root: Path = ROOT) -> list[str]:
         found += workflow_problems(path, path.relative_to(root).as_posix())
     jobs = ci_jobs(ci.read_text(encoding="utf-8"))
     found += [f"{CI.as_posix()}: job '{job}' missing" for job in REQUIRED_JOBS if job not in jobs]
+    scan = job_text(ci.read_text(encoding="utf-8"), "dependency-scan")
+    if "dependency-scan" in jobs and not re.search(r"\bnpm audit\b", _strip_comments(scan)):
+        found.append(f"{CI.as_posix()}: job 'dependency-scan' must run 'npm audit'")
     return found
+
+
+def job_text(text: str, job: str) -> str:
+    """The lines of one job, up to the next job at the same indent."""
+    pattern = rf"^  {re.escape(job)}:\s*\n((?:    .*\n|\s*\n)*)"
+    match = re.search(pattern, text + "\n", re.MULTILINE)
+    return match.group(1) if match else ""
 
 
 if __name__ == "__main__":
