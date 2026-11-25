@@ -77,7 +77,8 @@ jobs:
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
         run: |
           umask 077
-          printf '%s\n' "$DEPLOY_SSH_KEY" > "$RUNNER_TEMP/deploy_key"
+          # tr: a key pasted on Windows may carry CR line ends, which ssh can't read.
+          printf '%s\n' "$DEPLOY_SSH_KEY" | tr -d '\r' > "$RUNNER_TEMP/deploy_key"
           printf '%s\n' "$KNOWN_HOSTS" > "$RUNNER_TEMP/known_hosts"
           MKC_DEPLOY_KEY_FILE="$RUNNER_TEMP/deploy_key"             MKC_KNOWN_HOSTS_FILE="$RUNNER_TEMP/known_hosts"             MKC_API_URL="$API_URL" bash scripts/cd_deploy.sh "$GITHUB_SHA"
       - name: Remove the key

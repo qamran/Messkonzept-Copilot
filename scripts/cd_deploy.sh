@@ -27,7 +27,8 @@ interval="${MKC_SMOKE_INTERVAL:-10}"
 
 vm() {
   ssh -i "$key" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes \
-    -o UserKnownHostsFile="$known_hosts" -o ConnectTimeout=20 "mkc-deploy@$host" "$1"
+    -o UserKnownHostsFile="$known_hosts" -o ConnectTimeout=20 \
+    -o ServerAliveInterval=30 -o ServerAliveCountMax=4 "mkc-deploy@$host" "$1"
 }
 
 smoke() {
