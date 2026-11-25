@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 25.11.2026, 13:53
+**Last updated:** 25.11.2026, 13:56
 
 This file is how agents resume work after a session restart.
 
@@ -61,6 +61,8 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **25.11.2026 13:56** Review agent for PR #97 not started: denied by the session permission check (as for PR #80 and #91). PR #97 waits for the user's go-ahead to run the review agent. This commit stays local until then, so the PR head (`32b92da`) keeps its CI evidence.
+- **25.11.2026 13:56** PR #97 body updated: CI run 45618105862 on `32b92da` green (12:55:34Z; publish skipped; smoke test OK, Grype on `mkc-backend:smoke` passed); section "Fixes before review".
 - **25.11.2026 13:53** MKC-8 fixes before review: `.gitattributes` keeps `*.sh` LF (a Windows checkout gave `compose_smoke.sh` CRLF); the smoke test builds its own image tag `smoke` (`MKC_IMAGE_TAG`) and CI scans `mkc-backend:smoke`; `check_workflows.py` also requires `--fail-on high` (red on a sample without it); `compose_smoke.sh` green again locally; `docker compose --env-file frontend/.env.local config` gives the frontend a `pk_test_` key and `VITE_API_URL=http://127.0.0.1:8000`. ADR 005, decision 41, status doc and plan record the `image` required check; HANDOFF next steps are the post-merge list; GHCR visibility under "Blocked".
 - **25.11.2026 13:52** `image` added to the required checks on `main` (PATCH at 13:52:30; before/after diff of the protection: only the `image` check added).
 - **25.11.2026 13:47** PR #97 body updated with the CI evidence of run 45616477619.
