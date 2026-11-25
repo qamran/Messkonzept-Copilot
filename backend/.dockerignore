@@ -1,0 +1,13 @@
+# Build context for backend/Dockerfile (MKC-8). Secrets and local state never go in.
+.env
+.env.*
+.venv
+tests
+**/__pycache__
+.pytest_cache
+.mypy_cache
+.ruff_cache
+*.pdf
+*.PDF
+Dockerfile
+.dockerignore

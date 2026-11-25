@@ -1,0 +1,87 @@
+# Local stack (MKC-8): db, api, worker, frontend. Not used in production.
+#   docker compose up --build        whole stack
+#   docker compose up -d db          only the database (backend tests, MKC-5)
+# The credentials are dev-only placeholders; every port listens on 127.0.0.1 only.
+# Host ports can be moved with MKC_DB_PORT, MKC_API_PORT, MKC_WEB_PORT
+# (scripts/compose_smoke.sh uses that to run beside a local stack), and MKC_IMAGE_TAG
+# names the built images (default "local"; the smoke test uses "smoke").
+services:
+  db:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_USER: mkc
+      POSTGRES_PASSWORD: mkc
+      POSTGRES_DB: mkc
+    ports:
+      - "127.0.0.1:${MKC_DB_PORT:-5433}:5432"
+    volumes:
+      - mkc-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mkc -d mkc"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  api:
+    build:
+      context: backend
+      args:
+        MKC_COMMIT: ${MKC_COMMIT:-dev}
+    image: mkc-backend:${MKC_IMAGE_TAG:-local}
+    env_file:
+      # Optional: MKC_CLERK_ISSUER and other local settings (see .env.example).
+      - path: backend/.env
+        required: false
+    environment:
+      # Inside the Compose network the database is db:5432 (overrides backend/.env).
+      DATABASE_URL: postgresql://mkc:mkc@db:5432/mkc
+    ports:
+      - "127.0.0.1:${MKC_API_PORT:-8000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  worker:
+    image: mkc-backend:${MKC_IMAGE_TAG:-local}
+    command: ["mkc-worker"]
+    env_file:
+      - path: backend/.env
+        required: false
+    environment:
+      DATABASE_URL: postgresql://mkc:mkc@db:5432/mkc
+    depends_on:
+      db:
+        condition: service_healthy
+      api:
+        # api builds the shared image; the worker starts once it is up.
+        condition: service_started
+
+  frontend:
+    build:
+      context: frontend
+      args:
+        # A publishable key, not a secret. Set it in the shell or in a root .env (gitignored).
+        # Without it the page loads and reports the missing key.
+        VITE_CLERK_PUBLISHABLE_KEY: ${VITE_CLERK_PUBLISHABLE_KEY:-}
+        # The browser calls the API on the host port.
+        VITE_API_URL: http://127.0.0.1:${MKC_API_PORT:-8000}
+    image: mkc-frontend:${MKC_IMAGE_TAG:-local}
+    ports:
+      # localhost:5173 matches the default CORS and azp allow-lists.
+      - "127.0.0.1:${MKC_WEB_PORT:-5173}:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  mkc-db:
