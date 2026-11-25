@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 25.11.2026, 09:17
+**Last updated:** 25.11.2026, 09:18
 
 This file is how agents resume work after a session restart.
 - **Updated:** in every commit, and after every important ticket change: status change, sub-issue created or closed, PR opened or merged, review verdict. A change made outside a branch (e.g. on the board) is recorded in the next commit.
@@ -34,7 +34,7 @@ This file is how agents resume work after a session restart.
 
 ## In progress
 
-- **MKC-5** (#5), database layer. Status `In progress`, assigned to `qamran`. Branch `mkc-5-database-layer`. Plan: `docs/superpowers/plans/241120262130-mkc-5-database-layer.md`.
+- **MKC-5** (#5), database layer. Status `Testing`, assigned to `qamran`. Branch `mkc-5-database-layer`. Plan: `docs/superpowers/plans/241120262130-mkc-5-database-layer.md`.
   - MKC-5.1 (#76): worker test hardening from the PR #75 review. Done on the branch.
   - MKC-5.2 (#77): `docker compose up db` (pgvector, Postgres 17), `DATABASE_URL`, `Base`, `get_session()`. Done on the branch.
   - MKC-5.3 (#78): Alembic in `backend/migrations/`, round-trip test. Done on the branch.
@@ -55,6 +55,7 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+- **25.11.2026 09:17** PR #80 updated to cover MKC-5.4 (title `MKC-5: Database layer`; now closes #5, #76, #77, #78, #79); #5 and #79 to `Testing`.
 - **25.11.2026 09:17** MKC-5.4: Supabase result recorded in the status doc and the MKC-5 plan; HANDOFF updated.
 - **25.11.2026 09:16** MKC-5.4: live check against the user's Supabase project (Session pooler, port 5432, eu-west-1): PostgreSQL 17.12, `vector` 0.8.2 available, not installed; exit 0. Password masked in the output.
 - **25.11.2026 09:16** MKC-5.4: `mkc.db.check` added; 16 passed, 1 skipped (POSIX-only); ruff and mypy pass. The password test now checks `user:password@`, because the local password `mkc` also occurs in the test database name.
