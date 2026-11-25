@@ -50,3 +50,29 @@ def test_env_example_as_is_gives_the_defaults(monkeypatch: pytest.MonkeyPatch) -
     assert settings.database_url == DEFAULT_URL
     assert settings.commit == "dev"
     assert settings.worker_poll_seconds == 1.0
+
+
+# MKC-7.1: Clerk and CORS settings.
+LOCAL_VITE = ["http://localhost:5173", "http://127.0.0.1:5173"]
+
+
+def test_clerk_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
+    for name in ("MKC_CLERK_ISSUER", "MKC_CLERK_AUTHORIZED_PARTIES", "MKC_CORS_ORIGINS"):
+        monkeypatch.delenv(name, raising=False)
+    settings = Settings()
+    assert settings.clerk_issuer == ""
+    assert settings.clerk_authorized_parties == LOCAL_VITE
+    assert settings.cors_origins == LOCAL_VITE
+
+
+def test_origin_lists_are_comma_separated(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("MKC_CLERK_AUTHORIZED_PARTIES", "https://a.example, https://b.example")
+    monkeypatch.setenv("MKC_CORS_ORIGINS", "https://a.example")
+    settings = Settings()
+    assert settings.clerk_authorized_parties == ["https://a.example", "https://b.example"]
+    assert settings.cors_origins == ["https://a.example"]
+
+
+def test_clerk_issuer_trailing_slash_removed(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("MKC_CLERK_ISSUER", "https://x.clerk.accounts.dev/")
+    assert Settings().clerk_issuer == "https://x.clerk.accounts.dev"
