@@ -1,0 +1,59 @@
+# Default values for the mkc chart (MKC-9).
+# Secrets are never written here: pass them with --set/-f at install time, or point
+# existingSecret at a Secret created outside the chart (production, MKC-10).
+
+image:
+  repository: ghcr.io/qamran/messkonzept-copilot-backend
+  # Required at install time: the commit SHA tag pushed by the CI job publish.
+  # "latest" is refused by the templates.
+  tag: ""
+  pullPolicy: IfNotPresent
+
+api:
+  # Stateless; more replicas are fine.
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+
+worker:
+  # Always one replica (template, not a value): one worker holds the Postgres lease.
+  # The grace period is fixed in the template: 300 s, the turn budget (decision 42).
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+# Non-secret settings, as MKC_* environment variables (see .env.example).
+# Example: MKC_CLERK_ISSUER: https://<name>.clerk.accounts.dev
+env: {}
+
+# Secret settings (for example DATABASE_URL). Rendered into a Secret and loaded with
+# envFrom. Leave empty here.
+secrets: {}
+
+# Name of an existing Secret to load instead of the one built from `secrets`.
+existingSecret: ""
+
+service:
+  port: 80
+
+ingress:
+  enabled: false
+  # k3s ships Traefik.
+  className: traefik
+  # Required when enabled: the API's public host name.
+  host: ""
+  tls:
+    enabled: true
+    # Secret that cert-manager fills with the certificate.
+    secretName: mkc-api-tls
+    # Required when TLS is on: the cert-manager ClusterIssuer (installed outside the chart).
+    clusterIssuer: ""

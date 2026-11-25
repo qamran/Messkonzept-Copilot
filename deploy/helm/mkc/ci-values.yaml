@@ -1,0 +1,24 @@
+# Values for the kind smoke test (scripts/kind_smoke.sh, CI job kind). Not for production.
+# The image is built in the test and loaded into kind, so it is never pulled.
+image:
+  repository: mkc-backend
+  tag: kind
+  pullPolicy: Never
+
+# Ingress and TLS on, so the API server validates them. kind has no ingress controller
+# and no cert-manager: the objects are created, nothing serves them.
+ingress:
+  enabled: true
+  className: nginx
+  host: mkc.kind.test
+  tls:
+    enabled: true
+    secretName: mkc-kind-tls
+    clusterIssuer: kind-placeholder-issuer
+
+env:
+  MKC_CORS_ORIGINS: http://localhost:5173
+
+# Placeholder only: nothing in the smoke test touches the database yet.
+secrets:
+  DATABASE_URL: postgresql://mkc:mkc@db.invalid:5432/mkc

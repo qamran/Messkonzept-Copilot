@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 25.11.2026, 15:38
+**Last updated:** 25.11.2026, 15:50
 
 This file is how agents resume work after a session restart.
 
@@ -66,6 +66,7 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **25.11.2026 15:50** MKC-9.2: chart part 1: `Chart.yaml` (0.1.0), `values.yaml` (image tag required, no secrets, requests and limits), `ci-values.yaml` (kind test: local image, Ingress and TLS on, placeholder `DATABASE_URL`), helpers (image tag required and `latest` refused; checksum annotations), ConfigMap from `env`, Secret from `secrets` unless `existingSecret`, Service. `check_helm.py` still red (Deployments and Ingress follow).
 - **25.11.2026 15:38** MKC-9.2: `scripts/check_helm.py` added (stdlib text checks: chart files; API replicas from values, three probes on `/health`; worker `replicas: 1`, `Recreate`, grace period ≥ 300, `mkc-worker-health` probes; both non-root, read-only root, `envFrom` Secret; Ingress class, TLS, cert-manager annotation; `values.yaml` without secrets or `latest`, with requests and limits; `ci-values.yaml` with Ingress and TLS on). Red: all nine chart files missing.
 - **25.11.2026 15:32** MKC-9.1: `check_secret_hygiene.py` was red after the last commit (`.env.example: missing MKC_WORKER_HEARTBEAT_FILE` and `…_MAX_AGE_SECONDS`); both added to `.env.example`. All `scripts/check_*.py` pass.
 - **25.11.2026 15:30** MKC-9.1: settings `MKC_WORKER_HEARTBEAT_FILE` (empty = off) and `MKC_WORKER_HEARTBEAT_MAX_AGE_SECONDS` (30); the worker touches the file on start and every poll (a failed write is logged); `mkc-worker-health` (`mkc.worker.health`). 60 passed, 1 skipped (POSIX-only); ruff and mypy pass.
