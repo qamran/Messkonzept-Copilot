@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 25.11.2026, 13:52
+**Last updated:** 25.11.2026, 13:57
 
 This file is how agents resume work after a session restart.
 
@@ -55,6 +55,7 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **25.11.2026 13:57** MKC-8.4: `check_workflows.py` allows exactly one write: `packages: write` in ci.yml's job `publish` with the exact job-level guard. `ci.yml` green. Eight samples refused: no guard; guard without the repository check; `contents: write` in publish; `packages: write` in `image`; job renamed; a second `packages: write`; the same job in another workflow; login with `secrets.GITHUB_TOKEN`.
 - **25.11.2026 13:52** MKC-8.4: CI job `publish` (needs all jobs; `if:` push to `main` in `qamran/Messkonzept-Copilot`; job-level `packages: write`; login with `github.token`; tags `<sha>` and `main`, both platforms; last step inspects both tags). Red: `check_workflows.py` reports `grants a write permission; CI is read-only`.
 - **25.11.2026 13:49** MKC-8.3: CI job `image`: Compose smoke test with `MKC_COMMIT=github.sha`, Grype v0.121.2 (checksum pinned; `--only-fixed --fail-on high`), QEMU + buildx `linux/amd64,linux/arm64` build without push (GHA cache). `check_workflows.py` green. Local Grype run on the image: exit 0, no high or critical (mediums in the base image's `pip` and Python 3.12.16).
 - **25.11.2026 13:45** MKC-8.3: `check_workflows.py` requires a job `image` that runs `scripts/compose_smoke.sh`, Grype and a `linux/amd64,linux/arm64` build. Red: `job 'image' missing`; a sample with an empty `image` job reports all three steps.
