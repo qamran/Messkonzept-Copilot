@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 25.11.2026, 13:49
+**Last updated:** 25.11.2026, 13:52
 
 This file is how agents resume work after a session restart.
 
@@ -55,6 +55,7 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **25.11.2026 13:52** MKC-8.4: CI job `publish` (needs all jobs; `if:` push to `main` in `qamran/Messkonzept-Copilot`; job-level `packages: write`; login with `github.token`; tags `<sha>` and `main`, both platforms; last step inspects both tags). Red: `check_workflows.py` reports `grants a write permission; CI is read-only`.
 - **25.11.2026 13:49** MKC-8.3: CI job `image`: Compose smoke test with `MKC_COMMIT=github.sha`, Grype v0.121.2 (checksum pinned; `--only-fixed --fail-on high`), QEMU + buildx `linux/amd64,linux/arm64` build without push (GHA cache). `check_workflows.py` green. Local Grype run on the image: exit 0, no high or critical (mediums in the base image's `pip` and Python 3.12.16).
 - **25.11.2026 13:45** MKC-8.3: `check_workflows.py` requires a job `image` that runs `scripts/compose_smoke.sh`, Grype and a `linux/amd64,linux/arm64` build. Red: `job 'image' missing`; a sample with an empty `image` job reports all three steps.
 - **25.11.2026 13:42** MKC-8.2: `docker-compose.yml` → `compose.yaml` (`git mv`) with db, api, worker, frontend; `backend/.env` optional; api and worker use `db:5432`; host ports movable (`MKC_DB_PORT`, `MKC_API_PORT`, `MKC_WEB_PORT`). `frontend/Dockerfile` (node 24 build, `nginx-unprivileged` on 8080, uid 101, SPA fallback). `check_containers.py` green; `compose_smoke.sh` green locally (commit `smoke-1795609974`, worker `running restarts=0`, frontend and `/admin` 200).
