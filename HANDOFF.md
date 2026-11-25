@@ -59,6 +59,8 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **25.11.2026 11:33** MKC-7.3: pages and routes: `/` `HomePage` (shows `/api/me`), `/sign-in/*` Clerk `SignIn`, `/admin` `AdminPage` behind `RequireAdmin` (calls `/api/admin/ping`). 14 tests pass; lint and build pass.
+
 - **25.11.2026 11:33** MKC-7.3: `HomePage` test added; red (`./HomePage` missing). Covers: signed out → sign-in hint and no protected call; signed in → shows `/api/me`; backend error → status shown.
 
 - **25.11.2026 11:32** MKC-7.3: `src/lib/api.ts` (`apiFetch` with Clerk's `getToken()`, which works outside React, so no token bridge is needed), `src/lib/roles.ts` (`isAdmin`: `role` exactly `admin`, as in the backend), `src/components/RequireAdmin.tsx`. 11 tests pass; lint and typecheck pass.
