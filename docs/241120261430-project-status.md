@@ -40,10 +40,10 @@ This is the living status document. It is updated whenever a decision is made or
   - `deploy/helm/mkc/`: API Deployment (replicas from values), worker Deployment (`replicas: 1`, `Recreate`, grace period 300 s), Service, Ingress (cert-manager TLS), Secret from values or `existingSecret`, ConfigMap from `env`; probes, limits, uid 10001, read-only root (decision 42, ADR 002)
   - `scripts/check_helm.py` (static chart rules) and `scripts/kind_smoke.sh` (install on kind)
   - CI job `kind`: `helm lint --strict` and the kind smoke test; a required check on `main`; `publish` needs it
-- **MKC-10 details** (continuous deployment, branch `mkc-10-cd`; plan `docs/superpowers/plans/251120261710-mkc-10-cd.md`), sub-issues MKC-10.1 (#106), 10.2 (#105), 10.3 (#104), 10.4 (#107), 10.5:
+- **MKC-10 details** (continuous deployment, branch `mkc-10-cd`; plan `docs/superpowers/plans/251120261710-mkc-10-cd.md`), sub-issues MKC-10.1 (#106), 10.2 (#105), 10.3 (#104), 10.4 (#107), 10.5 (#108):
   - `MKC_CORS_ORIGIN_REGEX`: the Vercel previews pass CORS and the `azp` check (decision 45)
   - `VersionWarning`: the page warns when the API runs another commit (decision 46); `frontend/vercel.json`
-  - VM: user `mkc-deploy` with a forced command (`deploy/vm/mkc-deploy`), rights in namespace `mkc` only, `/etc/mkc/values.yaml`, Secret `mkc-secrets`
+  - VM: user `mkc-deploy` with a forced command (`deploy/vm/mkc-deploy`, commits on `main` only), rights in namespace `mkc` only (Pod Security `restricted`), `/etc/mkc/values.yaml`, Secret `mkc-secrets`
   - `.github/workflows/cd.yml` and `scripts/cd_deploy.sh`: image wait, SSH deploy, smoke test, rollback, then Vercel production (decision 47)
   - first deploy and rollback drill on 25.11.2026: `https://92-6-240-17.sslip.io/api/version` live (Let's Encrypt certificate); a forced failing smoke test rolled back to revision 1
   - `check_workflows.py` now allows secrets in `cd.yml` only, only in `production` jobs (the change MKC-6 asked for)

@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 25.11.2026, 17:27
+**Last updated:** 25.11.2026, 17:36
 
 This file is how agents resume work after a session restart.
 
@@ -45,6 +45,7 @@ This file is how agents resume work after a session restart.
 ## In progress
 
 - **MKC-10** (#10), continuous deployment (k3s + Vercel). Status `In progress`, assigned to `qamran`. Branch `mkc-10-cd` from `1f16ba8`. Plan: `docs/superpowers/plans/251120261710-mkc-10-cd.md`.
+  - Branch pushed. Since the review: the forced command deploys only commits on `main`; namespace `mkc` enforces Pod Security `restricted`; SSH keepalive; CR stripped from the key.
   - Sub-issues MKC-10.1 (#106), 10.2 (#105), 10.3 (#104), 10.4 (#107), 10.5 (#108): all linked to #10, assigned to `qamran`, `In progress`. Code and docs for all five are on the branch.
   - Live: `https://92-6-240-17.sslip.io/api/version` = `1f16ba85…` (Helm revision 3 after the drill).
   - Vercel Git deployments switched on again (previews per PR; `main` off by `frontend/vercel.json`).
@@ -53,9 +54,9 @@ This file is how agents resume work after a session restart.
 ## Next steps
 
 1. MKC-10:
-   - the user runs `! gh secret set DEPLOY_SSH_KEY --env production -R qamran/Messkonzept-Copilot < "C:\Users\qamra\AppData\Local\Temp\claude\664277223e593cb4\a7923cd8-cae1-49bf-a526-1d13dfcbef59\scratchpad\deploykey\mkc_deploy"`; then the agent checks the secret name and deletes the local key folder
-   - push, open the PR, set #10 and #104–#108 to `Testing`, start the review agent
-   - after the merge: the user approves the `production` deploy; check `cd.yml` green, `/api/version` = merge commit, the Vercel site loads without the warning; a preview signs in and calls `/api/me` (CORS); push `main` to `turing`
+   - the user stores the deploy key (runbook "Deploy and rollback", "Store the deploy key in GitHub"; PowerShell: `Get-Content -Raw '<key file>' | gh secret set DEPLOY_SSH_KEY --env production -R qamran/Messkonzept-Copilot`). The key file is in this session's scratchpad (`deploykey/mkc_deploy`); the agent gives the full path in the chat. Then the agent checks the secret name and deletes the local key folder.
+   - open the PR, set #10 and #104–#108 to `Testing`, start the review agent once the secret is in place
+   - after the merge: the user approves `backend`, then `frontend` in `production`; check `cd.yml` green, `/api/version` = merge commit, the Vercel site and `/admin` load without the warning, no Git-made Vercel production deployment for the merge commit (`main: false` works); a preview signs in and calls `/api/me` (CORS and `azp` via the new pattern; only possible once the merge commit runs on the VM); push `main` to `turing`
 2. Non-blocking follow-ups from the PR #103 review (for later tickets):
    - N1 (MKC-17/MKC-20): the heartbeat is only touched between polls; with max age 30 s and liveness 3 × 30 s, a turn of up to 240 s would get a healthy worker restarted. Beat during a turn or raise the max age (noted in ADR 002 and decision 42).
    - N2: `/tmp` is an `emptyDir` and survives a container restart, so an old heartbeat can make a restarted worker look Ready for up to 30 s; remove the file on start or add a `startupProbe`.
@@ -77,17 +78,20 @@ This file is how agents resume work after a session restart.
 
 - **Docker Desktop** must be running for the local DB tests (`docker compose up -d db`). If it is stopped after a restart, start it again. CI uses its own Postgres service.
 - Later setup tasks (design doc section 13): provider API keys with caps. Done on 25.11.2026: Supabase project, Oracle VM with k3s, API host, Vercel project, GitHub `production` environment with `VERCEL_TOKEN`.
-- **MKC-10 will need the user for:** the production `DATABASE_URL` (Supabase) if `backend/.env` is not the right one, and approving each deploy in the `production` environment.
+- **MKC-10 needs the user for:** storing the deploy key as the `production` secret `DEPLOY_SSH_KEY` (see Next steps 1; the agent's call was blocked by the permission check), and approving each deploy (`backend`, then `frontend`) in the `production` environment. `mkc-secrets` was made from `backend/.env` (Supabase Session pooler).
 
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **25.11.2026 17:36** Docs after the review: runbook (two approvals; deploy-key commands for PowerShell and Git Bash; the `main` check and Pod Security in the setup and checks; the 17:34 deploy), ADR 002 (a leaked key deploys only commits on `main`; Pod Security), decision 47, status doc (#108). HANDOFF: no local path; "Blocked" names the deploy-key secret; log times taken from GitHub and Vercel.
+- **25.11.2026 17:34–17:35** Branch pushed (`mkc-10-cd`). On the VM with the deploy key: `deploy 310b2b8…` (branch commit, ahead of `main`) and `deploy 0000…` refused (exit 4, "not a commit on main"). Deploy of `1f16ba8` through `cd_deploy.sh`: revision 4, smoke test passed on the first try (17:34:53–17:35:04). Vercel built preview `messkonzept-copilot-6o9a7kauj-qamran.vercel.app` for `310b2b8` (READY; matches the preview pattern). Note: Vercel's current production deployment (`i7324q3rw`) came from this branch when the project was linked (16:39), before `vercel.json`; the first CD run replaces it.
+- **25.11.2026 17:36** MKC-10.3: `mkc-deploy` checks the commit with GitHub's compare API (`behind`/`identical` only); `rbac.yaml` labels `mkc` Pod Security `restricted` (server dry run: no existing pod breaks it; applied on the VM; as `mkc-deploy` a privileged pod is forbidden); `cd_deploy.sh` `ServerAliveInterval=30`; `cd.yml` strips CR from the key. Tests: `test_mkc_deploy.sh` and `test_cd_deploy.sh` all ok; `check_workflows.py` ok.
+- **25.11.2026 17:33** Red tests: `test_mkc_deploy.sh` (a commit `ahead` of or `diverged` from `main` must be refused before download; the compare call must happen) and `test_cd_deploy.sh` (keepalive): 3 and 1 failures.
 - **25.11.2026 17:27** HANDOFF caught up after MKC-10.5 (the update in the docs commit failed on a script error).
 - **25.11.2026 17:27** MKC-10.5: runbook "Deploy and rollback" (how a deploy runs, rights table, one-time VM setup, deploy key, first deploy and drill, manual rollback, settings and secrets, migrations); design doc decisions 45–47 and section 13; ADR 002 "Continuous deployment" (options for reaching the cluster); status doc MKC-10 details, 47 decisions; README names `cd.yml`. markdownlint 0 errors; all `scripts/check_*.py` pass.
 - **25.11.2026 17:25** MKC-10.5 created as #108; #104–#108 linked to #10 and set to `In progress` on the board (after the GitHub errors cleared).
-- **25.11.2026 17:24** Vercel project: Git deployments switched on (`createDeployments: enabled`).
-- **25.11.2026 17:23** `gh secret set DEPLOY_SSH_KEY --env production` blocked by the session permission check; left to the user.
+- **25.11.2026 17:23** Vercel project: Git deployments switched on (`createDeployments: enabled`; project `updatedAt` 17:23:22). Before that, `gh secret set DEPLOY_SSH_KEY --env production` was blocked by the session permission check; left to the user.
 - **25.11.2026 17:21–17:22** First deploy (agent, `scripts/cd_deploy.sh` with the deploy key, `1f16ba8`): Helm revision 1 installed 16:21:40Z; smoke test passed on the third try (the first two failed on TLS while cert-manager got the certificate). Certificate: Let's Encrypt `YR2`, `letsencrypt-prod`, until 23.02.2027; API and worker pods Running, 0 restarts. Drill 17:22:19–17:22:41 with `MKC_SMOKE_EXPECT_COMMIT=wrong-commit`: revision 2 deployed, smoke test failed three times, `helm rollback` → revision 3 "Rollback to 1", exit 1; `/api/version` still `1f16ba85…`.
 
 - **25.11.2026 17:21** MKC-10.4: `.github/workflows/cd.yml` (push to `main` only, home-repo guard on every job; `image` waits up to 40 min for `:<sha>` with arm64, no secrets; `backend` in `production`: 6443 must time out from the runner, then `cd_deploy.sh` with the pinned host key; `frontend` in `production` needs `backend`: Vercel CLI 65.14.0, `vercel pull`, `vercel build --prod` with `VITE_COMMIT`, `vercel deploy --prebuilt --prod`, then `/` and `/admin` answer). `scripts/cd_deploy.sh` (deploy, smoke test over HTTPS with retries, rollback on failure, exit 1). `ci.yml` `docs` runs both deploy script tests. `check_workflows.py` green; eight mutated `cd.yml` copies (workflow_dispatch, pull_request, cancel true, no environment, no guard, wrong needs, `toJSON(secrets)`, another branch) each give a finding. `test_cd_deploy.sh`: 12 ok. The GHCR wait logic was tried on `1f16ba8` (arm64 found) and a missing tag (404). `vercel pull` + `vercel build --prod` (65.14.0) in a `node:24-bookworm` container: built; the commit and `VITE_API_URL` are in the bundle (Windows can't run the Vercel builder: symlink EPERM).
@@ -104,7 +108,7 @@ Newest first. Times are local (CET), taken from git and GitHub.
 - **25.11.2026 16:56** MKC-10.1: `MKC_CORS_ORIGIN_REGEX` (full match, checked at start) used by CORS and by the token's `azp` check; `.env.example`. 78 passed, 8 skipped (DB skipped on purpose); ruff and mypy pass.
 - **25.11.2026 16:55** MKC-10.1: red tests `tests/api/test_origins.py` (production and preview hosts pass CORS and `azp`; `http://`, suffix, prefix, other team, port, path refused; empty regex allows nothing). Red: `cors_origin_regex` unknown (`extra_forbidden`).
 - **25.11.2026 16:55** MKC-10 plan (`251120261710-mkc-10-cd.md`). Checked: Vercel team slug `qamran`; production alias `messkonzept-copilot.vercel.app` public (200); previews behind Vercel Authentication (302); the project has Git deployments `disabled`.
-- **25.11.2026 16:52** Sub-issues MKC-10.3 (#104), 10.2 (#105), 10.1 (#106) created, assigned to `qamran`; 10.4 and 10.5 failed with GitHub HTTP 500/502.
+- **25.11.2026 16:52–16:53** Sub-issues MKC-10.3 (#104, 16:52), 10.2 (#105, 16:53), 10.1 (#106, 16:53) created, assigned to `qamran`; 10.4 and 10.5 failed with GitHub HTTP 500/502.
 
 - **25.11.2026 16:45** HANDOFF, status doc, design doc (decisions 43, 44; the "VM running" line of 24.11 corrected: the VM did not exist), ADR 002 "Server and API host" and the new runbook `docs/251120261645-runbook.md` ("Server setup", step by step as done with the user) after MKC-9 and the server setup.
 - **25.11.2026 16:42** MKC-10 (#10) assigned to `qamran`, to `In progress`; branch `mkc-10-cd` from `1f16ba8`.
