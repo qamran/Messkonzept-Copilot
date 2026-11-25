@@ -55,6 +55,7 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+- **25.11.2026 09:35** MKC-6.1: pytest turns `StarletteDeprecationWarning` into an error; red (`tests/api/test_health.py` fails at collection: "Using `httpx` with `starlette.testclient` is deprecated").
 - **25.11.2026 09:35** MKC-6: plan written; status doc (MKC-5 done, MKC-6 current) and HANDOFF caught up after PR #80. Pre-checks: gitleaks v8.30.1 finds no leaks in the 62 commits of history and does flag a runtime-built fake `ghp_` token; `httpx2` 2.16.2 is from the pydantic org; the `gh` token has the `workflow` scope; markdownlint-cli2 0.18.1 reports about 270 errors on tracked Markdown.
 - **25.11.2026 09:34** MKC-6 sub-issues MKC-6.1 (#81), 6.2 (#82), 6.3 (#83), 6.4 (#84), 6.5 (#85) created, linked to #6, assigned to `qamran`, `In progress`; branch `mkc-6-secret-hygiene-ci`.
 - **25.11.2026 09:33** MKC-6 (#6) assigned to `qamran`, to `In progress`.

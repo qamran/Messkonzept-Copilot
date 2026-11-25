@@ -45,3 +45,5 @@ plugins = ["pydantic.mypy"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra"
+# Starlette deprecations (e.g. httpx for the TestClient) fail the tests instead of warning (MKC-6.1).
+filterwarnings = ["error::starlette.exceptions.StarletteDeprecationWarning"]
