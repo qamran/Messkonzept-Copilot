@@ -1,0 +1,10 @@
+// Overrides for the GitHub templates (MKC-6.3).
+{
+  // This file replaces the root config for .github/, so repeat the root rules.
+  "MD013": false,
+  "MD029": false,
+  // Placeholders such as <n>, <title> and <issue> are part of the templates.
+  "MD033": false,
+  // The PR template starts at "##": the PR title is the top-level heading.
+  "MD041": false
+}

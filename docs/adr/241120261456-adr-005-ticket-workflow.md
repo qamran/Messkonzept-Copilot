@@ -7,11 +7,13 @@
 ## Context
 
 The user wants tickets defined in a public place:
+
 - an agent pulls a ticket, breaks it into issues and sub-issues, and works it in atomic commits (under 200 lines where possible), each referencing its issue
 - the agent pushes to a separate branch and moves the ticket to *Testing*
 - a Fable reviewer agent reviews, merges and closes the ticket
 
 The project has two remotes:
+
 - `origin`: the personal public repo, which is home
 - `turing`: the Turing College submission mirror
 
@@ -26,11 +28,13 @@ Issue numbers in the two repos would diverge if both held issues.
 | Jira | Familiar in industry | Heavy for a solo project; public access needs setup; weaker GitHub link |
 
 **Turing repo issues:**
+
 - (a) auto-copy by a GitHub Action
 - (b) the agent creates issues in both repos by hand
 - (c) code only, with a link to the home issues
 
 **Trigger:**
+
 - an in-session command
 - a loop or schedule
 - a GitHub Action running Claude on a label
