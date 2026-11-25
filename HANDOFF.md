@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 25.11.2026, 12:02
+**Last updated:** 25.11.2026, 12:15
 
 This file is how agents resume work after a session restart.
 
@@ -23,7 +23,7 @@ This file is how agents resume work after a session restart.
 - **Remotes:**
   - `origin` = qamran/Messkonzept-Copilot (home, public)
   - `turing` = TuringCollegeSubmissions/qshahz-AE.CAP.AFA.1.1 (code-only mirror, no issues; ADR 005 option (c), decision 35)
-  - Both at `410a178` (merge of PR #86).
+  - Both at `02ddb84` (merge of PR #91).
 - **`main` is protected:** PRs only, enforced for admins. Required checks since 25.11.2026 09:50 (MKC-6.5): the `ci` jobs `backend`, `frontend`, `gitleaks`, `dependency-scan` and `docs`; the branch must be up to date with `main`.
 - **Agent rules:** `AGENTS.md` (CLAUDE.md imports it). The development agent continues without asking and stops only for genuine decisions (decision 36).
 - **Done:**
@@ -33,19 +33,18 @@ This file is how agents resume work after a session restart.
   - MKC-4: backend skeleton in `backend/` (uv, Python 3.12, package `mkc`): Settings, FastAPI `/health` + `/api/version`, worker with clean SIGTERM shutdown; ruff + mypy strict (PR #75)
   - MKC-5: database layer: compose Postgres 17 + pgvector on `127.0.0.1:5433`, SQLAlchemy 2, Alembic, `python -m mkc.db.check`; Supabase connection checked via the Session pooler (PR #80)
   - MKC-6: secret hygiene (`.gitignore`, `.env.example`, pre-commit), markdown lint, CI (`backend`, `frontend`, `gitleaks`, `dependency-scan`, `docs`) as required checks on `main`; `httpx2` (PR #86)
+  - MKC-7: frontend skeleton (`frontend/`: Vite, React, TS, Tailwind, shadcn/ui, `@clerk/react`, `apiFetch`, `RequireAdmin`); backend Clerk token check (`mkc.api.auth`, `/api/me`, `/api/admin/ping`); Clerk development instance everywhere (ADR 002, decision 39) (PR #91)
+- **How to run the frontend:** `frontend/.env.local` holds `VITE_CLERK_PUBLISHABLE_KEY` and `VITE_API_URL=http://127.0.0.1:8000` (gitignored). Run the API with `cd backend && uv run --env-file .env uvicorn mkc.api.app:create_app --factory --port 8000` (`backend/.env` has `MKC_CLERK_ISSUER`), then `cd frontend && npm run dev` (`localhost:5173`). Test sign-ins: the user's Google account (admin); a `+clerk_test@example.com` user (code `424242`) and a second Gmail account (both no role).
 - **How to test the backend:** `docker compose up -d db` (repo root; Postgres 17 + pgvector on `127.0.0.1:5433`), then `cd backend && uv sync && uv run pytest`. The DB tests fail if the db is down; `MKC_SKIP_DB_TESTS=1` skips them on purpose. Windows skips one POSIX-only worker test; run it in Linux with the Docker command in PR #75.
 
 ## In progress
 
-- **MKC-7** (#7), frontend skeleton with Clerk. Status `In progress` (PR #91 review FAIL, fixing), assigned to `qamran`. Branch `mkc-7-frontend-skeleton`. Plan: `docs/superpowers/plans/251120261119-mkc-7-frontend-skeleton.md`.
-  - Sub-issues (all `In progress`, assigned to `qamran`, linked to #7): MKC-7.1 (#87) backend token check, MKC-7.2 (#88) frontend scaffold and CI, MKC-7.3 (#89) `apiFetch` and `RequireAdmin`, MKC-7.4 (#90) Clerk decision and local check.
-  - **User decision (25.11.2026):** Clerk development instance for every environment, permanently (no Vercel Pro, so production keys can't run on `*.vercel.app` previews). Sign-in by email and Google; the user's Google account is the admin. Recorded in ADR 002 and design doc decision 39.
-  - **Clerk setup done by the user:** development instance; session-token claim `"role": "{{user.public_metadata.role}}"`; admin = public metadata `{"role": "admin"}`; test non-admins without a role: a second Gmail account (real email code) and a `+clerk_test@example.com` user (code `424242`, test mode is on). Publishable key in `frontend/.env.local` (gitignored). Issuer `https://better-cicada-5480.clerk.accounts.dev` (public) in `backend/.env` as `MKC_CLERK_ISSUER`.
+- **MKC-8** (#8), containers and local Compose. Status `In progress`, assigned to `qamran`. Branch `mkc-8-containers-compose`. Plan and sub-issues follow.
 
 ## Next steps
 
-1. Fix the PR #91 review findings (`apiFetch` host escape; backend 500s on odd claim types; JWKS outage → 503; status doc duplicate), then back to `Testing` and re-review.
-2. MKC-8 (backend container image on GHCR; image scan in CI).
+1. MKC-8: plan, sub-issues, then `backend/Dockerfile` (multi-stage, non-root, `MKC_COMMIT`), `compose.yaml` (db, api, worker, frontend), multi-arch build in CI and push to GHCR on `main`. Open question for the plan: pushing to GHCR needs `packages: write`, which `scripts/check_workflows.py` bans today; the rule must be narrowed for that job on `main` and recorded as a decision.
+2. Optional follow-ups from the PR #91 re-review (non-blocking): `apiBase()` could refuse a query, fragment or userinfo in `VITE_API_URL`; an empty `sub` is accepted; falsy non-string roles read as "no role".
 
 ## Blocked / waiting on user
 
@@ -55,6 +54,13 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+
+- **25.11.2026 12:15** HANDOFF and status doc caught up after PR #91 (MKC-7 done, MKC-8 current).
+- **25.11.2026 12:14** MKC-8 (#8) assigned to `qamran`, to `In progress`; branch `mkc-8-containers-compose` (reflog 12:14:46).
+- **25.11.2026 12:14** #7 and #87–#90 criteria ticked. MKC-7 complete.
+- **25.11.2026 12:13** `main` pushed to `turing` (12:13:51); `origin/main` == `turing/main` == `02ddb84`.
+- **25.11.2026 12:13** PR #91 re-review **PASS** (comment 12:13:01), merged `02ddb84` (merge commit, 12:13:11); #7 and #87–#90 closed and `Done`. The `apiFetch` origin check held against 1,960 attack combinations. Non-blocking: query/fragment in `VITE_API_URL`, `..` within the base path, "`//`" wording (only a leading `//` is refused), empty `sub`, falsy non-string roles, the history notes.
+- **25.11.2026 12:03** PR #91 body lists the fixes; #7 and #87–#90 to `Testing`. CI run 45600646478 on `fc0795b` green.
 
 - **25.11.2026 12:02** MKC-7: status doc no longer names PR #86 twice and mentions the `apiFetch` origin rule; ADR 002 lists the 401/403/503 mapping.
 

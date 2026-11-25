@@ -1,15 +1,15 @@
 # Project status: Messkonzept-Copilot
 
-**Last updated:** 25.11.2026, 12:02
+**Last updated:** 25.11.2026, 12:15
 
 This is the living status document. It is updated whenever a decision is made or work is completed. Older brainstorming material lives in `brainstorming internal/` (gitignored and frozen).
 
 ## Where we are
 
-- **Phase:** implementation, Phase 0 (foundation). The design doc was **approved by the user on 24.11.2026** (after an independent review, verdict "approve with changes", all required changes applied). The backend skeleton (MKC-4) is the first application code; MKC-5 added the database layer; MKC-6 added secret hygiene and CI; MKC-7 adds the frontend.
+- **Phase:** implementation, Phase 0 (foundation). The design doc was **approved by the user on 24.11.2026** (after an independent review, verdict "approve with changes", all required changes applied). The backend skeleton (MKC-4) is the first application code; MKC-5 added the database layer; MKC-6 added secret hygiene and CI; MKC-7 added the frontend and the login check; MKC-8 adds containers.
 - **Restart file:** `HANDOFF.md` (repo root) is the agents' running log and next steps, updated with every commit and important ticket change (decision 34). This status doc stays the overview of decisions and documents.
 - **Board:** <https://github.com/users/qamran/projects/1> (public). Tickets MKC-1 to MKC-60 exist as issues #1 to #60 (issue number = key).
-- **Done:** MKC-1 (ticket workflow and repo setup, PR #65), MKC-2 (code-only Turing mirror, README with links, PR #70), MKC-3 (agent instructions: assignment rule PR #67, HANDOFF.md PR #69, AGENTS.md + CLAUDE.md PR #72), MKC-4 (backend skeleton: uv project `backend/`, package `mkc`, FastAPI `/health` and `/api/version`, worker with clean SIGTERM shutdown, ruff and mypy strict, PR #75), MKC-5 (database layer: compose Postgres 17 + pgvector, SQLAlchemy 2, Alembic, `python -m mkc.db.check`, Supabase connection checked; PR #80), MKC-6 (secret hygiene, markdown lint, CI with required checks; PR #86). Each after a review-agent PASS; both remotes at the latest merge commit.
+- **Done:** MKC-1 (ticket workflow and repo setup, PR #65), MKC-2 (code-only Turing mirror, README with links, PR #70), MKC-3 (agent instructions: assignment rule PR #67, HANDOFF.md PR #69, AGENTS.md + CLAUDE.md PR #72), MKC-4 (backend skeleton: uv project `backend/`, package `mkc`, FastAPI `/health` and `/api/version`, worker with clean SIGTERM shutdown, ruff and mypy strict, PR #75), MKC-5 (database layer: compose Postgres 17 + pgvector, SQLAlchemy 2, Alembic, `python -m mkc.db.check`, Supabase connection checked; PR #80), MKC-6 (secret hygiene, markdown lint, CI with required checks; PR #86), MKC-7 (frontend skeleton with Clerk; PR #91). Each after a review-agent PASS; both remotes at the latest merge commit.
 - **MKC-5 details** (database layer, PR #80, plan `docs/superpowers/plans/241120262130-mkc-5-database-layer.md`):
   - `docker compose up db` (repo root): Postgres 17 with pgvector (`pgvector/pgvector:pg17`; Supabase hosts Postgres 17) on `127.0.0.1:5433`, dev-only credentials
   - `DATABASE_URL` setting, mapped to the psycopg 3 driver; SQLAlchemy 2; `mkc.db.base.Base`, `mkc.db.session.get_session()`
@@ -24,12 +24,13 @@ This is the living status document. It is updated whenever a decision is made or
   - `.github/workflows/ci.yml`: backend (pgvector service; every backend test runs on Linux, none skipped), frontend (placeholder until MKC-7), gitleaks (fake-key self-test, full history), dependency-scan (pip-audit), docs (markdownlint, check scripts)
   - the five jobs are required checks on `main`, branch must be up to date (decision 38, ADR 005)
   - `scripts/check_workflows.py` bans secrets and write permissions in every workflow. The deploy workflow (MKC-10) will need both, in the protected `production` environment; that ticket must narrow the rule to the deploy workflow on `main` and record it as a decision.
-- **Current ticket:** MKC-7 (frontend skeleton with Clerk, #7; plan `docs/superpowers/plans/251120261119-mkc-7-frontend-skeleton.md`), sub-issues MKC-7.1 to MKC-7.4 (#87–#90):
+- **MKC-7 details** (frontend skeleton with Clerk, merged in PR #91; plan `docs/superpowers/plans/251120261119-mkc-7-frontend-skeleton.md`), sub-issues MKC-7.1 to MKC-7.4 (#87–#90):
   - Clerk development instance for every environment (decision 39, ADR 002); the user created it, with the `role` session-token claim, the admin (the user's Google account) and a test user
   - backend `mkc.api.auth`: `require_user`, `require_admin`, `GET /api/me`, `GET /api/admin/ping`; tokens checked with the public JWKS only (decision 40); `apiFetch` keeps every request on the `VITE_API_URL` origin (review fix); CORS allow-list for the local Vite dev server
   - `frontend/`: Vite, React, TypeScript, Tailwind, shadcn/ui, `@clerk/react`, `react-router`; `apiFetch`, `RequireAdmin`; vitest
   - CI: the frontend job runs lint, typecheck, test and build; the dependency scan adds `npm audit`
-- **Next:** MKC-8 (backend container image).
+- **Current ticket:** MKC-8 (containers and local Compose, #8).
+- **Next:** MKC-9 (Helm chart and kind smoke test).
 
 ## Key documents
 
