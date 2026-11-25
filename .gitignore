@@ -1,6 +1,19 @@
+# Secrets: every .env file, except the empty template (MKC-6.2)
 .env
+.env.*
+!.env.example
+
+# Local material that never goes into the repo
 internal/
 brainstorming internal/
+
+# Documents: operator PDFs and BDEW / edi@energy files are fetched at runtime, never committed
+*.pdf
+*.PDF
+
+# Page renders and other generated output
+renders/
+.cache/
 
 # Python
 .venv/
@@ -9,3 +22,7 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+
+# Node (frontend, MKC-7)
+node_modules/
+dist/

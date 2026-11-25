@@ -39,7 +39,7 @@ MUST_TRACK = [".env.example", "backend/.env.example"]
 
 PRE_COMMIT_HOOKS = {
     "https://github.com/gitleaks/gitleaks": "gitleaks",
-    "https://github.com/astral-sh/ruff-pre-commit": "ruff",
+    "https://github.com/astral-sh/ruff-pre-commit": "ruff-check",
     "https://github.com/pre-commit/pre-commit-hooks": "end-of-file-fixer",
 }
 UNPINNED_REVS = {"main", "master", "head", "latest", "stable"}
