@@ -27,7 +27,7 @@
 - Clerk docs: the default session token has no metadata; a custom claim is needed.
 - The instance's JWKS (`<issuer>/.well-known/jwks.json`) serves one RS256 key.
 - `@clerk/clerk-react` is deprecated in favour of `@clerk/react` (Core 3).
-- `typescript-eslint` 8.74 supports TypeScript `<6.1`, so TypeScript stays on 6.0.
+- `typescript-eslint` 8.74 supports TypeScript `<6.1`; the Vite template pins TypeScript `~5.9.3`, which fits.
 
 ## Design choices
 
@@ -35,7 +35,7 @@
 - **Settings:** `MKC_CLERK_ISSUER` (empty = auth not configured, so protected routes answer 503), `MKC_CLERK_AUTHORIZED_PARTIES` and `MKC_CORS_ORIGINS` (both default to the local Vite dev server).
 - **Testable key lookup:** the verifier takes a key resolver. Tests generate an RSA key pair at runtime and sign their own tokens; no key file is committed and no test touches the network.
 - **Admin rule in one place per side:** backend `role == "admin"` from the token; frontend `user.publicMetadata.role === "admin"`. The frontend guard is only for the UI; the backend enforces.
-- **`apiFetch(path, init)`** gets the token from a getter registered once by a small React component inside `ClerkProvider`, so callers don't pass tokens.
+- **`apiFetch(path, init)`** gets the token from Clerk's `getToken()`, which works outside React, so callers don't pass tokens. It refuses absolute URLs, so the token never goes to another host.
 - **Frontend packages:** `@clerk/react`, `react-router`, Vite, Tailwind 4, shadcn/ui (only the components we use), vitest with Testing Library and jsdom.
 
 ## Order

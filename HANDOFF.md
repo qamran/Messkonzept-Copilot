@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 25.11.2026, 11:33
+**Last updated:** 25.11.2026, 11:35
 
 This file is how agents resume work after a session restart.
 
@@ -39,15 +39,14 @@ This file is how agents resume work after a session restart.
 
 - **MKC-7** (#7), frontend skeleton with Clerk. Status `In progress`, assigned to `qamran`. Branch `mkc-7-frontend-skeleton`. Plan: `docs/superpowers/plans/251120261119-mkc-7-frontend-skeleton.md`.
   - Sub-issues (all `In progress`, assigned to `qamran`, linked to #7): MKC-7.1 (#87) backend token check, MKC-7.2 (#88) frontend scaffold and CI, MKC-7.3 (#89) `apiFetch` and `RequireAdmin`, MKC-7.4 (#90) Clerk decision and local check.
-  - **User decision (25.11.2026):** Clerk development instance for every environment, permanently (no Vercel Pro, so production keys can't run on `*.vercel.app` previews). Sign-in by email and Google; the user's Google account is the admin. Still to be written into ADR 002 and the design doc (MKC-7.4).
+  - **User decision (25.11.2026):** Clerk development instance for every environment, permanently (no Vercel Pro, so production keys can't run on `*.vercel.app` previews). Sign-in by email and Google; the user's Google account is the admin. Recorded in ADR 002 and design doc decision 39.
   - **Clerk setup done by the user:** development instance; session-token claim `"role": "{{user.public_metadata.role}}"`; admin = public metadata `{"role": "admin"}`; one test non-admin (`mkc-user+clerk_test@example.com`, code `424242`). Publishable key in `frontend/.env.local` (gitignored). Issuer `https://better-cicada-5480.clerk.accounts.dev` (public) in `backend/.env` as `MKC_CLERK_ISSUER`.
 
 ## Next steps
 
-1. MKC-7.2: frontend scaffold (`frontend/`: Vite + React + TS + Tailwind + shadcn/ui, ESLint, vitest); the CI frontend job turns on with `frontend/package.json`.
-2. MKC-7.3: `apiFetch` and `RequireAdmin`, test-first.
-3. MKC-7.4: ADR 002, design doc, status doc; local check of the three login states with the user.
-4. MKC-8 (backend container image on GHCR; image scan in CI).
+1. MKC-7.4: local check of the three login states with the user (signed out; test user → `/admin` blocked; Google admin → `/admin` passes); evidence from the API access log.
+2. Open the PR, set #7 and #87–#90 to `Testing`, request the review.
+3. MKC-8 (backend container image on GHCR; image scan in CI).
 
 ## Blocked / waiting on user
 
@@ -58,6 +57,9 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+
+- **25.11.2026 11:35** MKC-7.4: ADR 002 section "Clerk instance" (decision, why, options, accepted limits, wiring); design doc decisions 39 (user) and 40 (agent), section 13 updated; status doc and README updated; plan corrected (`apiFetch` uses `getToken()`). markdownlint 0 errors; all `scripts/check_*.py` pass.
+- **25.11.2026 11:33** Branch pushed to `origin` (`a6b57bf`). Local run: API on `127.0.0.1:8000` with `MKC_CLERK_ISSUER` from `backend/.env` (`/api/me` gives 401 without and with a bad token), Vite on `localhost:5173` (200).
 
 - **25.11.2026 11:33** MKC-7.3: pages and routes: `/` `HomePage` (shows `/api/me`), `/sign-in/*` Clerk `SignIn`, `/admin` `AdminPage` behind `RequireAdmin` (calls `/api/admin/ping`). 14 tests pass; lint and build pass.
 

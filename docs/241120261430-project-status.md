@@ -1,6 +1,6 @@
 # Project status: Messkonzept-Copilot
 
-**Last updated:** 25.11.2026, 10:15
+**Last updated:** 25.11.2026, 11:35
 
 This is the living status document. It is updated whenever a decision is made or work is completed. Older brainstorming material lives in `brainstorming internal/` (gitignored and frozen).
 
@@ -24,7 +24,11 @@ This is the living status document. It is updated whenever a decision is made or
   - `.github/workflows/ci.yml`: backend (pgvector service; every backend test runs on Linux, none skipped), frontend (placeholder until MKC-7), gitleaks (fake-key self-test, full history), dependency-scan (pip-audit), docs (markdownlint, check scripts)
   - the five jobs are required checks on `main`, branch must be up to date (decision 38, ADR 005)
   - `scripts/check_workflows.py` bans secrets and write permissions in every workflow. The deploy workflow (MKC-10) will need both, in the protected `production` environment; that ticket must narrow the rule to the deploy workflow on `main` and record it as a decision.
-- **Current ticket:** MKC-7 (frontend skeleton with Clerk, #7). Needs a Clerk application from the user.
+- **Current ticket:** MKC-7 (frontend skeleton with Clerk, #7; plan `docs/superpowers/plans/251120261119-mkc-7-frontend-skeleton.md`), sub-issues MKC-7.1 to MKC-7.4 (#87–#90):
+  - Clerk development instance for every environment (decision 39, ADR 002); the user created it, with the `role` session-token claim, the admin (the user's Google account) and a test user
+  - backend `mkc.api.auth`: `require_user`, `require_admin`, `GET /api/me`, `GET /api/admin/ping`; tokens checked with the public JWKS only (decision 40); CORS allow-list for the local Vite dev server
+  - `frontend/`: Vite, React, TypeScript, Tailwind, shadcn/ui, `@clerk/react`, `react-router`; `apiFetch`, `RequireAdmin`; vitest
+  - CI: the frontend job runs lint, typecheck, test and build; the dependency scan adds `npm audit`
 - **Next:** MKC-8 (backend container image).
 
 ## Key documents
@@ -87,7 +91,7 @@ This is the living status document. It is updated whenever a decision is made or
   - Vercel account linked to the personal repo
   - provider API keys with spending caps
   - GitHub Secrets and the protected `production` environment
-  - a domain with TLS (also needed for Clerk production)
+  - a domain with TLS (for the backend API; Clerk needs none, decision 39)
 - [ ] Research: BDEW Codeliste der Lokationsbündelstrukturen (version, format, licence)
 - [ ] Spike: the Jev call path via OpenRouter (start of Phase 7)
 
@@ -114,7 +118,7 @@ A Fable reviewer judged the design "approve with changes". Applied:
 - fixed references
 - a public demo
 - CI/CD hardening
-- the Clerk preview check
+- the Clerk preview check (done in MKC-7: development instance everywhere, decision 39)
 - the primary user
 - Modul 3 out of scope
 
