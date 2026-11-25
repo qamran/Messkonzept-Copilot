@@ -57,6 +57,7 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **25.11.2026 09:46** MKC-6.4: `scripts/check_workflows.py` added; red (`ci.yml` missing). Against a bad sample workflow it reports `pull_request_target`, `secrets.`, a `paths` filter, missing `contents: read`, an unpinned action and the missing jobs.
 - **25.11.2026 09:46** MKC-6.3: HANDOFF log line moved below the blank line the lint fixer added (MD032); lint 0 errors.
 - **25.11.2026 09:43** MKC-6.3: markdownlint-cli2 0.18.1 on all 18 tracked Markdown files: 0 errors (was about 270). Fixes: blank lines around headings and lists, `text` on four code fences, `<>` around bare URLs. Config: MD029 off (the design doc numbers features across sections); `.github/.markdownlint.jsonc` allows the template placeholders (MD033) and the PR template's `##` start (MD041). The fixer had flattened the nested list under design doc feature 7; restored by hand. All `scripts/check_*.py` pass.
 - **25.11.2026 09:41** MKC-6.2: `.gitignore` (PDFs, `.env*` except `.env.example`, renders, caches, `node_modules`, `dist`), `.env.example` (no values), `.pre-commit-config.yaml` (gitleaks v8.30.1, ruff-check and ruff-format v0.17.6, end-of-file-fixer v6.0.0); `check_secret_hygiene.py` green; `uvx pre-commit run --all-files` passes; no tracked file is ignored.
