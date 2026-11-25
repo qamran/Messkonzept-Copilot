@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 25.11.2026, 13:45
+**Last updated:** 25.11.2026, 13:49
 
 This file is how agents resume work after a session restart.
 
@@ -55,6 +55,7 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **25.11.2026 13:49** MKC-8.3: CI job `image`: Compose smoke test with `MKC_COMMIT=github.sha`, Grype v0.121.2 (checksum pinned; `--only-fixed --fail-on high`), QEMU + buildx `linux/amd64,linux/arm64` build without push (GHA cache). `check_workflows.py` green. Local Grype run on the image: exit 0, no high or critical (mediums in the base image's `pip` and Python 3.12.16).
 - **25.11.2026 13:45** MKC-8.3: `check_workflows.py` requires a job `image` that runs `scripts/compose_smoke.sh`, Grype and a `linux/amd64,linux/arm64` build. Red: `job 'image' missing`; a sample with an empty `image` job reports all three steps.
 - **25.11.2026 13:42** MKC-8.2: `docker-compose.yml` → `compose.yaml` (`git mv`) with db, api, worker, frontend; `backend/.env` optional; api and worker use `db:5432`; host ports movable (`MKC_DB_PORT`, `MKC_API_PORT`, `MKC_WEB_PORT`). `frontend/Dockerfile` (node 24 build, `nginx-unprivileged` on 8080, uid 101, SPA fallback). `check_containers.py` green; `compose_smoke.sh` green locally (commit `smoke-1795609974`, worker `running restarts=0`, frontend and `/admin` 200).
 - **25.11.2026 13:38** MKC-8.2: `scripts/compose_smoke.sh` added (own project `mkc-smoke` on ports 15433/18000/15173, so the local stack and its db volume are never touched; checks `/health`, `/api/version` commit, worker running, frontend `index.html` and `/admin`). Red: `compose.yaml` missing.
