@@ -386,7 +386,7 @@ E3 and E5 are **re-run after Phase 7**, because the advisor and the injection gu
   - Preview frontends point at the production backend; only admin users can start runs or approve.
 - **Version sync:** the backend exposes `/api/version`. The frontend warns on a mismatched API version, and CD deploys the backend before promoting the frontend.
 - **Containers:** one backend image (API and worker entrypoints), multi-arch (amd64 + arm64), on GHCR. The frontend container is only for local Compose.
-- **Local:** Docker Compose (API, worker, Postgres, frontend).
+- **Local:** Docker Compose (`compose.yaml`: API, worker, Postgres, frontend; decision 41).
 - **CI (GitHub Actions, personal repo):**
   - ruff, mypy, pytest
   - frontend lint, typecheck and tests
@@ -516,6 +516,7 @@ The build follows the phases in section 20, ordered by dependency:
 | 38 | CI (MKC-6): jobs backend, frontend, gitleaks, dependency-scan and docs are required checks on `main`, pinned to the GitHub Actions app, with "branch must be up to date" on; no `paths` filters, so every job always reports; the frontend job reports success until MKC-7; gitleaks runs as a checksum-pinned release binary with a fake-key self-test; dependency scan is pip-audit on the hashed `uv export`; all tracked Markdown must pass markdownlint (ADR 005) | agent |
 | 39 | Clerk development instance for every environment (local, Vercel previews, Vercel production), permanently; no production instance. Reason: production keys don't work on `*.vercel.app` and the workaround needs Vercel Pro. Sign-in by email and Google; the user's Google account is the admin (ADR 002) | user (agent laid out the options) |
 | 40 | Admin role = Clerk public metadata `{"role": "admin"}`, carried as the session-token claim `role`; the backend verifies tokens with the instance's public JWKS only (RS256, `exp`, `nbf`, `iss`, `sub`, `azp` allow-list), no Clerk secret key; the CI frontend job runs lint, typecheck, test and build; the dependency scan adds `npm audit` (shipped packages at any level, all packages at high) (MKC-7) | agent |
+| 41 | Containers (MKC-8): one backend image (`backend/Dockerfile`, multi-stage, uid 10001, base images pinned by digest, `MKC_COMMIT` build argument; API by default, `mkc-worker` for the worker); `compose.yaml` (db, api, worker, frontend) replaces `docker-compose.yml`; CI job `image` runs a Compose smoke test, a Grype scan (high or critical with a fix fails) and a `linux/amd64,linux/arm64` build on every PR; the only write permission in CI is `packages: write` in the job `publish`, which runs only on a push to `main` in `qamran/Messkonzept-Copilot` (Actions also run on the Turing mirror) and logs in with `github.token`, not a stored secret; image `ghcr.io/qamran/messkonzept-copilot-backend`, tags `<commit sha>` and `main` (ADR 002) | agent |
 
 ## 19. Course coverage
 
