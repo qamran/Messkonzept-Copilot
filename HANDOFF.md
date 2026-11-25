@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 25.11.2026, 16:45
+**Last updated:** 25.11.2026, 16:56
 
 This file is how agents resume work after a session restart.
 
@@ -44,11 +44,14 @@ This file is how agents resume work after a session restart.
 
 ## In progress
 
-- **MKC-10** (#10), continuous deployment (k3s + Vercel). Status `In progress`, assigned to `qamran`. Branch `mkc-10-cd` from `1f16ba8`. The user's setup tasks are done (runbook "Server setup"). Plan and sub-issues follow.
+- **MKC-10** (#10), continuous deployment (k3s + Vercel). Status `In progress`, assigned to `qamran`. Branch `mkc-10-cd` from `1f16ba8`. Plan: `docs/superpowers/plans/251120261710-mkc-10-cd.md`.
+  - Sub-issues created so far: MKC-10.1 (#106), MKC-10.2 (#105), MKC-10.3 (#104). MKC-10.4 and 10.5 not yet: GitHub returned HTTP 500/502 on issue creation (16:52–17:00); retry, and check for duplicates first.
+  - The new sub-issues are not yet on the board or linked to #10 (same outage).
+  - MKC-10.1 done on the branch: `MKC_CORS_ORIGIN_REGEX` feeds CORS and the `azp` check.
 
 ## Next steps
 
-1. MKC-10: plan and sub-issues; restricted deploy user and SSH deploy key; `cd.yml` (backend first, smoke test, `helm rollback` on failure, then Vercel production); `frontend/vercel.json` (no Vercel production deploys from `main`, SPA fallback); production `DATABASE_URL` as a Kubernetes Secret on the VM (from Supabase); frontend API-version warning; CORS for the Vercel domains; runbook "Deploy and rollback".
+1. MKC-10: finish the sub-issues (create 10.4, 10.5; link all to #10; board `In progress`); restricted deploy user and SSH deploy key; `cd.yml` (backend first, smoke test, `helm rollback` on failure, then Vercel production); `frontend/vercel.json` (no Vercel production deploys from `main`, SPA fallback); production `DATABASE_URL` as a Kubernetes Secret on the VM (from Supabase); frontend API-version warning; CORS for the Vercel domains; runbook "Deploy and rollback".
 2. Non-blocking follow-ups from the PR #103 review (for later tickets):
    - N1 (MKC-17/MKC-20): the heartbeat is only touched between polls; with max age 30 s and liveness 3 × 30 s, a turn of up to 240 s would get a healthy worker restarted. Beat during a turn or raise the max age (noted in ADR 002 and decision 42).
    - N2: `/tmp` is an `emptyDir` and survives a container restart, so an old heartbeat can make a restarted worker look Ready for up to 30 s; remove the file on start or add a `startupProbe`.
@@ -75,6 +78,11 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+
+- **25.11.2026 16:56** MKC-10.1: `MKC_CORS_ORIGIN_REGEX` (full match, checked at start) used by CORS and by the token's `azp` check; `.env.example`. 78 passed, 8 skipped (DB skipped on purpose); ruff and mypy pass.
+- **25.11.2026 16:55** MKC-10.1: red tests `tests/api/test_origins.py` (production and preview hosts pass CORS and `azp`; `http://`, suffix, prefix, other team, port, path refused; empty regex allows nothing). Red: `cors_origin_regex` unknown (`extra_forbidden`).
+- **25.11.2026 16:55** MKC-10 plan (`251120261710-mkc-10-cd.md`). Checked: Vercel team slug `qamran`; production alias `messkonzept-copilot.vercel.app` public (200); previews behind Vercel Authentication (302); the project has Git deployments `disabled`.
+- **25.11.2026 16:52** Sub-issues MKC-10.3 (#104), 10.2 (#105), 10.1 (#106) created, assigned to `qamran`; 10.4 and 10.5 failed with GitHub HTTP 500/502.
 
 - **25.11.2026 16:45** HANDOFF, status doc, design doc (decisions 43, 44; the "VM running" line of 24.11 corrected: the VM did not exist), ADR 002 "Server and API host" and the new runbook `docs/251120261645-runbook.md` ("Server setup", step by step as done with the user) after MKC-9 and the server setup.
 - **25.11.2026 16:42** MKC-10 (#10) assigned to `qamran`, to `In progress`; branch `mkc-10-cd` from `1f16ba8`.

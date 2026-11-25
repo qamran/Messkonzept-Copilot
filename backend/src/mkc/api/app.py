@@ -41,6 +41,7 @@ def create_app(
             settings.clerk_issuer,
             settings.clerk_authorized_parties,
             key_resolver or jwks_key_resolver(settings.clerk_issuer),
+            settings.cors_origin_regex,
         )
         if settings.clerk_issuer
         else None
@@ -48,6 +49,8 @@ def create_app(
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,
+        # The same pattern as the azp check (decision 45); Starlette uses a full match.
+        allow_origin_regex=settings.cors_origin_regex or None,
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
         allow_headers=["Authorization", "Content-Type"],
     )
