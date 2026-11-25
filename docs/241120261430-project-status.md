@@ -1,12 +1,12 @@
 # Project status: Messkonzept-Copilot
 
-**Last updated:** 25.11.2026, 16:45
+**Last updated:** 25.11.2026, 17:25
 
 This is the living status document. It is updated whenever a decision is made or work is completed. Older brainstorming material lives in `brainstorming internal/` (gitignored and frozen).
 
 ## Where we are
 
-- **Phase:** implementation, Phase 0 (foundation). The design doc was **approved by the user on 24.11.2026** (after an independent review, verdict "approve with changes", all required changes applied). The backend skeleton (MKC-4) is the first application code; MKC-5 added the database layer; MKC-6 added secret hygiene and CI; MKC-7 added the frontend and the login check; MKC-8 added containers; MKC-9 added the Helm chart and the kind test; MKC-10 adds continuous deployment (the server is set up).
+- **Phase:** implementation, Phase 0 (foundation). The design doc was **approved by the user on 24.11.2026** (after an independent review, verdict "approve with changes", all required changes applied). The backend skeleton (MKC-4) is the first application code; MKC-5 added the database layer; MKC-6 added secret hygiene and CI; MKC-7 added the frontend and the login check; MKC-8 added containers; MKC-9 added the Helm chart and the kind test; MKC-10 adds continuous deployment (server set up, first deploy and rollback drill done).
 - **Restart file:** `HANDOFF.md` (repo root) is the agents' running log and next steps, updated with every commit and important ticket change (decision 34). This status doc stays the overview of decisions and documents.
 - **Board:** <https://github.com/users/qamran/projects/1> (public). Tickets MKC-1 to MKC-60 exist as issues #1 to #60 (issue number = key).
 - **Done:** MKC-1 (ticket workflow and repo setup, PR #65), MKC-2 (code-only Turing mirror, README with links, PR #70), MKC-3 (agent instructions: assignment rule PR #67, HANDOFF.md PR #69, AGENTS.md + CLAUDE.md PR #72), MKC-4 (backend skeleton: uv project `backend/`, package `mkc`, FastAPI `/health` and `/api/version`, worker with clean SIGTERM shutdown, ruff and mypy strict, PR #75), MKC-5 (database layer: compose Postgres 17 + pgvector, SQLAlchemy 2, Alembic, `python -m mkc.db.check`, Supabase connection checked; PR #80), MKC-6 (secret hygiene, markdown lint, CI with required checks; PR #86), MKC-7 (frontend skeleton with Clerk; PR #91), MKC-8 (containers, Compose, GHCR image; PR #97), MKC-9 (Helm chart and kind test; PR #103). Each after a review-agent PASS; both remotes at the latest merge commit.
@@ -40,6 +40,13 @@ This is the living status document. It is updated whenever a decision is made or
   - `deploy/helm/mkc/`: API Deployment (replicas from values), worker Deployment (`replicas: 1`, `Recreate`, grace period 300 s), Service, Ingress (cert-manager TLS), Secret from values or `existingSecret`, ConfigMap from `env`; probes, limits, uid 10001, read-only root (decision 42, ADR 002)
   - `scripts/check_helm.py` (static chart rules) and `scripts/kind_smoke.sh` (install on kind)
   - CI job `kind`: `helm lint --strict` and the kind smoke test; a required check on `main`; `publish` needs it
+- **MKC-10 details** (continuous deployment, branch `mkc-10-cd`; plan `docs/superpowers/plans/251120261710-mkc-10-cd.md`), sub-issues MKC-10.1 (#106), 10.2 (#105), 10.3 (#104), 10.4 (#107), 10.5:
+  - `MKC_CORS_ORIGIN_REGEX`: the Vercel previews pass CORS and the `azp` check (decision 45)
+  - `VersionWarning`: the page warns when the API runs another commit (decision 46); `frontend/vercel.json`
+  - VM: user `mkc-deploy` with a forced command (`deploy/vm/mkc-deploy`), rights in namespace `mkc` only, `/etc/mkc/values.yaml`, Secret `mkc-secrets`
+  - `.github/workflows/cd.yml` and `scripts/cd_deploy.sh`: image wait, SSH deploy, smoke test, rollback, then Vercel production (decision 47)
+  - first deploy and rollback drill on 25.11.2026: `https://92-6-240-17.sslip.io/api/version` live (Let's Encrypt certificate); a forced failing smoke test rolled back to revision 1
+  - `check_workflows.py` now allows secrets in `cd.yml` only, only in `production` jobs (the change MKC-6 asked for)
 - **Server setup** (25.11.2026, for MKC-10; decisions 43 and 44; runbook `docs/251120261645-runbook.md`):
   - Oracle VM `mkc-k3s` (4 OCPUs, 24 GB, arm64, `92.6.240.17`); ports 80 and 443 open, 6443 closed
   - k3s v1.37.2 with Traefik; cert-manager v1.21.3 with Let's Encrypt staging and prod issuers
@@ -65,7 +72,7 @@ This is the living status document. It is updated whenever a decision is made or
 | README (intro + links for both repos) | `README.md` |
 | Official brief | `AE.CAP_afa.md` |
 
-## Decisions so far (summary; the full log of 44 decisions is in design doc section 18)
+## Decisions so far (summary; the full log of 47 decisions is in design doc section 18)
 
 - **Idea:** Messkonzept-Copilot. It extracts operator Messkonzept PDFs into structured, LBS-keyed records with human approval, and gives household site advice with citations.
 - **Primary user:** MSB, VNB and energy-IT staff working across grid areas; installers are secondary; plus a public read-only demo.
