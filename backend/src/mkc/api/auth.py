@@ -50,9 +50,11 @@ class TokenVerifier:
         )
         # Clerk omits azp when the request had no Origin header; when present it must match.
         azp = claims.get("azp")
-        if azp is not None and azp not in self._authorized_parties:
+        if azp is not None and (not isinstance(azp, str) or azp not in self._authorized_parties):
             raise jwt.InvalidTokenError("authorized party not allowed")
         role = claims.get("role") or None
+        if role is not None and not isinstance(role, str):
+            raise jwt.InvalidTokenError("role claim must be a string")
         return User(id=claims["sub"], role=role, is_admin=role == ADMIN_ROLE)
 
 
@@ -86,7 +88,10 @@ def require_user(
     request: Request,
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
 ) -> User:
-    """FastAPI dependency: the signed-in user, or 401. 503 if Clerk is not configured."""
+    """FastAPI dependency: the signed-in user, or 401.
+
+    503 if Clerk is not configured or its public keys can't be fetched.
+    """
     verifier: TokenVerifier | None = request.app.state.token_verifier
     if verifier is None:
         raise HTTPException(
@@ -96,7 +101,11 @@ def require_user(
         raise _unauthorized()
     try:
         return verifier.verify(credentials.credentials)
-    except jwt.PyJWTError as error:  # includes JWKS lookup errors
+    except jwt.PyJWKClientConnectionError as error:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Login provider unreachable"
+        ) from error
+    except jwt.PyJWTError as error:  # includes an unknown key id in the JWKS
         raise _unauthorized() from error
 
 
