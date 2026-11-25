@@ -15,6 +15,12 @@
 - The kind job (MKC-9.4) lints the chart, checks its tool downloads and runs
   `scripts/kind_smoke.sh`; `publish` needs every required job.
 - No `paths:` / `paths-ignore:` filters: a required check that never runs would block PRs.
+- CD (MKC-10.4): `.github/workflows/cd.yml` runs only on a push to `main` (no other event),
+  every job has the home-repo guard (the Turing mirror runs Actions too), every job that
+  reads a secret runs in the `production` environment, the concurrency group never cancels
+  a deploy, `backend` runs `scripts/cd_deploy.sh`, and `frontend` needs `backend` and deploys
+  the prebuilt site. Secrets are allowed in `cd.yml` only; never `secrets: inherit` or
+  `toJSON(secrets)`. `ci.yml` runs the deploy script tests.
 
 Usage: python scripts/check_workflows.py  (exit code 0 = ok, 1 = problems)
 """
@@ -26,6 +32,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 WORKFLOWS = Path(".github/workflows")
 CI = WORKFLOWS / "ci.yml"
+CD = WORKFLOWS / "cd.yml"
+CD_TRIGGER = "on:\n  push:\n    branches: [main]\n"
+HOME_GUARD = "github.repository == 'qamran/Messkonzept-Copilot'"
+DEPLOY_TESTS = ["scripts/test_mkc_deploy.sh", "scripts/test_cd_deploy.sh"]
 REQUIRED_JOBS = ["backend", "frontend", "gitleaks", "dependency-scan", "docs", "image", "kind"]
 IMAGE_STEPS = {
     "scripts/compose_smoke.sh": "run the Compose smoke test",
@@ -45,6 +55,8 @@ PINNED_IMAGE = re.compile(r"^docker://.+@sha256:[0-9a-f]{64}$")
 TOP_PERMISSIONS = re.compile(r"^permissions:\s*\n\s+contents:\s*read\s*$", re.MULTILINE)
 # secrets.X, secrets['X'] and `secrets: inherit` for reusable workflows.
 SECRETS = re.compile(r"\bsecrets\s*[.\[]|^\s*secrets:\s*inherit\b", re.MULTILINE)
+# All secrets handed over at once: never, not even in cd.yml.
+ALL_SECRETS = re.compile(r"toJSON\(\s*secrets\s*\)|^\s*secrets:\s*inherit\b", re.MULTILINE)
 # Any `<scope>: write` or `permissions: write-all`, top-level or per job.
 WRITE_PERMISSION = re.compile(r":\s*write(-all)?\s*$", re.MULTILINE)
 PUBLISH_JOB = "publish"
@@ -64,8 +76,10 @@ def workflow_problems(path: Path, rel: str) -> list[str]:
     found: list[str] = []
     if "pull_request_target" in text:
         found.append(f"{rel}: uses pull_request_target")
-    if SECRETS.search(text):
-        found.append(f"{rel}: uses secrets; CI must not need secrets")
+    if ALL_SECRETS.search(text):
+        found.append(f"{rel}: hands over all secrets (toJSON(secrets) / secrets: inherit)")
+    if SECRETS.search(text) and rel != CD.as_posix():
+        found.append(f"{rel}: uses secrets; only cd.yml may (in the production environment)")
     if WRITE_PERMISSION.search(_without_allowed_publish(text, rel)):
         found.append(f"{rel}: grants a write permission; CI is read-only")
     if re.search(r"^\s*paths(-ignore)?:", text, re.MULTILINE):
@@ -120,6 +134,43 @@ def problems(root: Path = ROOT) -> list[str]:
         found += [f"{CI.as_posix()}: job 'kind' must {what}"
                   for needle, what in KIND_STEPS.items() if needle not in kind]
     found += _publish_needs_problems(ci.read_text(encoding="utf-8"))
+    ci_text = _strip_comments(ci.read_text(encoding="utf-8"))
+    found += [f"{CI.as_posix()}: must run {test}" for test in DEPLOY_TESTS if test not in ci_text]
+    found += cd_problems(root)
+    return found
+
+
+def cd_problems(root: Path = ROOT) -> list[str]:
+    """Rules for the deploy workflow (MKC-10.4)."""
+    rel = CD.as_posix()
+    path = root / CD
+    if not path.is_file():
+        return [f"{rel}: file missing"]
+    text = _strip_comments(path.read_text(encoding="utf-8"))
+    found: list[str] = []
+    trigger = re.search(r"^on:[ \t]*\n(?:[ \t]+\S.*\n|[ \t]*\n)*", text + "\n", re.MULTILINE)
+    lines = [line.rstrip() for line in (trigger.group(0) if trigger else "").splitlines()]
+    if "\n".join(line for line in lines if line) + "\n" != CD_TRIGGER:
+        found.append(f"{rel}: must run on push to main only (exactly {CD_TRIGGER!r})")
+    if not re.search(r"^  cancel-in-progress:\s*false\s*$", text, re.MULTILINE):
+        found.append(f"{rel}: concurrency must not cancel a running deploy")
+    jobs = ci_jobs(text)
+    for job in sorted(jobs):
+        body = job_text(text, job)
+        guard = re.search(r"^    if:\s*(.+)$", body, re.MULTILINE)
+        if not guard or HOME_GUARD not in guard.group(1):
+            found.append(f"{rel}: job '{job}' needs 'if: {HOME_GUARD}'")
+        in_production = re.search(r"^    environment:\s*production\s*$", body, re.MULTILINE)
+        if SECRETS.search(body) and not in_production:
+            found.append(f"{rel}: job '{job}' reads secrets outside the production environment")
+    if "scripts/cd_deploy.sh" not in job_text(text, "backend"):
+        found.append(f"{rel}: job 'backend' must run scripts/cd_deploy.sh")
+    frontend = job_text(text, "frontend")
+    needs = re.search(r"^    needs:\s*\[?([^\]\n]*)", frontend, re.MULTILINE)
+    if not needs or "backend" not in {n.strip() for n in needs.group(1).split(",")}:
+        found.append(f"{rel}: job 'frontend' must need 'backend' (backend deploys first)")
+    if "vercel deploy --prebuilt --prod" not in frontend:
+        found.append(f"{rel}: job 'frontend' must run 'vercel deploy --prebuilt --prod'")
     return found
 
 
