@@ -22,7 +22,7 @@ helm.sh/chart: {{ printf "%s-%s" .Chart.Name .Chart.Version }}
 
 {{/* The image; the tag is required and must not be "latest". */}}
 {{- define "mkc.image" -}}
-{{- $tag := required "image.tag is required (a commit SHA)" .Values.image.tag -}}
+{{- $tag := required "image.tag is required (a commit SHA)" .Values.image.tag | toString -}}
 {{- if eq $tag "latest" -}}
 {{- fail "image.tag must not be latest; use a commit SHA" -}}
 {{- end -}}

@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 25.11.2026, 15:42
+**Last updated:** 25.11.2026, 15:50
 
 This file is how agents resume work after a session restart.
 
@@ -67,6 +67,9 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **25.11.2026 15:50** PR #103 fix N5: an all-digit `image.tag` broke the render (`--set image.tag=1234567`: `incompatible types for comparison: int64 and string`); the `mkc.image` helper now applies `toString`. After: renders `…:1234567`; `latest` and a missing tag are still refused; `helm lint --strict` green.
+- **25.11.2026 15:50** #9 and #98–#102 back to `In progress`.
+- **25.11.2026 15:49** PR #103 review **FAIL** (comment 14:49:34Z). Blocking: HANDOFF "In progress" and "Next steps" were stale at the PR head (still `In progress`, no PR #103, next step MKC-9.1). Everything else passed: CI run 45637034228 on `0cc68b2` green, `kind` required, pins match upstream, commits, assignment, secrets, pod hardening. Non-blocking N1–N11 (see Next steps).
 - **25.11.2026 15:42** `kind` added to the required checks on `main` (PATCH at 15:42:17; before/after diff of the protection: only the `kind` check added).
 - **25.11.2026 15:41** CI run 45636218952 on `d26910c` green (14:41:31Z): backend, frontend, gitleaks, dependency-scan, docs, image, kind; publish skipped. `kind` (14:38:11–14:39:44Z): Helm, kind and kubectl checksums OK; `/api/version` returned the PR merge commit `b6647fd…`; worker `ready=true restarts=0` twice; worker pod deleted after 2 s with `signal SIGTERM received` and `worker stopped`; new worker Ready; `kind smoke test passed`.
 - **25.11.2026 15:38** MKC-9: PR #103 opened (14:38:02Z; assigned to `qamran`; closes #9, #98–#102). #9 and #98–#102 to `Testing`. CI run 45636218952 started.
