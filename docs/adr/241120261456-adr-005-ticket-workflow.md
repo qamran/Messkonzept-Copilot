@@ -7,11 +7,13 @@
 ## Context
 
 The user wants tickets defined in a public place:
+
 - an agent pulls a ticket, breaks it into issues and sub-issues, and works it in atomic commits (under 200 lines where possible), each referencing its issue
 - the agent pushes to a separate branch and moves the ticket to *Testing*
 - a Fable reviewer agent reviews, merges and closes the ticket
 
 The project has two remotes:
+
 - `origin`: the personal public repo, which is home
 - `turing`: the Turing College submission mirror
 
@@ -26,11 +28,13 @@ Issue numbers in the two repos would diverge if both held issues.
 | Jira | Familiar in industry | Heavy for a solo project; public access needs setup; weaker GitHub link |
 
 **Turing repo issues:**
+
 - (a) auto-copy by a GitHub Action
 - (b) the agent creates issues in both repos by hand
 - (c) code only, with a link to the home issues
 
 **Trigger:**
+
 - an in-session command
 - a loop or schedule
 - a GitHub Action running Claude on a label
@@ -57,6 +61,7 @@ Issue numbers in the two repos would diverge if both held issues.
   7. **Fail:** the ticket goes back to `In progress`, with the findings listed, and the development agent picks it up again.
 - **HANDOFF.md** (repo root) is the restart file for agents: what is done, in progress, next, blocked, and a newest-first log. It is updated in every commit and after every important ticket change (status change, sub-issue created or closed, PR opened or merged, review verdict); changes made outside a branch are recorded in the next commit. `scripts/check_handoff.py` checks its sections. When a session's context passes about 80 %, the development agent tells the user and recommends a restart, after making sure HANDOFF.md is current. *(Added 24.11.2026 at the user's request.)*
 - **Branch protection on `main`:** PRs only; required CI checks (lint, types, tests, eval gate, Helm/kind); no force-push. A bot cannot formally approve its own PR, so the gate is green CI plus the review agent's verdict comment.
+  - *Set 25.11.2026 in MKC-6 (decision 38):* the required checks are the `ci` jobs `backend`, `frontend`, `gitleaks`, `dependency-scan` and `docs`, pinned to the GitHub Actions app, with "branch must be up to date before merging". A PR branch that falls behind `main` must merge `main` in before it can be merged. The eval gate and Helm/kind checks are added with their tickets. `scripts/check_workflows.py` keeps the workflows free of `pull_request_target`, secrets and `paths` filters.
 
 ## Consequences
 

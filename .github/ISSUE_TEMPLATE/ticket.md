@@ -16,12 +16,14 @@ labels: []
 **Depends on:** <MKC-<m>, ...>
 
 **Interfaces:**
+
 - Consumes: <exact names from earlier tickets>
 - Produces: <exact names later tickets rely on>
 
 **Test:** <test names, commands or checks that prove it>
 
 **Success criteria (definition of done):**
+
 - [ ] <concrete, checkable result>
 - [ ] <concrete, checkable result>
 - [ ] Docs updated where a decision changed (design doc decision log, ADR, status doc)

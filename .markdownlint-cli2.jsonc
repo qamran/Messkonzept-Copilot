@@ -1,6 +1,9 @@
-// markdownlint-cli2 config (MKC-3.3). Docs keep one line per paragraph or list item, so line length is not limited.
+// markdownlint-cli2 config (MKC-3.3, MKC-6.3). CI runs it on every tracked Markdown file.
 {
   "config": {
-    "MD013": false
+    // Docs keep one line per paragraph or list item, so line length is not limited.
+    "MD013": false,
+    // The design doc numbers its features 1..n across sections, so a list may start at e.g. 76.
+    "MD029": false
   }
 }

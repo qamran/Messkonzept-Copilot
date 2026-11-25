@@ -13,6 +13,7 @@ Closes #<issue>
 <!-- commands run and their result -->
 
 ### Docs updated
+
 - [ ] Design doc decision log / ADR / status doc updated, or not needed because: <reason>
 
 ### Review agent (Fable) verdict

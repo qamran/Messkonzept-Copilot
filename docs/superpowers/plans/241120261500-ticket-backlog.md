@@ -1,6 +1,7 @@
 # Messkonzept-Copilot: ticket backlog (implementation plan)
 
 > **For agentic workers:**
+>
 > - The **development agent (Claude Opus 5.5)** pulls one ticket at a time from the public Projects board (ADR 005). It turns the ticket into issues and sub-issues with a detailed test-first plan (superpowers:writing-plans, saved as `docs/superpowers/plans/<ddMMyyyyHHmm>-mkc-<n>-<slug>.md`), and implements it with superpowers:test-driven-development.
 > - The **review agent (Fable)** checks the PR against the ticket's **success criteria** before merging.
 > - Steps use checkbox (`- [ ]`) syntax for tracking.
@@ -8,12 +9,14 @@
 **Goal:** Build the Messkonzept-Copilot as designed. It extracts grid operators' Messkonzept PDFs into approved, LBS-keyed records through a custom agent harness, and gives household site advice with citations. It is deployed with CI/CD and measured by evaluations E1–E8.
 
 **Architecture:**
+
 - **Backend:** FastAPI API + a single-replica harness worker (one image) on k3s, with state in Supabase Postgres/Storage.
 - **Frontend:** React on Vercel.
 - **Harness:** a code-driven durable queue with a model-driven tool loop per item, turn-level checkpoints, approvals, limits and traces.
 - **LangChain** is used only for model and tool plumbing.
 
 **Tech stack:**
+
 - **Backend:** Python 3.12, uv, FastAPI, Pydantic v2, SQLAlchemy + Alembic, pdfplumber, PyMuPDF, LangChain chat models, langchain-typesafe, pytest
 - **Frontend:** React + Vite + TypeScript + shadcn/ui, Clerk
 - **Data:** Supabase (Postgres, pgvector, Storage)
@@ -25,6 +28,7 @@
 ## Global Constraints
 
 These apply to every ticket.
+
 - **Commits:** atomic, under 200 lines where possible. Format: `MKC-<n>: <summary>` plus the trailer `Refs: qamran/Messkonzept-Copilot#<issue>`.
 - **Branches:** one per ticket, `mkc-<n>-<slug>` from `main`. PRs only; no squash merges; no force-push to `main`.
 - **Pushes:** after a merge, `main` is pushed to both `origin` (qamran/Messkonzept-Copilot) and `turing` (the Turing submission repo).
@@ -40,6 +44,7 @@ These apply to every ticket.
 ## Review Focus
 
 Failure modes the spec implies that no feature list names explicitly. Each has a test in the ticket that owns it.
+
 1. **The operator republishes the PDF at the same URL** (new edition, different hash). The run must record the new hash, never mix records from two editions, and flag the change. Test in **MKC-21**.
 2. **Out-of-scope or unexpected advisor input** (English text, a balcony PV plug-in, a commercial site, an empty description). Expected: a clear "not covered, clarify with the operator", never a forced match. Test in **MKC-36**.
 3. **The same draft approved twice** (two browser tabs, double click, a retry after a timeout). Expected: exactly one commit. Test in **MKC-30**.
@@ -50,7 +55,7 @@ Failure modes the spec implies that no feature list names explicitly. Each has a
 
 Every ticket, issue and sub-issue on the board uses this template (also as the GitHub issue template, created in MKC-1):
 
-```
+```text
 Key:        MKC-<n>
 Phase:      <0–8 | deferred>
 Goal:       one sentence
@@ -72,6 +77,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
 ## Phase 0: Foundation and pipeline
 
 ### MKC-1: Ticket workflow and repo setup
+
 - **Goal:** the public board, templates and branch rules exist, so all later work follows ADR 005.
 - **Scope:** features 0 and 1, without the Turing mirror part (MKC-2). Repo description and topics for the showcase.
 - **Depends on:** none. The user must first grant `gh auth refresh -s project`.
@@ -88,7 +94,9 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] All tickets in this backlog created on the board, with keys `MKC-<n>` in their titles
 
 ### MKC-2: Turing repo as code-only mirror (no issue mirror)
+
 *Changed 24.11.2026 by user decision: ADR 005 option (c) instead of an issue-mirror Action (decision 35).*
+
 - **Goal:** the Turing submission repo carries the same code as the home repo, and reviewers find the tickets through links, without an issue mirror or token.
 - **Scope:** feature 0 (mirror part). Out: issue-mirror Action, `TURING_ISSUES_TOKEN`.
 - **Depends on:** MKC-1.
@@ -103,6 +111,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] After merge: `origin/main` == `turing/main`
 
 ### MKC-3: Agent instructions (AGENTS.md, CLAUDE.md)
+
 - **Goal:** both agents get the project rules from the repo, not from memory.
 - **Scope:** feature 2.
 - **Depends on:** MKC-1.
@@ -123,6 +132,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] Review-agent checklist covers: success criteria met, tests prove them, global constraints, docs updated, no secrets
 
 ### MKC-4: Backend skeleton
+
 - **Goal:** a typed FastAPI service with API and worker entrypoints that later tickets extend.
 - **Scope:** feature 3.
 - **Depends on:** MKC-3.
@@ -136,6 +146,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] Both endpoints tested; the worker entrypoint starts and exits cleanly on SIGTERM (test with a timeout)
 
 ### MKC-5: Database layer
+
 - **Goal:** migrations and a session layer that work the same locally, in CI and on Supabase.
 - **Scope:** feature 5 (connection to Supabase verified; tables are added by later tickets).
 - **Depends on:** MKC-4.
@@ -151,6 +162,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] A one-off check against the Supabase project succeeds (documented in the status doc, no secret in the repo)
 
 ### MKC-6: Secret hygiene and CI pipeline
+
 - **Goal:** every PR is linted, typed, tested and scanned, with no secrets reachable from fork PRs.
 - **Scope:** features 6 and 7.
 - **Depends on:** MKC-4, MKC-5.
@@ -165,6 +177,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] These jobs are set as required checks in branch protection
 
 ### MKC-7: Frontend skeleton with Clerk
+
 - **Goal:** a React app with login and an admin role, deployable to Vercel previews.
 - **Scope:** feature 4, including the check of Clerk against preview domains.
 - **Depends on:** MKC-6.
@@ -180,6 +193,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] Backend verifies Clerk JWTs: `mkc.api.auth.require_user` and `require_admin` dependencies, tested with signed test tokens
 
 ### MKC-8: Containers and local Compose
+
 - **Goal:** one backend image (API + worker) running locally and built multi-arch in CI.
 - **Scope:** feature 8.
 - **Depends on:** MKC-4, MKC-7.
@@ -192,6 +206,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] Image tagged with the commit SHA and `main` in GHCR
 
 ### MKC-9: Helm chart and kind smoke test
+
 - **Goal:** a chart that deploys the API and worker, proven on a throwaway cluster in CI.
 - **Scope:** feature 9.
 - **Depends on:** MKC-8.
@@ -206,6 +221,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] The kind job is a required check
 
 ### MKC-10: Continuous deployment (k3s + Vercel)
+
 - **Goal:** a merge to `main` deploys the backend to k3s, then the frontend to Vercel, with smoke test and rollback.
 - **Scope:** features 10 and 11.
 - **Depends on:** MKC-9; user tasks: domain + TLS, VM deploy user with SSH key, GitHub `production` environment with secrets.
@@ -221,6 +237,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] Runbook section "deploy and rollback" written
 
 ### MKC-11: Backups and restore drill
+
 - **Goal:** nightly database backups off-site, and one proven restore.
 - **Scope:** feature 12.
 - **Depends on:** MKC-10; user task: an Oracle Object Storage bucket and credentials.
@@ -233,6 +250,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] Runbook "restore drill" with the steps, timing and row counts from the actual drill
 
 ### MKC-12: Codeliste research and LBS reference data
+
 - **Goal:** know the current BDEW Codeliste version and terms, and load the LBS codes as cited facts.
 - **Scope:** feature 13.
 - **Depends on:** MKC-5.
@@ -252,6 +270,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
 ## Phase 1: Harness core
 
 ### MKC-13: Provider layer (ModelClient)
+
 - **Goal:** one interface for all model calls across four providers, with cost, traces and record/replay.
 - **Scope:** feature 14.
 - **Depends on:** MKC-4.
@@ -276,6 +295,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] Live contract tests pass for OpenRouter, Gemini, Anthropic and Meta Llama (run once, result noted in the status doc)
 
 ### MKC-14: Tool registry and per-context allow-lists
+
 - **Goal:** the model can only call allow-listed tools with validated arguments; everything else becomes a structured error.
 - **Scope:** feature 15.
 - **Depends on:** MKC-13.
@@ -292,6 +312,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] Refusals are counted in the trace (assert via the trace interface from MKC-19, or a stub until then)
 
 ### MKC-15: Item loop, work queue and states
+
 - **Goal:** code runs the queue; inside each item the model drives tools until a draft is saved or limits are hit.
 - **Scope:** features 16 and 17; states from design section 8.2.
 - **Depends on:** MKC-14, MKC-5.
@@ -309,6 +330,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] Extraction never blocks on approvals (test: the queue continues while drafts are pending)
 
 ### MKC-16: Turn checkpoints, resume, tool cache, idempotency
+
 - **Goal:** an interrupted run resumes at its last complete turn without repeating completed work or side effects.
 - **Scope:** features 18 and 19; design 8.3.
 - **Depends on:** MKC-15.
@@ -326,6 +348,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] The resume context is the item task + compact summary + last turn's results (asserted on the message list)
 
 ### MKC-17: Run executor (worker with lease)
+
 - **Goal:** exactly one worker processes a run, survives restarts and deploys, and waits out database outages.
 - **Scope:** feature 20; design 8.4.
 - **Depends on:** MKC-16.
@@ -342,6 +365,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] No state lost in any of the four tests (asserted on turn counts)
 
 ### MKC-18: Limits and retries
+
 - **Goal:** runs stop cleanly at step, time, cost and retry limits; transient errors are retried sensibly.
 - **Scope:** features 21 and 22.
 - **Depends on:** MKC-15.
@@ -356,6 +380,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] Default limits set in config and justified in the plan for MKC-15/18
 
 ### MKC-19: Tracing (Langfuse + run log)
+
 - **Goal:** every model call and tool call is inspectable, with tokens, cost, latency and errors.
 - **Scope:** feature 23.
 - **Depends on:** MKC-13, MKC-15.
@@ -370,6 +395,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] One real run visible in Langfuse (screenshot or link in the status doc)
 
 ### MKC-20: Baseline mode, failure injection and CLI
+
 - **Goal:** the same harness can run as the simple loop, faults can be injected on purpose, and runs are controllable from a CLI.
 - **Scope:** features 24, 25 and 26.
 - **Depends on:** MKC-16, MKC-17, MKC-18.
@@ -391,6 +417,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
 ## Phase 2: Extraction, Berlin, code path
 
 ### MKC-21: Fetch and segment (Berlin)
+
 - **Goal:** the run fetches an allow-listed catalogue, hashes and caches it, and splits Berlin into one item per concept.
 - **Scope:** features 27 and 28.
 - **Depends on:** MKC-15; the Storage bucket (user task).
@@ -406,6 +433,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] Records from two editions never mixed (test)
 
 ### MKC-22: Text and table extraction
+
 - **Goal:** text fields and table rows come out correctly by code, including the case where naive text extraction fails.
 - **Scope:** features 29 and 30.
 - **Depends on:** MKC-21.
@@ -420,6 +448,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] Both tools are deterministic and cached
 
 ### MKC-23: Render, draft assembly, save_draft
+
 - **Goal:** diagram regions are rendered and cached, and drafts are assembled, saved and queued for approval exactly once.
 - **Scope:** features 31 and 32.
 - **Depends on:** MKC-22, MKC-16.
@@ -436,6 +465,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] `MesskonzeptDraft` JSON schema exported for the vision prompt (MKC-26)
 
 ### MKC-24: Gold tooling
+
 - **Goal:** gold data is independent: a fixed split, drafted by a different model, with blind labelling and import/export.
 - **Scope:** feature 33; design 11.1.
 - **Depends on:** MKC-23, MKC-13.
@@ -450,6 +480,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] **User task:** the first Berlin gold batch verified; hours logged in the status doc
 
 ### MKC-25: Go/no-go vision check
+
 - **Goal:** decide on evidence whether vision reads Berlin diagrams well enough to continue with both operators.
 - **Scope:** feature 34.
 - **Depends on:** MKC-23 (uses a throwaway vision call through ModelClient).
@@ -463,6 +494,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
 ## Phase 3: Vision, SachsenNetze, validation and approvals
 
 ### MKC-26: Diagram reading with agentic re-render
+
 - **Goal:** the vision model turns a rendered diagram into the topology schema, re-rendering at a higher DPI when validation fails.
 - **Scope:** features 35 and 36.
 - **Depends on:** MKC-23, MKC-25 (go).
@@ -476,6 +508,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] Few-shot examples come only from approved records of the *other* operator
 
 ### MKC-27: SachsenNetze segmentation
+
 - **Goal:** two concepts per landscape page become two items.
 - **Scope:** feature 37.
 - **Depends on:** MKC-21.
@@ -486,6 +519,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] The split method chosen (detected layout vs half page) is documented in the ticket plan, with the reason
 
 ### MKC-28: Validation and LBS inference
+
 - **Goal:** drafts are cross-checked, and operators without codes get inferred LBS candidates with a rationale.
 - **Scope:** features 38 and 39.
 - **Depends on:** MKC-26, MKC-12.
@@ -501,6 +535,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] The inference prompt is versioned; the rationale is stored per candidate
 
 ### MKC-29: Review queue (API + UI)
+
 - **Goal:** the user approves, edits or rejects drafts next to the source region; blind labelling uses the same screen.
 - **Scope:** feature 40, plus the blind mode from MKC-24.
 - **Depends on:** MKC-28, MKC-7.
@@ -516,6 +551,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] Blind mode hides the draft and saves the user's labels as gold
 
 ### MKC-30: Commit on approval, run report, export/import
+
 - **Goal:** approvals become catalogue records exactly once, and every run produces a report.
 - **Scope:** features 41, 42 and 43.
 - **Depends on:** MKC-29, MKC-17.
@@ -535,6 +571,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
 ## Phase 4: Evaluation
 
 ### MKC-31: Eval runner, E1 and E2
+
 - **Goal:** one command produces versioned E1/E2 reports on the test split.
 - **Scope:** features 44, 45 and 46.
 - **Depends on:** MKC-30, MKC-24.
@@ -549,6 +586,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] Results summarised in the status doc
 
 ### MKC-32: E4, harness vs baseline
+
 - **Goal:** measure what checkpoints cost and what they save.
 - **Scope:** feature 47.
 - **Depends on:** MKC-20, MKC-31.
@@ -561,6 +599,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] Report + README-ready chart data committed
 
 ### MKC-33: E5, safeguard suite
+
 - **Goal:** prove the safeguards hold against crafted attacks and misuse.
 - **Scope:** feature 48.
 - **Depends on:** MKC-30.
@@ -575,6 +614,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] Injection PDFs generated in tests, never committed as real documents
 
 ### MKC-34: E6, model comparison
+
 - **Goal:** choose a model per role by accuracy, cost and latency, within budget.
 - **Scope:** feature 49.
 - **Depends on:** MKC-31.
@@ -584,6 +624,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] Spend within the E6 budget line (€3–4)
 
 ### MKC-35: CI eval gate
+
 - **Goal:** PRs that touch prompts, models, extraction, rules or retrieval cannot lower quality unnoticed.
 - **Scope:** feature 50.
 - **Depends on:** MKC-31, MKC-13 (replay).
@@ -599,6 +640,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
 ## Phase 5: Site advisor
 
 ### MKC-36: Site facts and follow-up questions
+
 - **Goal:** free text becomes confirmed SiteFacts; only result-changing gaps are asked about.
 - **Scope:** features 51 and 52.
 - **Depends on:** MKC-13, MKC-7.
@@ -613,6 +655,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] Modul 3 is answered as out of scope (test)
 
 ### MKC-37: Rule table and deterministic matching
+
 - **Goal:** confirmed facts map to LBS and to the operator's approved concepts, reproducibly.
 - **Scope:** features 53 and 54.
 - **Depends on:** MKC-30, MKC-12, MKC-36.
@@ -628,6 +671,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] The matcher calls no LLM (asserted)
 
 ### MKC-38: Explainer with checked citations
+
 - **Goal:** recommendations explain themselves and cite only approved records and pages.
 - **Scope:** feature 55.
 - **Depends on:** MKC-37.
@@ -641,6 +685,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] The recommendation card in the UI shows concept, LBS (stated/inferred), explanation, citations and open questions
 
 ### MKC-39: E3, advisor evaluation
+
 - **Goal:** measure the advisor on the test scenarios for both operators.
 - **Scope:** feature 56.
 - **Depends on:** MKC-38, MKC-31.
@@ -654,6 +699,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
 ## Phase 6: Submittable release
 
 ### MKC-40: Runs page and trace view
+
 - **Goal:** operators can start, resume and inspect runs in the UI.
 - **Scope:** features 57 and 58.
 - **Depends on:** MKC-30, MKC-19, MKC-11.
@@ -663,6 +709,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] Each trace links to Langfuse
 
 ### MKC-41: Catalogue and comparison view
+
 - **Goal:** approved concepts per operator, side by side by LBS.
 - **Scope:** feature 59.
 - **Depends on:** MKC-30.
@@ -671,6 +718,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] "Berlin 4.4 ≈ SachsenNetze 3-5"-style rows rendered from data, never hard-coded
 
 ### MKC-42: Eval report page
+
 - **Goal:** the latest evaluation results are visible in the app.
 - **Scope:** feature 60.
 - **Depends on:** MKC-31 to MKC-35, MKC-39.
@@ -679,6 +727,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] Shows E1–E6 with set sizes, split, model ids, spend and date
 
 ### MKC-43: Public read-only demo
+
 - **Goal:** visitors try the product without logging in, at zero LLM cost.
 - **Scope:** feature 61.
 - **Depends on:** MKC-41, MKC-38.
@@ -691,6 +740,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] Linked from the README
 
 ### MKC-44: README, security notes, runbook, demo script, presentation
+
 - **Goal:** the repo explains itself for reviewers and employers.
 - **Scope:** features 62 and 63.
 - **Depends on:** MKC-40 to MKC-43.
@@ -702,6 +752,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] Demo script and presentation material following the brief's six points
 
 ### MKC-45: Showcase upload (user task)
+
 - **Goal:** the project is on the Turing College showcase.
 - **Scope:** feature 64.
 - **Depends on:** MKC-44.
@@ -713,6 +764,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
 ## Phase 7: RAG and decision layer
 
 ### MKC-46: Decision-layer spike
+
 - **Goal:** prove or disprove the Jev call path via OpenRouter.
 - **Scope:** feature 65.
 - **Depends on:** MKC-13.
@@ -722,6 +774,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] The LLM fallback stays the default until this passes
 
 ### MKC-47: DecisionClient and wiring
+
 - **Goal:** guard and gating decisions come from the decision layer, with a fallback switch.
 - **Scope:** features 66 and 67.
 - **Depends on:** MKC-46, MKC-36, MKC-26.
@@ -737,6 +790,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] `langchain-typesafe` pinned
 
 ### MKC-48: E8, decision-layer evaluation
+
 - **Goal:** compare decision-model and LLM decisions on labelled sets.
 - **Scope:** feature 68.
 - **Depends on:** MKC-47, MKC-31.
@@ -745,6 +799,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] Accuracy, calibration, latency and cost per question and backend; thresholds tuned on dev, pinned in config
 
 ### MKC-49: Corpus loader, chunking and embeddings
+
 - **Goal:** the narrow legal corpus is loaded, chunked per paragraph, embedded and indexed.
 - **Scope:** features 69 and 70.
 - **Depends on:** MKC-5.
@@ -758,6 +813,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] One multilingual embedding model chosen and recorded in ADR 004
 
 ### MKC-50: Hybrid retriever
+
 - **Goal:** keyword and vector search combined, robust for paragraph references.
 - **Scope:** feature 71.
 - **Depends on:** MKC-49.
@@ -771,6 +827,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] Latency per query logged in the trace
 
 ### MKC-51: Legal reasons and "ask why"
+
 - **Goal:** recommendations quote the legal reasons, and users can ask grounded follow-up questions.
 - **Scope:** features 72 and 73.
 - **Depends on:** MKC-50, MKC-38.
@@ -784,6 +841,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] UI shows quoted passages with source links
 
 ### MKC-52: E7, RAG evaluation
+
 - **Goal:** measure retrieval and grounding quality.
 - **Scope:** feature 74.
 - **Depends on:** MKC-51, MKC-31.
@@ -792,6 +850,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] precision@k and recall@k for hybrid vs vector vs keyword; RAGAs faithfulness, answer relevancy, context precision
 
 ### MKC-53: Re-run E3/E5 and update the release
+
 - **Goal:** the submitted state reflects Phase 7 honestly.
 - **Scope:** feature 75.
 - **Depends on:** MKC-47, MKC-51, MKC-52, MKC-48.
@@ -804,6 +863,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
 ## Phase 8: Optional extras
 
 ### MKC-54: Read-only MCP server for the catalogue
+
 - **Scope:** feature 76.
 - **Success criteria:**
   - [ ] Tools: `list_operators`, `get_concept`, `compare_by_lbs`; read-only
@@ -811,6 +871,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] Tested with an MCP client
 
 ### MKC-55: LangGraph comparison arm for E4
+
 - **Scope:** feature 77.
 - **Success criteria:**
   - [ ] The extraction item loop ported to LangGraph with its checkpointer
@@ -818,6 +879,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] Findings added to ADR 001
 
 ### MKC-56: Third operator
+
 - **Scope:** feature 78.
 - **Success criteria:**
   - [ ] A third catalogue (e.g. VBEW-based) loaded at runtime, extracted, approved and evaluated

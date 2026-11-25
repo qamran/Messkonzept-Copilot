@@ -1,0 +1,162 @@
+# CI (MKC-6.4). Runs on every PR to main and every push to main.
+# Safety rules (checked by scripts/check_workflows.py):
+# - no pull_request_target and no secrets, so fork PRs get nothing secret
+# - read-only token; every action pinned to a commit SHA
+# - no paths filters: every job always reports, because they are required checks on main
+name: ci
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    services:
+      db:
+        image: pgvector/pgvector:pg17
+        env:
+          # Throwaway CI database; same placeholder credentials as docker-compose.yml.
+          POSTGRES_USER: mkc
+          POSTGRES_PASSWORD: mkc
+          POSTGRES_DB: mkc
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U mkc -d mkc"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
+    env:
+      DATABASE_URL: postgresql://mkc:mkc@127.0.0.1:5432/mkc
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+        with:
+          version: "0.12.18"
+      - run: uv sync --locked
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run mypy
+      # On Linux the POSIX-only SIGTERM worker test runs too; no test may be skipped here.
+      - run: uv run pytest -v
+
+  frontend:
+    # Reports success until MKC-7 adds frontend/. The condition sits on the steps, not on
+    # the job, so this required check always reports a result.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - id: detect
+        run: |
+          if [ -f frontend/package.json ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "No frontend/ yet (MKC-7); nothing to check."
+          fi
+      - if: steps.detect.outputs.present == 'true'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+      - if: steps.detect.outputs.present == 'true'
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run lint
+          npm run typecheck
+          npm test
+
+  gitleaks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      GITLEAKS_VERSION: "8.30.1"
+      GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0  # scan the full history, not only the tip
+          persist-credentials: false
+      - name: Install gitleaks (release binary, checksum pinned)
+        run: |
+          curl -sSfL -o /tmp/gitleaks.tgz \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  /tmp/gitleaks.tgz" | sha256sum -c -
+          tar -xzf /tmp/gitleaks.tgz -C /tmp gitleaks
+          /tmp/gitleaks version
+      - name: Self-test, a fake key must be caught
+        # The key is built at runtime, so no committed file contains it.
+        run: |
+          mkdir -p /tmp/leaktest
+          suffix=$(head -c 512 /dev/urandom | tr -dc 'A-Za-z0-9' | head -c 36)
+          printf 'token = "%s%s"\n' "ghp_" "$suffix" > /tmp/leaktest/fake.env
+          set +e
+          /tmp/gitleaks dir /tmp/leaktest --redact --no-banner
+          code=$?
+          set -e
+          if [ "$code" -ne 1 ]; then
+            echo "::error::gitleaks did not flag the fake key (exit $code)"
+            exit 1
+          fi
+          echo "gitleaks flagged the fake key (exit 1), as expected."
+      - name: Scan the repository history
+        run: /tmp/gitleaks git . --redact --no-banner --verbose
+
+  dependency-scan:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+        with:
+          version: "0.12.18"
+      - name: Export the locked backend dependencies
+        run: uv export --frozen --all-groups --no-emit-project -o /tmp/requirements.txt
+      - name: pip-audit against known vulnerabilities
+        run: uvx pip-audit@2.10.1 --strict --require-hashes --disable-pip -r /tmp/requirements.txt
+      # The image scan follows with the backend image in MKC-8.
+
+  docs:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+      - name: Markdown lint (all tracked Markdown)
+        run: git ls-files -z '*.md' | xargs -0 npx --yes markdownlint-cli2@0.18.1
+      - name: Check scripts
+        run: |
+          fail=0
+          for script in scripts/check_*.py; do
+            echo "== $script"
+            python3 "$script" || fail=1
+          done
+          exit "$fail"

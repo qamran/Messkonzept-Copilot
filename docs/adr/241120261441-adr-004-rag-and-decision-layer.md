@@ -7,6 +7,7 @@
 ## Context
 
 The site advisor recommends a Messkonzept with deterministic rules over approved catalogue records. Two additions were made to the core:
+
 1. **RAG**, so explanations and "ask why" answers can quote the legal and regulatory reasons.
 2. **A decision layer**, so yes/no, choice and score decisions (scope guard, follow-up gating, injection guard, page triage, review priority) come from a decision model returning probabilities rather than from parsed LLM text.
 

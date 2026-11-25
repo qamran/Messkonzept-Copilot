@@ -6,7 +6,7 @@
 
 ## Layout
 
-```
+```text
 backend/
   pyproject.toml        uv project "mkc", Python 3.12, src layout (hatchling)
   .python-version       3.12
@@ -29,6 +29,7 @@ backend/
 ## Settings
 
 `mkc.config.Settings(BaseSettings)`, env prefix `MKC_`:
+
 - `commit: str = "dev"` (from `MKC_COMMIT`, set by CI/CD at build time)
 - `worker_poll_seconds: float = 1.0`
 

@@ -10,7 +10,8 @@ _BARE_SCHEMES = ("postgres://", "postgresql://")
 class Settings(BaseSettings):
     """Runtime settings. Every field can be set with an MKC_<NAME> environment variable."""
 
-    model_config = SettingsConfigDict(env_prefix="MKC_")
+    # env_ignore_empty: an empty variable (as in .env.example) means "use the default".
+    model_config = SettingsConfigDict(env_prefix="MKC_", env_ignore_empty=True)
 
     commit: str = "dev"
     """Git commit of the running build; set by CI/CD."""

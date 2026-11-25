@@ -13,7 +13,7 @@
 
 ## Layout
 
-```
+```text
 docker-compose.yml          service db (repo root, so `docker compose up db` works as written)
 backend/
   alembic.ini               script_location = %(here)s/migrations
@@ -37,6 +37,7 @@ backend/
 ## Settings
 
 `Settings.database_url`:
+
 - read from `DATABASE_URL` (also `MKC_DATABASE_URL`)
 - default `postgresql+psycopg://mkc:mkc@127.0.0.1:5433/mkc`
 - `postgres://` and `postgresql://` are rewritten to `postgresql+psycopg://`. A bare scheme would make SQLAlchemy look for psycopg2. Supabase hands out `postgresql://` URLs.

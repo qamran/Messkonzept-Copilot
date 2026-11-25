@@ -16,10 +16,12 @@ The only shared language is the **BDEW Codeliste der Lokationsbündelstrukturen 
 2. **Site advisor.** A user describes a household site in plain language. The app extracts the facts, asks follow-up questions for what's missing, and recommends the matching Messkonzept *for that operator*, with the LBS code, an explanation, page citations and, from the RAG phase on, the legal reasons.
 
 **Why this project:**
+
 - The user has 7 years in German energy IT at a Messstellenbetreiber and targets jobs at utilities, MSBs, VNBs and energy-IT vendors. The project should show domain depth and AI engineering skill together.
 - The capstone brief (Case 5) asks for a reusable harness demonstrated on one narrow domain workflow, measured against a simple loop without checkpoints. Multi-page catalogue extraction is that workflow: long, interruptible, costly per step, with consequential writes.
 
 **Prior-art check (2026-11-24):**
+
 - No tool was found that turns operator Messkonzept PDFs into comparable data.
 - An open-source Rust project (hupe1980/mako) models Messkonzept matching but ships no real operator data. **The user decided not to use it in any form.** It is mentioned only in the README's prior-art line.
 
@@ -33,6 +35,7 @@ The only shared language is the **BDEW Codeliste der Lokationsbündelstrukturen 
 ## 3. Goals, non-goals, anti-goals
 
 **Goals (v1):**
+
 - Extract both catalogues into approved structured records:
   - **Stromnetz Berlin**, "Messkonzepte", 09-2026, 33 pages, about 25 concepts
   - **SachsenNetze**, "Standard-Messkonzepte in Niederspannung", 09/2025, 9 pages, 11 concepts
@@ -48,6 +51,7 @@ The only shared language is the **BDEW Codeliste der Lokationsbündelstrukturen 
 - A **submittable release** before the RAG and decision-layer phase (section 20, Phase 6).
 
 **Non-goals (v1):**
+
 - More than two operators
 - Medium-voltage or commercial sites (KWK, kaufmännisch-bilanzielle Weitergabe as a target scenario)
 - **§14a Modul 3** (time-variable grid fees) as a recommendation input
@@ -57,6 +61,7 @@ The only shared language is the **BDEW Codeliste der Lokationsbündelstrukturen 
 - Automatic catalogue discovery
 
 **Anti-goals (a failure even if it technically works):**
+
 - Recommends a concept **without a citation**, or presents an inferred LBS code as if the operator had stated it.
 - Commits a record to the catalogue without human approval.
 - Puts operator PDFs, real customer data or secrets into the public repo.
@@ -97,6 +102,7 @@ The only shared language is the **BDEW Codeliste der Lokationsbündelstrukturen 
 | Risk | More code, but simple and fully understood | Hidden behaviour, learning curve | Two mental models |
 
 The workflow is a mostly linear item queue, so LangGraph's strength (branching, multi-agent graphs) goes unused.
+
 - **Refinement (user decision):** LangChain handles the routine plumbing (provider chat models, tool schemas, structured output) underneath our `ModelClient`, but its agent APIs are not used.
 - The loop, checkpoints, approvals, limits and baseline switch are ours, because they are what Case 5 grades and what the E4 experiment needs to control.
 - A LangGraph port as a third evaluation arm is in the optional Phase 8.
@@ -121,7 +127,7 @@ C is the most accurate and the cheapest. It also gives a good evaluation story: 
 
 ## 6. Architecture
 
-```
+```text
 Public visitor ─► read-only demo (no login)
 React on Vercel (Vite, shadcn/ui, Clerk) ──HTTPS──► FastAPI API on k3s / Oracle (Clerk JWT check)
                                                         │ enqueue runs, approvals
@@ -199,6 +205,7 @@ Sources: the BDEW Codeliste (LBS codes and their object composition), the operat
 | Run report | **Code** | no |
 
 **Item-loop allow-list (the only tools the model sees):**
+
 - `extract_text`
 - `extract_tables`
 - `render_region`: page and bbox validated against the page count and page size; DPI capped
@@ -207,6 +214,7 @@ Sources: the BDEW Codeliste (LBS codes and their object composition), the operat
 - `save_draft`
 
 **Run-level operations** (`fetch_document`, `segment_document`, `enqueue_approval`, `commit_record`) are harness code with the same validation, tracing and idempotency rules, but they are **never exposed to the model**. That is least privilege: the model cannot fetch new URLs or write to the catalogue.
+
 - All tool arguments are Pydantic models. Invalid arguments are returned to the model as a structured error.
 - A typical agentic step: validation fails, so the model re-renders at a higher DPI and reads the diagram again.
 
@@ -259,9 +267,11 @@ Sources: the BDEW Codeliste (LBS codes and their object composition), the operat
 6. No match, or several equal matches: the app says so and lists what to clarify with the operator. It never guesses silently.
 
 **Added in the RAG and decision-layer phase (Phase 7):**
+
 7. **Legal reasons with sources.** Retrieved passages are quoted with their source.
    - **Narrow corpus:** EnWG §14a, MsbG, BNetzA BK6-22-300 (with Anlage 1), BNetzA BK8-22/010-A (the Modul 1/2 grid-fee rules that the advisor's §14a cases depend on), and the operator catalogue texts.
    - Laws and BNetzA decisions are official texts and free to use.
+
 8. **"Ask why":** follow-up questions about a recommendation, grounded only in retrieved passages and approved records. The answer is "not covered by the sources" when retrieval finds nothing relevant.
 9. **Decisions:**
    - a scope guard (household / commercial / medium voltage / off-topic)
@@ -293,6 +303,7 @@ Sources: the BDEW Codeliste (LBS codes and their object composition), the operat
 ## 11. Evaluation
 
 ### 11.1 Gold data: independent by construction
+
 - **A different model drafts the gold** than the one under test (the `gold_draft` role uses another provider), so systematic errors of the extraction model are not copied into the gold.
 - **Blind subset:** the user labels about 10 concepts and 10 advisor scenarios **from scratch, without seeing any draft**. Agreement between blind labels and verified drafts is reported.
 - **Dev/test split,** fixed in the repo before prompt tuning:
@@ -347,6 +358,7 @@ Spending caps are set at each provider.
 E3 and E5 are **re-run after Phase 7**, because the advisor and the injection guard change there.
 
 ### 11.5 Regression and CI gate
+
 - A small, fixed eval subset (about 5 concepts and 5 scenarios, from the test split) runs in GitHub Actions on PRs that touch prompts, models, extraction, rules or retrieval.
 - It uses **replayed** responses unless prompts or models changed. Then it runs live, within a cost cap.
 - The PR fails if accuracy drops below the stored baseline minus a tolerance, or if cost per item rises above a threshold.
@@ -406,7 +418,7 @@ E3 and E5 are **re-run after Phase 7**, because the advisor and the injection gu
     - GitHub Secrets and the protected `production` environment
     - a domain with TLS (also needed for Clerk production)
   - **Fallback** if k3s blocks deployment: keep the Helm chart tested on kind in CI, deploy with Compose on the same VM, and document the limitation.
-- **Remotes (set up 24.11.2026):** `origin` = https://github.com/qamran/Messkonzept-Copilot (personal, public, home); `turing` = https://github.com/TuringCollegeSubmissions/qshahz-AE.CAP.AFA.1.1 (submission mirror). `main` is pushed to both after every merge, so both show the same commit; the current one is in HANDOFF.md.
+- **Remotes (set up 24.11.2026):** `origin` = <https://github.com/qamran/Messkonzept-Copilot> (personal, public, home); `turing` = <https://github.com/TuringCollegeSubmissions/qshahz-AE.CAP.AFA.1.1> (submission mirror). `main` is pushed to both after every merge, so both show the same commit; the current one is in HANDOFF.md.
 
 ## 14. Agentic-coding practice and ticket workflow (review topic; ADR 005)
 
@@ -431,6 +443,7 @@ E3 and E5 are **re-run after Phase 7**, because the advisor and the injection gu
 ## 15. Build order
 
 The build follows the phases in section 20, ordered by dependency:
+
 - **Phase 2 ends with a go/no-go check:** vision reading on 5 Berlin concepts must work, or the scope narrows to Berlin only.
 - **Phase 6 is the submittable release:** everything graded is in place before RAG and the decision layer are added in Phase 7.
 
@@ -499,10 +512,13 @@ The build follows the phases in section 20, ordered by dependency:
 | 34 | HANDOFF.md as the agents' restart file, updated with every commit and important ticket change; restart recommended at about 80 % context | user |
 | 35 | Turing repo is a code-only mirror (ADR 005 option (c)): no issue-mirror Action and no token; the README links to the board, issues, design doc, ADRs and HANDOFF.md | user |
 | 36 | The development agent continues to the next ticket or step without asking for permission; it stops only for genuine decisions (scope or design choices, user-only setup tasks) | user |
+| 37 | FastAPI's test client uses `httpx2` instead of the deprecated `httpx`; Starlette deprecation warnings fail the tests (MKC-6.1) | user |
+| 38 | CI (MKC-6): jobs backend, frontend, gitleaks, dependency-scan and docs are required checks on `main`, pinned to the GitHub Actions app, with "branch must be up to date" on; no `paths` filters, so every job always reports; the frontend job reports success until MKC-7; gitleaks runs as a checksum-pinned release binary with a fake-key self-test; dependency scan is pip-audit on the hashed `uv export`; all tracked Markdown must pass markdownlint (ADR 005) | agent |
 
 ## 19. Course coverage
 
 The course concepts (Key-Concepts.md, sections 1–18) are mapped to where the project shows them.
+
 - ✅ **Implemented:** the project builds it, with evidence.
 - 📝 **Explained:** discussed in an ADR or the README, with the reason it isn't built.
 - ➖ **Not used:** out of scope, with the reason.
@@ -555,6 +571,7 @@ The course concepts (Key-Concepts.md, sections 1–18) are mapped to where the p
 Each phase ends in something that runs. Phases are ordered by dependency. **Phase 6 is the submittable release.** Phase 8 is optional, and the deferred list holds features cut in review, kept for later.
 
 ### Phase 0: Foundation and pipeline
+
 0. Ticket workflow setup (ADR 005): public Projects board with the status field, labels, issue and PR templates, a README linking the board (the Turing repo is a code-only mirror), branch protection with required checks.
 1. Repo setup: remotes already configured (`origin` = personal, `turing` = mirror); first push to `origin` and `turing`; branch protection on `main`; repo description and topics for the showcase.
 2. AGENTS.md + CLAUDE.md. The ADRs in `docs/adr/` are kept current, and new decisions get a new ADR.
@@ -571,6 +588,7 @@ Each phase ends in something that runs. Phases are ordered by dependency. **Phas
 13. Research issue: the version, format and licence terms of the BDEW Codeliste; LBS reference data loaded as facts with a citation.
 
 ### Phase 1: Harness core
+
 14. Provider layer: the `ModelClient` wrapper over LangChain chat models (OpenRouter, Gemini, Anthropic, Meta Llama); tool binding from Pydantic models; structured output; per-role config; zero-data-retention routing; token and cost recording; record/replay mode; pinned versions; a contract test per provider.
 15. Tool registry with **per-context allow-lists** (item-loop tools vs run-level operations), Pydantic argument models and structured error returns.
 16. Model-driven tool-calling loop per item.
@@ -586,6 +604,7 @@ Each phase ends in something that runs. Phases are ordered by dependency. **Phas
 26. A CLI to start, resume and inspect runs.
 
 ### Phase 2: Extraction, Berlin, code path
+
 27. Run-level `fetch_document`: allow-listed URLs, hashing, caching in Supabase Storage.
 28. Run-level `segment_document`: Berlin, one concept per page.
 29. `extract_text`: title, applications, footnotes, stated LBS.
@@ -596,6 +615,7 @@ Each phase ends in something that runs. Phases are ordered by dependency. **Phas
 34. **Go/no-go check:** vision reading on 5 Berlin concepts; go, or narrow the scope to Berlin only.
 
 ### Phase 3: Vision, SachsenNetze, validation and approvals
+
 35. `read_diagram`: the vision model returns meters, directions, upstream links and components as a schema.
 36. Re-render at higher DPI when validation fails (an agentic retry).
 37. SachsenNetze segmentation: two concepts per landscape page.
@@ -607,6 +627,7 @@ Each phase ends in something that runs. Phases are ordered by dependency. **Phas
 43. Catalogue export/import as JSON (backup and gold).
 
 ### Phase 4: Evaluation
+
 44. Eval runner (one CLI command) writing versioned reports; test-split reporting.
 45. E1 extraction accuracy.
 46. E2 LBS inference (Berlin with printed codes masked).
@@ -616,6 +637,7 @@ Each phase ends in something that runs. Phases are ordered by dependency. **Phas
 50. CI eval gate: a fixed test-split subset, replay by default, a stored baseline and tolerance.
 
 ### Phase 5: Site advisor
+
 51. SiteFacts extraction from free text (structured output) with `unknown[]`.
 52. Facts confirmation card plus follow-up questions only for result-changing gaps.
 53. Rule table (AI-drafted, user-verified): site facts → candidate LBS → concept attributes.
@@ -624,6 +646,7 @@ Each phase ends in something that runs. Phases are ordered by dependency. **Phas
 56. E3 advisor evaluation, with the LLM judge for explanation quality.
 
 ### Phase 6: Submittable release (UI, docs, showcase)
+
 57. Runs page: list, start, resume, status, cost/steps.
 58. Run trace view: a timeline of model and tool calls, linking to Langfuse.
 59. Catalogue and operator comparison by LBS ("Berlin 4.4 ≈ SachsenNetze 3-5").
@@ -634,6 +657,7 @@ Each phase ends in something that runs. Phases are ordered by dependency. **Phas
 64. Showcase upload (optional criterion).
 
 ### Phase 7: Grounded explanations (RAG) and decision layer
+
 65. **Decision-layer spike:** prove the `~typesafe/jev-latest` call path via OpenRouter (or document the alternative); until then the LLM fallback stays the default.
 66. `DecisionClient` (langchain-typesafe, pinned) with the LLM structured-output fallback.
 67. Decisions wired in: scope guard, follow-up gating, injection guard, page triage, review priority.
@@ -647,11 +671,13 @@ Each phase ends in something that runs. Phases are ordered by dependency. **Phas
 75. Re-run E3 and E5; update the eval report page, README and showcase.
 
 ### Phase 8: Optional extras
+
 76. A read-only MCP server for the approved catalogue.
 77. A LangGraph port of the extraction run as a third arm in E4.
 78. A third operator (e.g. a VBEW-based catalogue, loaded at runtime).
 
 ### Deferred (cut in the independent review; kept for later)
+
 79. Broader RAG corpus: EEG passages, BDEW guides (e.g. "Identifikatoren in der Marktkommunikation") and edi@energy documents, fetched at runtime and never committed.
 80. Embedding-model comparison (multilingual local model vs Gemini embeddings) in E7.
 81. A reranker in the retrieval pipeline.

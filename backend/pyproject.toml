@@ -17,7 +17,7 @@ mkc-worker = "mkc.worker.main:run"
 
 [dependency-groups]
 dev = [
-    "httpx>=0.27",
+    "httpx2>=2.16",
     "mypy>=1.13",
     "pytest>=8.3",
     "ruff>=0.8",
@@ -45,3 +45,5 @@ plugins = ["pydantic.mypy"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra"
+# Starlette deprecations (e.g. httpx for the TestClient) fail the tests instead of warning (MKC-6.1).
+filterwarnings = ["error::starlette.exceptions.StarletteDeprecationWarning"]
