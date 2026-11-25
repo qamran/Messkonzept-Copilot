@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 25.11.2026, 15:30
+**Last updated:** 25.11.2026, 15:32
 
 This file is how agents resume work after a session restart.
 
@@ -66,6 +66,7 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **25.11.2026 15:32** MKC-9.1: `check_secret_hygiene.py` was red after the last commit (`.env.example: missing MKC_WORKER_HEARTBEAT_FILE` and `…_MAX_AGE_SECONDS`); both added to `.env.example`. All `scripts/check_*.py` pass.
 - **25.11.2026 15:30** MKC-9.1: settings `MKC_WORKER_HEARTBEAT_FILE` (empty = off) and `MKC_WORKER_HEARTBEAT_MAX_AGE_SECONDS` (30); the worker touches the file on start and every poll (a failed write is logged); `mkc-worker-health` (`mkc.worker.health`). 60 passed, 1 skipped (POSIX-only); ruff and mypy pass.
 - **25.11.2026 15:27** MKC-9.1: red tests `tests/worker/test_heartbeat.py` (heartbeat written on start and refreshed on every poll, none when not configured; `mkc-worker-health` exit codes for fresh, stale, missing, not configured). Collection fails: `mkc.worker.health` missing.
 - **25.11.2026 15:23** MKC-9 plan written (`251120261520-mkc-9-helm-kind.md`). Checked: Helm v4.3.1, kind v0.33.0 (node `v1.37.0` by digest), kubectl v1.37.0, all older than two weeks; k3s stable is v1.37.2. Grace-period budget 300 s (decision 42 in MKC-9.5).
