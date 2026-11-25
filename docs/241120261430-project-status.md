@@ -1,6 +1,6 @@
 # Project status: Messkonzept-Copilot
 
-**Last updated:** 25.11.2026, 09:53
+**Last updated:** 25.11.2026, 10:11
 
 This is the living status document. It is updated whenever a decision is made or work is completed. Older brainstorming material lives in `brainstorming internal/` (gitignored and frozen).
 
@@ -19,10 +19,11 @@ This is the living status document. It is updated whenever a decision is made or
   - Supabase project settings: use the Session pooler, not the direct connection (IPv6 only) or the Transaction pooler (port 6543, no session state). The Data API is not used by the backend.
 - **Current ticket:** MKC-6 (secret hygiene and CI, plan `docs/superpowers/plans/251120260935-mkc-6-secret-hygiene-ci.md`, PR #86), sub-issues MKC-6.1 to MKC-6.5 (#81–#85):
   - `httpx2` for the test client; Starlette deprecation warnings fail the tests (decision 37)
-  - `.gitignore` (PDFs, `.env*` except `.env.example`, renders, caches), `.env.example`, `.pre-commit-config.yaml` (gitleaks, ruff, end-of-file fixer; install with `uvx pre-commit install`)
+  - `.gitignore` (PDFs, `.env*` except `.env.example`, renders, caches), `.env.example` (an empty value means "use the default": `Settings` ignores empty variables), `.pre-commit-config.yaml` (gitleaks, ruff, end-of-file fixer; install with `uvx pre-commit install`)
   - all tracked Markdown passes markdownlint
-  - `.github/workflows/ci.yml`: backend (pgvector service; all 17 tests run on Linux, none skipped), frontend (placeholder until MKC-7), gitleaks (fake-key self-test, full history), dependency-scan (pip-audit), docs (markdownlint, check scripts)
+  - `.github/workflows/ci.yml`: backend (pgvector service; every backend test runs on Linux, none skipped), frontend (placeholder until MKC-7), gitleaks (fake-key self-test, full history), dependency-scan (pip-audit), docs (markdownlint, check scripts)
   - the five jobs are required checks on `main`, branch must be up to date (decision 38, ADR 005)
+  - `scripts/check_workflows.py` bans secrets and write permissions in every workflow. The deploy workflow (MKC-10) will need both, in the protected `production` environment; that ticket must narrow the rule to the deploy workflow on `main` and record it as a decision.
 - **Next:** MKC-7 (frontend skeleton).
 
 ## Key documents
