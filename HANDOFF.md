@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 25.11.2026, 15:23
+**Last updated:** 25.11.2026, 15:27
 
 This file is how agents resume work after a session restart.
 
@@ -66,6 +66,7 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **25.11.2026 15:27** MKC-9.1: red tests `tests/worker/test_heartbeat.py` (heartbeat written on start and refreshed on every poll, none when not configured; `mkc-worker-health` exit codes for fresh, stale, missing, not configured). Collection fails: `mkc.worker.health` missing.
 - **25.11.2026 15:23** MKC-9 plan written (`251120261520-mkc-9-helm-kind.md`). Checked: Helm v4.3.1, kind v0.33.0 (node `v1.37.0` by digest), kubectl v1.37.0, all older than two weeks; k3s stable is v1.37.2. Grace-period budget 300 s (decision 42 in MKC-9.5).
 - **25.11.2026 15:21** MKC-9 sub-issues MKC-9.1 (#98) to 9.5 (#102) created (15:21:35–15:21:55), assigned to `qamran`, linked to #9 and set to `In progress`.
 - **25.11.2026 14:38** HANDOFF and status doc caught up after PR #97 (MKC-8 done, MKC-9 current).
