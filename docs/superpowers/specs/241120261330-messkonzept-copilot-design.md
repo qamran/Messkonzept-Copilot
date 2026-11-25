@@ -241,7 +241,7 @@ Sources: the BDEW Codeliste (LBS codes and their object composition), the operat
 ### 8.4 Run executor
 
 - **One worker Deployment** (one replica) claims runs from Postgres with a **lease**: `SELECT … FOR UPDATE SKIP LOCKED`, a heartbeat, and a lease expiry.
-- **On `helm upgrade` / SIGTERM:** the worker finishes the current turn, checkpoints, releases the lease and exits. The new pod picks the run up.
+- **On `helm upgrade` / SIGTERM:** the worker finishes the current turn, checkpoints, releases the lease and exits. The new pod picks the run up. The pod's grace period is 300 s, the turn budget (decision 42); the worker Deployment uses `Recreate`, so two workers never run at once.
 - **On a crash:** the lease expires and the next worker resumes from the last checkpoint.
 - **Honest limit:** everything runs on one Oracle VM. The loss of the VM means downtime, **not data loss** (state is in Supabase and backed up nightly). The API may run more than one replica; the worker stays at one.
 
@@ -387,6 +387,7 @@ E3 and E5 are **re-run after Phase 7**, because the advisor and the injection gu
 - **Version sync:** the backend exposes `/api/version`. The frontend warns on a mismatched API version, and CD deploys the backend before promoting the frontend.
 - **Containers:** one backend image (API and worker entrypoints), multi-arch (amd64 + arm64), on GHCR. The frontend container is only for local Compose.
 - **Local:** Docker Compose (`compose.yaml`: API, worker, Postgres, frontend; decision 41).
+- **Kubernetes:** one Helm chart, `deploy/helm/mkc/` (API and worker Deployments, Service, Ingress with cert-manager TLS, Secret; decision 42). `scripts/kind_smoke.sh` installs it on a throwaway kind cluster, locally and in CI.
 - **CI (GitHub Actions, personal repo):**
   - ruff, mypy, pytest
   - frontend lint, typecheck and tests
@@ -517,6 +518,7 @@ The build follows the phases in section 20, ordered by dependency:
 | 39 | Clerk development instance for every environment (local, Vercel previews, Vercel production), permanently; no production instance. Reason: production keys don't work on `*.vercel.app` and the workaround needs Vercel Pro. Sign-in by email and Google; the user's Google account is the admin (ADR 002) | user (agent laid out the options) |
 | 40 | Admin role = Clerk public metadata `{"role": "admin"}`, carried as the session-token claim `role`; the backend verifies tokens with the instance's public JWKS only (RS256, `exp`, `nbf`, `iss`, `sub`, `azp` allow-list), no Clerk secret key; the CI frontend job runs lint, typecheck, test and build; the dependency scan adds `npm audit` (shipped packages at any level, all packages at high) (MKC-7) | agent |
 | 41 | Containers (MKC-8): one backend image (`backend/Dockerfile`, multi-stage, uid 10001, base images pinned by digest, `MKC_COMMIT` build argument; API by default, `mkc-worker` for the worker); `compose.yaml` (db, api, worker, frontend) replaces `docker-compose.yml`; CI job `image` runs a Compose smoke test, a Grype scan (high or critical with a fix fails) and a `linux/amd64,linux/arm64` build on every PR; the only write permission in CI is `packages: write` in the job `publish`, which runs only on a push to `main` in `qamran/Messkonzept-Copilot` (Actions also run on the Turing mirror) and logs in with `github.token`, not a stored secret; image `ghcr.io/qamran/messkonzept-copilot-backend`, tags `<commit sha>` and `main`; `image` is a required check on `main`, `publish` is not (ADR 002, ADR 005) | agent |
+| 42 | Helm chart (MKC-9): `deploy/helm/mkc/` deploys the API (replicas from values) and the worker (`replicas: 1` in the template, `strategy: Recreate`); probes on `/health` for the API and `mkc-worker-health` (heartbeat file) for the worker; uid 10001, read-only root filesystem; secrets from values or an existing Secret, never in `values.yaml`; Ingress TLS via a cert-manager annotation (no `Certificate` or `ClusterIssuer` in the chart). Worker `terminationGracePeriodSeconds: 300` = turn budget: model call 180 s + tool calls 60 s + checkpoint and lease release 30 s + margin 30 s; the `ModelClient` timeout must stay at or below 180 s and MKC-10's `helm upgrade --timeout` must be longer than 300 s. CI job `kind` (Helm 4.3.1, kind 0.33.0, node v1.37.0 like k3s stable) runs `helm lint --strict` and `scripts/kind_smoke.sh` on every PR and is a required check; `publish` needs it (ADR 002, ADR 005) | agent |
 
 ## 19. Course coverage
 

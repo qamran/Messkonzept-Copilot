@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 25.11.2026, 15:36
+**Last updated:** 25.11.2026, 15:37
 
 This file is how agents resume work after a session restart.
 
@@ -37,6 +37,7 @@ This file is how agents resume work after a session restart.
   - MKC-8: backend image (`backend/Dockerfile`), `compose.yaml` (db, api, worker, frontend), `scripts/compose_smoke.sh`, CI jobs `image` (required check) and `publish`; image `ghcr.io/qamran/messkonzept-copilot-backend` (public, tags `<sha>` and `main`, amd64 + arm64) (decision 41, PR #97)
 - **How to run the frontend:** `frontend/.env.local` holds `VITE_CLERK_PUBLISHABLE_KEY` and `VITE_API_URL=http://127.0.0.1:8000` (gitignored). Run the API with `cd backend && uv run --env-file .env uvicorn mkc.api.app:create_app --factory --port 8000` (`backend/.env` has `MKC_CLERK_ISSUER`), then `cd frontend && npm run dev` (`localhost:5173`). Test sign-ins: the user's Google account (admin); a `+clerk_test@example.com` user (code `424242`) and a second Gmail account (both no role).
 - **How to run the whole stack in containers:** `docker compose --env-file frontend/.env.local up --build` (repo root; the env file gives the frontend build its Clerk key; without it the page says the key is missing). API on `127.0.0.1:8000`, frontend on `localhost:5173`, db on `127.0.0.1:5433`; `backend/.env` is loaded when present. `bash scripts/compose_smoke.sh` checks the stack as its own project (`mkc-smoke`, ports 15433/18000/15173, images tagged `smoke`) and removes its containers and volume afterwards.
+- **How to test the Helm chart:** `python scripts/check_helm.py` (static rules), then `bash scripts/kind_smoke.sh` (repo root; needs Docker Desktop running, plus `kind`, `helm` and `kubectl` on the PATH or in `KIND`, `HELM`, `KUBECTL`). It creates and deletes its own cluster `mkc-smoke` and never touches `~/.kube/config`. Lint: `helm lint --strict deploy/helm/mkc --set image.tag=lint`.
 - **How to test the backend:** `docker compose up -d db` (repo root; Postgres 17 + pgvector on `127.0.0.1:5433`), then `cd backend && uv sync && uv run pytest`. The DB tests fail if the db is down; `MKC_SKIP_DB_TESTS=1` skips them on purpose. Windows skips one POSIX-only worker test; run it in Linux with the Docker command in PR #75.
 
 ## In progress
@@ -66,6 +67,7 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **25.11.2026 15:37** MKC-9.5: design doc decision 42 (chart, 300 s turn budget, kind job) and lines in 8.4 and 13; ADR 002 section "Helm chart and kind test" (turn budget table, options); ADR 005 notes `kind` as a required check; status doc MKC-9 details and 42 decisions; README names the chart and the kind script; HANDOFF "How to test the Helm chart". markdownlint 0 errors; all `scripts/check_*.py` pass.
 - **25.11.2026 15:36** MKC-9.4: CI job `kind` (Helm v4.3.1, kind v0.33.0, kubectl v1.37.0, each `sha256sum -c`; `helm lint --strict` with a tag and with `ci-values.yaml`; `helm template`; `scripts/kind_smoke.sh` with `MKC_COMMIT=github.sha`); `publish` needs `kind`. `check_workflows.py` green; all `scripts/check_*.py` pass.
 - **25.11.2026 15:35** MKC-9.4: `check_workflows.py` requires a job `kind` (`helm lint --strict`, `sha256sum -c` on the downloads, `scripts/kind_smoke.sh`) and that `publish` needs every required job. Red: `job 'kind' missing`, `job 'publish' must need 'kind'`; a sample with `needs: [backend, docs]` reports the five missing jobs.
 - **25.11.2026 15:35** HANDOFF log times for MKC-9.1 to 9.3 corrected to the git commit times (15:23–15:34); the earlier lines had estimated times, against the rule.
