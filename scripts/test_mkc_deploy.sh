@@ -24,10 +24,15 @@ if [ "$1" = "history" ]; then
 fi
 exit "${STUB_HELM_EXIT:-0}"
 STUB
-# Stub curl: logs its arguments and writes a GitHub-style tarball with the chart to -o.
+# Stub curl: logs its arguments. The GitHub compare API answers with STUB_COMPARE
+# ("behind" = the commit is on main); codeload writes a GitHub-style tarball to -o.
 cat > "$WORK/curl" <<'STUB'
 #!/usr/bin/env bash
 echo "curl $*" >> "$STUB_LOG"
+case "${!#}" in
+  https://api.github.com/*)
+    printf '{"status": "%s", "ahead_by": 0}\n' "${STUB_COMPARE:-behind}"; exit 0 ;;
+esac
 out=""; while [ $# -gt 0 ]; do [ "$1" = "-o" ] && out="$2"; shift; done
 src="$(mktemp -d)"; mkdir -p "$src/Messkonzept-Copilot-x/deploy/helm"
 cp -r "$STUB_CHART" "$src/Messkonzept-Copilot-x/deploy/helm/mkc"
@@ -36,9 +41,10 @@ STUB
 chmod +x "$WORK/helm" "$WORK/curl"
 echo "image: {}" > "$WORK/values.yaml"
 
-run() {  # run <ssh command> [revisions]; sets $code and $log
+run() {  # run <ssh command> [revisions] [compare status]; sets $code and $log
   : > "$WORK/log"
-  SSH_ORIGINAL_COMMAND="$1" STUB_REVISIONS="${2:-0}" STUB_LOG="$WORK/log" \
+  SSH_ORIGINAL_COMMAND="$1" STUB_REVISIONS="${2:-0}" STUB_COMPARE="${3:-behind}" \
+    STUB_LOG="$WORK/log" \
     STUB_CHART="$ROOT/deploy/helm/mkc" MKC_DEPLOY_HELM="$WORK/helm" \
     MKC_DEPLOY_CURL="$WORK/curl" MKC_DEPLOY_VALUES="$WORK/values.yaml" \
     HOME="$WORK" bash "$SCRIPT" > "$WORK/out" 2>&1
@@ -63,9 +69,23 @@ for cmd in "${refused[@]}"; do
   else fail "refused: $(printf %q "$cmd") (exit $code, calls: $log)"; fi
 done
 
+# Only commits on main: GitHub serves a fork's commits under our repository's URL too.
+for status in ahead diverged; do
+  run "deploy $SHA" 0 "$status"
+  if [ "$code" -eq 4 ] && ! grep -q "^helm " <<<"$log" && ! grep -q "codeload" <<<"$log"; then
+    pass "commit not on main ($status): refused before download and Helm (exit 4)"
+  else fail "commit not on main ($status) (exit $code, calls: $log)"; fi
+done
+
+run "deploy $SHA" 0 identical
+if [ "$code" -eq 0 ] && grep -q "^helm upgrade" <<<"$log"; then
+  pass "commit = head of main (identical): deployed"
+else fail "commit = head of main (exit $code, calls: $log)"; fi
+
 run "deploy $SHA"
 want="helm upgrade --install mkc "
 if [ "$code" -eq 0 ] \
+  && grep -q "^curl .*https://api.github.com/repos/qamran/Messkonzept-Copilot/compare/main...$SHA$" <<<"$log" \
   && grep -q "^curl .*https://codeload.github.com/qamran/Messkonzept-Copilot/tar.gz/$SHA" <<<"$log" \
   && grep -q "^$want.*/deploy/helm/mkc --namespace mkc -f $WORK/values.yaml --set image.tag=$SHA --rollback-on-failure --wait=watcher --timeout 600s$" <<<"$log"
 then pass "deploy <sha>: chart from GitHub at the sha, fixed values, timeout 600s"

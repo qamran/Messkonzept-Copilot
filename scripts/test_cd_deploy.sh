@@ -64,6 +64,7 @@ done
 run "$SHA"
 if [ "$code" -eq 0 ] && [ "$(requests)" = "deploy $SHA|" ] \
   && grep -q -- "-o StrictHostKeyChecking=yes" <<<"$log" \
+  && grep -q -- "-o ServerAliveInterval=" <<<"$log" \
   && grep -q -- "-o UserKnownHostsFile=$WORK/known_hosts" <<<"$log" \
   && grep -q "mkc-deploy@" <<<"$log" \
   && grep -q "^curl .*https://92-6-240-17.sslip.io/api/version$" <<<"$log"
