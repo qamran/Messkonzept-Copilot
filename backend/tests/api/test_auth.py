@@ -35,7 +35,10 @@ def other_key() -> rsa.RSAPrivateKey:
 @pytest.fixture
 def make_token(signing_key: rsa.RSAPrivateKey) -> TokenFactory:
     def factory(
-        key: Any = None, algorithm: str = "RS256", headers: dict[str, Any] | None = None, **claims: Any
+        key: Any = None,
+        algorithm: str = "RS256",
+        headers: dict[str, Any] | None = None,
+        **claims: Any,
     ) -> str:
         now = int(time.time())
         payload: dict[str, Any] = {

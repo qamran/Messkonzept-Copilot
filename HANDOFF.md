@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 25.11.2026, 10:15
+**Last updated:** 25.11.2026, 11:23
 
 This file is how agents resume work after a session restart.
 
@@ -37,23 +37,33 @@ This file is how agents resume work after a session restart.
 
 ## In progress
 
-- **MKC-7** (#7), frontend skeleton with Clerk. Status `In progress`, assigned to `qamran`. Branch `mkc-7-frontend-skeleton`. Sub-issues and plan follow.
-  - Needs from the user: a Clerk application (see Blocked).
+- **MKC-7** (#7), frontend skeleton with Clerk. Status `In progress`, assigned to `qamran`. Branch `mkc-7-frontend-skeleton`. Plan: `docs/superpowers/plans/251120261119-mkc-7-frontend-skeleton.md`.
+  - Sub-issues (all `In progress`, assigned to `qamran`, linked to #7): MKC-7.1 (#87) backend token check, MKC-7.2 (#88) frontend scaffold and CI, MKC-7.3 (#89) `apiFetch` and `RequireAdmin`, MKC-7.4 (#90) Clerk decision and local check.
+  - **User decision (25.11.2026):** Clerk development instance for every environment, permanently (no Vercel Pro, so production keys can't run on `*.vercel.app` previews). Sign-in by email and Google; the user's Google account is the admin. Still to be written into ADR 002 and the design doc (MKC-7.4).
+  - **Clerk setup done by the user:** development instance; session-token claim `"role": "{{user.public_metadata.role}}"`; admin = public metadata `{"role": "admin"}`; one test non-admin (`mkc-user+clerk_test@example.com`, code `424242`). Publishable key in `frontend/.env.local` (gitignored). Issuer `https://better-cicada-5480.clerk.accounts.dev` (public) in `backend/.env` as `MKC_CLERK_ISSUER`.
 
 ## Next steps
 
-1. MKC-7: plan, sub-issues, then the frontend (`frontend/`: Vite + React + TS + shadcn/ui, `apiFetch`, `RequireAdmin`) and backend JWT checks (`mkc.api.auth.require_user`, `require_admin`), tested with signed test tokens. The CI frontend job turns on when `frontend/package.json` exists.
-2. MKC-8 (backend container image on GHCR; image scan in CI).
+1. MKC-7.2: frontend scaffold (`frontend/`: Vite + React + TS + Tailwind + shadcn/ui, ESLint, vitest); the CI frontend job turns on with `frontend/package.json`.
+2. MKC-7.3: `apiFetch` and `RequireAdmin`, test-first.
+3. MKC-7.4: ADR 002, design doc, status doc; local check of the three login states with the user.
+4. MKC-8 (backend container image on GHCR; image scan in CI).
 
 ## Blocked / waiting on user
 
-- **Clerk application for MKC-7.** The user creates a Clerk application (development instance first) and puts the keys in local `.env` files, never in chat or the repo. The choice for Vercel previews (production vs development instance) is recorded in ADR 002 during MKC-7.
+- **Local login check for MKC-7.4:** the user signs in once as admin (Google) and once as the test user, when the frontend is ready.
 - **Docker Desktop** must be running for the local DB tests (`docker compose up -d db`). If it is stopped after a restart, start it again. CI uses its own Postgres service.
 - Later setup tasks (listed in design doc section 13): Vercel account, provider API keys with caps, GitHub `production` environment, a domain with TLS. The Supabase project exists (created by the user on 25.11.2026).
 
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+
+- **25.11.2026 11:23** MKC-7.1: `mkc.api.auth` (`TokenVerifier`, `require_user`, `require_admin`, JWKS resolver), `GET /api/me`, `GET /api/admin/ping`, CORS allow-list; settings `MKC_CLERK_ISSUER`, `MKC_CLERK_AUTHORIZED_PARTIES`, `MKC_CORS_ORIGINS` in `.env.example`. 46 passed, 1 skipped (POSIX-only); ruff, mypy and `check_secret_hygiene.py` pass.
+- **25.11.2026 11:21** MKC-7.1: plan and red tests committed (`2e01edb`): `tests/api/test_auth.py` fails at collection (`mkc.api.auth` missing); 3 config tests fail (`Settings` has no Clerk fields). PyJWT 2.15.1 with `cryptography` added.
+- **25.11.2026 11:20** #87–#90 linked to #7 and set to `In progress`.
+- **25.11.2026 11:19** MKC-7 sub-issues MKC-7.1 (#87), 7.2 (#88), 7.3 (#89), 7.4 (#90) created (11:19:46–11:20:02), assigned to `qamran`.
+- **25.11.2026** User decision: Clerk development instance for all environments, permanently; user set up the instance, the `role` claim, the admin and a test user. Instance JWKS checked: one RS256 key.
 
 - **25.11.2026 10:15** HANDOFF and status doc caught up after PR #86 (MKC-6 done, MKC-7 current; Clerk application needed from the user).
 - **25.11.2026 10:14** MKC-7 (#7) assigned to `qamran`, to `In progress`; branch `mkc-7-frontend-skeleton` (reflog 10:14:55).
