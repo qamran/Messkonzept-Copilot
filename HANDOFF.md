@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 25.11.2026, 15:51
+**Last updated:** 25.11.2026, 16:45
 
 This file is how agents resume work after a session restart.
 
@@ -23,7 +23,7 @@ This file is how agents resume work after a session restart.
 - **Remotes:**
   - `origin` = qamran/Messkonzept-Copilot (home, public)
   - `turing` = TuringCollegeSubmissions/qshahz-AE.CAP.AFA.1.1 (code-only mirror, no issues; ADR 005 option (c), decision 35)
-  - Both at `35dc1fe` (merge of PR #97).
+  - Both at `1f16ba8` (merge of PR #103).
 - **`main` is protected:** PRs only, enforced for admins. Required checks: the `ci` jobs `backend`, `frontend`, `gitleaks`, `dependency-scan` and `docs` (since 25.11.2026 09:50, MKC-6.5) `image` (since 13:52, MKC-8) and `kind` (since 15:42, MKC-9); the branch must be up to date with `main`. `publish` is not required (skipped on PRs).
 - **Agent rules:** `AGENTS.md` (CLAUDE.md imports it). The development agent continues without asking and stops only for genuine decisions (decision 36).
 - **Done:**
@@ -35,6 +35,8 @@ This file is how agents resume work after a session restart.
   - MKC-6: secret hygiene (`.gitignore`, `.env.example`, pre-commit), markdown lint, CI (`backend`, `frontend`, `gitleaks`, `dependency-scan`, `docs`) as required checks on `main`; `httpx2` (PR #86)
   - MKC-7: frontend skeleton (`frontend/`: Vite, React, TS, Tailwind, shadcn/ui, `@clerk/react`, `apiFetch`, `RequireAdmin`); backend Clerk token check (`mkc.api.auth`, `/api/me`, `/api/admin/ping`); Clerk development instance everywhere (ADR 002, decision 39) (PR #91)
   - MKC-8: backend image (`backend/Dockerfile`), `compose.yaml` (db, api, worker, frontend), `scripts/compose_smoke.sh`, CI jobs `image` (required check) and `publish`; image `ghcr.io/qamran/messkonzept-copilot-backend` (public, tags `<sha>` and `main`, amd64 + arm64) (decision 41, PR #97)
+  - MKC-9: Helm chart `deploy/helm/mkc/` (API and worker, Service, Ingress with cert-manager TLS, Secret; worker `replicas: 1`, `Recreate`, grace period 300 s); worker heartbeat and `mkc-worker-health`; `scripts/check_helm.py`, `scripts/kind_smoke.sh`; CI job `kind` (required check) (decision 42, PR #103)
+- **Server (set up 25.11.2026, decisions 43 and 44):** Oracle VM `mkc-k3s`, `ubuntu@92.6.240.17`, admin login with the user's key `~/.ssh/oracle_mkc`; k3s v1.37.2 with Traefik; cert-manager v1.21.3 with ClusterIssuers `letsencrypt-staging` and `letsencrypt-prod`; API host `92-6-240-17.sslip.io`; 6443 closed from outside. Vercel project `messkonzept-copilot` (scope `qamran`); GitHub environment `production` (reviewer `qamran`, `main` only, secret `VERCEL_TOKEN`). Every step: `docs/251120261645-runbook.md`.
 - **How to run the frontend:** `frontend/.env.local` holds `VITE_CLERK_PUBLISHABLE_KEY` and `VITE_API_URL=http://127.0.0.1:8000` (gitignored). Run the API with `cd backend && uv run --env-file .env uvicorn mkc.api.app:create_app --factory --port 8000` (`backend/.env` has `MKC_CLERK_ISSUER`), then `cd frontend && npm run dev` (`localhost:5173`). Test sign-ins: the user's Google account (admin); a `+clerk_test@example.com` user (code `424242`) and a second Gmail account (both no role).
 - **How to run the whole stack in containers:** `docker compose --env-file frontend/.env.local up --build` (repo root; the env file gives the frontend build its Clerk key; without it the page says the key is missing). API on `127.0.0.1:8000`, frontend on `localhost:5173`, db on `127.0.0.1:5433`; `backend/.env` is loaded when present. `bash scripts/compose_smoke.sh` checks the stack as its own project (`mkc-smoke`, ports 15433/18000/15173, images tagged `smoke`) and removes its containers and volume afterwards.
 - **How to test the Helm chart:** `python scripts/check_helm.py` (static rules), then `bash scripts/kind_smoke.sh` (repo root; needs Docker Desktop running, plus `kind`, `helm` and `kubectl` on the PATH or in `KIND`, `HELM`, `KUBECTL`). It creates and deletes its own cluster `mkc-smoke` and never touches `~/.kube/config`. Lint: `helm lint --strict deploy/helm/mkc --set image.tag=lint`.
@@ -42,24 +44,17 @@ This file is how agents resume work after a session restart.
 
 ## In progress
 
-- **MKC-9** (#9), Helm chart and kind smoke test. Branch `mkc-9-helm-kind`. Plan: `docs/superpowers/plans/251120261520-mkc-9-helm-kind.md`. **PR #103** (assigned to `qamran`; closes #9, #98–#102).
-  - Status `In progress` after the review FAIL of 15:49 (blocking: this section was stale). Fixes are on the branch; after green CI on the new head, #9 and #98–#102 go back to `Testing` and the review agent re-reviews.
-  - Sub-issues (assigned to `qamran`): MKC-9.1 (#98) worker heartbeat and health command; MKC-9.2 (#99) Helm chart; MKC-9.3 (#100) kind smoke script; MKC-9.4 (#101) CI job `kind` as a required check; MKC-9.5 (#102) docs. All work done; `kind` is a required check since 15:42.
-  - First green CI: run 45636218952 (`d26910c`) and run 45637034228 (`0cc68b2`).
-  - Local tools (not in the repo): Helm v4.3.1, kind v0.33.0 and kubectl v1.37.0, checksum-checked, in the session scratchpad. CI downloads its own pinned copies.
+- **MKC-10** (#10), continuous deployment (k3s + Vercel). Status `In progress`, assigned to `qamran`. Branch `mkc-10-cd` from `1f16ba8`. The user's setup tasks are done (runbook "Server setup"). Plan and sub-issues follow.
 
 ## Next steps
 
-1. PR #103: green CI on the new head → #9 and #98–#102 to `Testing` → PR body names the fixes → review agent re-review. On PASS + merge:
-   - push `main` to `turing` and check `origin/main` == `turing/main`
-   - check the `main` run, including `publish` (now after `kind`)
-   - tick the criteria of #9 and #98–#102; status doc "Done" line for MKC-9; then MKC-10 (#10)
+1. MKC-10: plan and sub-issues; restricted deploy user and SSH deploy key; `cd.yml` (backend first, smoke test, `helm rollback` on failure, then Vercel production); `frontend/vercel.json` (no Vercel production deploys from `main`, SPA fallback); production `DATABASE_URL` as a Kubernetes Secret on the VM (from Supabase); frontend API-version warning; CORS for the Vercel domains; runbook "Deploy and rollback".
 2. Non-blocking follow-ups from the PR #103 review (for later tickets):
    - N1 (MKC-17/MKC-20): the heartbeat is only touched between polls; with max age 30 s and liveness 3 × 30 s, a turn of up to 240 s would get a healthy worker restarted. Beat during a turn or raise the max age (noted in ADR 002 and decision 42).
    - N2: `/tmp` is an `emptyDir` and survives a container restart, so an old heartbeat can make a restarted worker look Ready for up to 30 s; remove the file on start or add a `startupProbe`.
-   - N3: the smoke test does not prove the heartbeat is refreshed (its checks fall within 30 s of the start); only the unit test does.
-   - N4: the kind script was written after the chart; its red run used a wrong expected commit (disclosed in the PR).
-   - N6: `check_workflows.py` and `check_helm.py` are text-based and easy to fool (`if: false`, `|| true`, probes under `{{- if false }}`, a decoy grace period, a secret under `env:`); mutated samples are not kept as tests. Same class as the PR #97 findings.
+   - N3: the smoke test does not prove the heartbeat is refreshed; only the unit test does.
+   - N5 follow-up: no kept test renders an all-digit tag; a `helm template --set image.tag=1234567` line in the `kind` job would cover it.
+   - N6: `check_workflows.py` and `check_helm.py` are text-based and easy to fool; mutated samples are not kept as tests (same class as the PR #97 findings).
    - N7: the smoke script only prints the Ingress annotation and TLS secret; it does not assert them.
    - N11 (MKC-10): `checksum/secret` does not change with `existingSecret`; the secret checksum is visible in pod specs; API readiness does not check the database; the script leaves `mkc-backend:kind` in local Docker; a narrow race if the cluster name is taken after the guard.
 3. Non-blocking follow-ups from the PR #97 review (fold into a later CI-hardening ticket or MKC-9 where they touch the same files):
@@ -74,12 +69,26 @@ This file is how agents resume work after a session restart.
 ## Blocked / waiting on user
 
 - **Docker Desktop** must be running for the local DB tests (`docker compose up -d db`). If it is stopped after a restart, start it again. CI uses its own Postgres service.
-- Later setup tasks (listed in design doc section 13): Vercel account, provider API keys with caps, GitHub `production` environment, a domain with TLS. The Supabase project exists (created by the user on 25.11.2026).
+- Later setup tasks (design doc section 13): provider API keys with caps. Done on 25.11.2026: Supabase project, Oracle VM with k3s, API host, Vercel project, GitHub `production` environment with `VERCEL_TOKEN`.
+- **MKC-10 will need the user for:** the production `DATABASE_URL` (Supabase) if `backend/.env` is not the right one, and approving each deploy in the `production` environment.
 
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **25.11.2026 16:45** HANDOFF, status doc, design doc (decisions 43, 44; the "VM running" line of 24.11 corrected: the VM did not exist), ADR 002 "Server and API host" and the new runbook `docs/251120261645-runbook.md` ("Server setup", step by step as done with the user) after MKC-9 and the server setup.
+- **25.11.2026 16:42** MKC-10 (#10) assigned to `qamran`, to `In progress`; branch `mkc-10-cd` from `1f16ba8`.
+- **25.11.2026 16:41** `VERCEL_TOKEN` added by the user to the `production` environment (secret created 15:41:56Z); no repository-wide secrets.
+- **25.11.2026 16:40** GitHub environment `production` created (15:40:10Z): required reviewer `qamran`, protected branches only.
+- **25.11.2026 16:39** Vercel project `messkonzept-copilot` created (root `frontend`, Vite, `npm ci`, `dist`, Node 24.x, linked to the repo, production branch `main`); env `VITE_CLERK_PUBLISHABLE_KEY` and `VITE_API_URL=https://92-6-240-17.sslip.io` for production and preview. The first try failed until the user gave the Vercel GitHub App access to the repo.
+- **25.11.2026 16:33** cert-manager v1.21.3 (deployments 15:32:49Z), ClusterIssuers `letsencrypt-staging` and `letsencrypt-prod` (15:33:10Z, HTTP-01 via Traefik, no e-mail); a staging test certificate for `92-6-240-17.sslip.io` was Ready after 35 s, then deleted. User decision: API host `92-6-240-17.sslip.io` (decision 43).
+- **25.11.2026 16:29** k3s v1.37.2+k3s1 installed (unit file 15:29:45Z); node Ready (arm64); Traefik up; from outside `http://92.6.240.17/` gives Traefik's 404. VM iptables saved 15:29:08Z: 80 and 443 accepted, k3s pod and service ranges accepted, Oracle's FORWARD reject removed (backup `/etc/iptables/rules.v4.oracle-default`); from outside 80 and 443 reach the VM, 6443 times out.
+- **25.11.2026 16:16** Oracle VM `mkc-k3s` created by the user (15:16:23Z, AD-2, Ubuntu 24.04 arm64, `VM.Standard.A1.Flex`); first 1 OCPU / 6 GB and no public IP; the user added the ephemeral IP `92.6.240.17`, resized to 4 OCPUs / 24 GB and opened 80 and 443 in the security list. SSH key `~/.ssh/oracle_mkc` created by the user (16:10).
+- **25.11.2026 16:01** `main` run 45639464191 on `1f16ba8` green, including `publish` (after `kind`): `:1f16ba85…` and `:main` with `linux/amd64` and `linux/arm64`.
+- **25.11.2026 15:57** #9 and #98–#102 criteria ticked. MKC-9 complete.
+- **25.11.2026 15:56** `main` pushed to `turing` (15:56:40); `origin/main` == `turing/main` == `1f16ba8`.
+- **25.11.2026 15:55** PR #103 re-review **PASS** (comment 14:55:49Z), merged `1f16ba8` (merge commit, 14:55:54Z); #9 and #98–#102 closed and `Done`. Open non-blocking: see Next steps 2.
+- **25.11.2026 15:54** #9 and #98–#102 to `Testing`; PR #103 body lists the fixes. CI run 45638709414 on `d89d488` green (14:53:49Z).
 - **25.11.2026 15:51** PR #103 fix B1: HANDOFF "In progress" names PR #103, the review FAIL and the CI runs; "Next steps" is the path to merge and the post-merge list, plus the non-blocking findings N1–N11. ADR 002 and decision 42 note N1 (heartbeat during long turns, for MKC-17/MKC-20). Status doc header updated. #98 text corrected (the code default is empty; the chart sets the path, N8).
 - **25.11.2026 15:50** PR #103 fix N5: an all-digit `image.tag` broke the render (`--set image.tag=1234567`: `incompatible types for comparison: int64 and string`); the `mkc.image` helper now applies `toString`. After: renders `…:1234567`; `latest` and a missing tag are still refused; `helm lint --strict` green.
 - **25.11.2026 15:50** #9 and #98–#102 back to `In progress`.
