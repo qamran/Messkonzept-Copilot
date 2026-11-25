@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 25.11.2026, 15:50
+**Last updated:** 25.11.2026, 15:51
 
 This file is how agents resume work after a session restart.
 
@@ -42,21 +42,34 @@ This file is how agents resume work after a session restart.
 
 ## In progress
 
-- **MKC-9** (#9), Helm chart and kind smoke test. Status `In progress`, assigned to `qamran`. Branch `mkc-9-helm-kind`. Plan: `docs/superpowers/plans/251120261520-mkc-9-helm-kind.md`.
-  - Sub-issues (all `In progress`, assigned to `qamran`): MKC-9.1 (#98) worker heartbeat and health command; MKC-9.2 (#99) Helm chart; MKC-9.3 (#100) kind smoke script; MKC-9.4 (#101) CI job `kind` as a required check; MKC-9.5 (#102) docs.
+- **MKC-9** (#9), Helm chart and kind smoke test. Branch `mkc-9-helm-kind`. Plan: `docs/superpowers/plans/251120261520-mkc-9-helm-kind.md`. **PR #103** (assigned to `qamran`; closes #9, #98–#102).
+  - Status `In progress` after the review FAIL of 15:49 (blocking: this section was stale). Fixes are on the branch; after green CI on the new head, #9 and #98–#102 go back to `Testing` and the review agent re-reviews.
+  - Sub-issues (assigned to `qamran`): MKC-9.1 (#98) worker heartbeat and health command; MKC-9.2 (#99) Helm chart; MKC-9.3 (#100) kind smoke script; MKC-9.4 (#101) CI job `kind` as a required check; MKC-9.5 (#102) docs. All work done; `kind` is a required check since 15:42.
+  - First green CI: run 45636218952 (`d26910c`) and run 45637034228 (`0cc68b2`).
   - Local tools (not in the repo): Helm v4.3.1, kind v0.33.0 and kubectl v1.37.0, checksum-checked, in the session scratchpad. CI downloads its own pinned copies.
 
 ## Next steps
 
-1. MKC-9: MKC-9.1 (heartbeat) first, then the chart, the smoke script, the CI job and the docs (order in the plan).
-2. Non-blocking follow-ups from the PR #97 review (fold into a later CI-hardening ticket or MKC-9 where they touch the same files):
+1. PR #103: green CI on the new head → #9 and #98–#102 to `Testing` → PR body names the fixes → review agent re-review. On PASS + merge:
+   - push `main` to `turing` and check `origin/main` == `turing/main`
+   - check the `main` run, including `publish` (now after `kind`)
+   - tick the criteria of #9 and #98–#102; status doc "Done" line for MKC-9; then MKC-10 (#10)
+2. Non-blocking follow-ups from the PR #103 review (for later tickets):
+   - N1 (MKC-17/MKC-20): the heartbeat is only touched between polls; with max age 30 s and liveness 3 × 30 s, a turn of up to 240 s would get a healthy worker restarted. Beat during a turn or raise the max age (noted in ADR 002 and decision 42).
+   - N2: `/tmp` is an `emptyDir` and survives a container restart, so an old heartbeat can make a restarted worker look Ready for up to 30 s; remove the file on start or add a `startupProbe`.
+   - N3: the smoke test does not prove the heartbeat is refreshed (its checks fall within 30 s of the start); only the unit test does.
+   - N4: the kind script was written after the chart; its red run used a wrong expected commit (disclosed in the PR).
+   - N6: `check_workflows.py` and `check_helm.py` are text-based and easy to fool (`if: false`, `|| true`, probes under `{{- if false }}`, a decoy grace period, a secret under `env:`); mutated samples are not kept as tests. Same class as the PR #97 findings.
+   - N7: the smoke script only prints the Ingress annotation and TLS secret; it does not assert them.
+   - N11 (MKC-10): `checksum/secret` does not change with `existingSecret`; the secret checksum is visible in pod specs; API readiness does not check the database; the script leaves `mkc-backend:kind` in local Docker; a narrow race if the cluster name is taken after the guard.
+3. Non-blocking follow-ups from the PR #97 review (fold into a later CI-hardening ticket or MKC-9 where they touch the same files):
    - check scripts are substring-based: flow-style `permissions: {…: write}`, `toJSON(secrets)`, `|| true` / `continue-on-error` on the scan, `if: false` on `image`, indented `USER root`, `USER 10001:0`, `COPY --chown --from=<unpinned>`, `!.env` after `.env`, `compose.override.yaml` all pass
    - no kept tests rerun the bad samples (they live only in the PR body and HANDOFF)
    - `cancel-in-progress: true` also applies on `main`: two quick merges can cancel a `publish`
    - the Grype database is not pinned, so a new high finding can turn unrelated PRs red
    - remove `pip` from the runtime image (source of most medium findings); `pgvector/pgvector:pg17` not digest-pinned; `publish` rebuilds instead of pushing the scanned image
    - the MKC-8 plan still lists `docker/metadata-action` (not used)
-3. Optional follow-ups from the PR #91 re-review (non-blocking): `apiBase()` could refuse a query, fragment or userinfo in `VITE_API_URL`; an empty `sub` is accepted; falsy non-string roles read as "no role".
+4. Optional follow-ups from the PR #91 re-review (non-blocking): `apiBase()` could refuse a query, fragment or userinfo in `VITE_API_URL`; an empty `sub` is accepted; falsy non-string roles read as "no role".
 
 ## Blocked / waiting on user
 
@@ -67,6 +80,7 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **25.11.2026 15:51** PR #103 fix B1: HANDOFF "In progress" names PR #103, the review FAIL and the CI runs; "Next steps" is the path to merge and the post-merge list, plus the non-blocking findings N1–N11. ADR 002 and decision 42 note N1 (heartbeat during long turns, for MKC-17/MKC-20). Status doc header updated. #98 text corrected (the code default is empty; the chart sets the path, N8).
 - **25.11.2026 15:50** PR #103 fix N5: an all-digit `image.tag` broke the render (`--set image.tag=1234567`: `incompatible types for comparison: int64 and string`); the `mkc.image` helper now applies `toString`. After: renders `…:1234567`; `latest` and a missing tag are still refused; `helm lint --strict` green.
 - **25.11.2026 15:50** #9 and #98–#102 back to `In progress`.
 - **25.11.2026 15:49** PR #103 review **FAIL** (comment 14:49:34Z). Blocking: HANDOFF "In progress" and "Next steps" were stale at the PR head (still `In progress`, no PR #103, next step MKC-9.1). Everything else passed: CI run 45637034228 on `0cc68b2` green, `kind` required, pins match upstream, commits, assignment, secrets, pod hardening. Non-blocking N1–N11 (see Next steps).
