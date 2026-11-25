@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 25.11.2026, 11:30
+**Last updated:** 25.11.2026, 11:31
 
 This file is how agents resume work after a session restart.
 
@@ -59,7 +59,10 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
-- **25.11.2026 11:30** MKC-7.2: `check_secret_hygiene.py` requires `frontend/.env.example` (both `VITE_` names, no values); `check_workflows.py` requires `npm audit` in the dependency-scan job. Both red (`frontend/.env.example: file missing`; `job 'dependency-scan' must run 'npm audit'`).
+- **25.11.2026 11:31** MKC-7.2: CI frontend job runs `npm ci`, lint, typecheck, test and build (the "no frontend yet" switch is gone); dependency-scan runs `npm audit --omit=dev` (any level) and `npm audit --audit-level=high` (all packages). `check_workflows.py` and `check_secret_hygiene.py` green.
+- **25.11.2026 11:30** MKC-7.2: frontend scaffold committed (`572c915`, without a HANDOFF change; logged here). Vite react-ts template, Tailwind 4, shadcn/ui `radix-nova` (button, card), ESLint, vitest + jsdom + Testing Library, `@clerk/react` 6, `react-router` 8; TypeScript stays 5.9 (template). AppShell smoke test red (module missing), then green. `shadcn` moved to dev dependencies: as a runtime dependency it pulled `ts-morph` → `minimatch` (4 moderate advisories); now `npm audit --omit=dev` 0 and `--audit-level=high` 0. lint, typecheck, test and build pass.
+
+- **25.11.2026 11:24** MKC-7.2: `check_secret_hygiene.py` requires `frontend/.env.example` (both `VITE_` names, no values); `check_workflows.py` requires `npm audit` in the dependency-scan job. Both red (`frontend/.env.example: file missing`; `job 'dependency-scan' must run 'npm audit'`).
 
 - **25.11.2026 11:23** MKC-7.1: `mkc.api.auth` (`TokenVerifier`, `require_user`, `require_admin`, JWKS resolver), `GET /api/me`, `GET /api/admin/ping`, CORS allow-list; settings `MKC_CLERK_ISSUER`, `MKC_CLERK_AUTHORIZED_PARTIES`, `MKC_CORS_ORIGINS` in `.env.example`. 46 passed, 1 skipped (POSIX-only); ruff, mypy and `check_secret_hygiene.py` pass.
 - **25.11.2026 11:21** MKC-7.1: plan and red tests committed (`2e01edb`): `tests/api/test_auth.py` fails at collection (`mkc.api.auth` missing); 3 config tests fail (`Settings` has no Clerk fields). PyJWT 2.15.1 with `cryptography` added.
