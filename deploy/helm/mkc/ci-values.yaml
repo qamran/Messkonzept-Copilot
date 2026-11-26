@@ -19,6 +19,6 @@ ingress:
 env:
   MKC_CORS_ORIGINS: http://localhost:5173
 
-# Placeholder only: nothing in the smoke test touches the database yet.
+# The test database from deploy/kind/postgres.yaml (MKC-11.1: the migration hook uses it).
 secrets:
-  DATABASE_URL: postgresql://mkc:mkc@db.invalid:5432/mkc
+  DATABASE_URL: postgresql://mkc:mkc@mkc-db.mkc-kind-db.svc.cluster.local:5432/mkc

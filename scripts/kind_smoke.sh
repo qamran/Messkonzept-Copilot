@@ -8,6 +8,9 @@
 #   - /health is 200 and /api/version returns the expected commit (through the Service)
 #   - the worker pod is Ready and has not restarted
 #   - deleting the worker pod sends SIGTERM and the worker logs a clean stop
+#   - MKC-11.1: on this fresh install the migration hook ran (alembic at head, hook Secret
+#     gone) under Pod Security "restricted"; an upgrade whose migration fails is refused
+#     and the release rolls back
 # The cluster is deleted at the end, also on failure (after printing diagnostics).
 # It uses its own KUBECONFIG, so ~/.kube/config and the current context are never touched.
 #
@@ -91,11 +94,35 @@ log "loading $IMAGE into the cluster"
 docker save "$IMAGE" -o "$WORK/image.tar"
 "$KIND" load image-archive "$WORK/image.tar" --name "$CLUSTER"
 
+log "test database in namespace mkc-kind-db (deploy/kind/postgres.yaml)"
+"$KUBECTL" apply -f deploy/kind/postgres.yaml
+"$KUBECTL" -n mkc-kind-db rollout status deployment/mkc-db --timeout=180s
+
+log "Pod Security restricted on the release namespace (as on the VM)"
+"$KUBECTL" label namespace default --overwrite \
+  pod-security.kubernetes.io/enforce=restricted pod-security.kubernetes.io/enforce-version=latest
+
+db_sql() {
+  "$KUBECTL" -n mkc-kind-db exec deploy/mkc-db -- psql -U mkc -d mkc -tAc "$1"
+}
+
 log "helm install"
 "$HELM" install "$RELEASE" "$CHART" -f "$CHART/ci-values.yaml" --wait --timeout 5m
 "$KUBECTL" rollout status deployment/mkc-api --timeout=120s
 "$KUBECTL" rollout status deployment/mkc-worker --timeout=120s
 "$KUBECTL" get ingress mkc-api -o jsonpath='{.metadata.annotations.cert-manager\.io/cluster-issuer} {.spec.tls[0].secretName}{"\n"}'
+
+log "migration hook ran on the fresh install"
+[ "$("$KUBECTL" get job mkc-migrate -o jsonpath='{.status.succeeded}')" = "1" ] \
+  || fail "migration Job did not succeed"
+head_rev="$(db_sql 'SELECT version_num FROM alembic_version')"
+echo "alembic_version: $head_rev"
+[ -n "$head_rev" ] || fail "no alembic_version after the install"
+[ "$(db_sql "SELECT to_regclass('public.backup_runs') IS NOT NULL")" = "t" ] \
+  || fail "table backup_runs missing"
+if "$KUBECTL" get secret mkc-migrate >/dev/null 2>&1; then
+  fail "the hook Secret mkc-migrate was not deleted after the hooks succeeded"
+fi
 
 log "API through the Service (port-forward on 127.0.0.1:$PORT)"
 "$KUBECTL" port-forward service/mkc-api "$PORT:80" >"$WORK/port-forward.log" 2>&1 &
@@ -147,3 +174,19 @@ log "the Deployment starts a new worker"
 "$KUBECTL" rollout status deployment/mkc-worker --timeout=120s
 "$KUBECTL" wait --for=condition=Ready pod -l "$WORKER_SELECTOR" --timeout=120s
 worker_state
+
+log "a failing migration fails the upgrade; the release rolls back"
+# Pre-upgrade hooks run before any release resource changes, so the API must stay untouched.
+api_generation="$("$KUBECTL" get deployment mkc-api -o jsonpath='{.metadata.generation}')"
+if "$HELM" upgrade "$RELEASE" "$CHART" -f "$CHART/ci-values.yaml" \
+    --set secrets.DATABASE_URL=postgresql://mkc:mkc@db.invalid:5432/mkc \
+    --rollback-on-failure --wait --timeout 3m; then
+  fail "helm upgrade succeeded although the migration cannot reach a database"
+fi
+"$HELM" history "$RELEASE"
+status="$("$HELM" status "$RELEASE" -o json | grep -o '"status":"[a-z-]*"' | head -1)"
+[ "$status" = '"status":"deployed"' ] || fail "release not deployed after the rollback: $status"
+[ "$("$KUBECTL" get job mkc-migrate -o jsonpath='{.status.failed}')" = "1" ] \
+  || fail "the failed migration Job is not visible"
+[ "$("$KUBECTL" get deployment mkc-api -o jsonpath='{.metadata.generation}')" = "$api_generation" ] \
+  || fail "the API Deployment changed although the migration failed"

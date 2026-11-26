@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 26.11.2026, 09:56
+**Last updated:** 26.11.2026, 10:02
 
 This file is how agents resume work after a session restart.
 
@@ -88,6 +88,7 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **26.11.2026 10:02** MKC-11.1 green: model `BackupRun`, migration 0002 `backup_runs` (additive), models registered in `migrations/env.py`; chart: hook Job `mkc-migrate` (`pre-install,pre-upgrade`, `alembic upgrade head`, `backoffLimit: 0`, deadline 300 s, restricted) and hook Secret `mkc-migrate` (weight -10, deleted after success; not rendered with `existingSecret`); `migrations.enabled: true`. kind smoke (local, 09:58–10:02): test Postgres in namespace `mkc-kind-db` (`deploy/kind/postgres.yaml`), release namespace labelled Pod Security `restricted`; fresh install: hook ran, `alembic_version` 0002, `backup_runs` exists, hook Secret gone; upgrade with an unreachable database: refused ("pre-upgrade hooks failed"), rolled back (revision 3 "Rollback to 1"), API Deployment unchanged. pytest db 10 passed; `helm lint --strict` (default, kind, production values) green.
 - **26.11.2026 09:56** MKC-11.1 red: `tests/db/test_backup_runs_migration.py` (0002 creates `backup_runs`, downgrades, a second upgrade is a no-op; models match the migrations) fails (no table, no `mkc.db.models`); `check_helm.py` migration rules (hook Job and hook Secret) fail (files missing).
 - **26.11.2026 09:53** MKC-11 plan committed. Sub-issues MKC-11.1 (#110) to 11.5 (#114) created 09:52 (08:52:33Z–08:52:56Z), linked to #11, on the board (#110 `In progress`, the rest `Ready`). Checked: Supabase PostgreSQL 17.12; trixie `postgresql-client-17` 17.12; VM region `eu-frankfurt-1`. The user was asked for the Oracle setup (bucket, lifecycle rule, write-only upload link).
 - **26.11.2026 09:21** Decision 45: the user accepted the preview-origin risk (asked in the session; options were accept, previews CORS only, own domain for previews). Decision 45 and ADR 002 say "accepted", with the rule: sign in only on production or on a preview from one of our PRs; revisit before real data or a Clerk production instance.

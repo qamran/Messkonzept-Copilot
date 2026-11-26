@@ -31,6 +31,17 @@ worker:
       cpu: "1"
       memory: 1Gi
 
+migrations:
+  # A pre-install,pre-upgrade hook Job runs `alembic upgrade head` (MKC-11.1, decision 48).
+  enabled: true
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
 # Non-secret settings, as MKC_* environment variables (see .env.example).
 # Example: MKC_CLERK_ISSUER: https://<name>.clerk.accounts.dev
 env: {}

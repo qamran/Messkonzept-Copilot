@@ -1,0 +1,66 @@
+{{- /*
+  Database migrations on every install and upgrade (MKC-11.1, decision 48).
+  A pre-install,pre-upgrade hook: it runs before any pod of the release changes. If it
+  fails, the install or upgrade fails, and `--rollback-on-failure` keeps the old release.
+  Migrations are additive only: `helm rollback` does not undo them.
+*/ -}}
+{{- if .Values.migrations.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "mkc.fullname" . }}-migrate
+  labels:
+    {{- include "mkc.labels" . | nindent 4 }}
+    app.kubernetes.io/component: migrate
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "0"
+    # Kept after it ran (logs for the runbook); replaced on the next release.
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  # No retries: a failed migration must fail the release, not run twice.
+  backoffLimit: 0
+  # Fail a stuck migration (locks, network) instead of blocking the deploy.
+  activeDeadlineSeconds: 300
+  template:
+    metadata:
+      labels:
+        {{- include "mkc.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: migrate
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: migrate
+          image: {{ include "mkc.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["alembic", "upgrade", "head"]
+          # Only the database secret: the ConfigMap may not exist yet on a fresh install.
+          envFrom:
+            - secretRef:
+                {{- if .Values.existingSecret }}
+                name: {{ .Values.existingSecret }}
+                {{- else }}
+                name: {{ include "mkc.fullname" . }}-migrate
+                {{- end }}
+          resources:
+            {{- toYaml .Values.migrations.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+{{- end }}

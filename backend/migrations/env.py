@@ -9,6 +9,7 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import create_engine, pool
 
+import mkc.db.models  # noqa: F401  (registers the tables on Base.metadata)
 from mkc.config import get_settings
 from mkc.db.base import Base
 
