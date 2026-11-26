@@ -1,6 +1,7 @@
 """MKC-13.5: the provider factory. OpenRouter requests carry zero-data-retention routing."""
 
 import json
+import time
 from pathlib import Path
 from typing import Any
 
@@ -129,3 +130,27 @@ def test_from_settings_reads_models_file(monkeypatch: pytest.MonkeyPatch, tmp_pa
     monkeypatch.setenv("MKC_MODELS_FILE", str(tmp_path / "missing.yaml"))
     with pytest.raises(ModelConfigError, match="not found"):
         ModelClient.from_settings(Settings())
+
+
+# --- no hidden retries (decision 52; found after the 503 mock hung) --------------------
+
+
+@pytest.mark.parametrize("status", [503, 500, 429])
+def test_openrouter_sends_exactly_one_request_on_errors(settings: Settings, status: int) -> None:
+    """The SDK's own default is exponential backoff on 5XX for up to an hour. The factory
+    must switch it off, so a 503 fails at once and the harness decides (E4, decision 42)."""
+    sent: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        sent.append(request)
+        return httpx.Response(status, json={"error": {"code": status, "message": "down"}})
+
+    http = httpx.Client(transport=httpx.MockTransport(handler))
+    model = build_chat_model("openrouter", "a/cheap", settings, 120, http_client=http)
+    started = time.perf_counter()
+    with pytest.raises(Exception):  # noqa: B017 - any error; the point is one request
+        model.invoke([HumanMessage(content="Hi")])
+    assert len(sent) == 1
+    assert time.perf_counter() - started < 5
+    body = json.loads(sent[0].content)
+    assert body["provider"] == {"zdr": True, "data_collection": "deny"}
