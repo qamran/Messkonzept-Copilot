@@ -17,7 +17,7 @@ from mkc.config import Settings
 from mkc.models.client import CallTrace, ModelClient
 from mkc.models.config import load_models_config
 from mkc.models.providers import make_factory
-from mkc.models.types import PROVIDERS, ROLES, Message, Provider, ToolSpec
+from mkc.models.types import PROVIDERS, ROLES, Image, Message, Provider, ToolSpec
 
 pytestmark = pytest.mark.live
 
@@ -91,3 +91,34 @@ def test_structured_output_round_trip(provider: Provider) -> None:
     assert reply.parsed == {"code": CODE, "digits": 13}
     assert reply.usage.output_tokens > 0
     print(f"\n{provider} structured: {reply.model_id} {reply.usage} {reply.latency_ms} ms")
+
+
+def red_png(size: int = 16) -> bytes:
+    """A solid red PNG built with the standard library (no image in the repo)."""
+    import struct
+    import zlib
+
+    def chunk(kind: bytes, data: bytes) -> bytes:
+        body = kind + data
+        return struct.pack(">I", len(data)) + body + struct.pack(">I", zlib.crc32(body))
+
+    rows = b"".join(b"\x00" + b"\xff\x00\x00" * size for _ in range(size))
+    header = struct.pack(">IIBBBBB", size, size, 8, 2, 0, 0, 0)
+    return (
+        b"\x89PNG\r\n\x1a\n"
+        + chunk(b"IHDR", header)
+        + chunk(b"IDAT", zlib.compress(rows))
+        + chunk(b"IEND", b"")
+    )
+
+
+@pytest.mark.parametrize("provider", PROVIDERS)
+def test_vision_round_trip(provider: Provider) -> None:
+    """Not a ticket criterion: proves the image block shape on each real provider."""
+    traces: list[CallTrace] = []
+    client = contract_client(provider, traces)
+    messages = [Message(role="user", content="What colour is this image? Answer in one word.")]
+    image = Image(media_type="image/png", data=red_png())
+    reply = client.vision("extract_vision", messages, [image])
+    assert "red" in reply.text.lower()
+    print(f"\n{provider} vision: {reply.model_id} {reply.usage} {reply.latency_ms} ms")
