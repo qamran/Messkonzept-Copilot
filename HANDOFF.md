@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 26.11.2026, 12:12
+**Last updated:** 26.11.2026, 12:18
 
 This file is how agents resume work after a session restart.
 
@@ -50,6 +50,7 @@ This file is how agents resume work after a session restart.
   - Branch for PR B: `mkc-11-drill-docs` from `0b6f49a`.
   - Sub-issues: MKC-11.1 (#110) to 11.4 (#113) closed by PR #115. MKC-11.5 (#114) is open and `In progress` (the merge closed it by mistake, see the log; reopened).
   - Production is prepared: `MKC_BACKUP_UPLOAD_URL` is in `mkc-secrets` on the VM (hash compared with the local file, which is deleted); `/etc/mkc/values.yaml` is the repo's `deploy/vm/values-production.yaml` (`backup.enabled: true`); `mkc-deployer` may create, patch and delete CronJobs and Jobs.
+  - Runbook section "Where every setting and secret lives": the inventory of all outside settings (kept current by `scripts/check_runbook.py`).
   - `cd` run 45808156597 on `0b6f49a` started 12:10; it needs the user's two approvals (`backend`, then `frontend`).
 
 ## Next steps
@@ -94,6 +95,7 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **26.11.2026 12:18** MKC-11.5: runbook section "Where every setting and secret lives" at the user's request (the upload link and the console settings were stored nowhere else): per service (the PC's local files, Oracle, the VM, Supabase, Clerk, Vercel, GitHub) what is set, where to find it, how to make it again, and what to do if the PC is lost. No secret values. New `scripts/check_runbook.py` (red first in `b3e7d79`: section missing): the section must name every workflow secret, the keys in `mkc-secrets`, the frontend's `VITE_` variables and the local key files. Checked live: GitHub secrets and branch protection, Vercel variable names, the Secret's key names on the VM. All `check_*.py` and markdownlint 0.18.1 green.
 - **26.11.2026 12:11** #114 (MKC-11.5) reopened (11:11:07Z) and set back to `In progress`. The merge of PR #115 had closed it (11:10:40Z): the PR body's sentence "PR B … closes #114 and #11" counted as a closing keyword for #114. #11 stayed open. Branch `mkc-11-drill-docs` from `0b6f49a` for PR B.
 - **26.11.2026 12:10** PR #115 merged by the development agent (merge commit `0b6f49a`, 11:10:30Z) after the review agent's PASS on the same head `24112a1`, CI green, branch up to date. #110–#113 closed by the merge. `main` pushed to `turing` (12:10:47); `origin/main` = `turing/main` = `0b6f49a`. `cd` run 45808156597 started (11:10:33Z).
 - **26.11.2026 12:08–12:10** Production prepared for backups. The user saved the upload link (file written 12:08:54); its shape was checked without printing it (https, `eu-frankfurt-1`, `/b/mkc-backups/`, ends in `/o/`, one line). Stored as `MKC_BACKUP_UPLOAD_URL` in `mkc-secrets` over SSH stdin; the SHA-256 of the stored value equals the local file's; local file deleted. `mkc-deployer` may create, patch and delete `cronjobs.batch` and `jobs.batch` (`can-i`). `/etc/mkc/values.yaml` replaced with the repo's production values (12:10:15, hash `f257c15f…` on both sides; the old file is in `/tmp/values.yaml.before-mkc11` on the VM).
