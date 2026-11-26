@@ -49,6 +49,12 @@ This is the living status document. It is updated whenever a decision is made or
   - `check_workflows.py` now allows secrets in `cd.yml` only, only in `production` jobs (the change MKC-6 asked for)
   - first `cd.yml` run (26.11.2026, run 45777350297, merge commit `edd4406`): `/api/version` = `edd4406…`; Vercel production built by the CLI with the same commit (no warning), no Git-made production deployment; a preview signed in and `/api/me` answered (role admin)
   - the preview-origin risk (decision 45) was accepted by the user on 26.11.2026; non-blocking review findings are listed in HANDOFF.md
+- **MKC-11 details** (backups and restore drill, branch `mkc-11-backups`; plan `docs/superpowers/plans/261120260951-mkc-11-backups.md`), sub-issues MKC-11.1 (#110) to 11.5 (#114). Two PRs: code first, then the drill results:
+  - table `backup_runs` (migration 0002); a Helm hook Job runs `alembic upgrade head` on every install and upgrade; migrations are additive only (decision 48)
+  - `mkc-backup`: pg_dump 17 of schema `public` → gzip → write-only Object Storage link; `postgresql-client-17` in the image (decision 49)
+  - `GET /api/admin/backup-status` with a `stale` flag (26 h)
+  - Helm CronJob (03:30 Europe/Berlin, on in production); `scripts/restore_backup.sh`, run by the Compose smoke test on every CI run
+  - open: the Oracle bucket and upload link (user), the first production backup and the restore drill (MKC-11.5)
 - **Server setup** (25.11.2026, for MKC-10; decisions 43 and 44; runbook `docs/251120261645-runbook.md`):
   - Oracle VM `mkc-k3s` (4 OCPUs, 24 GB, arm64, `92.6.240.17`); ports 80 and 443 open, 6443 closed
   - k3s v1.37.2 with Traefik; cert-manager v1.21.3 with Let's Encrypt staging and prod issuers
@@ -74,7 +80,7 @@ This is the living status document. It is updated whenever a decision is made or
 | README (intro + links for both repos) | `README.md` |
 | Official brief | `AE.CAP_afa.md` |
 
-## Decisions so far (summary; the full log of 47 decisions is in design doc section 18)
+## Decisions so far (summary; the full log of 49 decisions is in design doc section 18)
 
 - **Idea:** Messkonzept-Copilot. It extracts operator Messkonzept PDFs into structured, LBS-keyed records with human approval, and gives household site advice with citations.
 - **Primary user:** MSB, VNB and energy-IT staff working across grid areas; installers are secondary; plus a public read-only demo.
