@@ -119,6 +119,7 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **26.11.2026 15:43** Docs for decision 52 pushed; #13 and #126 criteria now say "Meta API".
 - **26.11.2026 15:39** MKC-13.6: live contract tests passed for OpenRouter, Gemini and Anthropic (6 passed, Meta skipped without a key); spend under €0.002.
 - **26.11.2026 15:20–15:38** MKC-13.1 to 13.5 built test-first (guards, pinned deps, types and config, ModelClient, record/replay, provider factory); draft PR #127 opened for CI (15:21). User decisions: Meta API (`api.meta.ai`) replaces the closed Meta Llama API (decision 52); the Hackathon project is not a reference for later choices.
 - **26.11.2026 15:17–15:18** MKC-13 plan written (15:17); sub-issues #121–#126 (MKC-13.1 to 13.6) created, assigned to `qamran`, linked to #13 and added to the board (#121 `In progress`, the rest `Ready`).

@@ -23,7 +23,7 @@
   - `langchain-openrouter` 0.3.0
   - `langchain-google-genai` 4.5.3
   - `langchain-anthropic` 1.7.13
-  - `langchain-meta` 0.5.0
+  - `langchain-openai` 1.8.5 (for the Meta API; replaced `langchain-meta` 0.5.0 during the build, decision 52)
 - **Not** the `langchain` meta-package: it depends on `langgraph`, which the build must not contain (AGENTS.md). For the same reason there is no `init_chat_model`; the factory builds the provider classes directly.
 
 ## Facts checked (26.11.2026)
@@ -51,7 +51,7 @@
   - A missing file in replay mode raises `ReplayMiss`.
 - **Unknown model:** a role mapped to a model without a price is a config error at load time. Cost is never silently 0.
 - **Timeout:** at or below 180 s (decision 42); the loader refuses more.
-- **API keys:** `SecretStr` settings `MKC_OPENROUTER_API_KEY`, `MKC_GOOGLE_API_KEY`, `MKC_ANTHROPIC_API_KEY` and `MKC_LLAMA_API_KEY`. They are passed to the provider class explicitly; the provider's own environment variables are not read.
+- **API keys:** `SecretStr` settings `MKC_OPENROUTER_API_KEY`, `MKC_GOOGLE_API_KEY`, `MKC_ANTHROPIC_API_KEY` and `MKC_META_API_KEY`. They are passed to the provider class explicitly; the provider's own environment variables are not read.
 
 ## Sub-issues
 
