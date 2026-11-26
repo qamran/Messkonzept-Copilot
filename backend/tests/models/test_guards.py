@@ -155,3 +155,15 @@ def test_langchain_core_import_passes_anywhere() -> None:
 def test_repo_imports_providers_only_in_the_factory() -> None:
     found = [hit for name, text in _sources() for hit in provider_imports(name, text)]
     assert found == []
+
+
+# --- live tests -----------------------------------------------------------------------
+
+
+def test_live_marker_is_registered_and_deselected_by_default() -> None:
+    import tomllib
+
+    options = tomllib.loads((BACKEND / "pyproject.toml").read_text(encoding="utf-8"))
+    pytest_options = options["tool"]["pytest"]["ini_options"]
+    assert any(m.startswith("live:") for m in pytest_options["markers"])
+    assert "-m 'not live'" in pytest_options["addopts"]
