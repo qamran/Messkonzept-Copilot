@@ -1,0 +1,26 @@
+# Production values for the mkc chart on the k3s VM (MKC-10.3). No secrets here.
+# Installed by the admin as /etc/mkc/values.yaml (root-owned); the deploy user can read it
+# but not change it. mkc-deploy adds --set image.tag=<commit>.
+# After a change: copy it to the VM again (runbook "Deploy and rollback").
+
+# DATABASE_URL lives in this Secret, created by the admin in namespace mkc.
+existingSecret: mkc-secrets
+
+env:
+  # Clerk development instance (decision 39); public, it is also in the frontend bundle.
+  MKC_CLERK_ISSUER: https://better-cicada-5480.clerk.accounts.dev
+  # Production site (exact) ...
+  MKC_CLERK_AUTHORIZED_PARTIES: https://messkonzept-copilot.vercel.app
+  MKC_CORS_ORIGINS: https://messkonzept-copilot.vercel.app
+  # ... and the Vercel previews of this project and team, for CORS and azp (decision 45).
+  MKC_CORS_ORIGIN_REGEX: '^https://messkonzept-copilot-[a-z0-9-]+-qamran\.vercel\.app$'
+
+ingress:
+  enabled: true
+  className: traefik
+  # sslip.io name for the VM's IP (decision 43).
+  host: 92-6-240-17.sslip.io
+  tls:
+    enabled: true
+    secretName: mkc-api-tls
+    clusterIssuer: letsencrypt-prod

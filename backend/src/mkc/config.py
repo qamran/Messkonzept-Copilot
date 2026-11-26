@@ -1,5 +1,6 @@
 """Settings from environment variables (prefix MKC_)."""
 
+import re
 from typing import Annotated
 
 from pydantic import AliasChoices, Field, field_validator
@@ -46,12 +47,26 @@ class Settings(BaseSettings):
     cors_origins: OriginList = Field(default_factory=lambda: list(_LOCAL_VITE))
     """Browser origins allowed to call the API (comma-separated)."""
 
+    cors_origin_regex: str = ""
+    """Extra origins as one regular expression (full match), for Vercel previews. Used by CORS
+    and by the token's `azp` check alike. Empty = off."""
+
     @field_validator("clerk_authorized_parties", "cors_origins", mode="before")
     @classmethod
     def _split_commas(cls, value: object) -> object:
         if isinstance(value, str):
             return [item.strip() for item in value.split(",") if item.strip()]
         return value
+
+    @field_validator("cors_origin_regex")
+    @classmethod
+    def _compiles(cls, pattern: str) -> str:
+        """A broken pattern stops the app at start instead of failing per request."""
+        try:
+            re.compile(pattern)
+        except re.error as error:
+            raise ValueError(f"MKC_CORS_ORIGIN_REGEX is not a valid regex: {error}") from error
+        return pattern
 
     @field_validator("clerk_issuer")
     @classmethod

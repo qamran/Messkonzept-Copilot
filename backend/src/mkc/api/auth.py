@@ -5,6 +5,7 @@ needed. Admin rights come from the custom `role` claim, which the Clerk session 
 the user's public metadata (`{"role": "admin"}`, set only in the Clerk dashboard).
 """
 
+import re
 from collections.abc import Callable
 from typing import Annotated, Any
 
@@ -32,11 +33,24 @@ class TokenVerifier:
     """Checks signature (RS256 only), expiry, not-before, issuer, subject and authorized party."""
 
     def __init__(
-        self, issuer: str, authorized_parties: list[str], key_resolver: KeyResolver
+        self,
+        issuer: str,
+        authorized_parties: list[str],
+        key_resolver: KeyResolver,
+        authorized_party_regex: str = "",
     ) -> None:
         self._issuer = issuer
         self._authorized_parties = set(authorized_parties)
+        self._authorized_party_pattern = (
+            re.compile(authorized_party_regex) if authorized_party_regex else None
+        )
         self._key_resolver = key_resolver
+
+    def _authorized(self, azp: str) -> bool:
+        if azp in self._authorized_parties:
+            return True
+        pattern = self._authorized_party_pattern
+        return pattern is not None and pattern.fullmatch(azp) is not None
 
     def verify(self, token: str) -> User:
         """Return the user for a valid token; raise `jwt.InvalidTokenError` otherwise."""
@@ -50,7 +64,7 @@ class TokenVerifier:
         )
         # Clerk omits azp when the request had no Origin header; when present it must match.
         azp = claims.get("azp")
-        if azp is not None and (not isinstance(azp, str) or azp not in self._authorized_parties):
+        if azp is not None and (not isinstance(azp, str) or not self._authorized(azp)):
             raise jwt.InvalidTokenError("authorized party not allowed")
         role = claims.get("role") or None
         if role is not None and not isinstance(role, str):

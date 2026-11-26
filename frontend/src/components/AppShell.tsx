@@ -3,11 +3,13 @@ import type { ReactNode } from 'react'
 import { Link } from 'react-router'
 
 import { Button } from '@/components/ui/button'
+import { VersionWarning } from '@/components/VersionWarning'
 
 /** Page frame: app name, navigation and the Clerk sign-in or user button. */
 export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-svh bg-background text-foreground">
+      <VersionWarning />
       <header className="border-b">
         <div className="mx-auto flex max-w-4xl items-center justify-between gap-4 px-4 py-3">
           <Link to="/" className="font-heading text-lg font-semibold">

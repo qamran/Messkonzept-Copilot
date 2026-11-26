@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 25.11.2026, 15:51
+**Last updated:** 25.11.2026, 17:41
 
 This file is how agents resume work after a session restart.
 
@@ -23,7 +23,7 @@ This file is how agents resume work after a session restart.
 - **Remotes:**
   - `origin` = qamran/Messkonzept-Copilot (home, public)
   - `turing` = TuringCollegeSubmissions/qshahz-AE.CAP.AFA.1.1 (code-only mirror, no issues; ADR 005 option (c), decision 35)
-  - Both at `35dc1fe` (merge of PR #97).
+  - Both at `1f16ba8` (merge of PR #103).
 - **`main` is protected:** PRs only, enforced for admins. Required checks: the `ci` jobs `backend`, `frontend`, `gitleaks`, `dependency-scan` and `docs` (since 25.11.2026 09:50, MKC-6.5) `image` (since 13:52, MKC-8) and `kind` (since 15:42, MKC-9); the branch must be up to date with `main`. `publish` is not required (skipped on PRs).
 - **Agent rules:** `AGENTS.md` (CLAUDE.md imports it). The development agent continues without asking and stops only for genuine decisions (decision 36).
 - **Done:**
@@ -35,6 +35,8 @@ This file is how agents resume work after a session restart.
   - MKC-6: secret hygiene (`.gitignore`, `.env.example`, pre-commit), markdown lint, CI (`backend`, `frontend`, `gitleaks`, `dependency-scan`, `docs`) as required checks on `main`; `httpx2` (PR #86)
   - MKC-7: frontend skeleton (`frontend/`: Vite, React, TS, Tailwind, shadcn/ui, `@clerk/react`, `apiFetch`, `RequireAdmin`); backend Clerk token check (`mkc.api.auth`, `/api/me`, `/api/admin/ping`); Clerk development instance everywhere (ADR 002, decision 39) (PR #91)
   - MKC-8: backend image (`backend/Dockerfile`), `compose.yaml` (db, api, worker, frontend), `scripts/compose_smoke.sh`, CI jobs `image` (required check) and `publish`; image `ghcr.io/qamran/messkonzept-copilot-backend` (public, tags `<sha>` and `main`, amd64 + arm64) (decision 41, PR #97)
+  - MKC-9: Helm chart `deploy/helm/mkc/` (API and worker, Service, Ingress with cert-manager TLS, Secret; worker `replicas: 1`, `Recreate`, grace period 300 s); worker heartbeat and `mkc-worker-health`; `scripts/check_helm.py`, `scripts/kind_smoke.sh`; CI job `kind` (required check) (decision 42, PR #103)
+- **Server (set up 25.11.2026, decisions 43 and 44):** Oracle VM `mkc-k3s`, `ubuntu@92.6.240.17`, admin login with the user's key `~/.ssh/oracle_mkc`; k3s v1.37.2 with Traefik; cert-manager v1.21.3 with ClusterIssuers `letsencrypt-staging` and `letsencrypt-prod`; API host `92-6-240-17.sslip.io`; 6443 closed from outside. Vercel project `messkonzept-copilot` (scope `qamran`); GitHub environment `production` (reviewer `qamran`, `main` only, secret `VERCEL_TOKEN`). Every step: `docs/251120261645-runbook.md`.
 - **How to run the frontend:** `frontend/.env.local` holds `VITE_CLERK_PUBLISHABLE_KEY` and `VITE_API_URL=http://127.0.0.1:8000` (gitignored). Run the API with `cd backend && uv run --env-file .env uvicorn mkc.api.app:create_app --factory --port 8000` (`backend/.env` has `MKC_CLERK_ISSUER`), then `cd frontend && npm run dev` (`localhost:5173`). Test sign-ins: the user's Google account (admin); a `+clerk_test@example.com` user (code `424242`) and a second Gmail account (both no role).
 - **How to run the whole stack in containers:** `docker compose --env-file frontend/.env.local up --build` (repo root; the env file gives the frontend build its Clerk key; without it the page says the key is missing). API on `127.0.0.1:8000`, frontend on `localhost:5173`, db on `127.0.0.1:5433`; `backend/.env` is loaded when present. `bash scripts/compose_smoke.sh` checks the stack as its own project (`mkc-smoke`, ports 15433/18000/15173, images tagged `smoke`) and removes its containers and volume afterwards.
 - **How to test the Helm chart:** `python scripts/check_helm.py` (static rules), then `bash scripts/kind_smoke.sh` (repo root; needs Docker Desktop running, plus `kind`, `helm` and `kubectl` on the PATH or in `KIND`, `HELM`, `KUBECTL`). It creates and deletes its own cluster `mkc-smoke` and never touches `~/.kube/config`. Lint: `helm lint --strict deploy/helm/mkc --set image.tag=lint`.
@@ -42,24 +44,25 @@ This file is how agents resume work after a session restart.
 
 ## In progress
 
-- **MKC-9** (#9), Helm chart and kind smoke test. Branch `mkc-9-helm-kind`. Plan: `docs/superpowers/plans/251120261520-mkc-9-helm-kind.md`. **PR #103** (assigned to `qamran`; closes #9, #98–#102).
-  - Status `In progress` after the review FAIL of 15:49 (blocking: this section was stale). Fixes are on the branch; after green CI on the new head, #9 and #98–#102 go back to `Testing` and the review agent re-reviews.
-  - Sub-issues (assigned to `qamran`): MKC-9.1 (#98) worker heartbeat and health command; MKC-9.2 (#99) Helm chart; MKC-9.3 (#100) kind smoke script; MKC-9.4 (#101) CI job `kind` as a required check; MKC-9.5 (#102) docs. All work done; `kind` is a required check since 15:42.
-  - First green CI: run 45636218952 (`d26910c`) and run 45637034228 (`0cc68b2`).
-  - Local tools (not in the repo): Helm v4.3.1, kind v0.33.0 and kubectl v1.37.0, checksum-checked, in the session scratchpad. CI downloads its own pinned copies.
+- **MKC-10** (#10), continuous deployment (k3s + Vercel). Status `Testing`, assigned to `qamran`. Branch `mkc-10-cd` from `1f16ba8`; PR #109 (CI run 45655887382 on `36644d7` green). Plan: `docs/superpowers/plans/251120261710-mkc-10-cd.md`.
+  - Branch pushed. Since the review: the forced command deploys only commits on `main`; namespace `mkc` enforces Pod Security `restricted`; SSH keepalive; CR stripped from the key.
+  - Sub-issues MKC-10.1 (#106), 10.2 (#105), 10.3 (#104), 10.4 (#107), 10.5 (#108): all linked to #10, assigned to `qamran`, `Testing`. Code and docs for all five are on the branch.
+  - Live: `https://92-6-240-17.sslip.io/api/version` = `1f16ba85…` (Helm revision 3 after the drill).
+  - Vercel Git deployments switched on again (previews per PR; `main` off by `frontend/vercel.json`).
+  - **Waiting on the user:** the deploy key must go into the `production` environment as `DEPLOY_SSH_KEY` (the agent's `gh secret set` was blocked by the permission check). Command in Next steps 1. Until then the post-merge `cd.yml` run fails in `backend`.
 
 ## Next steps
 
-1. PR #103: green CI on the new head → #9 and #98–#102 to `Testing` → PR body names the fixes → review agent re-review. On PASS + merge:
-   - push `main` to `turing` and check `origin/main` == `turing/main`
-   - check the `main` run, including `publish` (now after `kind`)
-   - tick the criteria of #9 and #98–#102; status doc "Done" line for MKC-9; then MKC-10 (#10)
+1. MKC-10:
+   - the user stores the deploy key (runbook "Deploy and rollback", "Store the deploy key in GitHub"; PowerShell: `Get-Content -Raw '<key file>' | gh secret set DEPLOY_SSH_KEY --env production -R qamran/Messkonzept-Copilot`). The key file is in this session's scratchpad (`deploykey/mkc_deploy`); the agent gives the full path in the chat. Then the agent checks the secret name and deletes the local key folder.
+   - start the review agent on PR #109 once the secret is in place (PR opened, board set to `Testing`)
+   - after the merge: the user approves `backend`, then `frontend` in `production`; check `cd.yml` green, `/api/version` = merge commit, the Vercel site and `/admin` load without the warning, no Git-made Vercel production deployment for the merge commit (`main: false` works); a preview signs in and calls `/api/me` (CORS and `azp` via the new pattern; only possible once the merge commit runs on the VM); push `main` to `turing`
 2. Non-blocking follow-ups from the PR #103 review (for later tickets):
    - N1 (MKC-17/MKC-20): the heartbeat is only touched between polls; with max age 30 s and liveness 3 × 30 s, a turn of up to 240 s would get a healthy worker restarted. Beat during a turn or raise the max age (noted in ADR 002 and decision 42).
    - N2: `/tmp` is an `emptyDir` and survives a container restart, so an old heartbeat can make a restarted worker look Ready for up to 30 s; remove the file on start or add a `startupProbe`.
-   - N3: the smoke test does not prove the heartbeat is refreshed (its checks fall within 30 s of the start); only the unit test does.
-   - N4: the kind script was written after the chart; its red run used a wrong expected commit (disclosed in the PR).
-   - N6: `check_workflows.py` and `check_helm.py` are text-based and easy to fool (`if: false`, `|| true`, probes under `{{- if false }}`, a decoy grace period, a secret under `env:`); mutated samples are not kept as tests. Same class as the PR #97 findings.
+   - N3: the smoke test does not prove the heartbeat is refreshed; only the unit test does.
+   - N5 follow-up: no kept test renders an all-digit tag; a `helm template --set image.tag=1234567` line in the `kind` job would cover it.
+   - N6: `check_workflows.py` and `check_helm.py` are text-based and easy to fool; mutated samples are not kept as tests (same class as the PR #97 findings).
    - N7: the smoke script only prints the Ingress annotation and TLS secret; it does not assert them.
    - N11 (MKC-10): `checksum/secret` does not change with `existingSecret`; the secret checksum is visible in pod specs; API readiness does not check the database; the script leaves `mkc-backend:kind` in local Docker; a narrow race if the cluster name is taken after the guard.
 3. Non-blocking follow-ups from the PR #97 review (fold into a later CI-hardening ticket or MKC-9 where they touch the same files):
@@ -74,12 +77,54 @@ This file is how agents resume work after a session restart.
 ## Blocked / waiting on user
 
 - **Docker Desktop** must be running for the local DB tests (`docker compose up -d db`). If it is stopped after a restart, start it again. CI uses its own Postgres service.
-- Later setup tasks (listed in design doc section 13): Vercel account, provider API keys with caps, GitHub `production` environment, a domain with TLS. The Supabase project exists (created by the user on 25.11.2026).
+- Later setup tasks (design doc section 13): provider API keys with caps. Done on 25.11.2026: Supabase project, Oracle VM with k3s, API host, Vercel project, GitHub `production` environment with `VERCEL_TOKEN`.
+- **MKC-10 needs the user for:** storing the deploy key as the `production` secret `DEPLOY_SSH_KEY` (see Next steps 1; the agent's call was blocked by the permission check), and approving each deploy (`backend`, then `frontend`) in the `production` environment. `mkc-secrets` was made from `backend/.env` (Supabase Session pooler).
 
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **25.11.2026 17:40** CI run 45655887382 on `36644d7` green (16:40:45Z): backend, frontend, gitleaks, dependency-scan, docs (incl. both deploy script tests), image, kind; publish skipped. `DEPLOY_SSH_KEY` not yet in `production` (only `VERCEL_TOKEN`); review agent waits for it.
+- **25.11.2026 17:37** PR #109 opened (16:37:23Z, assigned to `qamran`; closes #10, #104–#108); #10 and #104–#108 to `Testing`.
+- **25.11.2026 17:36** Docs after the review: runbook (two approvals; deploy-key commands for PowerShell and Git Bash; the `main` check and Pod Security in the setup and checks; the 17:34 deploy), ADR 002 (a leaked key deploys only commits on `main`; Pod Security), decision 47, status doc (#108). HANDOFF: no local path; "Blocked" names the deploy-key secret; log times taken from GitHub and Vercel.
+- **25.11.2026 17:34–17:35** Branch pushed (`mkc-10-cd`). On the VM with the deploy key: `deploy 310b2b8…` (branch commit, ahead of `main`) and `deploy 0000…` refused (exit 4, "not a commit on main"). Deploy of `1f16ba8` through `cd_deploy.sh`: revision 4, smoke test passed on the first try (17:34:53–17:35:04). Vercel built preview `messkonzept-copilot-6o9a7kauj-qamran.vercel.app` for `310b2b8` (READY; matches the preview pattern). Note: Vercel's current production deployment (`i7324q3rw`) came from this branch when the project was linked (16:39), before `vercel.json`; the first CD run replaces it.
+- **25.11.2026 17:36** MKC-10.3: `mkc-deploy` checks the commit with GitHub's compare API (`behind`/`identical` only); `rbac.yaml` labels `mkc` Pod Security `restricted` (server dry run: no existing pod breaks it; applied on the VM; as `mkc-deploy` a privileged pod is forbidden); `cd_deploy.sh` `ServerAliveInterval=30`; `cd.yml` strips CR from the key. Tests: `test_mkc_deploy.sh` and `test_cd_deploy.sh` all ok; `check_workflows.py` ok.
+- **25.11.2026 17:33** Red tests: `test_mkc_deploy.sh` (a commit `ahead` of or `diverged` from `main` must be refused before download; the compare call must happen) and `test_cd_deploy.sh` (keepalive): 3 and 1 failures.
+- **25.11.2026 17:27** HANDOFF caught up after MKC-10.5 (the update in the docs commit failed on a script error).
+- **25.11.2026 17:27** MKC-10.5: runbook "Deploy and rollback" (how a deploy runs, rights table, one-time VM setup, deploy key, first deploy and drill, manual rollback, settings and secrets, migrations); design doc decisions 45–47 and section 13; ADR 002 "Continuous deployment" (options for reaching the cluster); status doc MKC-10 details, 47 decisions; README names `cd.yml`. markdownlint 0 errors; all `scripts/check_*.py` pass.
+- **25.11.2026 17:25** MKC-10.5 created as #108; #104–#108 linked to #10 and set to `In progress` on the board (after the GitHub errors cleared).
+- **25.11.2026 17:23** Vercel project: Git deployments switched on (`createDeployments: enabled`; project `updatedAt` 17:23:22). Before that, `gh secret set DEPLOY_SSH_KEY --env production` was blocked by the session permission check; left to the user.
+- **25.11.2026 17:21–17:22** First deploy (agent, `scripts/cd_deploy.sh` with the deploy key, `1f16ba8`): Helm revision 1 installed 16:21:40Z; smoke test passed on the third try (the first two failed on TLS while cert-manager got the certificate). Certificate: Let's Encrypt `YR2`, `letsencrypt-prod`, until 23.02.2027; API and worker pods Running, 0 restarts. Drill 17:22:19–17:22:41 with `MKC_SMOKE_EXPECT_COMMIT=wrong-commit`: revision 2 deployed, smoke test failed three times, `helm rollback` → revision 3 "Rollback to 1", exit 1; `/api/version` still `1f16ba85…`.
+
+- **25.11.2026 17:21** MKC-10.4: `.github/workflows/cd.yml` (push to `main` only, home-repo guard on every job; `image` waits up to 40 min for `:<sha>` with arm64, no secrets; `backend` in `production`: 6443 must time out from the runner, then `cd_deploy.sh` with the pinned host key; `frontend` in `production` needs `backend`: Vercel CLI 65.14.0, `vercel pull`, `vercel build --prod` with `VITE_COMMIT`, `vercel deploy --prebuilt --prod`, then `/` and `/admin` answer). `scripts/cd_deploy.sh` (deploy, smoke test over HTTPS with retries, rollback on failure, exit 1). `ci.yml` `docs` runs both deploy script tests. `check_workflows.py` green; eight mutated `cd.yml` copies (workflow_dispatch, pull_request, cancel true, no environment, no guard, wrong needs, `toJSON(secrets)`, another branch) each give a finding. `test_cd_deploy.sh`: 12 ok. The GHCR wait logic was tried on `1f16ba8` (arm64 found) and a missing tag (404). `vercel pull` + `vercel build --prod` (65.14.0) in a `node:24-bookworm` container: built; the commit and `VITE_API_URL` are in the bundle (Windows can't run the Vercel builder: symlink EPERM).
+- **25.11.2026 17:05** MKC-10.4: red `check_workflows.py` rules (`cd.yml: file missing`, `ci.yml: must run scripts/test_mkc_deploy.sh` and `…test_cd_deploy.sh`) and red `scripts/test_cd_deploy.sh` (`scripts/cd_deploy.sh missing`).
+
+- **25.11.2026 17:03** MKC-10.3: `deploy/vm/mkc-deploy` (forced command: `deploy <40-hex>`, `rollback`, `status`; chart from GitHub at the commit; values from `/etc/mkc/values.yaml`; `--rollback-on-failure --wait=watcher --timeout 600s`; rollback refused with one revision), `deploy/vm/values-production.yaml`, `deploy/vm/rbac.yaml`; `.gitattributes` keeps `mkc-deploy` LF. `scripts/test_mkc_deploy.sh`: 27 ok. `helm lint --strict` with the production values green.
+- **25.11.2026 17:02–17:03** VM (agent, SSH): Helm v4.3.1 arm64 (`sha256sum -c` OK, `8cf8f66e…`); `rbac.yaml` applied; user `mkc-deploy`; kubeconfig from the ServiceAccount token (server `127.0.0.1:6443`); `can-i`: create deployments, secrets, ingresses in `mkc` yes; secrets in `kube-system`, deployments in `default`, nodes, clusterrolebindings, clusterissuers no; `sudo -l`: not allowed. `mkc-secrets` created from `backend/.env` over stdin (109 chars, `postgresql://`). Deploy key installed with `restrict,command=…` (root-owned `authorized_keys`). Over SSH with the deploy key: empty command, `id`, `bash -i`, `deploy abc`, `deploy 1f16ba8`, `status; id`, `cat …/.kube/config` all refused (exit 2); PTY refused; sftp closed; `-L 16443:127.0.0.1:6443` → `administratively prohibited`; `status` → `release: not found` (nothing deployed yet). From outside 6443: curl exit 28 (timeout).
+- **25.11.2026 17:01** MKC-10.3: red `scripts/test_mkc_deploy.sh` (`deploy/vm/mkc-deploy missing`).
+
+- **25.11.2026 16:59** MKC-10.2: `VersionWarning` in the page frame (warning only when `VITE_COMMIT` is set and differs from the API's `commit`; a failed fetch shows nothing); `frontend/vercel.json` (`main` off, SPA rewrite). vitest 26 passed; lint, typecheck and build green; `check_vercel.py` ok.
+- **25.11.2026 16:58** MKC-10.2: red tests `VersionWarning.test.tsx` (import fails: component missing) and `scripts/check_vercel.py` (`frontend/vercel.json: file missing`).
+- **25.11.2026 16:56** MKC-10.4 created as #107 (assigned to `qamran`). Linking to #10 and the board still fail with HTTP 502.
+
+- **25.11.2026 16:56** MKC-10.1: `MKC_CORS_ORIGIN_REGEX` (full match, checked at start) used by CORS and by the token's `azp` check; `.env.example`. 78 passed, 8 skipped (DB skipped on purpose); ruff and mypy pass.
+- **25.11.2026 16:55** MKC-10.1: red tests `tests/api/test_origins.py` (production and preview hosts pass CORS and `azp`; `http://`, suffix, prefix, other team, port, path refused; empty regex allows nothing). Red: `cors_origin_regex` unknown (`extra_forbidden`).
+- **25.11.2026 16:55** MKC-10 plan (`251120261710-mkc-10-cd.md`). Checked: Vercel team slug `qamran`; production alias `messkonzept-copilot.vercel.app` public (200); previews behind Vercel Authentication (302); the project has Git deployments `disabled`.
+- **25.11.2026 16:52–16:53** Sub-issues MKC-10.3 (#104, 16:52), 10.2 (#105, 16:53), 10.1 (#106, 16:53) created, assigned to `qamran`; 10.4 and 10.5 failed with GitHub HTTP 500/502.
+
+- **25.11.2026 16:45** HANDOFF, status doc, design doc (decisions 43, 44; the "VM running" line of 24.11 corrected: the VM did not exist), ADR 002 "Server and API host" and the new runbook `docs/251120261645-runbook.md` ("Server setup", step by step as done with the user) after MKC-9 and the server setup.
+- **25.11.2026 16:42** MKC-10 (#10) assigned to `qamran`, to `In progress`; branch `mkc-10-cd` from `1f16ba8`.
+- **25.11.2026 16:41** `VERCEL_TOKEN` added by the user to the `production` environment (secret created 15:41:56Z); no repository-wide secrets.
+- **25.11.2026 16:40** GitHub environment `production` created (15:40:10Z): required reviewer `qamran`, protected branches only.
+- **25.11.2026 16:39** Vercel project `messkonzept-copilot` created (root `frontend`, Vite, `npm ci`, `dist`, Node 24.x, linked to the repo, production branch `main`); env `VITE_CLERK_PUBLISHABLE_KEY` and `VITE_API_URL=https://92-6-240-17.sslip.io` for production and preview. The first try failed until the user gave the Vercel GitHub App access to the repo.
+- **25.11.2026 16:33** cert-manager v1.21.3 (deployments 15:32:49Z), ClusterIssuers `letsencrypt-staging` and `letsencrypt-prod` (15:33:10Z, HTTP-01 via Traefik, no e-mail); a staging test certificate for `92-6-240-17.sslip.io` was Ready after 35 s, then deleted. User decision: API host `92-6-240-17.sslip.io` (decision 43).
+- **25.11.2026 16:29** k3s v1.37.2+k3s1 installed (unit file 15:29:45Z); node Ready (arm64); Traefik up; from outside `http://92.6.240.17/` gives Traefik's 404. VM iptables saved 15:29:08Z: 80 and 443 accepted, k3s pod and service ranges accepted, Oracle's FORWARD reject removed (backup `/etc/iptables/rules.v4.oracle-default`); from outside 80 and 443 reach the VM, 6443 times out.
+- **25.11.2026 16:16** Oracle VM `mkc-k3s` created by the user (15:16:23Z, AD-2, Ubuntu 24.04 arm64, `VM.Standard.A1.Flex`); first 1 OCPU / 6 GB and no public IP; the user added the ephemeral IP `92.6.240.17`, resized to 4 OCPUs / 24 GB and opened 80 and 443 in the security list. SSH key `~/.ssh/oracle_mkc` created by the user (16:10).
+- **25.11.2026 16:01** `main` run 45639464191 on `1f16ba8` green, including `publish` (after `kind`): `:1f16ba85…` and `:main` with `linux/amd64` and `linux/arm64`.
+- **25.11.2026 15:57** #9 and #98–#102 criteria ticked. MKC-9 complete.
+- **25.11.2026 15:56** `main` pushed to `turing` (15:56:40); `origin/main` == `turing/main` == `1f16ba8`.
+- **25.11.2026 15:55** PR #103 re-review **PASS** (comment 14:55:49Z), merged `1f16ba8` (merge commit, 14:55:54Z); #9 and #98–#102 closed and `Done`. Open non-blocking: see Next steps 2.
+- **25.11.2026 15:54** #9 and #98–#102 to `Testing`; PR #103 body lists the fixes. CI run 45638709414 on `d89d488` green (14:53:49Z).
 - **25.11.2026 15:51** PR #103 fix B1: HANDOFF "In progress" names PR #103, the review FAIL and the CI runs; "Next steps" is the path to merge and the post-merge list, plus the non-blocking findings N1–N11. ADR 002 and decision 42 note N1 (heartbeat during long turns, for MKC-17/MKC-20). Status doc header updated. #98 text corrected (the code default is empty; the chart sets the path, N8).
 - **25.11.2026 15:50** PR #103 fix N5: an all-digit `image.tag` broke the render (`--set image.tag=1234567`: `incompatible types for comparison: int64 and string`); the `mkc.image` helper now applies `toString`. After: renders `…:1234567`; `latest` and a missing tag are still refused; `helm lint --strict` green.
 - **25.11.2026 15:50** #9 and #98–#102 back to `In progress`.
