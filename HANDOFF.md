@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 26.11.2026, 11:36
+**Last updated:** 26.11.2026, 12:12
 
 This file is how agents resume work after a session restart.
 
@@ -23,7 +23,7 @@ This file is how agents resume work after a session restart.
 - **Remotes:**
   - `origin` = qamran/Messkonzept-Copilot (home, public)
   - `turing` = TuringCollegeSubmissions/qshahz-AE.CAP.AFA.1.1 (code-only mirror, no issues; ADR 005 option (c), decision 35)
-  - Both at `edd4406` (merge of PR #109).
+  - Both at `0b6f49a` (merge of PR #115).
 - **`main` is protected:** PRs only, enforced for admins. Required checks: the `ci` jobs `backend`, `frontend`, `gitleaks`, `dependency-scan` and `docs` (since 25.11.2026 09:50, MKC-6.5) `image` (since 13:52, MKC-8) and `kind` (since 15:42, MKC-9); the branch must be up to date with `main`. `publish` is not required (skipped on PRs).
 - **Agent rules:** `AGENTS.md` (CLAUDE.md imports it). The development agent continues without asking and stops only for genuine decisions (decision 36).
 - **Done:**
@@ -45,18 +45,20 @@ This file is how agents resume work after a session restart.
 
 ## In progress
 
-- **MKC-11** (#11), backups and restore drill. Status `In progress`, assigned to `qamran`. Branch `mkc-11-backups` from `edd4406`.
-  - Plan: `docs/superpowers/plans/261120260951-mkc-11-backups.md`. Two PRs: PR A (code, chart, tests; closes 11.1–11.4, not #11), then after its deploy the drill and PR B (docs only; closes 11.5 and #11).
-  - Sub-issues (assigned to `qamran`, linked to #11): MKC-11.1 (#110) table and migrations on deploy; 11.2 (#111) `mkc-backup`; 11.3 (#112) status endpoint; 11.4 (#113) CronJob and smoke test; 11.5 (#114) production, drill, docs.
-  - Code for 11.1–11.4 and the PR A docs (decisions 48–49, ADR 003, runbook "Backups and restore drill" setup, `.env.example`, status doc) are on the branch. Tests: pytest 103 passed, 1 skipped; kind and Compose smoke passed locally.
-  - Waiting on the user (asked 26.11.2026 in the session): Oracle bucket `mkc-backups` (eu-frankfurt-1), IAM policy for lifecycle, lifecycle rule 14 days on `nightly/`, write-only upload link (PAR, prefix `nightly/`, expiry 26.11.2027) saved to a local file, never pasted in the chat. The agent stores it in `mkc-secrets` over SSH stdin.
+- **MKC-11** (#11), backups and restore drill. Status `In progress`, assigned to `qamran`.
+  - Plan: `docs/superpowers/plans/261120260951-mkc-11-backups.md`. Two PRs: PR A (#115, merged 26.11.2026 12:10 as `0b6f49a`; closed 11.1–11.4), then the drill and PR B (docs only; closes 11.5 and #11).
+  - Branch for PR B: `mkc-11-drill-docs` from `0b6f49a`.
+  - Sub-issues: MKC-11.1 (#110) to 11.4 (#113) closed by PR #115. MKC-11.5 (#114) is open and `In progress` (the merge closed it by mistake, see the log; reopened).
+  - Production is prepared: `MKC_BACKUP_UPLOAD_URL` is in `mkc-secrets` on the VM (hash compared with the local file, which is deleted); `/etc/mkc/values.yaml` is the repo's `deploy/vm/values-production.yaml` (`backup.enabled: true`); `mkc-deployer` may create, patch and delete CronJobs and Jobs.
+  - `cd` run 45808156597 on `0b6f49a` started 12:10; it needs the user's two approvals (`backend`, then `frontend`).
 
 ## Next steps
 
 1. MKC-11:
-   - PR A is #115 (opened 26.11.2026 10:28; CI green; review agent PASS 10:39 on `5b23b1f`, merge held for the Oracle setup). This commit changes the head, so the review agent runs again before the merge
-   - before PR A's merge: the user's Oracle setup (runbook "Backups and restore drill"); the link file `C:\Users\qamra\mkc_backup_par.txt` → `mkc-secrets` over stdin (never printed), delete the file; check `mkc-deployer` may create CronJobs (`can-i`); copy the new production values to `/etc/mkc/values.yaml` (Secret first, then values)
-   - after PR A's deploy: run a Job from the CronJob, check the object in the bucket and `/api/admin/backup-status`; the user downloads it; restore drill with `scripts/restore_backup.sh`; PR B (docs only) closes #114 and #11
+   - the user approves `backend` and `frontend` on `cd` run 45808156597; check the migration hook (`backup_runs` exists in production) and that the CronJob `mkc-backup` exists
+   - run one backup now: `sudo k3s kubectl -n mkc create job mkc-backup-now --from=cronjob/mkc-backup`; check the Job log, the object under `nightly/` in the bucket (the user looks in the console; the link can't list) and `/api/admin/backup-status`
+   - restore drill: the user downloads the object; `bash scripts/restore_backup.sh <file>` (Docker running, shut down afterwards); compare with `scripts/row_counts.sql` against Supabase
+   - PR B (docs only): drill steps, timing and row counts in the runbook; status doc; closes #114 and #11. Write "closes" only on the `Closes #<n>` lines of the PR body (see the log, 12:10)
 2. Non-blocking follow-ups from the PR #109 review (MKC-10; for a later CI or deploy hardening ticket):
    - N2: nine MKC-10 commits don't touch HANDOFF.md; N6: `05c4962` and `e5072c6` are over 200 lines (history not rewritten)
    - N4: `cd_deploy.sh` prints "Helm rolled the release back itself" also when the VM refused the commit (exit 4) or SSH failed (255); no test covers those cases
@@ -86,12 +88,17 @@ This file is how agents resume work after a session restart.
 - **Docker Desktop** must be running for the local DB tests (`docker compose up -d db`), kind and the Compose smoke test. Start it only when needed and shut it down afterwards (stop the containers, quit Docker Desktop, `wsl --shutdown`): the user asked that `vmmemWSL` not keep running. CI uses its own Postgres service.
 - Later setup tasks (design doc section 13): provider API keys with caps. Done on 25.11.2026: Supabase project, Oracle VM with k3s, API host, Vercel project, GitHub `production` environment with `VERCEL_TOKEN`.
 - **Every deploy needs the user:** two approvals in the `production` environment (`backend`, then `frontend`) on the `cd` run after each merge.
-- **MKC-11 needs the user for:** an Oracle Object Storage bucket and credentials.
+- **MKC-11 needs the user for:** the two deploy approvals on `cd` run 45808156597, a look into the bucket after the first backup, and the download of one backup for the restore drill. The Oracle setup (bucket, policy, lifecycle rule, upload link) is done (26.11.2026).
 
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **26.11.2026 12:11** #114 (MKC-11.5) reopened (11:11:07Z) and set back to `In progress`. The merge of PR #115 had closed it (11:10:40Z): the PR body's sentence "PR B … closes #114 and #11" counted as a closing keyword for #114. #11 stayed open. Branch `mkc-11-drill-docs` from `0b6f49a` for PR B.
+- **26.11.2026 12:10** PR #115 merged by the development agent (merge commit `0b6f49a`, 11:10:30Z) after the review agent's PASS on the same head `24112a1`, CI green, branch up to date. #110–#113 closed by the merge. `main` pushed to `turing` (12:10:47); `origin/main` = `turing/main` = `0b6f49a`. `cd` run 45808156597 started (11:10:33Z).
+- **26.11.2026 12:08–12:10** Production prepared for backups. The user saved the upload link (file written 12:08:54); its shape was checked without printing it (https, `eu-frankfurt-1`, `/b/mkc-backups/`, ends in `/o/`, one line). Stored as `MKC_BACKUP_UPLOAD_URL` in `mkc-secrets` over SSH stdin; the SHA-256 of the stored value equals the local file's; local file deleted. `mkc-deployer` may create, patch and delete `cronjobs.batch` and `jobs.batch` (`can-i`). `/etc/mkc/values.yaml` replaced with the repo's production values (12:10:15, hash `f257c15f…` on both sides; the old file is in `/tmp/values.yaml.before-mkc11` on the VM).
+- **26.11.2026 11:48–11:52** The user's laptop went down without a clean shutdown (reboot 11:52:34; no bugcheck, no dump). No work was lost: the branch equalled `origin` at `24112a1`. A first try to save the link (11:46:55) had written the copied PowerShell commands into the file, not the link; the Oracle dialog was lost with the crash, so the user deleted that pre-authenticated request and made a new one.
+- **26.11.2026 11:41** Review agent (Fable) verdict on PR #115 after the runbook commit: PASS on `24112a1` (comment 10:41:58Z; scope: the delta `5b23b1f..24112a1`). Not merged then: the upload link was missing.
 - **26.11.2026 11:36** MKC-11.5: runbook "One-time Oracle setup" written out step by step at the user's request (sign-in and region, bucket, lifecycle policy, 14-day rule on `nightly/`, write-only upload link, saving it to a local file from the clipboard without showing it, what to do if it is lost). HANDOFF: PR #115 opened 10:28, review agent PASS 10:39 on `5b23b1f` (not merged: waits for the Oracle setup); a Compose smoke time fixed (review finding).
 - **26.11.2026 10:27** MKC-11 docs for PR A: decisions 48 (migrations on deploy, additive only; decision 47's migration note superseded) and 49 (backups) in the design doc; ADR 003 (backups built, migrations on deploy); runbook "Database migrations" and "Backups and restore drill" (how a run works, Oracle setup, storing the link, renewing it, the drill steps; results follow in PR B); `.env.example` `MKC_BACKUP_*`; status doc MKC-11 details, 49 decisions.
 - **26.11.2026 10:26** MKC-11.4 green: `templates/backup-cronjob.yaml` (`backup.enabled` off by default, on in `deploy/vm/values-production.yaml`; 03:30 Europe/Berlin, Forbid, start deadline 1 h, run deadline 30 min, `backoffLimit: 1`, history 3/3, restricted, `/backup` emptyDir 1Gi); `scripts/backup_receiver.py`, `scripts/row_counts.sql`, `scripts/restore_backup.sh`; `*.sql` LF. Compose smoke (local, before this commit): `mkc-backup` → stub (2273 bytes) → restore: source and restored `alembic_version|1 backup_runs|1 smoke_rows|500`, row `ok` (a first run at 10:22 failed at `/health` right after the stack was healthy; the rerun passed unchanged). kind (10:23–10:26): a Job from the CronJob admitted under `restricted`, failed closed with row `failed MKC_BACKUP_UPLOAD_URL is not set`; migration checks as before. `helm lint --strict` green with default, kind and production values. Local Grype run stopped (its database download hung); CI scans the image. Docker Desktop and WSL shut down after the runs (the user asked to close `vmmemWSL` when not needed).
