@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 26.11.2026, 15:04
+**Last updated:** 26.11.2026, 15:12
 
 This file is how agents resume work after a session restart.
 
@@ -57,7 +57,7 @@ This file is how agents resume work after a session restart.
 
 1. MKC-13: see "In progress". First step: the plan and the sub-issues.
 2. MKC-12, still to do:
-   - `cd` run 45834526785 on `0c5268c`: the user approves `backend`, then `frontend`; then check `/api/version` = `0c5268c…`, `/health` 200, the site 200. Migration 0003 runs in the hook Job (adds the empty table `lbs_structure`)
+   - the deploy of `0c5268c` is done and checked (`cd` run 45834526785, see the log); `lbs_structure` exists in production and is empty until `mkc-load-lbs` is wired in (finding 1)
    - non-blocking findings of the PR #120 review (comment 26.11.2026 13:59:29Z), for the ticket that first reads `lbs_structure` (MKC-22) or a later hardening ticket:
      - 1: wire `mkc-load-lbs` into the deploy (copy `backend/data/` into the image; `DEFAULT_PATH` points into the source tree)
      - 2: read the MaKo platform's terms and imprint and the BNetzA reuse notes; add them to the research note (no ticket or owner yet)
@@ -115,6 +115,7 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **26.11.2026 14:59–15:07** `cd` run 45834526785 on `0c5268c`, green: `image` 14:59:43–15:03:50; `backend` approved by the user, 15:06:13–15:07:01 (hook Job `mkc-migrate` ran `0002 -> 0003` and created the empty table `lbs_structure`; Helm revision 8); `frontend` approved by the user, 15:07:13–15:07:58. Checked afterwards: `/api/version` = `0c5268c…`, `/health` 200, `/api/admin/backup-status` without a token 401, the site 200, API and worker pods running, CronJob `mkc-backup` still there.
 - **26.11.2026 15:01** MKC-13 (#13) assigned to `qamran` and set to `In progress`; branch `mkc-13-provider-layer` from `0c5268c`. Local branches `mkc-12-codeliste-lbs` and `backup/mkc-12-before-reword` deleted. Board: #12 and #117–#119 `Done`. `cd` run 45834526785 started (13:59:39Z), waits for the user's approvals.
 - **26.11.2026 14:59** Review agent (Fable) verdict on PR #120: PASS on head `020bf22` (comment 13:59:29Z), no blocking finding, 14 non-blocking (listed under Next steps). It re-ran the build script on the PDF (byte-identical YAML) and checked pages 34, 38 and 43 against page images. Merged by the review agent (merge commit `0c5268c`, 13:59:36Z). #12 (13:59:39Z), #117, #118 and #119 (13:59:40Z–13:59:44Z) closed by the merge. `main` pushed to `turing` (15:00); `origin/main` = `turing/main` = `0c5268c`.
 - **26.11.2026 14:42–14:46** `ci` run 45831837875 on `020bf22` green: backend (120 passed, DB tests included), frontend, docs, gitleaks, dependency-scan, image, kind; publish skipped.
