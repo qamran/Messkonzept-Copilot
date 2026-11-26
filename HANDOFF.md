@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 26.11.2026, 13:40
+**Last updated:** 26.11.2026, 13:49
 
 This file is how agents resume work after a session restart.
 
@@ -56,7 +56,7 @@ This file is how agents resume work after a session restart.
 
 1. MKC-12: see "In progress". First step: the plan and the sub-issues.
 2. MKC-11, checks that are still to come:
-   - `cd` run 45821615993 on `33a3a65` (started 13:38) needs the user's two approvals (`backend`, then `frontend`). Then check `/api/version` = `33a3a65…` and `/health`. If it was not approved before the session ended, ask the user first thing
+   - the deploy of `33a3a65` is done and checked (`cd` run 45821615993, see the log); nothing is open there
    - 27.11.2026: the 03:30 run must have made a second object under `nightly/` and a second `ok` row in `backup_runs` (read-only: `cd backend && uv run --env-file .env python -m mkc.db.check` shows the connection works; the row itself with a `select` on `backup_runs`; or the user calls `/api/admin/backup-status` as admin)
    - from 11.12.2026: the object `nightly/mkc-20261126T115613Z.sql.gz` must be gone from the bucket (the user looks in the console). That proves the lifecycle rule and its policy `objectstorage-lifecycle` work; the policy itself was never shown in a screenshot
    - decided by the user (26.11.2026): AGENTS.md stays as it is (development agent Opus 5.5, review agent Fable). The session of 26.11.2026 from 12:00 ran on Fable 5.2 as an exception, so the commits of PR #116 and this one carry the trailer `Co-Authored-By: Claude Fable 5.2`; the reviews were done by separate Fable agents that wrote none of the content
@@ -95,14 +95,15 @@ This file is how agents resume work after a session restart.
 - **Docker Desktop** must be running for the local DB tests (`docker compose up -d db`), kind and the Compose smoke test. Start it only when needed and shut it down afterwards (stop the containers, quit Docker Desktop, `wsl --shutdown`): the user asked that `vmmemWSL` not keep running. CI uses its own Postgres service.
 - Later setup tasks (design doc section 13): provider API keys with caps. Done on 25.11.2026: Supabase project, Oracle VM with k3s, API host, Vercel project, GitHub `production` environment with `VERCEL_TOKEN`.
 - **Every deploy needs the user:** two approvals in the `production` environment (`backend`, then `frontend`) on the `cd` run after each merge.
-- **Waiting now:** the two approvals on `cd` run 45821615993 (merge of PR #116).
+- **Waiting now:** nothing. The next deploy approvals come with the next merge.
 - **The user's PC:** it went down without a clean shutdown on 23.11 and 26.11.2026 (cause not found; graphics-driver hang reports on both days; a memory test is not done yet). Commit and push often. Two files exist only on the PC: the VM's admin SSH key and `backend/.env` (runbook "Only on the PC"); the user was advised to copy them into a password manager.
 
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
-- **26.11.2026 13:40** MKC-11 closed out on branch `mkc-12-codeliste-lbs`: HANDOFF (MKC-11 under Done; MKC-12 in progress; the checks still to come; review follow-ups; the log order fixed: the 13:14 entry stood above newer ones) and the status doc. The success criteria of #11 and #114 ticked. On the VM: the manual Job `mkc-backup-now` and the old values copy in `/tmp` deleted. Local branches of MKC-11 deleted, also the local backup of the old PR head.
+- **26.11.2026 13:39–13:47** `cd` run 45821615993 on `33a3a65`, green: `image` 13:39:01–13:42:08; `backend` approved by the user, 13:43:25–13:44:22 (hook Job `mkc-migrate` ran again in 7 s with nothing to migrate; Helm revision 7); `frontend` approved by the user, 13:46:16–13:46:56. Checked afterwards: `/api/version` = `33a3a65…`, `/health` 200, `/api/admin/backup-status` without a token 401, the site 200, CronJob `mkc-backup` still there, API and worker pods running. The session ends here at the user's request (restart); the working tree is clean and everything is pushed.
+- **26.11.2026 13:41** MKC-11 closed out on branch `mkc-12-codeliste-lbs`: HANDOFF (MKC-11 under Done; MKC-12 in progress; the checks still to come; review follow-ups; the log order fixed: the 13:14 entry stood above newer ones) and the status doc. The success criteria of #11 and #114 ticked. On the VM: the manual Job `mkc-backup-now` and the old values copy in `/tmp` deleted. Local branches of MKC-11 deleted, also the local backup of the old PR head.
 - **26.11.2026 13:39** MKC-12 (#12) assigned to `qamran` (12:39:51Z) and set to `In progress`; branch `mkc-12-codeliste-lbs` from `33a3a65`.
 - **26.11.2026 13:38** PR #116 merged by the development agent (merge commit `33a3a65`, 12:38:55Z) after the review agent's delta PASS on the same head `e206f8f` (comment 12:38:19Z; `ci` run 45820672851 green; no blocking finding, six non-blocking). #114 (12:38:56Z) and #11 (12:38:58Z) closed by the merge, both `Done`. `main` pushed to `turing` (13:39:06); `origin/main` = `turing/main` = `33a3a65`. `cd` run 45821615993 started (12:38:58Z).
 - **26.11.2026 13:31** Branch `mkc-11-drill-docs` rebuilt before the merge: two commits that had put the PC's full Windows paths into the runbook and taken them out again (the user asked for full paths; the repo is public) are no longer in the history; the tree was identical before and after. The full-path copy is the local file in `internal/`. Same commit, from the review and the screenshots: the runbook names the bucket's tabs (Policies for lifecycle rules, Management for the upload link), records the confirmed lifecycle rule and the date its effect can be seen (11.12.2026), and fixes four older slips (policy before rule; the link ends in `/o/`; replication; what a leaked link can do); status doc header and wording; HANDOFF state and follow-ups.
