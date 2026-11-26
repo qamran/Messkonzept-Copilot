@@ -1,12 +1,12 @@
 # Project status: Messkonzept-Copilot
 
-**Last updated:** 26.11.2026, 13:40
+**Last updated:** 26.11.2026, 15:04
 
 This is the living status document. It is updated whenever a decision is made or work is completed. Older brainstorming material lives in `brainstorming internal/` (gitignored and frozen).
 
 ## Where we are
 
-- **Phase:** implementation, Phase 0 (foundation). The design doc was **approved by the user on 24.11.2026** (after an independent review, verdict "approve with changes", all required changes applied). The backend skeleton (MKC-4) is the first application code; MKC-5 added the database layer; MKC-6 added secret hygiene and CI; MKC-7 added the frontend and the login check; MKC-8 added containers; MKC-9 added the Helm chart and the kind test; MKC-10 added continuous deployment (merged in PR #109; the first `cd.yml` run deployed the merge commit on 26.11.2026). MKC-11 (backups and restore drill) is in progress.
+- **Phase:** implementation, Phase 0 (foundation). The design doc was **approved by the user on 24.11.2026** (after an independent review, verdict "approve with changes", all required changes applied). The backend skeleton (MKC-4) is the first application code; MKC-5 added the database layer; MKC-6 added secret hygiene and CI; MKC-7 added the frontend and the login check; MKC-8 added containers; MKC-9 added the Helm chart and the kind test; MKC-10 added continuous deployment (merged in PR #109; the first `cd.yml` run deployed the merge commit on 26.11.2026). MKC-11 added nightly backups and a proven restore; MKC-12 added the Codeliste research and the LBS reference data (PR #120). Phase 0 is done; Phase 1 starts with MKC-13 (provider layer).
 - **Restart file:** `HANDOFF.md` (repo root) is the agents' running log and next steps, updated with every commit and important ticket change (decision 34). This status doc stays the overview of decisions and documents.
 - **Board:** <https://github.com/users/qamran/projects/1> (public). Tickets MKC-1 to MKC-60 exist as issues #1 to #60 (issue number = key).
 - **Done:** MKC-1 (ticket workflow and repo setup, PR #65), MKC-2 (code-only Turing mirror, README with links, PR #70), MKC-3 (agent instructions: assignment rule PR #67, HANDOFF.md PR #69, AGENTS.md + CLAUDE.md PR #72), MKC-4 (backend skeleton: uv project `backend/`, package `mkc`, FastAPI `/health` and `/api/version`, worker with clean SIGTERM shutdown, ruff and mypy strict, PR #75), MKC-5 (database layer: compose Postgres 17 + pgvector, SQLAlchemy 2, Alembic, `python -m mkc.db.check`, Supabase connection checked; PR #80), MKC-6 (secret hygiene, markdown lint, CI with required checks; PR #86), MKC-7 (frontend skeleton with Clerk; PR #91), MKC-8 (containers, Compose, GHCR image; PR #97), MKC-9 (Helm chart and kind test; PR #103), MKC-10 (continuous deployment; PR #109), MKC-11 (backups and restore drill; PRs #115 and #116). Each after a review-agent PASS; both remotes at the latest merge commit.
@@ -61,8 +61,8 @@ This is the living status document. It is updated whenever a decision is made or
   - k3s v1.37.2 with Traefik; cert-manager v1.21.3 with Let's Encrypt staging and prod issuers
   - API host `92-6-240-17.sslip.io`
   - Vercel project `messkonzept-copilot`; GitHub environment `production` with `VERCEL_TOKEN`
-- **Current ticket:** MKC-12 (Codeliste research and LBS reference data, #12), started 26.11.2026; research done (Codeliste 1.0, corrected edition of 13.12.2024; decision 50); `backend/data/lbs_structures.yaml` (15 structures), loader `mkc.reference.lbs` with check digit, table `lbs_structure` (migration 0003) and `mkc-load-lbs` built; PR next. MKC-11 is done (PR #116 merged as `33a3a65`): backups run nightly in production and one restore is proven.
-- **Next:** MKC-12 (Codeliste research and LBS reference data).
+- **Current ticket:** MKC-13 (Provider layer, `ModelClient`, #13), started 26.11.2026; nothing built yet. Its live contract tests need provider API keys with spending caps (user setup task). MKC-12 is done (PR #120 merged as `0c5268c`): Codeliste 1.0 (consolidated edition of 13.12.2024) researched, 15 LBS structures in `backend/data/lbs_structures.yaml`, table `lbs_structure` (decision 50).
+- **Next:** MKC-13 (provider layer), then MKC-14 (tool registry).
 
 ## Key documents
 
