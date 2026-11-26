@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 25.11.2026, 17:41
+**Last updated:** 26.11.2026, 09:11
 
 This file is how agents resume work after a session restart.
 
@@ -23,7 +23,7 @@ This file is how agents resume work after a session restart.
 - **Remotes:**
   - `origin` = qamran/Messkonzept-Copilot (home, public)
   - `turing` = TuringCollegeSubmissions/qshahz-AE.CAP.AFA.1.1 (code-only mirror, no issues; ADR 005 option (c), decision 35)
-  - Both at `1f16ba8` (merge of PR #103).
+  - Both at `edd4406` (merge of PR #109).
 - **`main` is protected:** PRs only, enforced for admins. Required checks: the `ci` jobs `backend`, `frontend`, `gitleaks`, `dependency-scan` and `docs` (since 25.11.2026 09:50, MKC-6.5) `image` (since 13:52, MKC-8) and `kind` (since 15:42, MKC-9); the branch must be up to date with `main`. `publish` is not required (skipped on PRs).
 - **Agent rules:** `AGENTS.md` (CLAUDE.md imports it). The development agent continues without asking and stops only for genuine decisions (decision 36).
 - **Done:**
@@ -36,6 +36,7 @@ This file is how agents resume work after a session restart.
   - MKC-7: frontend skeleton (`frontend/`: Vite, React, TS, Tailwind, shadcn/ui, `@clerk/react`, `apiFetch`, `RequireAdmin`); backend Clerk token check (`mkc.api.auth`, `/api/me`, `/api/admin/ping`); Clerk development instance everywhere (ADR 002, decision 39) (PR #91)
   - MKC-8: backend image (`backend/Dockerfile`), `compose.yaml` (db, api, worker, frontend), `scripts/compose_smoke.sh`, CI jobs `image` (required check) and `publish`; image `ghcr.io/qamran/messkonzept-copilot-backend` (public, tags `<sha>` and `main`, amd64 + arm64) (decision 41, PR #97)
   - MKC-9: Helm chart `deploy/helm/mkc/` (API and worker, Service, Ingress with cert-manager TLS, Secret; worker `replicas: 1`, `Recreate`, grace period 300 s); worker heartbeat and `mkc-worker-health`; `scripts/check_helm.py`, `scripts/kind_smoke.sh`; CI job `kind` (required check) (decision 42, PR #103)
+  - MKC-10: continuous deployment: `cd.yml` (push to `main`; `image` waits for the arm64 image; `backend` deploys over SSH to the forced command `mkc-deploy` (commits on `main` only), smoke test, rollback; `frontend` deploys Vercel production with `VITE_COMMIT`); two approvals per deploy in `production`; preview origin pattern for CORS and `azp`; version warning; runbook "Deploy and rollback" (decisions 45–47, PR #109)
 - **Server (set up 25.11.2026, decisions 43 and 44):** Oracle VM `mkc-k3s`, `ubuntu@92.6.240.17`, admin login with the user's key `~/.ssh/oracle_mkc`; k3s v1.37.2 with Traefik; cert-manager v1.21.3 with ClusterIssuers `letsencrypt-staging` and `letsencrypt-prod`; API host `92-6-240-17.sslip.io`; 6443 closed from outside. Vercel project `messkonzept-copilot` (scope `qamran`); GitHub environment `production` (reviewer `qamran`, `main` only, secret `VERCEL_TOKEN`). Every step: `docs/251120261645-runbook.md`.
 - **How to run the frontend:** `frontend/.env.local` holds `VITE_CLERK_PUBLISHABLE_KEY` and `VITE_API_URL=http://127.0.0.1:8000` (gitignored). Run the API with `cd backend && uv run --env-file .env uvicorn mkc.api.app:create_app --factory --port 8000` (`backend/.env` has `MKC_CLERK_ISSUER`), then `cd frontend && npm run dev` (`localhost:5173`). Test sign-ins: the user's Google account (admin); a `+clerk_test@example.com` user (code `424242`) and a second Gmail account (both no role).
 - **How to run the whole stack in containers:** `docker compose --env-file frontend/.env.local up --build` (repo root; the env file gives the frontend build its Clerk key; without it the page says the key is missing). API on `127.0.0.1:8000`, frontend on `localhost:5173`, db on `127.0.0.1:5433`; `backend/.env` is loaded when present. `bash scripts/compose_smoke.sh` checks the stack as its own project (`mkc-smoke`, ports 15433/18000/15173, images tagged `smoke`) and removes its containers and volume afterwards.
@@ -44,20 +45,21 @@ This file is how agents resume work after a session restart.
 
 ## In progress
 
-- **MKC-10** (#10), continuous deployment (k3s + Vercel). Status `Testing`, assigned to `qamran`. Branch `mkc-10-cd` from `1f16ba8`; PR #109 (CI run 45655887382 on `36644d7` green). Plan: `docs/superpowers/plans/251120261710-mkc-10-cd.md`.
-  - Branch pushed. Since the review: the forced command deploys only commits on `main`; namespace `mkc` enforces Pod Security `restricted`; SSH keepalive; CR stripped from the key.
-  - Sub-issues MKC-10.1 (#106), 10.2 (#105), 10.3 (#104), 10.4 (#107), 10.5 (#108): all linked to #10, assigned to `qamran`, `Testing`. Code and docs for all five are on the branch.
-  - Live: `https://92-6-240-17.sslip.io/api/version` = `1f16ba85…` (Helm revision 3 after the drill).
-  - Vercel Git deployments switched on again (previews per PR; `main` off by `frontend/vercel.json`).
-  - **Waiting on the user:** the deploy key must go into the `production` environment as `DEPLOY_SSH_KEY` (the agent's `gh secret set` was blocked by the permission check). Command in Next steps 1. Until then the post-merge `cd.yml` run fails in `backend`.
+- **MKC-11** (#11), backups and restore drill. Status `In progress`, assigned to `qamran`. Branch `mkc-11-backups` from `edd4406`. Sub-issues and plan not written yet.
+  - Needs the user: an Oracle Object Storage bucket and credentials (ticket "Depends on").
 
 ## Next steps
 
-1. MKC-10:
-   - the user stores the deploy key (runbook "Deploy and rollback", "Store the deploy key in GitHub"; PowerShell: `Get-Content -Raw '<key file>' | gh secret set DEPLOY_SSH_KEY --env production -R qamran/Messkonzept-Copilot`). The key file is in this session's scratchpad (`deploykey/mkc_deploy`); the agent gives the full path in the chat. Then the agent checks the secret name and deletes the local key folder.
-   - start the review agent on PR #109 once the secret is in place (PR opened, board set to `Testing`)
-   - after the merge: the user approves `backend`, then `frontend` in `production`; check `cd.yml` green, `/api/version` = merge commit, the Vercel site and `/admin` load without the warning, no Git-made Vercel production deployment for the merge commit (`main: false` works); a preview signs in and calls `/api/me` (CORS and `azp` via the new pattern; only possible once the merge commit runs on the VM); push `main` to `turing`
-2. Non-blocking follow-ups from the PR #103 review (for later tickets):
+1. MKC-11: write the plan and sub-issues (ticket format), then the red tests. Ask the user for the Object Storage bucket and credentials when the CronJob needs them.
+2. **Decision for the user (decision 45):** accept the preview-origin risk as now written in decision 45 and ADR 002, or narrow it (drop previews from `azp`, or previews on our own domain). Record the answer in decision 45, ADR 002 and here.
+3. Non-blocking follow-ups from the PR #109 review (MKC-10; for a later CI or deploy hardening ticket):
+   - N2: nine MKC-10 commits don't touch HANDOFF.md; N6: `05c4962` and `e5072c6` are over 200 lines (history not rewritten)
+   - N4: `cd_deploy.sh` prints "Helm rolled the release back itself" also when the VM refused the commit (exit 4) or SSH failed (255); no test covers those cases
+   - N5: `check_workflows.py` accepts the home-repo guard with `|| true` appended
+   - N7: small doc slips in the PR body and older HANDOFF entries (commit count, CI run id, log order)
+   - N8: `cd.yml` lines 38, 39 and 83 lost their `\` line breaks (the commands still work)
+   - N9: the `main` check in `mkc-deploy` calls GitHub's API without a token (rate limit, outage refuse a valid deploy); `behind` also accepts an old merged branch commit that has no image (the deploy then fails and Helm rolls back)
+4. Non-blocking follow-ups from the PR #103 review (for later tickets):
    - N1 (MKC-17/MKC-20): the heartbeat is only touched between polls; with max age 30 s and liveness 3 × 30 s, a turn of up to 240 s would get a healthy worker restarted. Beat during a turn or raise the max age (noted in ADR 002 and decision 42).
    - N2: `/tmp` is an `emptyDir` and survives a container restart, so an old heartbeat can make a restarted worker look Ready for up to 30 s; remove the file on start or add a `startupProbe`.
    - N3: the smoke test does not prove the heartbeat is refreshed; only the unit test does.
@@ -65,25 +67,35 @@ This file is how agents resume work after a session restart.
    - N6: `check_workflows.py` and `check_helm.py` are text-based and easy to fool; mutated samples are not kept as tests (same class as the PR #97 findings).
    - N7: the smoke script only prints the Ingress annotation and TLS secret; it does not assert them.
    - N11 (MKC-10): `checksum/secret` does not change with `existingSecret`; the secret checksum is visible in pod specs; API readiness does not check the database; the script leaves `mkc-backend:kind` in local Docker; a narrow race if the cluster name is taken after the guard.
-3. Non-blocking follow-ups from the PR #97 review (fold into a later CI-hardening ticket or MKC-9 where they touch the same files):
+5. Non-blocking follow-ups from the PR #97 review (fold into a later CI-hardening ticket or MKC-9 where they touch the same files):
    - check scripts are substring-based: flow-style `permissions: {…: write}`, `toJSON(secrets)`, `|| true` / `continue-on-error` on the scan, `if: false` on `image`, indented `USER root`, `USER 10001:0`, `COPY --chown --from=<unpinned>`, `!.env` after `.env`, `compose.override.yaml` all pass
    - no kept tests rerun the bad samples (they live only in the PR body and HANDOFF)
    - `cancel-in-progress: true` also applies on `main`: two quick merges can cancel a `publish`
    - the Grype database is not pinned, so a new high finding can turn unrelated PRs red
    - remove `pip` from the runtime image (source of most medium findings); `pgvector/pgvector:pg17` not digest-pinned; `publish` rebuilds instead of pushing the scanned image
    - the MKC-8 plan still lists `docker/metadata-action` (not used)
-4. Optional follow-ups from the PR #91 re-review (non-blocking): `apiBase()` could refuse a query, fragment or userinfo in `VITE_API_URL`; an empty `sub` is accepted; falsy non-string roles read as "no role".
+6. Optional follow-ups from the PR #91 re-review (non-blocking): `apiBase()` could refuse a query, fragment or userinfo in `VITE_API_URL`; an empty `sub` is accepted; falsy non-string roles read as "no role".
 
 ## Blocked / waiting on user
 
 - **Docker Desktop** must be running for the local DB tests (`docker compose up -d db`). If it is stopped after a restart, start it again. CI uses its own Postgres service.
 - Later setup tasks (design doc section 13): provider API keys with caps. Done on 25.11.2026: Supabase project, Oracle VM with k3s, API host, Vercel project, GitHub `production` environment with `VERCEL_TOKEN`.
-- **MKC-10 needs the user for:** storing the deploy key as the `production` secret `DEPLOY_SSH_KEY` (see Next steps 1; the agent's call was blocked by the permission check), and approving each deploy (`backend`, then `frontend`) in the `production` environment. `mkc-secrets` was made from `backend/.env` (Supabase Session pooler).
+- **Every deploy needs the user:** two approvals in the `production` environment (`backend`, then `frontend`) on the `cd` run after each merge.
+- **MKC-11 needs the user for:** an Oracle Object Storage bucket and credentials.
+- **Decision 45 waits on the user:** the preview-origin risk (Next steps 2).
 
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **26.11.2026 09:11** MKC-10 closed out in the docs on branch `mkc-11-backups`: decision 45 and ADR 002 risk text corrected (review finding N3: any Vercel account can name a matching project; a sign-in there gives a token the API accepts; waits for the user's decision); status doc (MKC-10 merged, MKC-11 current); HANDOFF (review findings N2, N4–N9 in Next steps).
+- **26.11.2026 09:10** MKC-11 (#11) assigned to `qamran` (08:10:05Z) and set to `In progress`; branch `mkc-11-backups` from `edd4406`.
+- **26.11.2026 09:09** The success criteria of #10 and #104–#108 ticked (all proven; the post-merge ticket tests included); all six `Done` on the board (the board's workflow had already moved them at the merge, 08:42:42).
+- **26.11.2026 09:04–09:09** Post-merge checks (all pass): `/api/version` = `edd4406…`, `/health` 200; `https://messkonzept-copilot.vercel.app/` and `/admin` 200, the bundle carries `edd4406` (same as the API, so no warning); the only Vercel production deployment for `edd4406` is `messkonzept-copilot-6kr4rvooh` from the CLI (09:04:38), no Git-made one (`main: false` works); CORS preflight on `/api/me`: the preview origin `messkonzept-copilot-hqfvoqwsq-qamran.vercel.app` and production allowed, `…-qamran.vercel.app.evil.example` refused (400), no token 401. The user signed in on preview `hqfvoqwsq` (Vercel login, then Clerk): the page showed "Signed in: what the backend sees", role `admin`, admin yes.
+- **26.11.2026 08:42–09:04** First `cd.yml` run 45777350297 on `edd4406`, green: `image` 08:42:44–08:45:48 (arm64 image found); `backend` approved by the user, 08:59:35–09:00:18 (6443 closed from the runner, deploy over SSH, smoke test passed); `frontend` approved by the user, 09:04:01–09:04:44 (Vercel production, `/` and `/admin` answer).
+- **26.11.2026 08:42** PR #109 merged by the development agent (merge commit `edd4406`, 07:42:38Z) after the review agent's PASS, with the head still `e678c03`, CI green and the branch up to date. #10 and #104–#108 closed by the merge. `main` pushed to `turing` (08:42:55); `origin/main` = `turing/main` = `edd4406`. Local copy of the deploy key deleted.
+- **26.11.2026 08:41** The user stored `DEPLOY_SSH_KEY` in the `production` environment (secret `updated_at` 07:41:50Z); checked: listed under the environment, not as a repo secret.
+- **25.11.2026 18:06** Review agent (Fable) verdict on PR #109: PASS on `e678c03` (comment 17:06:34Z); not merged then because `DEPLOY_SSH_KEY` was missing. Non-blocking findings N1–N9 (N1: post-merge checks unproven, now done; N3: risk text understated, now corrected; the rest in Next steps 3).
 - **25.11.2026 17:40** CI run 45655887382 on `36644d7` green (16:40:45Z): backend, frontend, gitleaks, dependency-scan, docs (incl. both deploy script tests), image, kind; publish skipped. `DEPLOY_SSH_KEY` not yet in `production` (only `VERCEL_TOKEN`); review agent waits for it.
 - **25.11.2026 17:37** PR #109 opened (16:37:23Z, assigned to `qamran`; closes #10, #104–#108); #10 and #104–#108 to `Testing`.
 - **25.11.2026 17:36** Docs after the review: runbook (two approvals; deploy-key commands for PowerShell and Git Bash; the `main` check and Pod Security in the setup and checks; the 17:34 deploy), ADR 002 (a leaked key deploys only commits on `main`; Pod Security), decision 47, status doc (#108). HANDOFF: no local path; "Blocked" names the deploy-key secret; log times taken from GitHub and Vercel.

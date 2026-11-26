@@ -1,12 +1,12 @@
 # Project status: Messkonzept-Copilot
 
-**Last updated:** 25.11.2026, 17:25
+**Last updated:** 26.11.2026, 09:11
 
 This is the living status document. It is updated whenever a decision is made or work is completed. Older brainstorming material lives in `brainstorming internal/` (gitignored and frozen).
 
 ## Where we are
 
-- **Phase:** implementation, Phase 0 (foundation). The design doc was **approved by the user on 24.11.2026** (after an independent review, verdict "approve with changes", all required changes applied). The backend skeleton (MKC-4) is the first application code; MKC-5 added the database layer; MKC-6 added secret hygiene and CI; MKC-7 added the frontend and the login check; MKC-8 added containers; MKC-9 added the Helm chart and the kind test; MKC-10 adds continuous deployment (server set up, first deploy and rollback drill done).
+- **Phase:** implementation, Phase 0 (foundation). The design doc was **approved by the user on 24.11.2026** (after an independent review, verdict "approve with changes", all required changes applied). The backend skeleton (MKC-4) is the first application code; MKC-5 added the database layer; MKC-6 added secret hygiene and CI; MKC-7 added the frontend and the login check; MKC-8 added containers; MKC-9 added the Helm chart and the kind test; MKC-10 added continuous deployment (merged in PR #109; the first `cd.yml` run deployed the merge commit on 26.11.2026). MKC-11 (backups and restore drill) is in progress.
 - **Restart file:** `HANDOFF.md` (repo root) is the agents' running log and next steps, updated with every commit and important ticket change (decision 34). This status doc stays the overview of decisions and documents.
 - **Board:** <https://github.com/users/qamran/projects/1> (public). Tickets MKC-1 to MKC-60 exist as issues #1 to #60 (issue number = key).
 - **Done:** MKC-1 (ticket workflow and repo setup, PR #65), MKC-2 (code-only Turing mirror, README with links, PR #70), MKC-3 (agent instructions: assignment rule PR #67, HANDOFF.md PR #69, AGENTS.md + CLAUDE.md PR #72), MKC-4 (backend skeleton: uv project `backend/`, package `mkc`, FastAPI `/health` and `/api/version`, worker with clean SIGTERM shutdown, ruff and mypy strict, PR #75), MKC-5 (database layer: compose Postgres 17 + pgvector, SQLAlchemy 2, Alembic, `python -m mkc.db.check`, Supabase connection checked; PR #80), MKC-6 (secret hygiene, markdown lint, CI with required checks; PR #86), MKC-7 (frontend skeleton with Clerk; PR #91), MKC-8 (containers, Compose, GHCR image; PR #97), MKC-9 (Helm chart and kind test; PR #103). Each after a review-agent PASS; both remotes at the latest merge commit.
@@ -23,7 +23,7 @@ This is the living status document. It is updated whenever a decision is made or
   - all tracked Markdown passes markdownlint
   - `.github/workflows/ci.yml`: backend (pgvector service; every backend test runs on Linux, none skipped), frontend (placeholder until MKC-7), gitleaks (fake-key self-test, full history), dependency-scan (pip-audit), docs (markdownlint, check scripts)
   - the five jobs are required checks on `main`, branch must be up to date (decision 38, ADR 005)
-  - `scripts/check_workflows.py` bans secrets and write permissions in every workflow. MKC-8 narrowed it for one job only (`packages: write` in `publish`, decision 41). The deploy workflow (MKC-10) will need secrets in the protected `production` environment; that ticket must narrow the rule again for the deploy job on `main` and record it as a decision.
+  - `scripts/check_workflows.py` bans secrets and write permissions in every workflow. MKC-8 narrowed it for one job only (`packages: write` in `publish`, decision 41). MKC-10 narrowed it again: secrets only in `cd.yml`, only in jobs in the `production` environment (decision 47).
 - **MKC-7 details** (frontend skeleton with Clerk, merged in PR #91; plan `docs/superpowers/plans/251120261119-mkc-7-frontend-skeleton.md`), sub-issues MKC-7.1 to MKC-7.4 (#87–#90):
   - Clerk development instance for every environment (decision 39, ADR 002); the user created it, with the `role` session-token claim, the admin (the user's Google account) and a test user
   - backend `mkc.api.auth`: `require_user`, `require_admin`, `GET /api/me`, `GET /api/admin/ping`; tokens checked with the public JWKS only (decision 40); `apiFetch` keeps every request on the `VITE_API_URL` origin (review fix); CORS allow-list for the local Vite dev server
@@ -40,20 +40,22 @@ This is the living status document. It is updated whenever a decision is made or
   - `deploy/helm/mkc/`: API Deployment (replicas from values), worker Deployment (`replicas: 1`, `Recreate`, grace period 300 s), Service, Ingress (cert-manager TLS), Secret from values or `existingSecret`, ConfigMap from `env`; probes, limits, uid 10001, read-only root (decision 42, ADR 002)
   - `scripts/check_helm.py` (static chart rules) and `scripts/kind_smoke.sh` (install on kind)
   - CI job `kind`: `helm lint --strict` and the kind smoke test; a required check on `main`; `publish` needs it
-- **MKC-10 details** (continuous deployment, branch `mkc-10-cd`; plan `docs/superpowers/plans/251120261710-mkc-10-cd.md`), sub-issues MKC-10.1 (#106), 10.2 (#105), 10.3 (#104), 10.4 (#107), 10.5 (#108):
+- **MKC-10 details** (continuous deployment, merged in PR #109; plan `docs/superpowers/plans/251120261710-mkc-10-cd.md`), sub-issues MKC-10.1 (#106), 10.2 (#105), 10.3 (#104), 10.4 (#107), 10.5 (#108):
   - `MKC_CORS_ORIGIN_REGEX`: the Vercel previews pass CORS and the `azp` check (decision 45)
   - `VersionWarning`: the page warns when the API runs another commit (decision 46); `frontend/vercel.json`
   - VM: user `mkc-deploy` with a forced command (`deploy/vm/mkc-deploy`, commits on `main` only), rights in namespace `mkc` only (Pod Security `restricted`), `/etc/mkc/values.yaml`, Secret `mkc-secrets`
   - `.github/workflows/cd.yml` and `scripts/cd_deploy.sh`: image wait, SSH deploy, smoke test, rollback, then Vercel production (decision 47)
   - first deploy and rollback drill on 25.11.2026: `https://92-6-240-17.sslip.io/api/version` live (Let's Encrypt certificate); a forced failing smoke test rolled back to revision 1
   - `check_workflows.py` now allows secrets in `cd.yml` only, only in `production` jobs (the change MKC-6 asked for)
+  - first `cd.yml` run (26.11.2026, run 45777350297, merge commit `edd4406`): `/api/version` = `edd4406…`; Vercel production built by the CLI with the same commit (no warning), no Git-made production deployment; a preview signed in and `/api/me` answered (role admin)
+  - open: the preview-origin risk in decision 45 waits for the user's decision; non-blocking review findings are listed in HANDOFF.md
 - **Server setup** (25.11.2026, for MKC-10; decisions 43 and 44; runbook `docs/251120261645-runbook.md`):
   - Oracle VM `mkc-k3s` (4 OCPUs, 24 GB, arm64, `92.6.240.17`); ports 80 and 443 open, 6443 closed
   - k3s v1.37.2 with Traefik; cert-manager v1.21.3 with Let's Encrypt staging and prod issuers
   - API host `92-6-240-17.sslip.io`
   - Vercel project `messkonzept-copilot`; GitHub environment `production` with `VERCEL_TOKEN`
-- **Current ticket:** MKC-10 (continuous deployment, #10).
-- **Next:** MKC-11 (backups and restore drill).
+- **Current ticket:** MKC-11 (backups and restore drill, #11). Needs the user: an Oracle Object Storage bucket and credentials.
+- **Next:** MKC-12 (Codeliste research and LBS reference data).
 
 ## Key documents
 
