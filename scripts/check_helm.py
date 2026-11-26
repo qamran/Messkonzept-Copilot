@@ -21,6 +21,10 @@ Static text checks only (the docs job runs this with bare python3, without Helm)
   and upgrade, with the same restricted security context as the pods, no retries and a
   deadline. With a chart-built Secret it reads a hook Secret of its own, because on a fresh
   install the chart's Secret doesn't exist yet when pre-install hooks run.
+- Backups (MKC-11.4): a CronJob runs `mkc-backup`, off by default (`backup.enabled: false`),
+  never two at once, with deadlines, history limits, a time zone, the restricted security
+  context and a size-limited emptyDir as the work directory. The production values switch
+  it on.
 
 Usage: python scripts/check_helm.py  (exit code 0 = ok, 1 = problems)
 """
@@ -43,7 +47,9 @@ FILES = [
     "templates/secret.yaml",
     "templates/migrate-job.yaml",
     "templates/migrate-secret.yaml",
+    "templates/backup-cronjob.yaml",
 ]
+PRODUCTION_VALUES = Path("deploy/vm/values-production.yaml")
 MIN_GRACE_SECONDS = 300
 
 BOTH_DEPLOYMENTS = {
@@ -107,6 +113,23 @@ MIGRATE_SECRET = {
     r"\.Values\.secrets\b": "be built from .Values.secrets",
     r"existingSecret": "be skipped when existingSecret is set",
 }
+BACKUP_CRONJOB = {
+    r"kind:\s*CronJob\b": "be a CronJob",
+    r"\{\{-?\s*if\s+\.Values\.backup\.enabled\b": "be switched by .Values.backup.enabled",
+    r"schedule:\s*\{\{[^}]*\.Values\.backup\.schedule\b": "take the schedule from values",
+    r"timeZone:\s*\{\{[^}]*\.Values\.backup\.timeZone\b": "take the time zone from values",
+    r"concurrencyPolicy:\s*Forbid\b": "never run two backups at once (concurrencyPolicy: Forbid)",
+    r"startingDeadlineSeconds:\s*\d+": "set startingDeadlineSeconds",
+    r"activeDeadlineSeconds:\s*\d+": "set activeDeadlineSeconds",
+    r"backoffLimit:\s*[01]\s*$": "retry at most once (backoffLimit 0 or 1)",
+    r"successfulJobsHistoryLimit:\s*\d+": "limit the successful job history",
+    r"failedJobsHistoryLimit:\s*\d+": "limit the failed job history",
+    r"restartPolicy:\s*Never\b": "use restartPolicy: Never",
+    r"\"mkc-backup\"": "run mkc-backup",
+    r"MKC_BACKUP_DIR": "set MKC_BACKUP_DIR to the work volume",
+    r"emptyDir:\s*\n\s*sizeLimit:": "use an emptyDir with a sizeLimit as the work directory",
+    r"secretRef:": "load the secrets with envFrom/secretRef",
+}
 
 
 def _text(root: Path, name: str) -> str:
@@ -142,7 +165,20 @@ def _values_problems(rel: str, text: str) -> list[str]:
                 found.append(f"{rel}: {part}.resources.{key} must be set")
     if not re.search(r"^  enabled:\s*true\s*$", _block(text, "migrations"), re.MULTILINE):
         found.append(f"{rel}: migrations.enabled must default to true")
+    if not re.search(r"^  enabled:\s*false\s*$", _block(text, "backup"), re.MULTILINE):
+        found.append(f"{rel}: backup.enabled must default to false (on in production values)")
     return found
+
+
+def _production_problems(root: Path) -> list[str]:
+    rel = PRODUCTION_VALUES.as_posix()
+    path = root / PRODUCTION_VALUES
+    if not path.is_file():
+        return [f"{rel}: file missing"]
+    text = path.read_text(encoding="utf-8")
+    if not re.search(r"^  enabled:\s*true\s*$", _block(text, "backup"), re.MULTILINE):
+        return [f"{rel}: must switch the nightly backup on (backup.enabled: true)"]
+    return []
 
 
 def _block(text: str, key: str) -> str:
@@ -174,6 +210,7 @@ def problems(root: Path = ROOT) -> list[str]:
         ("templates/secret.yaml", SECRET),
         ("templates/migrate-job.yaml", {**RESTRICTED, **MIGRATE_JOB}),
         ("templates/migrate-secret.yaml", MIGRATE_SECRET),
+        ("templates/backup-cronjob.yaml", {**RESTRICTED, **BACKUP_CRONJOB}),
     ]:
         found += _require((CHART / name).as_posix(), _text(root, name), rules)
     worker = "templates/worker-deployment.yaml"
@@ -181,6 +218,7 @@ def problems(root: Path = ROOT) -> list[str]:
     found += _values_problems((CHART / "values.yaml").as_posix(), _text(root, "values.yaml"))
     found += _ci_values_problems((CHART / "ci-values.yaml").as_posix(),
                                  _text(root, "ci-values.yaml"))
+    found += _production_problems(root)
     return found
 
 
