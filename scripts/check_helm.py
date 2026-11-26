@@ -17,6 +17,10 @@ Static text checks only (the docs job runs this with bare python3, without Helm)
 - values.yaml: no secret values (`secrets: {}`), no `latest` image tag, and resource
   requests and limits for the API and the worker.
 - ci-values.yaml (the kind test): Ingress and TLS switched on, so the API server checks them.
+- Migrations (MKC-11.1, decision 48): a hook Job runs `alembic upgrade head` before install
+  and upgrade, with the same restricted security context as the pods, no retries and a
+  deadline. With a chart-built Secret it reads a hook Secret of its own, because on a fresh
+  install the chart's Secret doesn't exist yet when pre-install hooks run.
 
 Usage: python scripts/check_helm.py  (exit code 0 = ok, 1 = problems)
 """
@@ -37,6 +41,8 @@ FILES = [
     "templates/service.yaml",
     "templates/ingress.yaml",
     "templates/secret.yaml",
+    "templates/migrate-job.yaml",
+    "templates/migrate-secret.yaml",
 ]
 MIN_GRACE_SECONDS = 300
 
@@ -73,6 +79,34 @@ SECRET = {
     r"\.Values\.secrets\b": "be built from .Values.secrets",
     r"existingSecret": "be skipped when existingSecret is set",
 }
+RESTRICTED = {
+    r"runAsNonRoot:\s*true": "run as non-root (runAsNonRoot: true)",
+    r"readOnlyRootFilesystem:\s*true": "use a read-only root filesystem",
+    r"allowPrivilegeEscalation:\s*false": "forbid privilege escalation",
+    r"drop:\s*\[\s*\"?ALL\"?\s*\]": "drop all capabilities",
+    r"type:\s*RuntimeDefault\b": "use the RuntimeDefault seccomp profile",
+}
+MIGRATE_JOB = {
+    r"kind:\s*Job\b": "be a Job",
+    r"\.Values\.migrations\.enabled\b": "be switched by .Values.migrations.enabled",
+    r"helm\.sh/hook:\s*['\"]?pre-install,pre-upgrade['\"]?": "be a pre-install,pre-upgrade hook",
+    r"helm\.sh/hook-delete-policy:\s*['\"]?before-hook-creation": (
+        "use hook-delete-policy before-hook-creation"
+    ),
+    r"\"alembic\",\s*\"upgrade\",\s*\"head\"": "run alembic upgrade head",
+    r"backoffLimit:\s*0\s*$": "not retry (backoffLimit: 0): a failed migration fails the release",
+    r"activeDeadlineSeconds:\s*\d+": "set activeDeadlineSeconds",
+    r"restartPolicy:\s*Never\b": "use restartPolicy: Never",
+    r"secretRef:": "load the database secret with envFrom/secretRef",
+    r"existingSecret": "use existingSecret when set, else the hook Secret",
+}
+MIGRATE_SECRET = {
+    r"kind:\s*Secret\b": "be a Secret",
+    r"helm\.sh/hook:\s*['\"]?pre-install,pre-upgrade['\"]?": "be a pre-install,pre-upgrade hook",
+    r"helm\.sh/hook-weight:\s*['\"]?-\d+": "have a negative hook-weight (created before the Job)",
+    r"\.Values\.secrets\b": "be built from .Values.secrets",
+    r"existingSecret": "be skipped when existingSecret is set",
+}
 
 
 def _text(root: Path, name: str) -> str:
@@ -106,6 +140,8 @@ def _values_problems(rel: str, text: str) -> list[str]:
         for key in ("requests", "limits"):
             if not re.search(rf"^    {key}:\s*$", body, re.MULTILINE):
                 found.append(f"{rel}: {part}.resources.{key} must be set")
+    if not re.search(r"^  enabled:\s*true\s*$", _block(text, "migrations"), re.MULTILINE):
+        found.append(f"{rel}: migrations.enabled must default to true")
     return found
 
 
@@ -136,6 +172,8 @@ def problems(root: Path = ROOT) -> list[str]:
         ("templates/worker-deployment.yaml", {**BOTH_DEPLOYMENTS, **WORKER}),
         ("templates/ingress.yaml", INGRESS),
         ("templates/secret.yaml", SECRET),
+        ("templates/migrate-job.yaml", {**RESTRICTED, **MIGRATE_JOB}),
+        ("templates/migrate-secret.yaml", MIGRATE_SECRET),
     ]:
         found += _require((CHART / name).as_posix(), _text(root, name), rules)
     worker = "templates/worker-deployment.yaml"

@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 26.11.2026, 09:53
+**Last updated:** 26.11.2026, 09:56
 
 This file is how agents resume work after a session restart.
 
@@ -88,6 +88,7 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **26.11.2026 09:56** MKC-11.1 red: `tests/db/test_backup_runs_migration.py` (0002 creates `backup_runs`, downgrades, a second upgrade is a no-op; models match the migrations) fails (no table, no `mkc.db.models`); `check_helm.py` migration rules (hook Job and hook Secret) fail (files missing).
 - **26.11.2026 09:53** MKC-11 plan committed. Sub-issues MKC-11.1 (#110) to 11.5 (#114) created 09:52 (08:52:33Z–08:52:56Z), linked to #11, on the board (#110 `In progress`, the rest `Ready`). Checked: Supabase PostgreSQL 17.12; trixie `postgresql-client-17` 17.12; VM region `eu-frankfurt-1`. The user was asked for the Oracle setup (bucket, lifecycle rule, write-only upload link).
 - **26.11.2026 09:21** Decision 45: the user accepted the preview-origin risk (asked in the session; options were accept, previews CORS only, own domain for previews). Decision 45 and ADR 002 say "accepted", with the rule: sign in only on production or on a preview from one of our PRs; revisit before real data or a Clerk production instance.
 - **26.11.2026 09:11** MKC-10 closed out in the docs on branch `mkc-11-backups`: decision 45 and ADR 002 risk text corrected (review finding N3: any Vercel account can name a matching project; a sign-in there gives a token the API accepts; decided below); status doc (MKC-10 merged, MKC-11 current); HANDOFF (review findings N2, N4–N9 in Next steps).
