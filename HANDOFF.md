@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 26.11.2026, 21:47
+**Last updated:** 26.11.2026, 21:37
 
 This file is how agents resume work after a session restart.
 
@@ -51,13 +51,13 @@ This file is how agents resume work after a session restart.
 
 - **MKC-14** (#14), Tool registry and per-context allow-lists. Status `In progress`, assigned to `qamran` (26.11.2026 16:27). Branch `mkc-14-tool-registry` from `ab62236`. The first commit holds only the close-out of MKC-13.
   - Plan: `docs/superpowers/plans/261120262129-mkc-14-tool-registry.md`.
-  - Sub-issues (assigned to `qamran`, linked to #14, on the board): MKC-14.1 #128 tool types and registry core (code green, waits for the PR), MKC-14.2 #129 default registry (code green, waits for the PR), MKC-14.3 #130 docs (`Ready`).
-  - Decision 53 (in the plan, docs in MKC-14.3): `side_effect` = reaches outside the item (network, catalogue, approval queue, state not overwritable by key). `save_draft` only writes its own item's draft (idempotent), so it is an item tool; harness code runs `enqueue_approval` on its result. **MKC-23 must build it that way.**
+  - Sub-issues (assigned to `qamran`, linked to #14, on the board): MKC-14.1 #128 tool types and registry core (code green, waits for the PR), MKC-14.2 #129 default registry (code green, waits for the PR), MKC-14.3 #130 docs (done, waits for the PR).
+  - Decision 53 (design doc section 18, ADR 001, status doc): `side_effect` = reaches outside the item (network, catalogue, approval queue, state not overwritable by key). `save_draft` only writes its own item's draft (idempotent), so it is an item tool; harness code runs `enqueue_approval` on its result. **MKC-23 must build it that way.**
   - Uses MKC-13: `ToolSpec` (name, description, Pydantic args) in `mkc.models.types`; `ModelClient.chat_with_tools`. Safety rules (AGENTS.md): the model never gets side-effect tools; tools can't be added at runtime.
 
 ## Next steps
 
-1. MKC-14: see "In progress". Next: MKC-14.3 docs (decision 53), then the PR. MKC-14.1 and 14.2 code green: `mkc.harness.tools`, `mkc.harness.registry`.
+1. MKC-14: see "In progress". Next: the PR (MKC-14.3 docs done). MKC-14.1 and 14.2 code green: `mkc.harness.tools`, `mkc.harness.registry`.
 2. MKC-13, non-blocking findings of the PR #127 review (comment 26.11.2026 15:19Z), for MKC-17/MKC-18 or a hardening ticket:
    - 1: another module could import `mkc.models.providers.build_chat_model` and skip `ModelClient`; add a guard that only `client.py` imports `providers`
    - 2: Gemini, Anthropic and Meta have no request-count test (only `max_retries == 0`); the reviewer measured one request each against a local server
@@ -129,6 +129,8 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **26.11.2026 21:32–21:37** MKC-14: MKC-14.1 red tests and skeleton (`397b770`, 21:32; 13 of 15 failed on assertions), registry core green (`5c4ca34`, 21:33); MKC-14.2 red tests (`46f71ad`, 21:34; 14 of 16 failed on assertions), default registry green (`fb00815`, 21:36; the red test compared `Tool` objects with names and was fixed in that commit). #129 set to `In progress` at 21:33. Local: 265 passed, 16 skipped (`MKC_SKIP_DB_TESTS=1`; Docker not started), ruff, mypy strict, markdownlint 0 errors, all check scripts pass. MKC-14.3: decision 53 in the design doc, ADR 001 and the status doc.
+- **Correction:** the `Last updated` lines of commits `5c4ca34`, `46f71ad` and `fb00815` (21:40, 21:43, 21:47) were estimated ahead of the clock; the commit times above are the true ones.
 - **26.11.2026 21:29–21:31** MKC-14: plan `docs/superpowers/plans/261120262129-mkc-14-tool-registry.md` written (decision 53 on `side_effect`); sub-issues MKC-14.1 #128 (21:30:31), MKC-14.2 #129 (21:30:35), MKC-14.3 #130 (21:30:41) created, assigned to `qamran`, linked to #14 and put on the board (#128 `In progress`, #129 and #130 `Ready`).
 - **26.11.2026 16:19–16:27** `cd` run 45847918395 on `ab62236`, green: `image` 16:19:27–16:24:35; `backend` approved by the development agent (decision 51) at 16:24:44, 16:24:41–16:25:47; `frontend` approved at 16:26:13, 16:26:11–16:26:51. Checked afterwards: `/api/version` = `ab62236…`, `/health` 200, `/api/admin/backup-status` without a token 401, the site 200. MKC-14 (#14) assigned to `qamran` and set to `In progress` (16:27); branch `mkc-14-tool-registry` from `ab62236`.
 - **26.11.2026 16:19** Review agent (Fable) verdict on PR #127: PASS on head `35f4065` (comment 15:19:17Z), no blocking finding, 12 non-blocking (under Next steps). It ran 14 mutations (all red) and checked one request per provider on 503/500/429. Merged by the review agent (merge commit `ab62236`, 15:19:20Z); #13 closed by the merge (15:19:22Z); #121–#126 closed by the development agent (15:20:18Z–15:21:18Z) and all set to `Done`. `main` pushed to `turing` (16:19:57); `origin/main` = `turing/main` = `ab62236`.
