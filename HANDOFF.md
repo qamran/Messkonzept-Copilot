@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 26.11.2026, 10:27
+**Last updated:** 26.11.2026, 11:36
 
 This file is how agents resume work after a session restart.
 
@@ -54,7 +54,7 @@ This file is how agents resume work after a session restart.
 ## Next steps
 
 1. MKC-11:
-   - open PR A (closes #110–#113, `Refs #11`), sub-issues to `Testing`, wait for CI, start the review agent
+   - PR A is #115 (opened 26.11.2026 10:28; CI green; review agent PASS 10:39 on `5b23b1f`, merge held for the Oracle setup). This commit changes the head, so the review agent runs again before the merge
    - before PR A's merge: the user's Oracle setup (runbook "Backups and restore drill"); the link file `C:\Users\qamra\mkc_backup_par.txt` → `mkc-secrets` over stdin (never printed), delete the file; check `mkc-deployer` may create CronJobs (`can-i`); copy the new production values to `/etc/mkc/values.yaml` (Secret first, then values)
    - after PR A's deploy: run a Job from the CronJob, check the object in the bucket and `/api/admin/backup-status`; the user downloads it; restore drill with `scripts/restore_backup.sh`; PR B (docs only) closes #114 and #11
 2. Non-blocking follow-ups from the PR #109 review (MKC-10; for a later CI or deploy hardening ticket):
@@ -92,8 +92,9 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **26.11.2026 11:36** MKC-11.5: runbook "One-time Oracle setup" written out step by step at the user's request (sign-in and region, bucket, lifecycle policy, 14-day rule on `nightly/`, write-only upload link, saving it to a local file from the clipboard without showing it, what to do if it is lost). HANDOFF: PR #115 opened 10:28, review agent PASS 10:39 on `5b23b1f` (not merged: waits for the Oracle setup); a Compose smoke time fixed (review finding).
 - **26.11.2026 10:27** MKC-11 docs for PR A: decisions 48 (migrations on deploy, additive only; decision 47's migration note superseded) and 49 (backups) in the design doc; ADR 003 (backups built, migrations on deploy); runbook "Database migrations" and "Backups and restore drill" (how a run works, Oracle setup, storing the link, renewing it, the drill steps; results follow in PR B); `.env.example` `MKC_BACKUP_*`; status doc MKC-11 details, 49 decisions.
-- **26.11.2026 10:26** MKC-11.4 green: `templates/backup-cronjob.yaml` (`backup.enabled` off by default, on in `deploy/vm/values-production.yaml`; 03:30 Europe/Berlin, Forbid, start deadline 1 h, run deadline 30 min, `backoffLimit: 1`, history 3/3, restricted, `/backup` emptyDir 1Gi); `scripts/backup_receiver.py`, `scripts/row_counts.sql`, `scripts/restore_backup.sh`; `*.sql` LF. Compose smoke (local, 10:31): `mkc-backup` → stub (2273 bytes) → restore: source and restored `alembic_version|1 backup_runs|1 smoke_rows|500`, row `ok` (a first run at 10:22 failed at `/health` right after the stack was healthy; the rerun passed unchanged). kind (10:23–10:26): a Job from the CronJob admitted under `restricted`, failed closed with row `failed MKC_BACKUP_UPLOAD_URL is not set`; migration checks as before. `helm lint --strict` green with default, kind and production values. Local Grype run stopped (its database download hung); CI scans the image. Docker Desktop and WSL shut down after the runs (the user asked to close `vmmemWSL` when not needed).
+- **26.11.2026 10:26** MKC-11.4 green: `templates/backup-cronjob.yaml` (`backup.enabled` off by default, on in `deploy/vm/values-production.yaml`; 03:30 Europe/Berlin, Forbid, start deadline 1 h, run deadline 30 min, `backoffLimit: 1`, history 3/3, restricted, `/backup` emptyDir 1Gi); `scripts/backup_receiver.py`, `scripts/row_counts.sql`, `scripts/restore_backup.sh`; `*.sql` LF. Compose smoke (local, before this commit): `mkc-backup` → stub (2273 bytes) → restore: source and restored `alembic_version|1 backup_runs|1 smoke_rows|500`, row `ok` (a first run at 10:22 failed at `/health` right after the stack was healthy; the rerun passed unchanged). kind (10:23–10:26): a Job from the CronJob admitted under `restricted`, failed closed with row `failed MKC_BACKUP_UPLOAD_URL is not set`; migration checks as before. `helm lint --strict` green with default, kind and production values. Local Grype run stopped (its database download hung); CI scans the image. Docker Desktop and WSL shut down after the runs (the user asked to close `vmmemWSL` when not needed).
 - **26.11.2026 10:19** MKC-11.4 red: `check_helm.py` CronJob rules (`templates/backup-cronjob.yaml` missing; off by default; production values must switch it on) and `compose_smoke.sh` backup-and-restore step (needs `scripts/backup_receiver.py`, `scripts/row_counts.sql`, `scripts/restore_backup.sh`, which do not exist yet).
 - **26.11.2026 10:18** MKC-11.3 green: `mkc.api.backup_status` (`load_latest`, dependency `latest_backup_runs`, `summarize`: `stale` when no success within `MKC_BACKUP_STALE_HOURS` = 26) and `GET /api/admin/backup-status` (admin only; a database error gives 503 "Backup status unavailable", details only as the error class in the server log). pytest 103 passed, 1 skipped; ruff, mypy strict green.
 - **26.11.2026 10:17** MKC-11.3 red: `tests/api/test_backup_status.py` (401/403; `never` + stale; fresh `ok`; `ok` older than 26 h is stale; `failed` keeps the last success; `running`; a database error gives 503 without details) and `tests/db/test_backup_status_query.py` (latest run and latest success) fail: no module `mkc.api.backup_status`.
