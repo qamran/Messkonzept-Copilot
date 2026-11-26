@@ -191,4 +191,5 @@ def test_tool_result_needs_exactly_one_of_data_and_error() -> None:
 
 def test_to_spec_matches_model_client_tool_spec() -> None:
     tool = make_registry().for_context("item")[0]
-    assert tool.to_spec() == ToolSpec(name="extract_text", description="Text of one page.", args=PageArgs)
+    spec = ToolSpec(name="extract_text", description="Text of one page.", args=PageArgs)
+    assert tool.to_spec() == spec
