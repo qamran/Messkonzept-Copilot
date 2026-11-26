@@ -49,15 +49,15 @@ This file is how agents resume work after a session restart.
 
 ## In progress
 
-- **MKC-14** (#14), Tool registry and per-context allow-lists. Status `In progress`, assigned to `qamran` (26.11.2026 16:27). Branch `mkc-14-tool-registry` from `ab62236`. The first commit holds only the close-out of MKC-13.
+- **MKC-14** (#14), Tool registry and per-context allow-lists. Status `Testing` since 23:08 (`In progress` from 16:27), assigned to `qamran`. **PR #131** (opened 23:07:43, assigned to `qamran`) waits for the review agent. Branch `mkc-14-tool-registry` from `ab62236`. The first commit holds only the close-out of MKC-13.
   - Plan: `docs/superpowers/plans/261120262129-mkc-14-tool-registry.md`.
-  - Sub-issues (assigned to `qamran`, linked to #14, on the board): MKC-14.1 #128 tool types and registry core (code green, waits for the PR), MKC-14.2 #129 default registry (code green, waits for the PR), MKC-14.3 #130 docs (done, waits for the PR).
+  - Sub-issues (assigned to `qamran`, linked to #14, on the board): MKC-14.1 #128 tool types and registry core (`Testing`), MKC-14.2 #129 default registry (`Testing`), MKC-14.3 #130 docs (`Testing`).
   - Decision 53 (design doc section 18, ADR 001, status doc): `side_effect` = reaches outside the item (network, catalogue, approval queue, state not overwritable by key). `save_draft` only writes its own item's draft (idempotent), so it is an item tool; harness code runs `enqueue_approval` on its result. **MKC-23 must build it that way.**
   - Uses MKC-13: `ToolSpec` (name, description, Pydantic args) in `mkc.models.types`; `ModelClient.chat_with_tools`. Safety rules (AGENTS.md): the model never gets side-effect tools; tools can't be added at runtime.
 
 ## Next steps
 
-1. MKC-14: see "In progress". Next: the PR (MKC-14.3 docs done). MKC-14.1 and 14.2 code green: `mkc.harness.tools`, `mkc.harness.registry`.
+1. MKC-14: see "In progress". Next: review agent verdict on PR #131; on PASS + green CI merge, push `main` to `turing`, approve the `cd` gates. MKC-14.1 and 14.2 code green: `mkc.harness.tools`, `mkc.harness.registry`.
 2. MKC-13, non-blocking findings of the PR #127 review (comment 26.11.2026 15:19Z), for MKC-17/MKC-18 or a hardening ticket:
    - 1: another module could import `mkc.models.providers.build_chat_model` and skip `ModelClient`; add a guard that only `client.py` imports `providers`
    - 2: Gemini, Anthropic and Meta have no request-count test (only `max_retries == 0`); the reviewer measured one request each against a local server
@@ -129,7 +129,8 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
-- **26.11.2026 23:06–23:08** MKC-14, after a self-review: registry maps are read-only (`MappingProxyType`, `6bbea6a`, 23:06; that commit has no HANDOFF change). Decision 53 made consistent in the other places: design 8.1 table (enqueue by the harness), ADR 001 (idempotency keys for the writes), backlog MKC-23 (`save_draft` interface and test name), plan (`ok=True` may carry `data=None`). Comment on #23 explains the change for MKC-23.
+- **26.11.2026 23:07–23:08** MKC-14: branch pushed; PR #131 opened (23:07:43) with criteria, evidence and disclosures; #14 and #128–#130 set to `Testing` (23:08).
+- **26.11.2026 23:06–23:07** MKC-14, after a self-review: registry maps are read-only (`MappingProxyType`, `6bbea6a`, 23:06; that commit has no HANDOFF change). Decision 53 made consistent in the other places: design 8.1 table (enqueue by the harness), ADR 001 (idempotency keys for the writes), backlog MKC-23 (`save_draft` interface and test name), plan (`ok=True` may carry `data=None`). Comment on #23 explains the change for MKC-23.
 - **26.11.2026 21:32–21:37** MKC-14: MKC-14.1 red tests and skeleton (`397b770`, 21:32; 14 of 15 failed on assertions; the commit message says 13), registry core green (`5c4ca34`, 21:33); MKC-14.2 red tests (`46f71ad`, 21:34; 14 of 16 failed on assertions), default registry green (`fb00815`, 21:36; the red test compared `Tool` objects with names and was fixed in that commit). #129 set to `In progress` between those commits (time not recorded). Local: 265 passed, 16 skipped (`MKC_SKIP_DB_TESTS=1`; Docker not started), ruff, mypy strict, markdownlint 0 errors, all check scripts pass. MKC-14.3: decision 53 in the design doc, ADR 001 and the status doc.
 - **Correction:** the `Last updated` lines of commits `397b770`, `5c4ca34`, `46f71ad` and `fb00815` (21:36, 21:40, 21:43, 21:47) were estimated ahead of the clock; the commit times above are the true ones. `0a53675` (21:37) matches its commit time.
 - **26.11.2026 21:29–21:31** MKC-14: plan `docs/superpowers/plans/261120262129-mkc-14-tool-registry.md` written (decision 53 on `side_effect`); sub-issues MKC-14.1 #128 (21:30:31), MKC-14.2 #129 (21:30:35), MKC-14.3 #130 (21:30:41) created, assigned to `qamran`, linked to #14 and put on the board (#128 `In progress`, #129 and #130 `Ready`).
