@@ -1,0 +1,46 @@
+# Model configuration (MKC-13.2). Which provider and model each role uses, and what they cost.
+# Change models here, not in code. MKC_MODELS_FILE can point to another file with this layout.
+#
+# Prices are USD per million tokens.
+# - openrouter: OpenRouter GET /api/v1/endpoints/zdr on 26.11.2026 (zero-data-retention endpoints
+#   only). Where a model has several ZDR endpoints, the highest price is taken, so the recorded
+#   cost is an upper bound.
+# - gemini: the Gemini API free tier costs nothing (it may use inputs for training: allowed only
+#   for public PDFs and synthetic sites, design doc section 5).
+# - anthropic, llama: no list taken from the providers yet; the OpenRouter price of the same model
+#   stands in until the live contract run (MKC-13.6) confirms the model ids and prices.
+
+# ECB reference rate of 25.11.2026: 1 EUR = 1.0935 USD.
+eur_per_usd: 0.9145
+
+# Per call; at most 180 s (decision 42: the worker's turn budget).
+timeout_seconds: 120
+
+# OpenRouter is the default route for every role (AGENTS.md, model rules). The gold drafts use a
+# different model family from extraction (independent gold, design doc section 10).
+roles:
+  extract_vision: {provider: openrouter, model: google/gemini-3.8-flash}
+  facts: {provider: openrouter, model: google/gemini-3.8-flash}
+  explain: {provider: openrouter, model: google/gemini-3.5-flash-lite}
+  judge: {provider: openrouter, model: meta-llama/llama-4-maverick}
+  gold_draft: {provider: openrouter, model: anthropic/claude-haiku-5.5}
+
+# One cheap model per provider for the live contract tests (MKC-13.6).
+contract_models:
+  openrouter: google/gemini-3.5-flash-lite
+  gemini: gemini-3.5-flash-lite
+  anthropic: claude-haiku-5-5
+  llama: Llama-4-Scout-17B-16E-Instruct-FP8
+
+prices:
+  openrouter:
+    google/gemini-3.8-flash: {input: 1.35, output: 6.75, source: "OpenRouter ZDR list 26.11.2026"}
+    google/gemini-3.5-flash-lite: {input: 0.54, output: 4.5, source: "OpenRouter ZDR list 26.11.2026"}
+    meta-llama/llama-4-maverick: {input: 0.35, output: 1.0, source: "OpenRouter ZDR list 26.11.2026"}
+    anthropic/claude-haiku-5.5: {input: 0.1, output: 0.5, source: "OpenRouter ZDR list 26.11.2026"}
+  gemini:
+    gemini-3.5-flash-lite: {input: 0, output: 0, source: "Gemini API free tier"}
+  anthropic:
+    claude-haiku-5-5: {input: 0.1, output: 0.5, source: "OpenRouter price of anthropic/claude-haiku-5.5, 26.11.2026"}
+  llama:
+    Llama-4-Scout-17B-16E-Instruct-FP8: {input: 0.15, output: 0.45, source: "OpenRouter price of meta-llama/llama-4-scout, 26.11.2026"}

@@ -1,7 +1,7 @@
 """Settings from environment variables (prefix MKC_)."""
 
 import re
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import AliasChoices, Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
@@ -63,6 +63,28 @@ class Settings(BaseSettings):
 
     backup_stale_hours: float = 26.0
     """`/api/admin/backup-status` reports `stale` when the last good backup is older."""
+
+    model_mode: Literal["live", "record", "replay"] = "replay"
+    """`live` calls providers; `record` calls them and stores the replies; `replay` (default, so
+    nothing spends money by accident) only reads stored replies and needs no API key."""
+
+    models_file: str = ""
+    """Role → model mapping and prices. Empty = the packaged `mkc/models/models.yaml`."""
+
+    model_replay_dir: str = ""
+    """Directory of recorded replies; required in `record` and `replay` mode."""
+
+    openrouter_api_key: SecretStr = SecretStr("")
+    """OpenRouter key (default route, zero data retention). A secret: never logged."""
+
+    google_api_key: SecretStr = SecretStr("")
+    """Gemini API key (free tier: public and synthetic input only). A secret."""
+
+    anthropic_api_key: SecretStr = SecretStr("")
+    """Anthropic API key. A secret."""
+
+    llama_api_key: SecretStr = SecretStr("")
+    """Meta Llama API key. A secret."""
 
     @field_validator("clerk_authorized_parties", "cors_origins", mode="before")
     @classmethod
