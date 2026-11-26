@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 26.11.2026, 15:19
+**Last updated:** 26.11.2026, 15:41
 
 This file is how agents resume work after a session restart.
 
@@ -48,16 +48,18 @@ This file is how agents resume work after a session restart.
 
 ## In progress
 
-- **MKC-13** (#13), Provider layer (`ModelClient`). Status `In progress`, assigned to `qamran` (26.11.2026 15:01). Branch `mkc-13-provider-layer` from `0c5268c`.
-  - Plan: `docs/superpowers/plans/261120261517-mkc-13-provider-layer.md` (facts checked, decision 52 to record, sub-issue steps).
-  - Sub-issues (all assigned to `qamran`, linked to #13, on the board): #121 MKC-13.1 dependencies and guards (tests green), #122 MKC-13.2 types, role config and settings (tests green), #123 MKC-13.3 ModelClient over a fake model (tests green), #124 MKC-13.4 record/replay (tests green); provider `llama` → `meta` (Meta API api.meta.ai, `langchain-meta` replaced by `langchain-openai`; tests green), #125 MKC-13.5 provider factory with zero data retention (tests green), #126 MKC-13.6 live contract tests and docs (`In progress`; contract tests written, waiting for keys).
-  - Key facts: no `langchain` meta-package (it pulls `langgraph`); `ChatOpenRouter(openrouter_provider={"zdr": True, "data_collection": "deny"})`, timeout in ms; prices from OpenRouter's ZDR endpoint list (26.11.2026, highest endpoint price), 1 EUR = 1.0935 USD (ECB 25.11.2026).
-  - Needs the user for 13.6 only: the four provider API keys (see "Blocked / waiting on user").
-  - Model rules that matter here (AGENTS.md): every model call goes through `ModelClient`; OpenRouter default with zero-data retention; LangChain only for model and tool plumbing, no `create_agent`.
+- **MKC-13** (#13), Provider layer (`ModelClient`). Status `In progress`, assigned to `qamran`. Branch `mkc-13-provider-layer`; **draft PR #127** (assigned to `qamran`).
+  - Plan: `docs/superpowers/plans/261120261517-mkc-13-provider-layer.md`. Decision 52 records the build.
+  - Sub-issues: #121 MKC-13.1 guards and pinned deps, #122 MKC-13.2 types/config/settings, #123 MKC-13.3 ModelClient, #124 MKC-13.4 record/replay, #125 MKC-13.5 provider factory: all built, tests green. #126 MKC-13.6 live contract tests and docs: `In progress`.
+  - **Meta Llama API is gone** (Meta shut it down on 6 July 2026). User decided: the provider `meta` is Meta's OpenAI-compatible API (`https://api.meta.ai/v1`, `muse-spark-1.3`, via `langchain-openai`); `langchain-meta` removed. Price $1.25/$4.25 from the Vercel AI Gateway listing; Meta's own page and the base URL get confirmed by the live run. Never use the `-contributor` models (they may train on inputs).
+  - Live contract tests (26.11.2026 15:39): OpenRouter, Gemini and Anthropic pass (tool call and structured output); spend under €0.002; result in the status doc. **Missing: the Meta run** (needs `MKC_META_API_KEY`).
+  - How the run was done: the three keys are in the root `.env` under `OPENROUTER_API_KEY`, `GEMINI_API_KEY`, `ANTHROPIC_API_KEY`; they were mapped to the `MKC_…` names in the shell for the run only. Command: `cd backend && uv run --env-file .env pytest -m live tests/models/test_contract_live.py -v -s` once `backend/.env` has the `MKC_…` keys.
+  - CI: runs on the PR kept being cancelled by new pushes; the last full run of `image`, `kind` and `dependency-scan` must pass before review.
+  - After the Meta run: tick the criterion, record it in the status doc, fill in the PR body, set the sub-issues and #13 to `Testing`, mark the PR ready, start the review agent.
 
 ## Next steps
 
-1. MKC-13: see "In progress". MKC-13.1: guard tests green, dependencies committed (watch `dependency-scan` and `image` on the PR); next MKC-13.2.
+1. MKC-13: see "In progress". Next: the Meta contract run, then review.
 2. MKC-12, still to do:
    - the deploy of `0c5268c` is done and checked (`cd` run 45834526785, see the log); `lbs_structure` exists in production and is empty until `mkc-load-lbs` is wired in (finding 1)
    - non-blocking findings of the PR #120 review (comment 26.11.2026 13:59:29Z), for the ticket that first reads `lbs_structure` (MKC-22) or a later hardening ticket:
@@ -110,13 +112,15 @@ This file is how agents resume work after a session restart.
 - **Docker Desktop** must be running for the local DB tests (`docker compose up -d db`), kind and the Compose smoke test. Start it only when needed and shut it down afterwards (stop the containers, quit Docker Desktop, `wsl --shutdown`): the user asked that `vmmemWSL` not keep running. CI uses its own Postgres service.
 - Later setup tasks (design doc section 13): provider API keys with caps. Done on 25.11.2026: Supabase project, Oracle VM with k3s, API host, Vercel project, GitHub `production` environment with `VERCEL_TOKEN`.
 - **Deploys:** since decision 51 the development agent approves both `production` gates (`backend`, then `frontend`) itself after a PASS merge with green CI (runbook "Deploy and rollback"); the user no longer has to click.
-- **Waiting now:** the four provider API keys for MKC-13's live contract tests (`MKC_OPENROUTER_API_KEY`, `MKC_GOOGLE_API_KEY`, `MKC_ANTHROPIC_API_KEY`, `MKC_LLAMA_API_KEY` in `backend/.env`, each with a spending cap); the user was asked whether a Meta Llama API key is obtainable.
+- **Waiting now:** a Meta API key (`MKC_META_API_KEY` in `backend/.env`, with a spending cap) for MKC-13's last live contract test. The other three keys exist (root `.env`, old names).
 - **The user's PC:** it went down without a clean shutdown on 23.11 and 26.11.2026 (cause not found; graphics-driver hang reports on both days; a memory test is not done yet). Commit and push often. Two files exist only on the PC: the VM's admin SSH key and `backend/.env` (runbook "Only on the PC"); the user was advised to copy them into a password manager.
 
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **26.11.2026 15:39** MKC-13.6: live contract tests passed for OpenRouter, Gemini and Anthropic (6 passed, Meta skipped without a key); spend under €0.002.
+- **26.11.2026 15:20–15:38** MKC-13.1 to 13.5 built test-first (guards, pinned deps, types and config, ModelClient, record/replay, provider factory); draft PR #127 opened for CI (15:21). User decisions: Meta API (`api.meta.ai`) replaces the closed Meta Llama API (decision 52); the Hackathon project is not a reference for later choices.
 - **26.11.2026 15:17–15:18** MKC-13 plan written (15:17); sub-issues #121–#126 (MKC-13.1 to 13.6) created, assigned to `qamran`, linked to #13 and added to the board (#121 `In progress`, the rest `Ready`).
 - **26.11.2026 15:15** Decision 51 (user): the development agent approves the `cd` run's two `production` gates itself after a PASS merge with green CI, via `gh api .../pending_deployments`; recorded in AGENTS.md (with a check term in `scripts/check_agents.py`), the runbook, the design doc and the status doc. MKC-13: user asked for the four provider keys.
 - **26.11.2026 14:59–15:07** `cd` run 45834526785 on `0c5268c`, green: `image` 14:59:43–15:03:50; `backend` approved by the user, 15:06:13–15:07:01 (hook Job `mkc-migrate` ran `0002 -> 0003` and created the empty table `lbs_structure`; Helm revision 8); `frontend` approved by the user, 15:07:13–15:07:58. Checked afterwards: `/api/version` = `0c5268c…`, `/health` 200, `/api/admin/backup-status` without a token 401, the site 200, API and worker pods running, CronJob `mkc-backup` still there.

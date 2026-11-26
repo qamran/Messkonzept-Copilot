@@ -140,7 +140,7 @@ React on Vercel (Vite, shadcn/ui, Clerk) ──HTTPS──► FastAPI API on k3s
             Supabase Postgres (runs, checkpoints, approvals, catalogue, gold, rules, RAG chunks + pgvector)
             + Supabase Storage (private: PDF cache, page renders)
                                                         │
-   Provider layer (LangChain chat models behind our ModelClient) ──► OpenRouter (default) · Gemini · Anthropic · Meta Llama
+   Provider layer (LangChain chat models behind our ModelClient) ──► OpenRouter (default) · Gemini · Anthropic · Meta API
    Decision layer (DecisionClient) ──► Jev via OpenRouter (after spike) · LLM fallback
    Langfuse (traces, tokens, cost, latency)
 ```
@@ -151,7 +151,7 @@ React on Vercel (Vite, shadcn/ui, Clerk) ──HTTPS──► FastAPI API on k3s
   - **API:** stateless, may run more than one replica.
   - **Harness worker:** one replica. It runs the work queue (section 8).
 - **Provider layer:** a thin `ModelClient` interface (`chat`, `chat_with_tools`, `vision`), chosen per role in config (`extract_vision`, `facts`, `explain`, `judge`, `gold_draft`).
-  - Underneath, it uses **LangChain chat models** (`init_chat_model` / provider packages) for OpenRouter, Gemini, Anthropic and Meta Llama, LangChain's **tool schema binding** (`bind_tools`, from our Pydantic argument models) and **`with_structured_output`**.
+  - Underneath, it uses **LangChain chat models** (the provider packages, built directly; not `init_chat_model`, whose `langchain` package pulls in LangGraph) for OpenRouter, Gemini, Anthropic and the Meta API (decision 52), LangChain's **tool schema binding** (`bind_tools`, from our Pydantic argument models) and **`with_structured_output`**.
   - Our wrapper adds: OpenRouter zero-data-retention routing parameters, token and EUR cost recording per call, timeouts, trace hooks, and a **record/replay mode** (stores model responses keyed by request hash; used by E4 and the CI gate).
   - **The loop never calls LangChain's agent APIs** (`create_agent`, AgentExecutor).
   - LangChain versions are pinned; a contract test per provider catches upgrade breakage.
@@ -416,7 +416,7 @@ E3 and E5 are **re-run after Phase 7**, because the advisor and the injection gu
   - **User-only setup tasks at the start:**
     - a Supabase project (Postgres + private Storage bucket) (done 25.11.2026)
     - a Vercel account linked to the personal repo (done 25.11.2026: project `messkonzept-copilot`)
-    - provider API keys with spending caps (OpenRouter with zero-data-retention routing, Gemini, Anthropic, Meta Llama)
+    - provider API keys with spending caps (OpenRouter with zero-data-retention routing, Gemini, Anthropic, Meta API)
     - GitHub Secrets and the protected `production` environment (done 25.11.2026: `VERCEL_TOKEN`)
     - a domain with TLS (for the backend API; Clerk needs none, decision 39) (done 25.11.2026: `92-6-240-17.sslip.io`, decision 43)
   - **Fallback** if k3s blocks deployment: keep the Helm chart tested on kind in CI, deploy with Compose on the same VM, and document the limitation.
@@ -529,6 +529,7 @@ The build follows the phases in section 20, ordered by dependency:
 | 49 | Backups (MKC-11): a Helm CronJob (03:30 Europe/Berlin, `concurrencyPolicy: Forbid`) runs `mkc-backup`: `pg_dump --schema=public --no-owner --no-privileges` (pg_dump 17 = Supabase's server version) → gzip → PUT to Oracle Object Storage bucket `mkc-backups` (eu-frankfurt-1) under `nightly/mkc-<UTC>.sql.gz`. The upload link is a pre-authenticated request that can only write objects under `nightly/` (no read, list or delete), kept as `MKC_BACKUP_UPLOAD_URL` in `mkc-secrets`; it expires and is renewed by hand (runbook). Retention: a bucket lifecycle rule deletes `nightly/` objects after 14 days. Every run is a row in `backup_runs`; `GET /api/admin/backup-status` reports it, with `stale` after 26 h without a good backup. Only `public` is dumped: Supabase's own schemas don't restore into a plain Postgres. `scripts/restore_backup.sh` restores into a throwaway Postgres; CI runs it on every Compose smoke test (ADR 003, runbook) | agent |
 | 50 | LBS reference data (MKC-12): the source is the BDEW Codeliste der Lokationsbündelstrukturen 1.0, corrected edition of 13.12.2024 (current on 26.11.2026). No licence statement was found, so the repo holds only facts with a citation: code, Bezeichnung, page and object composition in `backend/data/lbs_structures.yaml`, built by `scripts/build_lbs_yaml.py` from a PDF outside the repo. The Codeliste defines no check digit; the loader checks BDEW's Lok- und Waggon-Kennzeichnungsverfahren (AWH Identifikatoren 1.2, 8.1), which every code fits. The table `lbs_structure` is loaded by `mkc-load-lbs`; running it on deploy is wired by the first ticket that reads the table | agent, consistent with decisions 6 and 16 |
 | 51 | Deploy approvals (26.11.2026): the `production` environment keeps its required reviewer `qamran`, but the development agent gives both approvals (`backend`, then `frontend`) through `gh api .../pending_deployments` with the user's login, only after the review agent merged on PASS with green CI. It checks the smoke results and logs each approval in HANDOFF.md. The user can reject a waiting deploy at any time; the gate itself is unchanged (changes the approval practice of decision 47) | user |
+| 52 | Provider layer (MKC-13): `mkc.models.ModelClient` over `langchain-core` plus the provider packages, all pinned with `==` (not the `langchain` meta-package: it depends on LangGraph). **Meta:** Meta shut down the Llama API (api.llama.com) on 6 July 2026, so the fourth provider is Meta's OpenAI-compatible API (`api.meta.ai/v1`, standard tier `muse-spark-1.3`, never the `-contributor` tier that may train on inputs) through `langchain-openai`; open-weight Llama 4 stays reachable via OpenRouter (replaces the Meta Llama API of decision 7; user chose this on 26.11.2026). Role → model mapping and USD prices in the packaged `mkc/models/models.yaml` (OpenRouter's zero-data-retention list of 26.11.2026, highest endpoint price; ECB rate 1 EUR = 1.0935 USD of 25.11.2026); a model without a price is a config error. OpenRouter requests carry `provider: {zdr: true, data_collection: deny}`. Timeout 120 s (≤ 180 s, decision 42); no retries inside the provider clients (the harness owns retries, E4). Extra method `chat_structured(role, messages, schema)` with `ModelReply.parsed`. `MKC_MODEL_MODE` defaults to `replay`; the replay key is a sha256 over role, model, method, messages (images as digests), tools and schema; stored files hold only the reply. Live contract tests are marked `live` and deselected by default | agent; Meta API: user |
 
 ## 19. Course coverage
 
@@ -550,7 +551,7 @@ The course concepts (Key-Concepts.md, sections 1–18) are mapped to where the p
 | **4. Structured output** | ✅ | Pydantic schemas for SiteFacts, draft records, tool arguments and recommendations; validated and re-prompted once on failure |
 | 4. Temperature, max tokens | ✅ | Set per role in config; temperature 0 for extraction; limits enforced by the harness |
 | **5. OpenRouter + zero data retention** | ✅ | Default provider with zero-data-retention routing; Gemini free tier documented as the exception |
-| 5. Open-weight vs proprietary | ✅ | Meta Llama (open-weight) vs Anthropic and Gemini (proprietary) in E6 |
+| 5. Open-weight vs proprietary | ✅ | Meta Llama 4 (open-weight, via OpenRouter on zero-data-retention endpoints; decision 52) vs Anthropic, Gemini and Meta's Muse (proprietary) in E6 |
 | 5. Local LLMs (Ollama, LM Studio) | 📝 | Possible as a provider adapter; explained in the README |
 | **6. Git/GitHub, uv, Pydantic, software engineering** | ✅ | uv project, typed Python, ruff/mypy, pytest, GitHub flow with PRs and issues |
 | 6. Streamlit | ➖ | Replaced by React (UI quality, 15% of the grade) |
@@ -604,7 +605,7 @@ Each phase ends in something that runs. Phases are ordered by dependency. **Phas
 
 ### Phase 1: Harness core
 
-14. Provider layer: the `ModelClient` wrapper over LangChain chat models (OpenRouter, Gemini, Anthropic, Meta Llama); tool binding from Pydantic models; structured output; per-role config; zero-data-retention routing; token and cost recording; record/replay mode; pinned versions; a contract test per provider.
+14. Provider layer: the `ModelClient` wrapper over LangChain chat models (OpenRouter, Gemini, Anthropic, Meta API; decision 52); tool binding from Pydantic models; structured output; per-role config; zero-data-retention routing; token and cost recording; record/replay mode; pinned versions; a contract test per provider.
 15. Tool registry with **per-context allow-lists** (item-loop tools vs run-level operations), Pydantic argument models and structured error returns.
 16. Model-driven tool-calling loop per item.
 17. Durable work queue with item and run states (section 8.2).

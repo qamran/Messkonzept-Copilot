@@ -61,7 +61,8 @@ This is the living status document. It is updated whenever a decision is made or
   - k3s v1.37.2 with Traefik; cert-manager v1.21.3 with Let's Encrypt staging and prod issuers
   - API host `92-6-240-17.sslip.io`
   - Vercel project `messkonzept-copilot`; GitHub environment `production` with `VERCEL_TOKEN`
-- **Current ticket:** MKC-13 (Provider layer, `ModelClient`, #13), started 26.11.2026; nothing built yet. Its live contract tests need provider API keys with spending caps (user setup task). MKC-12 is done (PR #120 merged as `0c5268c`): Codeliste 1.0 (consolidated edition of 13.12.2024) researched, 15 LBS structures in `backend/data/lbs_structures.yaml`, table `lbs_structure` (decision 50).
+- **Current ticket:** MKC-13 (Provider layer, `ModelClient`, #13), started 26.11.2026, PR #127 (draft). Built: `mkc.models` (`ModelClient` with `chat`, `chat_with_tools`, `vision`, `chat_structured`; role mapping and prices in `models.yaml`; record/replay; provider factory with OpenRouter zero-data-retention routing); decision 52.
+- **Live contract tests (MKC-13.6), 26.11.2026 15:39:** `pytest -m live tests/models/test_contract_live.py`. Tool call round-trip and structured output both passed for OpenRouter (`google/gemini-3.5-flash-lite`, ZDR routing), Gemini (`gemini-3.5-flash-lite`, free tier) and Anthropic (`claude-haiku-5-5`). The Meta API (`muse-spark-1.3`) is still to run: no key yet. **Spend:** under €0.002 by the price table (six calls on paid models, about 1,700 tokens; Gemini free). MKC-12 is done (PR #120 merged as `0c5268c`): Codeliste 1.0 (consolidated edition of 13.12.2024) researched, 15 LBS structures in `backend/data/lbs_structures.yaml`, table `lbs_structure` (decision 50).
 - **Next:** MKC-13 (provider layer), then MKC-14 (tool registry).
 
 ## Key documents
@@ -81,7 +82,7 @@ This is the living status document. It is updated whenever a decision is made or
 | README (intro + links for both repos) | `README.md` |
 | Official brief | `AE.CAP_afa.md` |
 
-## Decisions so far (summary; the full log of 51 decisions is in design doc section 18)
+## Decisions so far (summary; the full log of 52 decisions is in design doc section 18)
 
 - **Idea:** Messkonzept-Copilot. It extracts operator Messkonzept PDFs into structured, LBS-keyed records with human approval, and gives household site advice with citations.
 - **Primary user:** MSB, VNB and energy-IT staff working across grid areas; installers are secondary; plus a public read-only demo.
@@ -103,7 +104,7 @@ This is the living status document. It is updated whenever a decision is made or
   - FastAPI + React (Vite, shadcn/ui), Clerk login
   - Supabase Postgres + Storage (ADR 003)
   - Langfuse tracing
-  - providers: OpenRouter (default), Gemini, Anthropic, Meta Llama
+  - providers: OpenRouter (default, zero data retention), Gemini, Anthropic, Meta API (the Meta Llama API closed on 6 July 2026; decision 52)
 - **DevOps (ADR 002):**
   - Docker, GitHub Actions (CI + eval gate + CD in a protected environment, SSH deploy), GHCR, Helm
   - kind in CI, k3s on Oracle Always Free, Vercel for the frontend

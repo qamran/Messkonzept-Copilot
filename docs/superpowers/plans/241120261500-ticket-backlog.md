@@ -292,7 +292,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
 - **Success criteria:**
   - [ ] Role → provider/model mapping in config, not code
   - [ ] LangChain packages pinned; agent APIs (`create_agent`) not imported anywhere (a grep test enforces it)
-  - [ ] Live contract tests pass for OpenRouter, Gemini, Anthropic and Meta Llama (run once, result noted in the status doc)
+  - [ ] Live contract tests pass for OpenRouter, Gemini, Anthropic and the Meta API (run once, result noted in the status doc; Meta API replaces the closed Meta Llama API, decision 52)
 
 ### MKC-14: Tool registry and per-context allow-lists
 
@@ -618,7 +618,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
 - **Goal:** choose a model per role by accuracy, cost and latency, within budget.
 - **Scope:** feature 49.
 - **Depends on:** MKC-31.
-- **Test:** an E1/E2 subset (about 5 concepts per model) across OpenRouter models, Gemini, Anthropic, Meta Llama and Jev Router.
+- **Test:** an E1/E2 subset (about 5 concepts per model) across OpenRouter models (incl. open-weight Llama 4), Gemini, Anthropic, the Meta API and Jev Router.
 - **Success criteria:**
   - [ ] Chosen model per role written to config and justified in the design doc's decision log
   - [ ] Spend within the E6 budget line (€3–4)

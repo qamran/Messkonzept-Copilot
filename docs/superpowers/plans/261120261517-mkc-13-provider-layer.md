@@ -4,7 +4,7 @@
 
 **Ticket:** MKC-13 (#13). **Branch:** `mkc-13-provider-layer`.
 
-**Goal:** one interface for every model call across four providers (OpenRouter, Gemini, Anthropic, Meta Llama), with EUR cost, latency, trace hooks and record/replay.
+**Goal:** one interface for every model call across four providers (OpenRouter, Gemini, Anthropic, Meta API; Meta replaced the closed Llama API during the build, decision 52), with EUR cost, latency, trace hooks and record/replay.
 
 **Architecture:** package `mkc.models`.
 
@@ -33,7 +33,7 @@
   - The SDK's `ProviderPreferences` has `zdr: bool` and `data_collection: "allow" | "deny"`.
   - The timeout is in **milliseconds** (`timeout`, mapped to `timeout_ms`).
   - The SDK client is the field `client`, so a test can swap in an SDK client whose `httpx.Client` has a `MockTransport` and assert on the real request body.
-- **Other chat models:** `ChatAnthropic(timeout=<s>, api_key=...)`, `ChatGoogleGenerativeAI(google_api_key=...)` and `langchain_meta.ChatLlama` (an OpenAI-compatible subclass).
+- **Other chat models:** `ChatAnthropic(timeout=<s>, api_key=...)`, `ChatGoogleGenerativeAI(google_api_key=...)`. Changed during the build: `langchain_meta.ChatLlama` is deprecated because Meta shut down the Llama API on 6 July 2026; the provider `meta` uses `ChatOpenAI` on `https://api.meta.ai/v1` (`langchain-openai`) instead.
 - **Fake model:** `langchain_core` has `FakeMessagesListChatModel`, which returns given `AIMessage`s (with `tool_calls` and `usage_metadata`). It has no `bind_tools`, so the tests use a small subclass that records the bound tools.
 - **Prices:** OpenRouter `GET /api/v1/endpoints/zdr` on 26.11.2026. Where a model has several ZDR endpoints, the table takes the **highest** price, so the cost is an upper bound.
 - **Exchange rate:** ECB reference rate of 25.11.2026: 1 EUR = 1.0935 USD, so `eur_per_usd` = 0.9145.
@@ -129,4 +129,4 @@
 
 - [ ] Role → provider/model mapping is in config, not code (13.2).
 - [ ] LangChain packages are pinned; agent APIs are not imported anywhere, and a test enforces it (13.1).
-- [ ] Live contract tests pass for OpenRouter, Gemini, Anthropic and Meta Llama; run once, with the result in the status doc (13.6; needs the user's keys).
+- [ ] Live contract tests pass for OpenRouter, Gemini, Anthropic and the Meta API; run once, with the result in the status doc (13.6; needs the user's keys).
