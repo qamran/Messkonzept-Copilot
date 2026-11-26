@@ -12,8 +12,9 @@ tool can never be registered in the item context.
 
 import logging
 import time
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
+from types import MappingProxyType
 from typing import Any, Literal, get_args
 
 from pydantic import BaseModel, ConfigDict, ValidationError, model_validator
@@ -94,8 +95,8 @@ class ToolRegistry:
     """Built once with the tools of each context; no tool can be added later."""
 
     __slots__ = ("_all", "_contexts", "_tracers")
-    _all: dict[str, Tool]
-    _contexts: dict[Context, tuple[Tool, ...]]
+    _all: Mapping[str, Tool]
+    _contexts: Mapping[Context, tuple[Tool, ...]]
     _tracers: tuple[ToolTracer, ...]
 
     def __init__(
@@ -112,8 +113,8 @@ class ToolRegistry:
                         f"tool {tool.name!r} has a side effect and can't be an item tool"
                     )
                 everything[tool.name] = tool
-        object.__setattr__(self, "_contexts", contexts)
-        object.__setattr__(self, "_all", everything)
+        object.__setattr__(self, "_contexts", MappingProxyType(contexts))
+        object.__setattr__(self, "_all", MappingProxyType(everything))
         object.__setattr__(self, "_tracers", tuple(tracers))
 
     def __setattr__(self, name: str, value: object) -> None:

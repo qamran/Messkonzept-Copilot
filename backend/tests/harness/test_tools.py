@@ -175,6 +175,8 @@ def test_registry_cannot_be_extended() -> None:
     assert not any(hasattr(registry, m) for m in ("register", "add", "add_tool"))
     with pytest.raises(AttributeError):
         registry.item = ()  # type: ignore[misc]
+    with pytest.raises(TypeError):
+        registry._all["x"] = tools[0]  # type: ignore[index]
 
 
 def test_tool_result_needs_exactly_one_of_data_and_error() -> None:
