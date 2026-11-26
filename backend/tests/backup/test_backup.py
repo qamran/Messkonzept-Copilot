@@ -37,7 +37,7 @@ for flag in ("--schema=public", "--no-owner", "--no-privileges"):
 if os.environ.get("STUB_FAIL"):
     sys.stderr.write("pg_dump: error: connection to server failed (password {pw})\\n")
     sys.exit(1)
-sys.stdout.write("CREATE TABLE t (id int);\\n" * 1000)
+sys.stdout.buffer.write(b"CREATE TABLE t (id int);\\n" * 1000)  # bytes: no CRLF on Windows
 """.replace("{pw}", PASSWORD)
 
 

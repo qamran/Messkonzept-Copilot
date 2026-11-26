@@ -3,7 +3,7 @@
 import re
 from typing import Annotated
 
-from pydantic import AliasChoices, Field, field_validator
+from pydantic import AliasChoices, Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 _PSYCOPG_SCHEME = "postgresql+psycopg://"
@@ -50,6 +50,19 @@ class Settings(BaseSettings):
     cors_origin_regex: str = ""
     """Extra origins as one regular expression (full match), for Vercel previews. Used by CORS
     and by the token's `azp` check alike. Empty = off."""
+
+    backup_upload_url: SecretStr = SecretStr("")
+    """Object Storage pre-authenticated request that can only write objects (decision 49).
+    A secret: it is never logged. The object name is appended to it. Empty = backups fail."""
+
+    backup_dir: str = "/tmp/backup"
+    """Work directory for the dump before the upload (an emptyDir in the CronJob)."""
+
+    backup_allow_http: bool = False
+    """Allow a plain http upload link: only for the tests and the Compose smoke stub."""
+
+    backup_stale_hours: float = 26.0
+    """`/api/admin/backup-status` reports `stale` when the last good backup is older."""
 
     @field_validator("clerk_authorized_parties", "cors_origins", mode="before")
     @classmethod

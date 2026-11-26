@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 26.11.2026, 10:15
+**Last updated:** 26.11.2026, 10:16
 
 This file is how agents resume work after a session restart.
 
@@ -88,6 +88,7 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **26.11.2026 10:16** MKC-11.2 green: `mkc.backup` (`mkc-backup` entry point): `pg_dump --schema=public --no-owner --no-privileges` → gzip in `MKC_BACKUP_DIR` → PUT with Content-Length (stdlib `urllib`, no client that logs URLs) to `MKC_BACKUP_UPLOAD_URL` + `nightly/mkc-<UTC>.sql.gz`; rows in `backup_runs`; password only in `PGPASSWORD`; every message redacted; https only unless `MKC_BACKUP_ALLOW_HTTP`. Settings `backup_upload_url` (SecretStr), `backup_dir`, `backup_allow_http`, `backup_stale_hours`. Dockerfile: `postgresql-client-17` (image 287 → 369 MB). pytest 95 passed, 1 skipped; ruff, mypy strict green; `check_containers.py` ok. By hand: the image (`--read-only`, uid 10001) dumped the local Postgres 17 with pg_dump 17.12, uploaded to a local receiver, row `ok` (1146 bytes). Note: the dump contains `CREATE SCHEMA public;`; the restore drops that line and creates `public` and `vector` first.
 - **26.11.2026 10:15** MKC-11.2 red: `check_containers.py` requires `postgresql-client-17` in the runtime stage (`--no-install-recommends`); fails on the current Dockerfile.
 - **26.11.2026 10:02** MKC-11.2 red: `tests/backup/test_backup.py` (pg_dump stub, local PUT receiver, in-memory recorder: success uploads the gzipped dump and records `ok`; a failed dump never uploads; an upload error records `failed`; a failed status write does not stop the backup; no link, or an http link, fails before the dump; the password and the link token never appear in logs or rows) and `tests/db/test_backup_recorder.py` fail: no module `mkc.backup`.
 - **26.11.2026 10:02** MKC-11.1 green: model `BackupRun`, migration 0002 `backup_runs` (additive), models registered in `migrations/env.py`; chart: hook Job `mkc-migrate` (`pre-install,pre-upgrade`, `alembic upgrade head`, `backoffLimit: 0`, deadline 300 s, restricted) and hook Secret `mkc-migrate` (weight -10, deleted after success; not rendered with `existingSecret`); `migrations.enabled: true`. kind smoke (local, 09:58–10:02): test Postgres in namespace `mkc-kind-db` (`deploy/kind/postgres.yaml`), release namespace labelled Pod Security `restricted`; fresh install: hook ran, `alembic_version` 0002, `backup_runs` exists, hook Secret gone; upgrade with an unreachable database: refused ("pre-upgrade hooks failed"), rolled back (revision 3 "Rollback to 1"), API Deployment unchanged. pytest db 10 passed; `helm lint --strict` (default, kind, production values) green.

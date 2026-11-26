@@ -25,6 +25,12 @@ RUN uv sync --locked --no-dev --no-editable
 # --- runtime: only the venv and the migrations, as a non-root user
 FROM python:3.12-slim-trixie@sha256:191083cdf6c7bda8c76158983163ead5d5cf7b77cf3033e805bb0f5296f51b4b AS runtime
 
+# pg_dump for mkc-backup (MKC-11.2): the client only, the same major version as the server
+# (Supabase runs Postgres 17; pg_dump refuses newer servers).
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends postgresql-client-17 \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN groupadd --system --gid 10001 mkc \
     && useradd --system --uid 10001 --gid mkc --no-create-home --shell /usr/sbin/nologin mkc
 
