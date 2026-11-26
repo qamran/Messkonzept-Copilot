@@ -93,8 +93,9 @@ def test_structured_output_round_trip(provider: Provider) -> None:
     print(f"\n{provider} structured: {reply.model_id} {reply.usage} {reply.latency_ms} ms")
 
 
-def red_png(size: int = 16) -> bytes:
-    """A solid red PNG built with the standard library (no image in the repo)."""
+def red_png(size: int = 64) -> bytes:
+    """A solid red PNG built with the standard library (no image in the repo). 64 px: Meta
+    answered "white" for a 16 px image (26.11.2026), the same red at 64 px it got right."""
     import struct
     import zlib
 

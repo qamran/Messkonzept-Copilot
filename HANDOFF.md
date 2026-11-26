@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 26.11.2026, 15:47
+**Last updated:** 26.11.2026, 16:02
 
 This file is how agents resume work after a session restart.
 
@@ -52,14 +52,14 @@ This file is how agents resume work after a session restart.
   - Plan: `docs/superpowers/plans/261120261517-mkc-13-provider-layer.md`. Decision 52 records the build.
   - Sub-issues: #121 MKC-13.1 guards and pinned deps, #122 MKC-13.2 types/config/settings, #123 MKC-13.3 ModelClient, #124 MKC-13.4 record/replay, #125 MKC-13.5 provider factory: all built, tests green; fixed: the OpenRouter SDK retried 5XX with backoff for up to 1 h despite `max_retries=0`, now `NO_RETRIES` (one request on 503/500/429, tested). #126 MKC-13.6 live contract tests and docs: `In progress`.
   - **Meta Llama API is gone** (Meta shut it down on 6 July 2026). User confirmed (15:45): the provider `meta` is Meta's OpenAI-compatible API (`https://api.meta.ai/v1`, `muse-spark-1.3`, via `langchain-openai`); `langchain-meta` removed. Price $1.25/$4.25 from the Vercel AI Gateway listing; Meta's own page and the base URL get confirmed by the live run. Never use the `-contributor` models (they may train on inputs).
-  - Live contract tests (26.11.2026 15:39): OpenRouter, Gemini and Anthropic pass (tool call and structured output); spend under €0.002; result in the status doc. **Missing: the Meta run** (needs `MKC_META_API_KEY`).
-  - How the run was done: the three keys are in the root `.env` under `OPENROUTER_API_KEY`, `GEMINI_API_KEY`, `ANTHROPIC_API_KEY`; they were mapped to the `MKC_…` names in the shell for the run only. Command: `cd backend && uv run --env-file .env pytest -m live tests/models/test_contract_live.py -v -s` once `backend/.env` has the `MKC_…` keys.
-  - CI: runs on the PR kept being cancelled by new pushes; the last full run of `image`, `kind` and `dependency-scan` must pass before review.
-  - After the Meta run: tick the criterion, record it in the status doc, fill in the PR body, set the sub-issues and #13 to `Testing`, mark the PR ready, start the review agent.
+  - Live contract tests (26.11.2026 15:58–16:00, keys in `backend/.env`): 12 passed (4 providers × tools, structured output, vision); spend under €0.02; result in the status doc. `api.meta.ai/v1` confirmed.
+  - Command: `cd backend && uv run --env-file .env pytest -m live tests/models/test_contract_live.py -v -s` (all four `MKC_…_API_KEY`s are in `backend/.env`, added by the user before 15:58).
+  - CI: full green run 45842497405 on `b441809` (all required jobs incl. `image`, `kind`, `dependency-scan`).
+  - Next: PR body, sub-issues and #13 to `Testing`, PR ready, review agent (Fable); on PASS merge, push `turing`, approve the deploy (decision 51).
 
 ## Next steps
 
-1. MKC-13: see "In progress". Next: the Meta contract run, then review.
+1. MKC-13: see "In progress". Next: review of PR #127.
 2. MKC-12, still to do:
    - the deploy of `0c5268c` is done and checked (`cd` run 45834526785, see the log); `lbs_structure` exists in production and is empty until `mkc-load-lbs` is wired in (finding 1)
    - non-blocking findings of the PR #120 review (comment 26.11.2026 13:59:29Z), for the ticket that first reads `lbs_structure` (MKC-22) or a later hardening ticket:
@@ -112,13 +112,14 @@ This file is how agents resume work after a session restart.
 - **Docker Desktop** must be running for the local DB tests (`docker compose up -d db`), kind and the Compose smoke test. Start it only when needed and shut it down afterwards (stop the containers, quit Docker Desktop, `wsl --shutdown`): the user asked that `vmmemWSL` not keep running. CI uses its own Postgres service.
 - Later setup tasks (design doc section 13): provider API keys with caps. Done on 25.11.2026: Supabase project, Oracle VM with k3s, API host, Vercel project, GitHub `production` environment with `VERCEL_TOKEN`.
 - **Deploys:** since decision 51 the development agent approves both `production` gates (`backend`, then `frontend`) itself after a PASS merge with green CI (runbook "Deploy and rollback"); the user no longer has to click.
-- **Waiting now:** a Meta API key (`MKC_META_API_KEY` in `backend/.env`, with a spending cap) for MKC-13's last live contract test. The other three keys exist (root `.env`, old names).
+- **Waiting now:** nothing.
 - **The user's PC:** it went down without a clean shutdown on 23.11 and 26.11.2026 (cause not found; graphics-driver hang reports on both days; a memory test is not done yet). Commit and push often. Two files exist only on the PC: the VM's admin SSH key and `backend/.env` (runbook "Only on the PC"); the user was advised to copy them into a password manager.
 
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **26.11.2026 15:58–16:00** User added all four `MKC_…_API_KEY`s to `backend/.env`. Live contract tests: 12 passed after the vision test image went from 16 to 64 px (Meta answered "white" for 16 px; the payload was a correct `image_url` data URL). CI run 45842497405 on `b441809` green (finished 15:50).
 - **26.11.2026 15:44–15:46** OpenRouter SDK retry fix (`adcd102`); OpenRouter live tests re-run green; live vision check passed on OpenRouter, Gemini and Anthropic. User confirmed the Meta API (Muse) as the fourth provider (15:45); waiting for `MKC_META_API_KEY`.
 - **26.11.2026 15:41** Docs for decision 52 pushed; #13 and #126 criteria now say "Meta API".
 - **26.11.2026 15:39** MKC-13.6: live contract tests passed for OpenRouter, Gemini and Anthropic (6 passed, Meta skipped without a key); spend under €0.002.

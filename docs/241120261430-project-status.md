@@ -1,6 +1,6 @@
 # Project status: Messkonzept-Copilot
 
-**Last updated:** 26.11.2026, 15:47
+**Last updated:** 26.11.2026, 16:02
 
 This is the living status document. It is updated whenever a decision is made or work is completed. Older brainstorming material lives in `brainstorming internal/` (gitignored and frozen).
 
@@ -61,8 +61,8 @@ This is the living status document. It is updated whenever a decision is made or
   - k3s v1.37.2 with Traefik; cert-manager v1.21.3 with Let's Encrypt staging and prod issuers
   - API host `92-6-240-17.sslip.io`
   - Vercel project `messkonzept-copilot`; GitHub environment `production` with `VERCEL_TOKEN`
-- **Current ticket:** MKC-13 (Provider layer, `ModelClient`, #13), started 26.11.2026, PR #127 (draft). Built: `mkc.models` (`ModelClient` with `chat`, `chat_with_tools`, `vision`, `chat_structured`; role mapping and prices in `models.yaml`; record/replay; provider factory with OpenRouter zero-data-retention routing); decision 52.
-- **Live contract tests (MKC-13.6), 26.11.2026 15:39:** `pytest -m live tests/models/test_contract_live.py`. Tool call round-trip and structured output both passed for OpenRouter (`google/gemini-3.5-flash-lite`, ZDR routing), Gemini (`gemini-3.5-flash-lite`, free tier) and Anthropic (`claude-haiku-5-5`). Vision (not a criterion, a 16×16 red PNG) passed on all three. The Meta API (`muse-spark-1.3`) is still to run: no key yet. **Spend:** about €0.002 by the price table (Anthropic prices are an OpenRouter stand-in, Gemini counted as free tier); OpenRouter's own usage page is the exact figure. MKC-12 is done (PR #120 merged as `0c5268c`): Codeliste 1.0 (consolidated edition of 13.12.2024) researched, 15 LBS structures in `backend/data/lbs_structures.yaml`, table `lbs_structure` (decision 50).
+- **Current ticket:** MKC-13 (Provider layer, `ModelClient`, #13), started 26.11.2026, PR #127. Built: `mkc.models` (`ModelClient` with `chat`, `chat_with_tools`, `vision`, `chat_structured`; role mapping and prices in `models.yaml`; record/replay; provider factory with OpenRouter zero-data-retention routing); decision 52.
+- **Live contract tests (MKC-13.6), 26.11.2026 15:58–16:00:** `cd backend && uv run --env-file .env pytest -m live tests/models/test_contract_live.py -v -s`: **12 passed**. Tool-call round-trip, structured output and vision (not a criterion; a 64×64 red PNG) for OpenRouter (`google/gemini-3.5-flash-lite`, zero-data-retention routing), Gemini (`gemini-3.5-flash-lite`, free tier), Anthropic (`claude-haiku-5-5`) and the Meta API (`muse-spark-1.3` on `api.meta.ai/v1`). The first runs (15:39–15:46) had no Meta key; Meta said "white" for a 16×16 image and "red" at 64×64, so the test image is 64 px. **Spend for the ticket:** under €0.02 by the price table (all runs plus two Meta probe calls; Anthropic prices are an OpenRouter stand-in, Gemini counted as free tier).
 - **Next:** MKC-13 (provider layer), then MKC-14 (tool registry).
 
 ## Key documents

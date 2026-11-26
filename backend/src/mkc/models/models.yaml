@@ -11,7 +11,7 @@
 #   not read. The live contract run (26.11.2026) confirmed the model id, not the price.
 # - meta: Meta's API (api.meta.ai, OpenAI-compatible; the Llama API closed on 6 July 2026).
 #   Muse Spark 1.3 standard tier, $1.25 / $4.25 (Vercel AI Gateway listing and press coverage on
-#   26.11.2026; Meta's own page not read yet). The base URL is unverified until the live run. Never the `-contributor`
+#   26.11.2026; Meta's own page not read yet). The live run of 26.11.2026 confirmed id and base URL. Never the `-contributor`
 #   models: that tier may train on prompts and completions.
 
 # ECB reference rate of 25.11.2026: 1 EUR = 1.0935 USD.
