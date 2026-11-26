@@ -1,9 +1,11 @@
 """FastAPI application factory."""
 
+import logging
+from collections.abc import Callable
 from importlib.metadata import version
 from typing import Annotated
 
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -15,7 +17,10 @@ from mkc.api.auth import (
     require_admin,
     require_user,
 )
+from mkc.api.backup_status import BackupStatus, LatestRuns, latest_backup_runs, summarize
 from mkc.config import Settings, get_settings
+
+log = logging.getLogger("mkc.api")
 
 
 class Health(BaseModel):
@@ -70,5 +75,21 @@ def create_app(
     @app.get("/api/admin/ping")
     def admin_ping(_admin: Annotated[User, Depends(require_admin)]) -> Health:
         return Health(status="ok")
+
+    @app.get("/api/admin/backup-status")
+    def backup_status(
+        _admin: Annotated[User, Depends(require_admin)],
+        load: Annotated[Callable[[], LatestRuns], Depends(latest_backup_runs)],
+    ) -> BackupStatus:
+        try:
+            last_run, last_success = load()
+        except Exception as error:
+            # Details (host, user) stay in the server log; the client gets a plain 503.
+            log.error("backup status unavailable: %s", type(error).__name__)
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Backup status unavailable",
+            ) from None
+        return summarize(last_run, last_success, settings.backup_stale_hours)
 
     return app
