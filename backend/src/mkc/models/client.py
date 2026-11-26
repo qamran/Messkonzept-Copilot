@@ -24,9 +24,11 @@ from langchain_core.utils.function_calling import convert_to_openai_tool
 from pydantic import BaseModel
 
 from mkc.models.config import ModelsConfig
+from mkc.models.replay import ReplayStore, replay_key
 from mkc.models.types import (
     Image,
     Message,
+    ModelConfigError,
     ModelError,
     ModelMode,
     ModelReply,
@@ -101,11 +103,15 @@ class ModelClient:
         factory: ChatModelFactory,
         *,
         mode: ModelMode = "live",
+        store: ReplayStore | None = None,
         tracers: Sequence[Tracer] = (),
     ) -> None:
+        if mode != "live" and store is None:
+            raise ModelConfigError(f"mode {mode!r} needs a replay store (MKC_MODEL_REPLAY_DIR)")
         self._config = config
         self._factory = factory
         self._mode: ModelMode = mode
+        self._store = store
         self._tracers = list(tracers)
 
     # --- public methods ---------------------------------------------------------------
@@ -119,7 +125,9 @@ class ModelClient:
         if not tools:
             raise ValueError("chat_with_tools needs at least one tool")
         schemas = [tool_schema(t) for t in tools]
-        return self._call(role, "chat_with_tools", messages, lambda m: m.bind_tools(schemas))
+        return self._call(
+            role, "chat_with_tools", messages, lambda m: m.bind_tools(schemas), tools=tools
+        )
 
     def vision(
         self, role: Role, messages: Sequence[Message], images: Sequence[Image]
@@ -145,6 +153,7 @@ class ModelClient:
             "chat_structured",
             messages,
             lambda model: model.with_structured_output(schema, include_raw=True),
+            schema=schema,
         )
 
     # --- one call ---------------------------------------------------------------------
@@ -155,17 +164,34 @@ class ModelClient:
         method: Method,
         messages: Sequence[Message],
         prepare: Callable[[BaseChatModel], Any],
+        *,
+        tools: Sequence[ToolSpec] = (),
+        schema: type[BaseModel] | None = None,
     ) -> ModelReply:
         target = self._config.roles[role]
         model_id = f"{target.provider}:{target.model}"
         lc_messages = [to_langchain(m) for m in messages]
+        key = replay_key(
+            role=role,
+            model_id=model_id,
+            method=method,
+            messages=messages,
+            tools=tools,
+            schema=schema,
+        )
         start = time.perf_counter()
         try:
+            if self._mode == "replay" and self._store is not None:
+                reply = self._store.get(key)  # never builds a provider client
+                self._trace(CallTrace(role, method, "replay", model_id, 0, reply.usage, None))
+                return reply
             chat_model = self._factory(target.provider, target.model, self._config.timeout_seconds)
             output = prepare(chat_model).invoke(lc_messages)
             raw, parsed = _split(output, method)
             latency_ms = round((time.perf_counter() - start) * 1000)
             reply = self._reply(target.provider, target.model, raw, parsed, latency_ms)
+            if self._mode == "record" and self._store is not None:
+                self._store.put(key, reply)
         except Exception as error:
             latency_ms = round((time.perf_counter() - start) * 1000)
             self._trace(

@@ -94,7 +94,7 @@ def test_store_refuses_keys_that_are_not_sha256(tmp_path: Path, bad: str) -> Non
 # --- client modes ---------------------------------------------------------------------
 
 
-def _client(mode: str, tmp_path: Path, model_reply: object = None) -> tuple[ModelClient, Built]:
+def _client(mode: str, tmp_path: Path) -> tuple[ModelClient, Built]:
     factory = Built(fake(ai("recorded", input_tokens=50, output_tokens=5)))
     store = ReplayStore(tmp_path)
     return ModelClient(config(), factory, mode=mode, store=store), factory  # type: ignore[arg-type]
