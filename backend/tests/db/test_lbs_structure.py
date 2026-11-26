@@ -50,9 +50,11 @@ def test_sync_lbs_loads_15_rows_and_is_idempotent(database_env: URL) -> None:
                 assert sync_lbs(session, structures, source) == 15
         with engine.connect() as conn:
             assert conn.execute(text("select count(*) from lbs_structure")).scalar_one() == 15
-            row = conn.execute(
-                text("select * from lbs_structure where code = '9992000000026'")
-            ).mappings().one()
+            row = (
+                conn.execute(text("select * from lbs_structure where code = '9992000000026'"))
+                .mappings()
+                .one()
+            )
     finally:
         engine.dispose()
     assert row["bezeichnung"] == "Verbrauch mit einer Messlokation (Standard)"
@@ -67,6 +69,8 @@ def test_sync_lbs_updates_a_changed_row(database_env: URL) -> None:
     engine = create_engine(database_env)
     try:
         with engine.begin() as conn:
+            # The test database lives for the whole session; start from an empty table.
+            conn.execute(text("delete from lbs_structure"))
             conn.execute(
                 text(
                     "insert into lbs_structure values "

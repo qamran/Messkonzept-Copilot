@@ -18,6 +18,7 @@ dependencies = [
 mkc-worker = "mkc.worker.main:run"
 mkc-worker-health = "mkc.worker.health:main"
 mkc-backup = "mkc.backup:main"
+mkc-load-lbs = "mkc.reference.sync:main"
 
 [dependency-groups]
 dev = [
