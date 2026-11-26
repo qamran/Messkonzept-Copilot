@@ -3,7 +3,7 @@
 # but not change it. mkc-deploy adds --set image.tag=<commit>.
 # After a change: copy it to the VM again (runbook "Deploy and rollback").
 
-# DATABASE_URL lives in this Secret, created by the admin in namespace mkc.
+# DATABASE_URL and MKC_BACKUP_UPLOAD_URL live in this Secret, made by the admin in namespace mkc.
 existingSecret: mkc-secrets
 
 env:
@@ -24,3 +24,8 @@ ingress:
     enabled: true
     secretName: mkc-api-tls
     clusterIssuer: letsencrypt-prod
+
+# Nightly backup to Oracle Object Storage (MKC-11.4, decision 49). Needs
+# MKC_BACKUP_UPLOAD_URL in mkc-secrets first (runbook "Backups and restore drill").
+backup:
+  enabled: true

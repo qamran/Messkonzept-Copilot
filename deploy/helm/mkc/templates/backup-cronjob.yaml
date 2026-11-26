@@ -1,0 +1,82 @@
+{{- /*
+  Nightly database backup (MKC-11.4, decision 49): mkc-backup dumps schema public, gzips it
+  and uploads it to Object Storage through a write-only link (MKC_BACKUP_UPLOAD_URL in the
+  Secret). Retention (14 days) is a lifecycle rule on the bucket, not in the cluster.
+  Off by default; deploy/vm/values-production.yaml switches it on.
+*/ -}}
+{{- if .Values.backup.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "mkc.fullname" . }}-backup
+  labels:
+    {{- include "mkc.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backup
+spec:
+  schedule: {{ .Values.backup.schedule | quote }}
+  timeZone: {{ .Values.backup.timeZone | quote }}
+  # Never two dumps at once; a run missed by more than an hour is skipped (the status
+  # endpoint then shows the backup as stale).
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 3600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    metadata:
+      labels:
+        {{- include "mkc.labels" . | nindent 8 }}
+        app.kubernetes.io/component: backup
+    spec:
+      # One retry; each run uploads under its own time-stamped name.
+      backoffLimit: 1
+      activeDeadlineSeconds: 1800
+      template:
+        metadata:
+          labels:
+            {{- include "mkc.selectorLabels" . | nindent 12 }}
+            app.kubernetes.io/component: backup
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          enableServiceLinks: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            fsGroup: 10001
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: backup
+              image: {{ include "mkc.image" . }}
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              command: ["mkc-backup"]
+              envFrom:
+                - configMapRef:
+                    name: {{ include "mkc.fullname" . }}-config
+                - secretRef:
+                    name: {{ include "mkc.secretName" . }}
+              env:
+                - name: MKC_BACKUP_DIR
+                  value: /backup
+              resources:
+                {{- toYaml .Values.backup.resources | nindent 16 }}
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              volumeMounts:
+                - name: work
+                  mountPath: /backup
+                - name: tmp
+                  mountPath: /tmp
+          volumes:
+            # The gzipped dump waits here until it is uploaded. Supabase's free tier caps the
+            # database at 500 MB; a compressed dump stays well below the limit.
+            - name: work
+              emptyDir:
+                sizeLimit: {{ .Values.backup.workSizeLimit }}
+            - name: tmp
+              emptyDir: {}
+{{- end }}

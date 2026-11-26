@@ -19,6 +19,11 @@ ingress:
 env:
   MKC_CORS_ORIGINS: http://localhost:5173
 
-# Placeholder only: nothing in the smoke test touches the database yet.
+# The test database from deploy/kind/postgres.yaml (MKC-11.1: the migration hook uses it).
 secrets:
-  DATABASE_URL: postgresql://mkc:mkc@db.invalid:5432/mkc
+  DATABASE_URL: postgresql://mkc:mkc@mkc-db.mkc-kind-db.svc.cluster.local:5432/mkc
+
+# The CronJob is rendered and admitted under Pod Security "restricted"; the smoke test runs
+# one Job from it by hand. No upload link here, so that run must fail closed (MKC-11.4).
+backup:
+  enabled: true
