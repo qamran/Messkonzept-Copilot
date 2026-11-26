@@ -11,6 +11,8 @@
 #   - MKC-11.1: on this fresh install the migration hook ran (alembic at head, hook Secret
 #     gone) under Pod Security "restricted"; an upgrade whose migration fails is refused
 #     and the release rolls back
+#   - MKC-11.4: a Job from the backup CronJob is admitted under "restricted", runs
+#     mkc-backup and, without an upload link, fails closed with a `failed` row
 # The cluster is deleted at the end, also on failure (after printing diagnostics).
 # It uses its own KUBECONFIG, so ~/.kube/config and the current context are never touched.
 #
@@ -123,6 +125,15 @@ echo "alembic_version: $head_rev"
 if "$KUBECTL" get secret mkc-migrate >/dev/null 2>&1; then
   fail "the hook Secret mkc-migrate was not deleted after the hooks succeeded"
 fi
+
+log "backup CronJob: a Job started by hand runs under restricted and fails closed (no link)"
+"$KUBECTL" create job mkc-backup-manual --from=cronjob/mkc-backup
+"$KUBECTL" wait --for=condition=Failed job/mkc-backup-manual --timeout=180s \
+  || fail "the backup Job without an upload link did not fail"
+backup_row="$(db_sql "SELECT state || ' ' || error FROM backup_runs ORDER BY id DESC LIMIT 1")"
+echo "backup_runs: $backup_row"
+[ "$backup_row" = "failed MKC_BACKUP_UPLOAD_URL is not set" ] \
+  || fail "expected a failed backup_runs row about the missing link"
 
 log "API through the Service (port-forward on 127.0.0.1:$PORT)"
 "$KUBECTL" port-forward service/mkc-api "$PORT:80" >"$WORK/port-forward.log" 2>&1 &

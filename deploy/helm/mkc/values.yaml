@@ -42,6 +42,21 @@ migrations:
       cpu: 500m
       memory: 256Mi
 
+backup:
+  # Nightly CronJob running mkc-backup (MKC-11.4). Needs MKC_BACKUP_UPLOAD_URL in the Secret.
+  # Off by default; the production values switch it on.
+  enabled: false
+  schedule: "30 3 * * *"
+  timeZone: Europe/Berlin
+  workSizeLimit: 1Gi
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
 # Non-secret settings, as MKC_* environment variables (see .env.example).
 # Example: MKC_CLERK_ISSUER: https://<name>.clerk.accounts.dev
 env: {}

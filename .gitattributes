@@ -3,3 +3,6 @@
 
 # Scripts without .sh that run on Linux (MKC-10).
 deploy/vm/mkc-deploy text eol=lf
+
+# SQL read by the shell scripts (MKC-11.4).
+*.sql text eol=lf
