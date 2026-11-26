@@ -1,0 +1,201 @@
+# LBS reference data (MKC-12): facts from the BDEW Codeliste der Lokationsbündelstrukturen.
+# Only codes, Bezeichnung, page and object composition; never the document itself.
+# Built by scripts/build_lbs_yaml.py; source and terms: docs/261120261404-codeliste-research.md.
+# Do not edit by hand: rebuild from the PDF named in `source`.
+source:
+  title: Codeliste der Lokationsbündelstrukturen
+  publisher: BDEW
+  version: '1.0'
+  edition: Konsolidierte Lesefassung mit Fehlerkorrekturen, Stand 13.12.2024
+  applies_from: '2024-10-01'
+  url: https://bdew-mako.de/pdf/Codeliste-Lokationsbu%CC%88ndelstrukturen_1_0_Fehlerkorrektur_20241213.pdf
+  sha256: 0ae47f79bb719c48920fed9019657eec84659a7f7edbc11805444499dc11ac96
+  retrieved: '2026-11-26'
+structures:
+  - code: '9992000000018'
+    bezeichnung: Verbrauch ohne Messlokation (Pauschal)
+    page: 17
+    objects:
+      - {code: '9992000001024', objekt: TR, funktion: null, richtung: Verbrauch, ebene: 1, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001016', objekt: MaLo, funktion: null, richtung: Verbrauch, ebene: 1, flexibilitaet: Starr, anzahl: '1', referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001256', objekt: NeLo, funktion: null, richtung: null, ebene: 1, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: [], referenz_nelo: []}
+  - code: '9992000000026'
+    bezeichnung: Verbrauch mit einer Messlokation (Standard)
+    page: 19
+    objects:
+      - {code: '9992000001032', objekt: MeLo, funktion: Netzübergabe, richtung: Verbrauch, ebene: 1, flexibilitaet: Starr, anzahl: '1', referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001024', objekt: TR, funktion: null, richtung: Verbrauch, ebene: 1, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001016', objekt: MaLo, funktion: null, richtung: Verbrauch, ebene: 1, flexibilitaet: Starr, anzahl: '1', referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001256', objekt: NeLo, funktion: null, richtung: null, ebene: 1, flexibilitaet: Flexibel, anzahl: 0-1, referenz_melo: [], referenz_nelo: []}
+  - code: '9992000000034'
+    bezeichnung: Erzeugung mit einer Messlokation
+    page: 21
+    objects:
+      - {code: '9992000001214', objekt: MeLo, funktion: Netzübergabe, richtung: Verbrauch & Erzeugung, ebene: 1, flexibilitaet: Starr, anzahl: '1', referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001058', objekt: TR, funktion: null, richtung: Erzeugung, ebene: 1, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001074', objekt: TR, funktion: null, richtung: Verbrauch & Erzeugung (Speicher), ebene: 1, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001066', objekt: MaLo, funktion: null, richtung: Erzeugung, ebene: 1, flexibilitaet: Starr, anzahl: '1', referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001016', objekt: MaLo, funktion: null, richtung: Verbrauch, ebene: 1, flexibilitaet: Flexibel, anzahl: 0-1, referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001256', objekt: NeLo, funktion: null, richtung: null, ebene: 1, flexibilitaet: Flexibel, anzahl: 0-1, referenz_melo: [], referenz_nelo: []}
+  - code: '9992000000042'
+    bezeichnung: Erzeugung ohne getrennt gemessene Erzeugung
+    page: 23
+    objects:
+      - {code: '9992000001214', objekt: MeLo, funktion: Netzübergabe, richtung: Verbrauch & Erzeugung, ebene: 1, flexibilitaet: Starr, anzahl: '1', referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001074', objekt: TR, funktion: null, richtung: Verbrauch & Erzeugung (Speicher), ebene: 1, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001024', objekt: TR, funktion: null, richtung: Verbrauch, ebene: 1, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001058', objekt: TR, funktion: null, richtung: Erzeugung, ebene: 1, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001016', objekt: MaLo, funktion: null, richtung: Verbrauch, ebene: 1, flexibilitaet: Starr, anzahl: '1', referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001066', objekt: MaLo, funktion: null, richtung: Erzeugung, ebene: 1, flexibilitaet: Starr, anzahl: '1', referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001256', objekt: NeLo, funktion: null, richtung: null, ebene: 1, flexibilitaet: Flexibel, anzahl: 0-1, referenz_melo: [], referenz_nelo: []}
+  - code: '9992000000133'
+    bezeichnung: Erzeugung mit getrennt gemessener Erzeugung
+    page: 25
+    objects:
+      - {code: '9992000001214', objekt: MeLo, funktion: Netzübergabe, richtung: Verbrauch & Erzeugung, ebene: 1, flexibilitaet: Starr, anzahl: '1', referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001090', objekt: MeLo, funktion: Hinterschaltung, richtung: Erzeugung, ebene: 2, flexibilitaet: Flexibel, anzahl: ≥1, referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001024', objekt: TR, funktion: null, richtung: Verbrauch, ebene: 1, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001157', objekt: TR, funktion: null, richtung: Erzeugung, ebene: 2, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: ['9992000001090'], referenz_nelo: []}
+      - {code: '9992000001165', objekt: TR, funktion: null, richtung: Verbrauch & Erzeugung (Speicher), ebene: 2, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: ['9992000001090'], referenz_nelo: []}
+      - {code: '9992000001016', objekt: MaLo, funktion: null, richtung: Verbrauch, ebene: 1, flexibilitaet: Starr, anzahl: '1', referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001115', objekt: MaLo, funktion: null, richtung: Erzeugung, ebene: 2, flexibilitaet: Flexibel, anzahl: ≥1, referenz_melo: ['9992000001090'], referenz_nelo: []}
+      - {code: '9992000001107', objekt: MaLo, funktion: null, richtung: Verbrauch, ebene: 2, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: ['9992000001090'], referenz_nelo: []}
+      - {code: '9992000001256', objekt: NeLo, funktion: null, richtung: null, ebene: 1, flexibilitaet: Flexibel, anzahl: 0-1, referenz_melo: [], referenz_nelo: []}
+  - code: '9992000000068'
+    bezeichnung: Verbrauch mit flexibler Hinterschaltung ohne Erzeugung
+    page: 27
+    objects:
+      - {code: '9992000001032', objekt: MeLo, funktion: Netzübergabe, richtung: Verbrauch, ebene: 1, flexibilitaet: Starr, anzahl: '1', referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001082', objekt: MeLo, funktion: Hinterschaltung, richtung: Verbrauch, ebene: 2, flexibilitaet: Flexibel, anzahl: 1-N, referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001024', objekt: TR, funktion: null, richtung: Verbrauch, ebene: 1, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001149', objekt: TR, funktion: null, richtung: Verbrauch, ebene: 2, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: ['9992000001082'], referenz_nelo: []}
+      - {code: '9992000001016', objekt: MaLo, funktion: null, richtung: Verbrauch, ebene: 1, flexibilitaet: Starr, anzahl: '1', referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001107', objekt: MaLo, funktion: null, richtung: Verbrauch, ebene: 2, flexibilitaet: Flexibel, anzahl: 1-N, referenz_melo: ['9992000001082'], referenz_nelo: []}
+      - {code: '9992000001256', objekt: NeLo, funktion: null, richtung: null, ebene: 1, flexibilitaet: Flexibel, anzahl: 0-1, referenz_melo: [], referenz_nelo: []}
+  - code: '9992000000076'
+    bezeichnung: Verbrauch mit flexibler Hinterschaltung und nicht getrennt gemessener Erzeugung
+    page: 29
+    objects:
+      - {code: '9992000001214', objekt: MeLo, funktion: Netzübergabe, richtung: Verbrauch & Erzeugung, ebene: 1, flexibilitaet: Starr, anzahl: '1', referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001082', objekt: MeLo, funktion: Hinterschaltung, richtung: Verbrauch, ebene: 2, flexibilitaet: Flexibel, anzahl: 1-N, referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001024', objekt: TR, funktion: null, richtung: Verbrauch, ebene: 1, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001149', objekt: TR, funktion: null, richtung: Verbrauch, ebene: 2, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: ['9992000001082'], referenz_nelo: []}
+      - {code: '9992000001074', objekt: TR, funktion: null, richtung: Verbrauch & Erzeugung (Speicher), ebene: 1, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001058', objekt: TR, funktion: null, richtung: Erzeugung, ebene: 1, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001016', objekt: MaLo, funktion: null, richtung: Verbrauch, ebene: 1, flexibilitaet: Starr, anzahl: '1', referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001107', objekt: MaLo, funktion: null, richtung: Verbrauch, ebene: 2, flexibilitaet: Flexibel, anzahl: 1-N, referenz_melo: ['9992000001082'], referenz_nelo: []}
+      - {code: '9992000001066', objekt: MaLo, funktion: null, richtung: Erzeugung, ebene: 1, flexibilitaet: Starr, anzahl: '1', referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001256', objekt: NeLo, funktion: null, richtung: null, ebene: 1, flexibilitaet: Flexibel, anzahl: 0-1, referenz_melo: [], referenz_nelo: []}
+  - code: '9992000000084'
+    bezeichnung: Verbrauch mit flexibler Hinterschaltung und getrennt gemessener flexibler Erzeugung
+    page: 31
+    objects:
+      - {code: '9992000001214', objekt: MeLo, funktion: Netzübergabe, richtung: Verbrauch & Erzeugung, ebene: 1, flexibilitaet: Starr, anzahl: '1', referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001082', objekt: MeLo, funktion: Hinterschaltung, richtung: Verbrauch, ebene: 2, flexibilitaet: Flexibel, anzahl: 1-N, referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001090', objekt: MeLo, funktion: Hinterschaltung, richtung: Erzeugung, ebene: 2, flexibilitaet: Flexibel, anzahl: 1-N, referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001024', objekt: TR, funktion: null, richtung: Verbrauch, ebene: 1, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001149', objekt: TR, funktion: null, richtung: Verbrauch, ebene: 2, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: ['9992000001082'], referenz_nelo: []}
+      - {code: '9992000001165', objekt: TR, funktion: null, richtung: Verbrauch & Erzeugung (Speicher), ebene: 2, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: ['9992000001090'], referenz_nelo: []}
+      - {code: '9992000001157', objekt: TR, funktion: null, richtung: Erzeugung, ebene: 2, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: ['9992000001090'], referenz_nelo: []}
+      - {code: '9992000001016', objekt: MaLo, funktion: null, richtung: Verbrauch, ebene: 1, flexibilitaet: Starr, anzahl: '1', referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001107', objekt: MaLo, funktion: null, richtung: Verbrauch, ebene: 2, flexibilitaet: Flexibel, anzahl: 1-N, referenz_melo: ['9992000001082'], referenz_nelo: []}
+      - {code: '9992000001272', objekt: MaLo, funktion: null, richtung: Verbrauch, ebene: 2, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: ['9992000001090'], referenz_nelo: []}
+      - {code: '9992000001115', objekt: MaLo, funktion: null, richtung: Erzeugung, ebene: 2, flexibilitaet: Flexibel, anzahl: 1-N, referenz_melo: ['9992000001090'], referenz_nelo: []}
+      - {code: '9992000001256', objekt: NeLo, funktion: null, richtung: null, ebene: 1, flexibilitaet: Flexibel, anzahl: 0-1, referenz_melo: [], referenz_nelo: []}
+  - code: '9992000000109'
+    bezeichnung: Summenmessung Verbrauch ohne Erzeugung
+    page: 34
+    objects:
+      - {code: '9992000001032', objekt: MeLo, funktion: Netzübergabe, richtung: Verbrauch, ebene: 1, flexibilitaet: Flexibel, anzahl: ≥2, referenz_melo: [], referenz_nelo: ['9992000001256']}
+      - {code: '9992000001024', objekt: TR, funktion: null, richtung: Verbrauch, ebene: 1, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: ['9992000001032'], referenz_nelo: []}
+      - {code: '9992000001016', objekt: MaLo, funktion: null, richtung: Verbrauch, ebene: 1, flexibilitaet: Starr, anzahl: '1', referenz_melo: ['9992000001032'], referenz_nelo: []}
+      - {code: '9992000001256', objekt: NeLo, funktion: null, richtung: null, ebene: 1, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: [], referenz_nelo: []}
+  - code: '9992000000117'
+    bezeichnung: Summenmessung mit mindestens einer ungemessenen Erzeugung
+    page: 36
+    objects:
+      - {code: '9992000001214', objekt: MeLo, funktion: Netzübergabe, richtung: Verbrauch & Erzeugung, ebene: 1, flexibilitaet: Flexibel, anzahl: ≥1, referenz_melo: [], referenz_nelo: ['9992000001256']}
+      - {code: '9992000001032', objekt: MeLo, funktion: Netzübergabe, richtung: Verbrauch, ebene: 1, flexibilitaet: Flexibel, anzahl: ≥0, referenz_melo: [], referenz_nelo: ['9992000001256']}
+      - {code: '9992000001024', objekt: TR, funktion: null, richtung: Verbrauch, ebene: 1, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: ['9992000001032'], referenz_nelo: []}
+      - {code: '9992000001280', objekt: TR, funktion: null, richtung: Verbrauch, ebene: 1, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: ['9992000001214'], referenz_nelo: []}
+      - {code: '9992000001074', objekt: TR, funktion: null, richtung: Verbrauch & Erzeugung (Speicher), ebene: 1, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: ['9992000001214'], referenz_nelo: []}
+      - {code: '9992000001058', objekt: TR, funktion: null, richtung: Erzeugung, ebene: 1, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: ['9992000001214'], referenz_nelo: []}
+      - {code: '9992000001016', objekt: MaLo, funktion: null, richtung: Verbrauch, ebene: 1, flexibilitaet: Starr, anzahl: '1', referenz_melo: ['9992000001032', '9992000001214'], referenz_nelo: []}
+      - {code: '9992000001066', objekt: MaLo, funktion: null, richtung: Erzeugung, ebene: 1, flexibilitaet: Flexibel, anzahl: ≥1, referenz_melo: ['9992000001214'], referenz_nelo: []}
+      - {code: '9992000001256', objekt: NeLo, funktion: null, richtung: null, ebene: 1, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: [], referenz_nelo: []}
+  - code: '9992000000125'
+    bezeichnung: Summenmessung mit mindestens einer separat gemessenen Erzeugung
+    page: 38
+    objects:
+      - {code: '9992000001214', objekt: MeLo, funktion: Netzübergabe, richtung: Verbrauch & Erzeugung, ebene: 1, flexibilitaet: Flexibel, anzahl: ≥1, referenz_melo: [], referenz_nelo: ['9992000001256']}
+      - {code: '9992000001032', objekt: MeLo, funktion: Netzübergabe, richtung: Verbrauch, ebene: 1, flexibilitaet: Flexibel, anzahl: ≥0, referenz_melo: [], referenz_nelo: ['9992000001256']}
+      - {code: '9992000001090', objekt: MeLo, funktion: Hinterschaltung, richtung: Erzeugung, ebene: 2, flexibilitaet: Flexibel, anzahl: ≥1, referenz_melo: ['9992000001214'], referenz_nelo: []}
+      - {code: '9992000001024', objekt: TR, funktion: null, richtung: Verbrauch, ebene: 1, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: ['9992000001032'], referenz_nelo: []}
+      - {code: '9992000001280', objekt: TR, funktion: null, richtung: Verbrauch, ebene: 1, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: ['9992000001214'], referenz_nelo: []}
+      - {code: '9992000001157', objekt: TR, funktion: null, richtung: Erzeugung, ebene: 2, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: ['9992000001090'], referenz_nelo: []}
+      - {code: '9992000001165', objekt: TR, funktion: null, richtung: Verbrauch & Erzeugung (Speicher), ebene: 2, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: ['9992000001090'], referenz_nelo: []}
+      - {code: '9992000001107', objekt: MaLo, funktion: null, richtung: Verbrauch, ebene: 2, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: ['9992000001090'], referenz_nelo: []}
+      - {code: '9992000001016', objekt: MaLo, funktion: null, richtung: Verbrauch, ebene: 1, flexibilitaet: Starr, anzahl: '1', referenz_melo: ['9992000001214', '9992000001032'], referenz_nelo: []}
+      - {code: '9992000001115', objekt: MaLo, funktion: null, richtung: Erzeugung, ebene: 2, flexibilitaet: Flexibel, anzahl: ≥1, referenz_melo: ['9992000001090'], referenz_nelo: []}
+      - {code: '9992000001256', objekt: NeLo, funktion: null, richtung: null, ebene: 1, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: [], referenz_nelo: []}
+  - code: '9992000000159'
+    bezeichnung: Erzeugungskaskade mit ungemessener Erzeugung
+    page: 41
+    objects:
+      - {code: '9992000001214', objekt: MeLo, funktion: Netzübergabe, richtung: Verbrauch & Erzeugung, ebene: 1, flexibilitaet: Starr, anzahl: '1', referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001230', objekt: MeLo, funktion: Differenzmessung, richtung: Erzeugung, ebene: 2, flexibilitaet: Starr, anzahl: '1', referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001149', objekt: TR, funktion: null, richtung: Verbrauch, ebene: 2, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001165', objekt: TR, funktion: null, richtung: Verbrauch & Erzeugung (Speicher), ebene: 2, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001157', objekt: TR, funktion: null, richtung: Erzeugung, ebene: 2, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001058', objekt: TR, funktion: null, richtung: Erzeugung, ebene: 1, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001107', objekt: MaLo, funktion: null, richtung: Verbrauch, ebene: 2, flexibilitaet: Starr, anzahl: '1', referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001115', objekt: MaLo, funktion: null, richtung: Erzeugung, ebene: 2, flexibilitaet: Starr, anzahl: '1', referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001066', objekt: MaLo, funktion: null, richtung: Erzeugung, ebene: 1, flexibilitaet: Starr, anzahl: '1', referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001256', objekt: NeLo, funktion: null, richtung: null, ebene: 1, flexibilitaet: Flexibel, anzahl: 0-1, referenz_melo: [], referenz_nelo: []}
+  - code: '9992000000167'
+    bezeichnung: Erzeugungskaskade mit gemessener und ungemessener Erzeugung
+    page: 43
+    objects:
+      - {code: '9992000001214', objekt: MeLo, funktion: Netzübergabe, richtung: Verbrauch & Erzeugung, ebene: 1, flexibilitaet: Starr, anzahl: '1', referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001230', objekt: MeLo, funktion: Differenzmessung, richtung: Erzeugung, ebene: 2, flexibilitaet: Starr, anzahl: '1', referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001090', objekt: MeLo, funktion: Hinterschaltung, richtung: Erzeugung, ebene: 2, flexibilitaet: Flexibel, anzahl: ≥1, referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001149', objekt: TR, funktion: null, richtung: Verbrauch, ebene: 2, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001165', objekt: TR, funktion: null, richtung: Verbrauch & Erzeugung (Speicher), ebene: 2, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001157', objekt: TR, funktion: null, richtung: Erzeugung, ebene: 2, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001107', objekt: MaLo, funktion: null, richtung: Verbrauch, ebene: 2, flexibilitaet: Starr, anzahl: '1', referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001115', objekt: MaLo, funktion: null, richtung: Erzeugung, ebene: 2, flexibilitaet: Starr, anzahl: '1', referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001256', objekt: NeLo, funktion: null, richtung: null, ebene: 1, flexibilitaet: Flexibel, anzahl: 0-1, referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001313', objekt: TR, funktion: null, richtung: Verbrauch & Erzeugung (Speicher), ebene: 2, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: ['9992000001090'], referenz_nelo: []}
+      - {code: '9992000001305', objekt: TR, funktion: null, richtung: Erzeugung, ebene: 2, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: ['9992000001090'], referenz_nelo: []}
+      - {code: '9992000001272', objekt: MaLo, funktion: null, richtung: Verbrauch, ebene: 2, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: ['9992000001090'], referenz_nelo: []}
+      - {code: '9992000001298', objekt: MaLo, funktion: null, richtung: Erzeugung, ebene: 2, flexibilitaet: Flexibel, anzahl: ≥1, referenz_melo: ['9992000001090'], referenz_nelo: []}
+  - code: '9992000000175'
+    bezeichnung: Verbrauchskaskade mit ungemessenen TR (Wärmepumpenkaskade)
+    page: 45
+    objects:
+      - {code: '9992000001214', objekt: MeLo, funktion: Netzübergabe, richtung: Verbrauch & Erzeugung, ebene: 1, flexibilitaet: Starr, anzahl: '1', referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001222', objekt: MeLo, funktion: Differenzmessung, richtung: Verbrauch, ebene: 2, flexibilitaet: Starr, anzahl: '1', referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001024', objekt: TR, funktion: null, richtung: Verbrauch, ebene: 1, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001149', objekt: TR, funktion: null, richtung: Verbrauch, ebene: 2, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001165', objekt: TR, funktion: null, richtung: Verbrauch & Erzeugung (Speicher), ebene: 2, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001157', objekt: TR, funktion: null, richtung: Erzeugung, ebene: 2, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001016', objekt: MaLo, funktion: null, richtung: Verbrauch, ebene: 1, flexibilitaet: Starr, anzahl: '1', referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001107', objekt: MaLo, funktion: null, richtung: Verbrauch, ebene: 2, flexibilitaet: Starr, anzahl: '1', referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001115', objekt: MaLo, funktion: null, richtung: Erzeugung, ebene: 2, flexibilitaet: Starr, anzahl: '1', referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001256', objekt: NeLo, funktion: null, richtung: null, ebene: 1, flexibilitaet: Flexibel, anzahl: 0-1, referenz_melo: [], referenz_nelo: []}
+  - code: '9992000000183'
+    bezeichnung: Verbrauchskaskade mit ungemessenem Verbrauch und gemessener Erzeugung
+    page: 47
+    objects:
+      - {code: '9992000001214', objekt: MeLo, funktion: Netzübergabe, richtung: Verbrauch & Erzeugung, ebene: 1, flexibilitaet: Starr, anzahl: '1', referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001222', objekt: MeLo, funktion: Differenzmessung, richtung: Verbrauch, ebene: 2, flexibilitaet: Starr, anzahl: '1', referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001206', objekt: MeLo, funktion: Hinterschaltung, richtung: Erzeugung, ebene: 3, flexibilitaet: Starr, anzahl: '1', referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001024', objekt: TR, funktion: null, richtung: Verbrauch, ebene: 1, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001149', objekt: TR, funktion: null, richtung: Verbrauch, ebene: 2, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001181', objekt: TR, funktion: null, richtung: Erzeugung, ebene: 3, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001264', objekt: TR, funktion: null, richtung: Verbrauch & Erzeugung (Speicher), ebene: 3, flexibilitaet: Flexibel, anzahl: 0-N, referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001016', objekt: MaLo, funktion: null, richtung: Verbrauch, ebene: 1, flexibilitaet: Starr, anzahl: '1', referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001107', objekt: MaLo, funktion: null, richtung: Verbrauch, ebene: 2, flexibilitaet: Starr, anzahl: '1', referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001123', objekt: MaLo, funktion: null, richtung: Verbrauch, ebene: 3, flexibilitaet: Flexibel, anzahl: 0-1, referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001131', objekt: MaLo, funktion: null, richtung: Erzeugung, ebene: 3, flexibilitaet: Starr, anzahl: '1', referenz_melo: [], referenz_nelo: []}
+      - {code: '9992000001256', objekt: NeLo, funktion: null, richtung: null, ebene: 1, flexibilitaet: Flexibel, anzahl: 0-1, referenz_melo: [], referenz_nelo: []}
