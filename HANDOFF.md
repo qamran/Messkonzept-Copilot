@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 26.11.2026, 21:31
+**Last updated:** 26.11.2026, 21:36
 
 This file is how agents resume work after a session restart.
 
@@ -57,7 +57,7 @@ This file is how agents resume work after a session restart.
 
 ## Next steps
 
-1. MKC-14: see "In progress". Next: MKC-14.1 red tests.
+1. MKC-14: see "In progress". Next: MKC-14.1 code until `tests/harness/test_tools.py` is green (red commit done).
 2. MKC-13, non-blocking findings of the PR #127 review (comment 26.11.2026 15:19Z), for MKC-17/MKC-18 or a hardening ticket:
    - 1: another module could import `mkc.models.providers.build_chat_model` and skip `ModelClient`; add a guard that only `client.py` imports `providers`
    - 2: Gemini, Anthropic and Meta have no request-count test (only `max_retries == 0`); the reviewer measured one request each against a local server
