@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 26.11.2026, 10:16
+**Last updated:** 26.11.2026, 10:17
 
 This file is how agents resume work after a session restart.
 
@@ -88,6 +88,7 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **26.11.2026 10:17** MKC-11.3 red: `tests/api/test_backup_status.py` (401/403; `never` + stale; fresh `ok`; `ok` older than 26 h is stale; `failed` keeps the last success; `running`; a database error gives 503 without details) and `tests/db/test_backup_status_query.py` (latest run and latest success) fail: no module `mkc.api.backup_status`.
 - **26.11.2026 10:16** MKC-11.2 green: `mkc.backup` (`mkc-backup` entry point): `pg_dump --schema=public --no-owner --no-privileges` → gzip in `MKC_BACKUP_DIR` → PUT with Content-Length (stdlib `urllib`, no client that logs URLs) to `MKC_BACKUP_UPLOAD_URL` + `nightly/mkc-<UTC>.sql.gz`; rows in `backup_runs`; password only in `PGPASSWORD`; every message redacted; https only unless `MKC_BACKUP_ALLOW_HTTP`. Settings `backup_upload_url` (SecretStr), `backup_dir`, `backup_allow_http`, `backup_stale_hours`. Dockerfile: `postgresql-client-17` (image 287 → 369 MB). pytest 95 passed, 1 skipped; ruff, mypy strict green; `check_containers.py` ok. By hand: the image (`--read-only`, uid 10001) dumped the local Postgres 17 with pg_dump 17.12, uploaded to a local receiver, row `ok` (1146 bytes). Note: the dump contains `CREATE SCHEMA public;`; the restore drops that line and creates `public` and `vector` first.
 - **26.11.2026 10:15** MKC-11.2 red: `check_containers.py` requires `postgresql-client-17` in the runtime stage (`--no-install-recommends`); fails on the current Dockerfile.
 - **26.11.2026 10:02** MKC-11.2 red: `tests/backup/test_backup.py` (pg_dump stub, local PUT receiver, in-memory recorder: success uploads the gzipped dump and records `ok`; a failed dump never uploads; an upload error records `failed`; a failed status write does not stop the backup; no link, or an http link, fails before the dump; the password and the link token never appear in logs or rows) and `tests/db/test_backup_recorder.py` fail: no module `mkc.backup`.
