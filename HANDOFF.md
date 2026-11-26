@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 26.11.2026, 15:41
+**Last updated:** 26.11.2026, 15:47
 
 This file is how agents resume work after a session restart.
 
@@ -51,7 +51,7 @@ This file is how agents resume work after a session restart.
 - **MKC-13** (#13), Provider layer (`ModelClient`). Status `In progress`, assigned to `qamran`. Branch `mkc-13-provider-layer`; **draft PR #127** (assigned to `qamran`).
   - Plan: `docs/superpowers/plans/261120261517-mkc-13-provider-layer.md`. Decision 52 records the build.
   - Sub-issues: #121 MKC-13.1 guards and pinned deps, #122 MKC-13.2 types/config/settings, #123 MKC-13.3 ModelClient, #124 MKC-13.4 record/replay, #125 MKC-13.5 provider factory: all built, tests green; fixed: the OpenRouter SDK retried 5XX with backoff for up to 1 h despite `max_retries=0`, now `NO_RETRIES` (one request on 503/500/429, tested). #126 MKC-13.6 live contract tests and docs: `In progress`.
-  - **Meta Llama API is gone** (Meta shut it down on 6 July 2026). User decided: the provider `meta` is Meta's OpenAI-compatible API (`https://api.meta.ai/v1`, `muse-spark-1.3`, via `langchain-openai`); `langchain-meta` removed. Price $1.25/$4.25 from the Vercel AI Gateway listing; Meta's own page and the base URL get confirmed by the live run. Never use the `-contributor` models (they may train on inputs).
+  - **Meta Llama API is gone** (Meta shut it down on 6 July 2026). User confirmed (15:45): the provider `meta` is Meta's OpenAI-compatible API (`https://api.meta.ai/v1`, `muse-spark-1.3`, via `langchain-openai`); `langchain-meta` removed. Price $1.25/$4.25 from the Vercel AI Gateway listing; Meta's own page and the base URL get confirmed by the live run. Never use the `-contributor` models (they may train on inputs).
   - Live contract tests (26.11.2026 15:39): OpenRouter, Gemini and Anthropic pass (tool call and structured output); spend under €0.002; result in the status doc. **Missing: the Meta run** (needs `MKC_META_API_KEY`).
   - How the run was done: the three keys are in the root `.env` under `OPENROUTER_API_KEY`, `GEMINI_API_KEY`, `ANTHROPIC_API_KEY`; they were mapped to the `MKC_…` names in the shell for the run only. Command: `cd backend && uv run --env-file .env pytest -m live tests/models/test_contract_live.py -v -s` once `backend/.env` has the `MKC_…` keys.
   - CI: runs on the PR kept being cancelled by new pushes; the last full run of `image`, `kind` and `dependency-scan` must pass before review.
@@ -119,7 +119,8 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
-- **26.11.2026 15:43** Docs for decision 52 pushed; #13 and #126 criteria now say "Meta API".
+- **26.11.2026 15:44–15:46** OpenRouter SDK retry fix (`adcd102`); OpenRouter live tests re-run green; live vision check passed on OpenRouter, Gemini and Anthropic. User confirmed the Meta API (Muse) as the fourth provider (15:45); waiting for `MKC_META_API_KEY`.
+- **26.11.2026 15:41** Docs for decision 52 pushed; #13 and #126 criteria now say "Meta API".
 - **26.11.2026 15:39** MKC-13.6: live contract tests passed for OpenRouter, Gemini and Anthropic (6 passed, Meta skipped without a key); spend under €0.002.
 - **26.11.2026 15:20–15:38** MKC-13.1 to 13.5 built test-first (guards, pinned deps, types and config, ModelClient, record/replay, provider factory); draft PR #127 opened for CI (15:21). User decisions: Meta API (`api.meta.ai`) replaces the closed Meta Llama API (decision 52); the Hackathon project is not a reference for later choices.
 - **26.11.2026 15:17–15:18** MKC-13 plan written (15:17); sub-issues #121–#126 (MKC-13.1 to 13.6) created, assigned to `qamran`, linked to #13 and added to the board (#121 `In progress`, the rest `Ready`).

@@ -27,7 +27,8 @@ NO_RETRIES = RetryConfig("none", BackoffStrategy(500, 500, 1.0, 0), False)
 (`openrouter/chat.py`), even with `max_retries=0` on the LangChain class. This switches it off."""
 
 META_API_BASE = "https://api.meta.ai/v1"
-"""Meta's OpenAI-compatible API (the Llama API at api.llama.com closed on 6 July 2026)."""
+"""Meta's OpenAI-compatible API (the Llama API at api.llama.com closed on 6 July 2026).
+Unverified: not yet confirmed by Meta's docs or a live call (MKC-13.6 does that)."""
 
 _KEY_SETTING: dict[Provider, tuple[str, str]] = {
     "openrouter": ("openrouter_api_key", "MKC_OPENROUTER_API_KEY"),

@@ -5,13 +5,13 @@
 # - openrouter: OpenRouter GET /api/v1/endpoints/zdr on 26.11.2026 (zero-data-retention endpoints
 #   only). Where a model has several ZDR endpoints, the highest price is taken, so the recorded
 #   cost is an upper bound.
-# - gemini: the Gemini API free tier costs nothing (it may use inputs for training: allowed only
-#   for public PDFs and synthetic sites, design doc section 5).
-# - anthropic: no list taken from Anthropic yet; the OpenRouter price of the same model stands in
-#   until the live contract run (MKC-13.6) confirms the model id and price.
+# - gemini: 0, which assumes a free-tier key (the free tier may use inputs for training: allowed
+#   only for public PDFs and synthetic sites, design doc section 5). A paid key needs real prices.
+# - anthropic: a stand-in, the OpenRouter price of the same model; Anthropic's own price list was
+#   not read. The live contract run (26.11.2026) confirmed the model id, not the price.
 # - meta: Meta's API (api.meta.ai, OpenAI-compatible; the Llama API closed on 6 July 2026).
 #   Muse Spark 1.3 standard tier, $1.25 / $4.25 (Vercel AI Gateway listing and press coverage on
-#   26.11.2026; Meta's own page not read yet, to confirm in MKC-13.6). Never the `-contributor`
+#   26.11.2026; Meta's own page not read yet). The base URL is unverified until the live run. Never the `-contributor`
 #   models: that tier may train on prompts and completions.
 
 # ECB reference rate of 25.11.2026: 1 EUR = 1.0935 USD.
