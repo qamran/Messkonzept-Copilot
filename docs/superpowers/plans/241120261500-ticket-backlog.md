@@ -454,13 +454,13 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
 - **Depends on:** MKC-22, MKC-16.
 - **Interfaces:**
   - **Produces:** `render_region(page, bbox, dpi) -> ImageRef` (cache key: doc hash, page, bbox, dpi; DPI cap in config).
-  - `save_draft(draft: MesskonzeptDraft) -> DraftId` (enqueues the approval).
+  - `save_draft(draft: MesskonzeptDraft) -> DraftId` (writes only this item's draft; the harness then runs `enqueue_approval` on the result, decision 53).
   - Pydantic `MesskonzeptDraft`, exactly the fields of design section 7.
 - **Test:**
   - `test_bbox_outside_page_rejected`
   - `test_dpi_above_cap_rejected`
   - `test_render_cache_hit`
-  - `test_save_draft_enqueues_approval_once`
+  - `test_saved_draft_is_enqueued_for_approval_once` (by the harness, not by `save_draft`)
 - **Success criteria:**
   - [ ] `MesskonzeptDraft` JSON schema exported for the vision prompt (MKC-26)
 

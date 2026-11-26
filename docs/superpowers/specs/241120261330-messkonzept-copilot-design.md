@@ -199,7 +199,7 @@ Sources: the BDEW Codeliste (LBS codes and their object composition), the operat
 | Fetch the document (allow-listed URL), hash, cache | **Code** (run-level step) | no |
 | Segment into concept items (Berlin: one per page; SachsenNetze: two per landscape page) | **Code** (run-level step); decision-layer page triage as an assist from the RAG/decision phase on | optional |
 | Per concept item: extract, render, read, assemble, validate, save the draft | **Model-driven tool loop** | yes |
-| Enqueue for approval when a draft is saved | **Code** (side effect of `save_draft`) | no |
+| Enqueue for approval when a draft is saved | **Code** (`enqueue_approval`, run by the harness on `save_draft`'s result; decision 53) | no |
 | Approve / edit / reject | **Human** (review UI → API) | no |
 | Commit an approved record to the catalogue | **Code** (worker, on the approval event) | no |
 | Run report | **Code** | no |

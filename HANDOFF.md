@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 26.11.2026, 21:37
+**Last updated:** 26.11.2026, 23:08
 
 This file is how agents resume work after a session restart.
 
@@ -129,8 +129,9 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
-- **26.11.2026 21:32–21:37** MKC-14: MKC-14.1 red tests and skeleton (`397b770`, 21:32; 13 of 15 failed on assertions), registry core green (`5c4ca34`, 21:33); MKC-14.2 red tests (`46f71ad`, 21:34; 14 of 16 failed on assertions), default registry green (`fb00815`, 21:36; the red test compared `Tool` objects with names and was fixed in that commit). #129 set to `In progress` at 21:33. Local: 265 passed, 16 skipped (`MKC_SKIP_DB_TESTS=1`; Docker not started), ruff, mypy strict, markdownlint 0 errors, all check scripts pass. MKC-14.3: decision 53 in the design doc, ADR 001 and the status doc.
-- **Correction:** the `Last updated` lines of commits `5c4ca34`, `46f71ad` and `fb00815` (21:40, 21:43, 21:47) were estimated ahead of the clock; the commit times above are the true ones.
+- **26.11.2026 23:06–23:08** MKC-14, after a self-review: registry maps are read-only (`MappingProxyType`, `6bbea6a`, 23:06; that commit has no HANDOFF change). Decision 53 made consistent in the other places: design 8.1 table (enqueue by the harness), ADR 001 (idempotency keys for the writes), backlog MKC-23 (`save_draft` interface and test name), plan (`ok=True` may carry `data=None`). Comment on #23 explains the change for MKC-23.
+- **26.11.2026 21:32–21:37** MKC-14: MKC-14.1 red tests and skeleton (`397b770`, 21:32; 14 of 15 failed on assertions; the commit message says 13), registry core green (`5c4ca34`, 21:33); MKC-14.2 red tests (`46f71ad`, 21:34; 14 of 16 failed on assertions), default registry green (`fb00815`, 21:36; the red test compared `Tool` objects with names and was fixed in that commit). #129 set to `In progress` between those commits (time not recorded). Local: 265 passed, 16 skipped (`MKC_SKIP_DB_TESTS=1`; Docker not started), ruff, mypy strict, markdownlint 0 errors, all check scripts pass. MKC-14.3: decision 53 in the design doc, ADR 001 and the status doc.
+- **Correction:** the `Last updated` lines of commits `397b770`, `5c4ca34`, `46f71ad` and `fb00815` (21:36, 21:40, 21:43, 21:47) were estimated ahead of the clock; the commit times above are the true ones. `0a53675` (21:37) matches its commit time.
 - **26.11.2026 21:29–21:31** MKC-14: plan `docs/superpowers/plans/261120262129-mkc-14-tool-registry.md` written (decision 53 on `side_effect`); sub-issues MKC-14.1 #128 (21:30:31), MKC-14.2 #129 (21:30:35), MKC-14.3 #130 (21:30:41) created, assigned to `qamran`, linked to #14 and put on the board (#128 `In progress`, #129 and #130 `Ready`).
 - **26.11.2026 16:19–16:27** `cd` run 45847918395 on `ab62236`, green: `image` 16:19:27–16:24:35; `backend` approved by the development agent (decision 51) at 16:24:44, 16:24:41–16:25:47; `frontend` approved at 16:26:13, 16:26:11–16:26:51. Checked afterwards: `/api/version` = `ab62236…`, `/health` 200, `/api/admin/backup-status` without a token 401, the site 200. MKC-14 (#14) assigned to `qamran` and set to `In progress` (16:27); branch `mkc-14-tool-registry` from `ab62236`.
 - **26.11.2026 16:19** Review agent (Fable) verdict on PR #127: PASS on head `35f4065` (comment 15:19:17Z), no blocking finding, 12 non-blocking (under Next steps). It ran 14 mutations (all red) and checked one request per provider on 503/500/429. Merged by the review agent (merge commit `ab62236`, 15:19:20Z); #13 closed by the merge (15:19:22Z); #121–#126 closed by the development agent (15:20:18Z–15:21:18Z) and all set to `Done`. `main` pushed to `turing` (16:19:57); `origin/main` = `turing/main` = `ab62236`.

@@ -9,7 +9,7 @@
 **Architecture:** package `mkc.harness`, module `mkc.harness.tools`.
 
 - `Tool(name, description, args_model, fn, side_effect, deterministic)`: a frozen dataclass. `description` is an addition to the ticket interface: `ModelClient.chat_with_tools` takes `ToolSpec(name, description, args)`, so `Tool.to_spec()` needs it.
-- `ToolError(code, message)` and `ToolResult(ok, data, error)`: frozen Pydantic models. `ok=True` needs `data` and no `error`; `ok=False` needs `error` and no `data`. Both rules are enforced by a validator.
+- `ToolError(code, message)` and `ToolResult(ok, data, error)`: frozen Pydantic models. `ok=True` has no `error` (`data` may be `None`); `ok=False` needs `error` and no `data`. Both rules are enforced by a validator.
 - `ToolRegistry(item=[...], run=[...], tracers=[...])`:
   - built once; no method adds a tool later; `for_context` returns a tuple (immutable)
   - construction refuses a `side_effect=True` tool in the item context, a duplicate name, or a name in both contexts
