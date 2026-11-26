@@ -3,6 +3,7 @@
 - `backend/Dockerfile` is multi-stage, pins every base image by digest, runs as a
   numeric non-root user, takes the build argument `MKC_COMMIT` and sets it as env,
   and uses exec-form commands (so SIGTERM reaches the process).
+- MKC-11.2: the runtime stage installs `postgresql-client-17` (pg_dump for `mkc-backup`).
 - `backend/.dockerignore` keeps `.env*`, `.venv`, caches and tests out of the build context.
 - `compose.yaml` has the services db, api, worker and frontend, and is the only Compose file.
 - `frontend/Dockerfile` pins its base images by digest and runs as non-root;
@@ -76,6 +77,13 @@ def backend_problems(root: Path) -> list[str]:
         found.append(f"{rel}: needs 'ARG MKC_COMMIT'")
     if not re.search(r"^ENV\s+.*\bMKC_COMMIT=\$\{?MKC_COMMIT\}?", text, re.M):
         found.append(f"{rel}: needs 'ENV MKC_COMMIT=${{MKC_COMMIT}}'")
+    # MKC-11.2: mkc-backup runs pg_dump; it must match the server's major version
+    # (Supabase runs Postgres 17), and only the client package, without recommends.
+    runtime = text.split("AS runtime", 1)[-1]
+    if not re.search(r"apt-get install\b[^\n]*--no-install-recommends[^\n]*\bpostgresql-client-17\b",
+                     runtime):
+        found.append(f"{rel}: the runtime stage must install postgresql-client-17 "
+                     "(apt-get install --no-install-recommends) for mkc-backup")
     found += _ignore_problems(
         BACKEND_DOCKERIGNORE.as_posix(),
         root / BACKEND_DOCKERIGNORE,
