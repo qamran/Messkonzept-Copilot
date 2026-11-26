@@ -57,7 +57,7 @@ This file is how agents resume work after a session restart.
 
 ## Next steps
 
-1. MKC-13: see "In progress". MKC-13.1: guard tests green; next the dependency commit, then MKC-13.2.
+1. MKC-13: see "In progress". MKC-13.1: guard tests green, dependencies committed (watch `dependency-scan` and `image` on the PR); next MKC-13.2.
 2. MKC-12, still to do:
    - the deploy of `0c5268c` is done and checked (`cd` run 45834526785, see the log); `lbs_structure` exists in production and is empty until `mkc-load-lbs` is wired in (finding 1)
    - non-blocking findings of the PR #120 review (comment 26.11.2026 13:59:29Z), for the ticket that first reads `lbs_structure` (MKC-22) or a later hardening ticket:
