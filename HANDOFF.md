@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 26.11.2026, 14:16
+**Last updated:** 26.11.2026, 14:20
 
 This file is how agents resume work after a session restart.
 
@@ -49,7 +49,7 @@ This file is how agents resume work after a session restart.
 
 - **MKC-12** (#12), Codeliste research and LBS reference data. Status `In progress`, assigned to `qamran` (26.11.2026 13:39). Branch `mkc-12-codeliste-lbs` from `33a3a65`.
   - Plan: `docs/superpowers/plans/261120261404-mkc-12-codeliste-lbs.md` (research results, three tasks, review focus).
-  - Sub-issues: MKC-12.1 (#117, research note, `In progress`), MKC-12.2 (#118, loader, check digit, YAML, `Ready`), MKC-12.3 (#119, table `lbs_structure` and `mkc-load-lbs`, `Ready`). All assigned to `qamran` and linked to #12.
+  - Sub-issues: MKC-12.1 (#117, research note, done on the branch, `In progress` until the PR), MKC-12.2 (#118, loader, check digit, YAML, `In progress`), MKC-12.3 (#119, table `lbs_structure` and `mkc-load-lbs`, `Ready`). All assigned to `qamran` and linked to #12.
   - Research done (in the plan): the current edition is Codeliste der Lokationsbündelstrukturen 1.0, "konsolidierte Lesefassung mit Fehlerkorrekturen", Stand 13.12.2024 (bdew-mako.de document 7713, no end date, free). 15 structure codes. The Codeliste defines no check digit; every code fits BDEW's Lok- und Waggon-Kennzeichnungsverfahren (AWH "Identifikatoren in der Marktkommunikation" 1.2, section 8.1). Berlin's Messkonzepte 09-2026 (pages 6–7) list all 15 codes.
   - The PDFs used for research are in the session's scratchpad only, never in the repo. Fetch again from the URLs in the plan.
   - Data rules that matter here: no BDEW or edi@energy document in the repo; the YAML holds only codes, Bezeichnung and object composition with a citation; no mako in any form.
@@ -104,6 +104,7 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **26.11.2026 14:20** MKC-12.2 red: `backend/tests/reference/test_lbs.py` (check digit with the AWH example, 15 codes all valid, invalid check digit, duplicates, non-string codes, Berlin's 15 codes, umlaut, object-code consistency, section 4.2 composition, source edition) fails: no module `mkc.reference`. #118 set to `In progress`.
 - **26.11.2026 14:16** MKC-12.1 green: research note `docs/261120261404-codeliste-research.md` (version, sources with sha256, format, licence: none found, what may be committed, check digit); decision 50 in the design doc; status doc research item ticked. `check_codeliste_note.py` ok.
 - **26.11.2026 14:10** MKC-12.1 red: `scripts/check_codeliste_note.py` fails with "no research note" (exit 1).
 - **26.11.2026 14:06** MKC-12 sub-issues MKC-12.1 (#117), 12.2 (#118) and 12.3 (#119) created (13:06:00Z–13:06:18Z), assigned to `qamran`, linked to #12; #117 `In progress`, #118 and #119 `Ready`. Plan `261120261404-mkc-12-codeliste-lbs.md` written after the Codeliste research (sources: BNetzA Mitteilungen 32, 33, 58; bdew-mako.de document list; BDEW AWH Identifikatoren 1.2; Stromnetz Berlin Messkonzepte 09-2026).
