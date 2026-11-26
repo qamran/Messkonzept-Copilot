@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 26.11.2026, 13:09
+**Last updated:** 26.11.2026, 13:14
 
 This file is how agents resume work after a session restart.
 
@@ -52,12 +52,12 @@ This file is how agents resume work after a session restart.
   - Production is prepared: `MKC_BACKUP_UPLOAD_URL` is in `mkc-secrets` on the VM (hash compared with the local file, which is deleted); `/etc/mkc/values.yaml` is the repo's `deploy/vm/values-production.yaml` (`backup.enabled: true`); `mkc-deployer` may create, patch and delete CronJobs and Jobs.
   - Runbook section "Where every setting and secret lives": the inventory of all outside settings (kept current by `scripts/check_runbook.py`).
   - `cd` run 45808156597 on `0b6f49a` is green (the user approved both jobs). First production backup 12:56 and restore drill 13:07 done; results in the runbook ("First backup and restore drill"), the status doc and ADR 003.
-  - Open before PR B: `/api/admin/backup-status` as admin (the user runs one line in the browser console while signed in; a first try failed because the page had no session), and the user's confirmation that the lifecycle rule shows as enabled.
+  - `/api/admin/backup-status` as admin: `ok`, not stale (the user, from the production site). Open before PR B: the user's confirmation that the lifecycle rule shows as enabled.
 
 ## Next steps
 
 1. MKC-11:
-   - add the result of `/api/admin/backup-status` (expected `ok`, not stale) to the runbook's drill section when the user has run it
+   - add the user's confirmation of the lifecycle rule (enabled, 14 days, `nightly/`) to the runbook's drill section
    - open PR B from `mkc-11-drill-docs` (docs and `scripts/check_runbook.py` only): `Closes #114` and `Closes #11`, each on its own line; write "closes" nowhere else in the body (see the log, 12:11). Tick the criteria of #114 and #11 with the evidence. Review agent, merge on PASS, push `main` to `turing`
    - after the merge: `cd` runs again and needs the user's two approvals (a docs-only change still deploys); the manual Job `mkc-backup-now` on the VM can be deleted (`sudo k3s kubectl -n mkc delete job mkc-backup-now`)
    - tomorrow: check that the 03:30 run made a second object and that `backup_runs` has a second `ok` row
@@ -90,12 +90,13 @@ This file is how agents resume work after a session restart.
 - **Docker Desktop** must be running for the local DB tests (`docker compose up -d db`), kind and the Compose smoke test. Start it only when needed and shut it down afterwards (stop the containers, quit Docker Desktop, `wsl --shutdown`): the user asked that `vmmemWSL` not keep running. CI uses its own Postgres service.
 - Later setup tasks (design doc section 13): provider API keys with caps. Done on 25.11.2026: Supabase project, Oracle VM with k3s, API host, Vercel project, GitHub `production` environment with `VERCEL_TOKEN`.
 - **Every deploy needs the user:** two approvals in the `production` environment (`backend`, then `frontend`) on the `cd` run after each merge.
-- **MKC-11 needs the user for:** one call of `/api/admin/backup-status` as admin, and the two deploy approvals after PR B's merge. The Oracle setup (bucket, policy, lifecycle rule, upload link) is done (26.11.2026).
+- **MKC-11 needs the user for:** a look at the lifecycle rule in the bucket, and the two deploy approvals after PR B's merge. The Oracle setup (bucket, policy, lifecycle rule, upload link) is done (26.11.2026).
 
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **26.11.2026 13:14** `/api/admin/backup-status` called by the user as admin (browser console on the production site): `state: ok`, `stale: false`, `last_run` = `last_success` = the 12:56 run. The user's console screenshot shows one pre-authenticated request (`mkc-backup-upload`, Active, prefix `nightly/`, writes only, expires Nov 26, 2027, 11:00 UTC). Both added to the runbook; the runbook now says the requests are under the bucket's Management tab.
 - **26.11.2026 13:07** Restore drill (MKC-11.5): `bash scripts/restore_backup.sh` on the downloaded backup (the browser saved it as `nightly_mkc-20261126T115613Z.sql.gz`, 1139 bytes, valid gzip, pg_dump 17.12). Restored into `pgvector/pgvector:pg17` without errors in 4 s (13:07:41–13:07:45). Row counts restored = production (read-only query at 12:57): `alembic_version` 1, `backup_runs` 1; restored version `0002`; the restored run row is `running`, as expected. Container removed, Docker Desktop closed, WSL shut down. Results written to the runbook, the status doc and ADR 003.
 - **26.11.2026 12:56** First production backup: Job `mkc-backup-now` from the CronJob, 11:56:10Z–11:56:18Z, log `backup ok: nightly/mkc-20261126T115613Z.sql.gz (1139 bytes)`; `backup_runs` row 1 `ok`. `/api/admin/backup-status` without a token: 401. The user downloaded the object from the bucket (13:05).
 - **26.11.2026 12:31–12:50** `cd` run 45808156597 green: `image` 12:10:36–12:15:12; `backend` approved by the user, 12:31:24–12:32:22 (hook Job `mkc-migrate` ran `0001` and `0002` in 11 s; Helm revision 6; CronJob `mkc-backup` created); `frontend` approved by the user, 12:49:59–12:50:37. `/api/version` = `0b6f49a…`, `/health` 200, the site 200.
