@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 26.11.2026, 14:42
+**Last updated:** 26.11.2026, 16:04
 
 This file is how agents resume work after a session restart.
 
@@ -23,7 +23,7 @@ This file is how agents resume work after a session restart.
 - **Remotes:**
   - `origin` = qamran/Messkonzept-Copilot (home, public)
   - `turing` = TuringCollegeSubmissions/qshahz-AE.CAP.AFA.1.1 (code-only mirror, no issues; ADR 005 option (c), decision 35)
-  - Both at `33a3a65` (merge of PR #116).
+  - Both at `0c5268c` (merge of PR #120).
 - **`main` is protected:** PRs only, enforced for admins. Required checks: the `ci` jobs `backend`, `frontend`, `gitleaks`, `dependency-scan` and `docs` (since 25.11.2026 09:50, MKC-6.5) `image` (since 13:52, MKC-8) and `kind` (since 15:42, MKC-9); the branch must be up to date with `main`. `publish` is not required (skipped on PRs).
 - **Agent rules:** `AGENTS.md` (CLAUDE.md imports it). The development agent continues without asking and stops only for genuine decisions (decision 36).
 - **Done:**
@@ -38,6 +38,7 @@ This file is how agents resume work after a session restart.
   - MKC-9: Helm chart `deploy/helm/mkc/` (API and worker, Service, Ingress with cert-manager TLS, Secret; worker `replicas: 1`, `Recreate`, grace period 300 s); worker heartbeat and `mkc-worker-health`; `scripts/check_helm.py`, `scripts/kind_smoke.sh`; CI job `kind` (required check) (decision 42, PR #103)
   - MKC-10: continuous deployment: `cd.yml` (push to `main`; `image` waits for the arm64 image; `backend` deploys over SSH to the forced command `mkc-deploy` (commits on `main` only), smoke test, rollback; `frontend` deploys Vercel production with `VITE_COMMIT`); two approvals per deploy in `production`; preview origin pattern for CORS and `azp`; version warning; runbook "Deploy and rollback" (decisions 45–47, PR #109)
   - MKC-11: backups and restore drill: table `backup_runs` and a Helm hook Job that runs the migrations on every deploy (additive only, decision 48); `mkc-backup` (pg_dump 17 → gzip → write-only Oracle Object Storage link, decision 49); `GET /api/admin/backup-status`; CronJob `mkc-backup` (03:30 Europe/Berlin, on in production); `scripts/restore_backup.sh`; first production backup and restore drill on 26.11.2026 (row counts matched); runbook "Backups and restore drill" and "Where every setting and secret lives" with `scripts/check_runbook.py` (PRs #115 and #116)
+  - MKC-12: Codeliste research (`docs/261120261404-codeliste-research.md`: version 1.0, consolidated edition of 13.12.2024; no licence statement found; decision 50); `backend/data/lbs_structures.yaml` (15 structures, facts with a citation) built by `scripts/build_lbs_yaml.py` from a PDF outside the repo; loader `mkc.reference.lbs` (check digit = Lok- und Waggon-Kennzeichnungsverfahren); table `lbs_structure` (migration 0003) and `mkc-load-lbs`, not yet run on deploy (PR #120)
 - **Server (set up 25.11.2026, decisions 43 and 44):** Oracle VM `mkc-k3s`, `ubuntu@92.6.240.17`, admin login with the user's key `~/.ssh/oracle_mkc`; k3s v1.37.2 with Traefik; cert-manager v1.21.3 with ClusterIssuers `letsencrypt-staging` and `letsencrypt-prod`; API host `92-6-240-17.sslip.io`; 6443 closed from outside. Vercel project `messkonzept-copilot` (scope `qamran`); GitHub environment `production` (reviewer `qamran`, `main` only, secret `VERCEL_TOKEN`). Every step: `docs/251120261645-runbook.md`.
 - **Backups (since 26.11.2026):** bucket `mkc-backups` (eu-frankfurt-1), objects `nightly/mkc-<UTC time>.sql.gz`, deleted after 14 days by the rule `delete-after-14-days`; the upload link (`mkc-backup-upload`, write only, expires 26.11.2027) is `MKC_BACKUP_UPLOAD_URL` in `mkc-secrets` on the VM and nowhere else. Where every outside setting and secret lives: runbook section of that name. A copy with the PC's full paths is in the gitignored `internal/` folder (`261120261226-settings-and-secrets-inventory.md`; local only, not backed up).
 - **How to run the frontend:** `frontend/.env.local` holds `VITE_CLERK_PUBLISHABLE_KEY` and `VITE_API_URL=http://127.0.0.1:8000` (gitignored). Run the API with `cd backend && uv run --env-file .env uvicorn mkc.api.app:create_app --factory --port 8000` (`backend/.env` has `MKC_CLERK_ISSUER`), then `cd frontend && npm run dev` (`localhost:5173`). Test sign-ins: the user's Google account (admin); a `+clerk_test@example.com` user (code `424242`) and a second Gmail account (both no role).
@@ -47,35 +48,49 @@ This file is how agents resume work after a session restart.
 
 ## In progress
 
-- **MKC-12** (#12), Codeliste research and LBS reference data. Status `Testing` (PR #120), assigned to `qamran` (26.11.2026 13:39). Branch `mkc-12-codeliste-lbs` from `33a3a65`.
-  - Plan: `docs/superpowers/plans/261120261404-mkc-12-codeliste-lbs.md` (research results, three tasks, review focus).
-  - Sub-issues: MKC-12.1 (#117, research note, done on the branch, `In progress` until the PR), MKC-12.2 (#118, loader, check digit, YAML, `In progress`), MKC-12.3 (#119, table `lbs_structure` and `mkc-load-lbs`, `In progress`). All assigned to `qamran` and linked to #12.
-  - Research done (in the plan): the current edition is Codeliste der Lokationsbündelstrukturen 1.0, "konsolidierte Lesefassung mit Fehlerkorrekturen", Stand 13.12.2024 (bdew-mako.de document 7713, no end date, free). 15 structure codes. The Codeliste defines no check digit; every code fits BDEW's Lok- und Waggon-Kennzeichnungsverfahren (AWH "Identifikatoren in der Marktkommunikation" 1.2, section 8.1). Berlin's Messkonzepte 09-2026 (pages 6–7) list all 15 codes.
-  - The PDFs used for research are in the session's scratchpad only, never in the repo. Fetch again from the URLs in the plan.
-  - Data rules that matter here: no BDEW or edi@energy document in the repo; the YAML holds only codes, Bezeichnung and object composition with a citation; no mako in any form.
+- **MKC-13** (#13), Provider layer (`ModelClient`). Status `Testing` (16:03), assigned to `qamran`. Branch `mkc-13-provider-layer`; **PR #127 ready for review** (16:03, assigned to `qamran`).
+  - Plan: `docs/superpowers/plans/261120261517-mkc-13-provider-layer.md`. Decision 52 records the build.
+  - Sub-issues: #121 MKC-13.1 guards and pinned deps, #122 MKC-13.2 types/config/settings, #123 MKC-13.3 ModelClient, #124 MKC-13.4 record/replay, #125 MKC-13.5 provider factory: all built, tests green; fixed: the OpenRouter SDK retried 5XX with backoff for up to 1 h despite `max_retries=0`, now `NO_RETRIES` (one request on 503/500/429, tested). #126 MKC-13.6 live contract tests and docs: done. All six sub-issues `Testing` (16:03), criteria ticked with "Evidence: PR #127".
+  - **Meta Llama API is gone** (Meta shut it down on 6 July 2026). User confirmed (15:45): the provider `meta` is Meta's OpenAI-compatible API (`https://api.meta.ai/v1`, `muse-spark-1.3`, via `langchain-openai`); `langchain-meta` removed. Price $1.25/$4.25 from the Vercel AI Gateway listing; Meta's own page and the base URL get confirmed by the live run. Never use the `-contributor` models (they may train on inputs).
+  - Live contract tests (26.11.2026 15:58–16:00, keys in `backend/.env`): 12 passed (4 providers × tools, structured output, vision); spend under €0.02; result in the status doc. `api.meta.ai/v1` confirmed.
+  - Command: `cd backend && uv run --env-file .env pytest -m live tests/models/test_contract_live.py -v -s` (all four `MKC_…_API_KEY`s are in `backend/.env`, added by the user before 15:58).
+  - CI: full green run 45842497405 on `b441809` (all required jobs incl. `image`, `kind`, `dependency-scan`).
+  - Next: review agent (Fable) verdict on PR #127; on PASS merge, push `turing`, approve the deploy (decision 51).
 
 ## Next steps
 
-1. MKC-12: see "In progress". Next: PR #120 review (Fable) after green CI; on PASS merge with a merge commit, push `main` to `turing`, approve the deploy. Sub-issues #117–#119 are `Testing`.
-2. MKC-11, checks that are still to come:
+1. MKC-13: see "In progress". Next: review of PR #127.
+2. MKC-12, still to do:
+   - the deploy of `0c5268c` is done and checked (`cd` run 45834526785, see the log); `lbs_structure` exists in production and is empty until `mkc-load-lbs` is wired in (finding 1)
+   - non-blocking findings of the PR #120 review (comment 26.11.2026 13:59:29Z), for the ticket that first reads `lbs_structure` (MKC-22) or a later hardening ticket:
+     - 1: wire `mkc-load-lbs` into the deploy (copy `backend/data/` into the image; `DEFAULT_PATH` points into the source tree)
+     - 2: read the MaKo platform's terms and imprint and the BNetzA reuse notes; add them to the research note (no ticket or owner yet)
+     - 3, 4: `5924c89` has 521 lines (script and data in one commit), `7de2207` 239; commit messages have CRLF line endings (trailers parse)
+     - 5, 6, 7: status doc header and lines were stale (fixed in this close-out); HANDOFF named the sub-issues both `In progress` and `Testing`; the PR body names `d98e1f2` for the local run (head was `020bf22`)
+     - 8: the YAML drops footnote qualifiers (e.g. `≥1` with footnote 8 on page 43) and the conditions on the reference columns; consumers of `referenz_*` must treat them as conditional
+     - 9: `sync_lbs` never deletes rows that left the YAML
+     - 10, 11: the loader does not check the reference type, the Anzahl format, `funktion` only on a MeLo, or unknown keys; `is_valid_code` raises `ValueError` for digits like `²` instead of returning False
+     - 12, 13: `test_mkc_load_lbs_command` runs on a table that already holds 15 rows; `test_object_codes_are_consistent` leaves out `funktion`; the reference-rule test landed with its rule
+     - 14: the note's claims on the 2022 draft and Mitteilungen 56 and 58 were not checked by the reviewer
+3. MKC-11, checks that are still to come:
    - the deploy of `33a3a65` is done and checked (`cd` run 45821615993, see the log); nothing is open there
    - 27.11.2026: the 03:30 run must have made a second object under `nightly/` and a second `ok` row in `backup_runs` (read-only: `cd backend && uv run --env-file .env python -m mkc.db.check` shows the connection works; the row itself with a `select` on `backup_runs`; or the user calls `/api/admin/backup-status` as admin)
    - from 11.12.2026: the object `nightly/mkc-20261126T115613Z.sql.gz` must be gone from the bucket (the user looks in the console). That proves the lifecycle rule and its policy `objectstorage-lifecycle` work; the policy itself was never shown in a screenshot
    - decided by the user (26.11.2026): AGENTS.md stays as it is (development agent Opus 5.5, review agent Fable). The session of 26.11.2026 from 12:00 ran on Fable 5.2 as an exception, so the commits of PR #116 and this one carry the trailer `Co-Authored-By: Claude Fable 5.2`; the reviews were done by separate Fable agents that wrote none of the content
-3. Non-blocking follow-ups from the PR #115 and PR #116 reviews (for a later docs or hardening ticket; none has a ticket yet):
+4. Non-blocking follow-ups from the PR #115 and PR #116 reviews (for a later docs or hardening ticket; none has a ticket yet):
    - runbook "One-time Oracle setup", step 3, point 2 still says "in the 'Resources' list on the left, or a tab on newer consoles"; point 1 already names the tab **Policies**. Drop the bracket
    - `check_runbook.py` only checks that names are present: a bare list of names passes; the `mkc-secrets` keys are hard-coded, not read from the chart; the root `.env` is not in its list; no kept bad samples
    - the code findings 2, 5, 6, 7 and 9 of the first PR #115 verdict (comment of 26.11.2026 09:39:49Z on PR #115) are open
    - GitHub still serves the old commits `bffa4e9`, `df20e2a` and `f140e61` by SHA (they are in no branch; the PR #116 timeline links the old head). They hold the PC's full paths. Only GitHub Support can purge them; the user has not asked for that
    - the menu paths for Supabase and Clerk in the runbook's inventory are from memory; check them at the next visit to those dashboards
-4. Non-blocking follow-ups from the PR #109 review (MKC-10; for a later CI or deploy hardening ticket):
+5. Non-blocking follow-ups from the PR #109 review (MKC-10; for a later CI or deploy hardening ticket):
    - N2: nine MKC-10 commits don't touch HANDOFF.md; N6: `05c4962` and `e5072c6` are over 200 lines (history not rewritten)
    - N4: `cd_deploy.sh` prints "Helm rolled the release back itself" also when the VM refused the commit (exit 4) or SSH failed (255); no test covers those cases
    - N5: `check_workflows.py` accepts the home-repo guard with `|| true` appended
    - N7: small doc slips in the PR body and older HANDOFF entries (commit count, CI run id, log order)
    - N8: `cd.yml` lines 38, 39 and 83 lost their `\` line breaks (the commands still work)
    - N9: the `main` check in `mkc-deploy` calls GitHub's API without a token (rate limit, outage refuse a valid deploy); `behind` also accepts an old merged branch commit that has no image (the deploy then fails and Helm rolls back)
-5. Non-blocking follow-ups from the PR #103 review (for later tickets):
+6. Non-blocking follow-ups from the PR #103 review (for later tickets):
    - N1 (MKC-17/MKC-20): the heartbeat is only touched between polls; with max age 30 s and liveness 3 × 30 s, a turn of up to 240 s would get a healthy worker restarted. Beat during a turn or raise the max age (noted in ADR 002 and decision 42).
    - N2: `/tmp` is an `emptyDir` and survives a container restart, so an old heartbeat can make a restarted worker look Ready for up to 30 s; remove the file on start or add a `startupProbe`.
    - N3: the smoke test does not prove the heartbeat is refreshed; only the unit test does.
@@ -83,27 +98,39 @@ This file is how agents resume work after a session restart.
    - N6: `check_workflows.py` and `check_helm.py` are text-based and easy to fool; mutated samples are not kept as tests (same class as the PR #97 findings).
    - N7: the smoke script only prints the Ingress annotation and TLS secret; it does not assert them.
    - N11 (MKC-10): `checksum/secret` does not change with `existingSecret`; the secret checksum is visible in pod specs; API readiness does not check the database; the script leaves `mkc-backend:kind` in local Docker; a narrow race if the cluster name is taken after the guard.
-6. Non-blocking follow-ups from the PR #97 review (fold into a later CI-hardening ticket or MKC-9 where they touch the same files):
+7. Non-blocking follow-ups from the PR #97 review (fold into a later CI-hardening ticket or MKC-9 where they touch the same files):
    - check scripts are substring-based: flow-style `permissions: {…: write}`, `toJSON(secrets)`, `|| true` / `continue-on-error` on the scan, `if: false` on `image`, indented `USER root`, `USER 10001:0`, `COPY --chown --from=<unpinned>`, `!.env` after `.env`, `compose.override.yaml` all pass
    - no kept tests rerun the bad samples (they live only in the PR body and HANDOFF)
    - `cancel-in-progress: true` also applies on `main`: two quick merges can cancel a `publish`
    - the Grype database is not pinned, so a new high finding can turn unrelated PRs red
    - remove `pip` from the runtime image (source of most medium findings); `pgvector/pgvector:pg17` not digest-pinned; `publish` rebuilds instead of pushing the scanned image
    - the MKC-8 plan still lists `docker/metadata-action` (not used)
-7. Optional follow-ups from the PR #91 re-review (non-blocking): `apiBase()` could refuse a query, fragment or userinfo in `VITE_API_URL`; an empty `sub` is accepted; falsy non-string roles read as "no role".
+8. Optional follow-ups from the PR #91 re-review (non-blocking): `apiBase()` could refuse a query, fragment or userinfo in `VITE_API_URL`; an empty `sub` is accepted; falsy non-string roles read as "no role".
 
 ## Blocked / waiting on user
 
 - **Docker Desktop** must be running for the local DB tests (`docker compose up -d db`), kind and the Compose smoke test. Start it only when needed and shut it down afterwards (stop the containers, quit Docker Desktop, `wsl --shutdown`): the user asked that `vmmemWSL` not keep running. CI uses its own Postgres service.
 - Later setup tasks (design doc section 13): provider API keys with caps. Done on 25.11.2026: Supabase project, Oracle VM with k3s, API host, Vercel project, GitHub `production` environment with `VERCEL_TOKEN`.
-- **Every deploy needs the user:** two approvals in the `production` environment (`backend`, then `frontend`) on the `cd` run after each merge.
-- **Waiting now:** nothing. The next deploy approvals come with the next merge.
+- **Deploys:** since decision 51 the development agent approves both `production` gates (`backend`, then `frontend`) itself after a PASS merge with green CI (runbook "Deploy and rollback"); the user no longer has to click.
+- **Waiting now:** nothing.
 - **The user's PC:** it went down without a clean shutdown on 23.11 and 26.11.2026 (cause not found; graphics-driver hang reports on both days; a memory test is not done yet). Commit and push often. Two files exist only on the PC: the VM's admin SSH key and `backend/.env` (runbook "Only on the PC"); the user was advised to copy them into a password manager.
 
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **26.11.2026 16:03** PR #127 body written (criteria, evidence, disclosures) and marked ready; #13 and #121–#126 set to `Testing`; sub-issue criteria ticked.
+- **26.11.2026 15:58–16:00** User added all four `MKC_…_API_KEY`s to `backend/.env`. Live contract tests: 12 passed after the vision test image went from 16 to 64 px (Meta answered "white" for 16 px; the payload was a correct `image_url` data URL). CI run 45842497405 on `b441809` green (finished 15:50).
+- **26.11.2026 15:44–15:46** OpenRouter SDK retry fix (`adcd102`); OpenRouter live tests re-run green; live vision check passed on OpenRouter, Gemini and Anthropic. User confirmed the Meta API (Muse) as the fourth provider (15:45); waiting for `MKC_META_API_KEY`.
+- **26.11.2026 15:41** Docs for decision 52 pushed; #13 and #126 criteria now say "Meta API".
+- **26.11.2026 15:39** MKC-13.6: live contract tests passed for OpenRouter, Gemini and Anthropic (6 passed, Meta skipped without a key); spend under €0.002.
+- **26.11.2026 15:20–15:38** MKC-13.1 to 13.5 built test-first (guards, pinned deps, types and config, ModelClient, record/replay, provider factory); draft PR #127 opened for CI (15:21). User decisions: Meta API (`api.meta.ai`) replaces the closed Meta Llama API (decision 52); the Hackathon project is not a reference for later choices.
+- **26.11.2026 15:17–15:18** MKC-13 plan written (15:17); sub-issues #121–#126 (MKC-13.1 to 13.6) created, assigned to `qamran`, linked to #13 and added to the board (#121 `In progress`, the rest `Ready`).
+- **26.11.2026 15:15** Decision 51 (user): the development agent approves the `cd` run's two `production` gates itself after a PASS merge with green CI, via `gh api .../pending_deployments`; recorded in AGENTS.md (with a check term in `scripts/check_agents.py`), the runbook, the design doc and the status doc. MKC-13: user asked for the four provider keys.
+- **26.11.2026 14:59–15:07** `cd` run 45834526785 on `0c5268c`, green: `image` 14:59:43–15:03:50; `backend` approved by the user, 15:06:13–15:07:01 (hook Job `mkc-migrate` ran `0002 -> 0003` and created the empty table `lbs_structure`; Helm revision 8); `frontend` approved by the user, 15:07:13–15:07:58. Checked afterwards: `/api/version` = `0c5268c…`, `/health` 200, `/api/admin/backup-status` without a token 401, the site 200, API and worker pods running, CronJob `mkc-backup` still there.
+- **26.11.2026 15:01** MKC-13 (#13) assigned to `qamran` and set to `In progress`; branch `mkc-13-provider-layer` from `0c5268c`. Local branches `mkc-12-codeliste-lbs` and `backup/mkc-12-before-reword` deleted. Board: #12 and #117–#119 `Done`. `cd` run 45834526785 started (13:59:39Z), waits for the user's approvals.
+- **26.11.2026 14:59** Review agent (Fable) verdict on PR #120: PASS on head `020bf22` (comment 13:59:29Z), no blocking finding, 14 non-blocking (listed under Next steps). It re-ran the build script on the PDF (byte-identical YAML) and checked pages 34, 38 and 43 against page images. Merged by the review agent (merge commit `0c5268c`, 13:59:36Z). #12 (13:59:39Z), #117, #118 and #119 (13:59:40Z–13:59:44Z) closed by the merge. `main` pushed to `turing` (15:00); `origin/main` = `turing/main` = `0c5268c`.
+- **26.11.2026 14:42–14:46** `ci` run 45831837875 on `020bf22` green: backend (120 passed, DB tests included), frontend, docs, gitleaks, dependency-scan, image, kind; publish skipped.
 - **26.11.2026 14:41** PR #120 opened (13:41:41Z, assigned to `qamran`; closes #12, #117, #118, #119) on head `d98e1f2`, after the user approved the force-push of the reworded branch (`--force-with-lease` on `e27cc4e`). #12 and #117–#119 set to `Testing`, their criteria ticked with a pointer to the PR. Next: CI green, then the review agent (Fable).
 - **26.11.2026 14:39** MKC-12 checks before the PR. The branch's eight commits were reworded locally (no PR yet; backup branch `backup/mkc-12-before-reword`, local only; same tree, same dates): four `Refs:` trailers named `qamra/` instead of `qamran/`, and in all eight a blank line split `Refs:` from `Co-Authored-By:`, so git did not read it as a trailer. The rewritten branch needs a force-push (`--force-with-lease`), which waits for the user's OK. The log times 14:07–14:32 above were corrected to the commit times (they had been estimated). YAML checked three ways: exactly the PDF's 42 codes; every reference points to the right object type; every object position equals section 3.2 of the 2022 draft. Research note: two PDF entries without an end date (7345 and 7713); the 31.03.2023 and 13.12.2024 editions have the same 42 codes; licence pages not read are named as open. Plan aligned with the code. Status doc current.
 - **26.11.2026 14:32** MKC-12.3 green: migration `0003` (table `lbs_structure`, additive), model `LbsStructureRow`, `mkc.reference.sync.sync_lbs` (upsert by code) and the command `mkc-load-lbs`. One test fixed: the session-wide test database still held the previous test's rows, so the update test empties the table first. Full backend suite with Postgres: 119 passed, 1 skipped (POSIX-only); ruff, mypy, all check scripts green.

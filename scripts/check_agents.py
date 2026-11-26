@@ -36,6 +36,7 @@ TERMS = [
     "ModelClient",
     "zero-data-retention",
     "side-effect",
+    "pending_deployments",  # the development agent approves the deploy gates (decision 51)
 ]
 
 # The review agent checklist must cover these (case-insensitive), inside its section.

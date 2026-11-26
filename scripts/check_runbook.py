@@ -20,7 +20,15 @@ ROOT = Path(__file__).resolve().parent.parent
 RUNBOOK = "docs/251120261645-runbook.md"
 HEADING = "## Where every setting and secret lives"
 
-SECRET_KEYS = ["DATABASE_URL", "MKC_BACKUP_UPLOAD_URL"]
+SECRET_KEYS = [
+    "DATABASE_URL",
+    "MKC_BACKUP_UPLOAD_URL",
+    # Provider keys (MKC-13): local in backend/.env for the live contract tests.
+    "MKC_OPENROUTER_API_KEY",
+    "MKC_GOOGLE_API_KEY",
+    "MKC_ANTHROPIC_API_KEY",
+    "MKC_META_API_KEY",
+]
 LOCAL_FILES = ["backend/.env", "frontend/.env.local", "~/.ssh/oracle_mkc"]
 SERVICES = ["Oracle", "Supabase", "Clerk", "Vercel", "GitHub"]
 

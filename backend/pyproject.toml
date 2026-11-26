@@ -6,6 +6,11 @@ requires-python = ">=3.12,<3.13"
 dependencies = [
     "alembic>=1.14",
     "fastapi>=0.115",
+    "langchain-anthropic==1.7.13",
+    "langchain-core==1.8.5",
+    "langchain-google-genai==4.5.3",
+    "langchain-openai==1.8.5",
+    "langchain-openrouter==0.3.0",
     "psycopg[binary]>=3.2",
     "pydantic-settings>=2.6",
     "pyjwt[crypto]>=2.10",
@@ -50,6 +55,8 @@ plugins = ["pydantic.mypy"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-ra"
+# Live tests call paid provider APIs: run them on purpose with `-m live` (MKC-13.6).
+addopts = "-ra -m 'not live'"
+markers = ["live: calls a real provider API with a key; costs money; deselected by default"]
 # Starlette deprecations (e.g. httpx for the TestClient) fail the tests instead of warning (MKC-6.1).
 filterwarnings = ["error::starlette.exceptions.StarletteDeprecationWarning"]

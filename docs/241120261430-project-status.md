@@ -1,12 +1,12 @@
 # Project status: Messkonzept-Copilot
 
-**Last updated:** 26.11.2026, 13:40
+**Last updated:** 26.11.2026, 16:02
 
 This is the living status document. It is updated whenever a decision is made or work is completed. Older brainstorming material lives in `brainstorming internal/` (gitignored and frozen).
 
 ## Where we are
 
-- **Phase:** implementation, Phase 0 (foundation). The design doc was **approved by the user on 24.11.2026** (after an independent review, verdict "approve with changes", all required changes applied). The backend skeleton (MKC-4) is the first application code; MKC-5 added the database layer; MKC-6 added secret hygiene and CI; MKC-7 added the frontend and the login check; MKC-8 added containers; MKC-9 added the Helm chart and the kind test; MKC-10 added continuous deployment (merged in PR #109; the first `cd.yml` run deployed the merge commit on 26.11.2026). MKC-11 (backups and restore drill) is in progress.
+- **Phase:** implementation, Phase 0 (foundation). The design doc was **approved by the user on 24.11.2026** (after an independent review, verdict "approve with changes", all required changes applied). The backend skeleton (MKC-4) is the first application code; MKC-5 added the database layer; MKC-6 added secret hygiene and CI; MKC-7 added the frontend and the login check; MKC-8 added containers; MKC-9 added the Helm chart and the kind test; MKC-10 added continuous deployment (merged in PR #109; the first `cd.yml` run deployed the merge commit on 26.11.2026). MKC-11 added nightly backups and a proven restore; MKC-12 added the Codeliste research and the LBS reference data (PR #120). Phase 0 is done; Phase 1 starts with MKC-13 (provider layer).
 - **Restart file:** `HANDOFF.md` (repo root) is the agents' running log and next steps, updated with every commit and important ticket change (decision 34). This status doc stays the overview of decisions and documents.
 - **Board:** <https://github.com/users/qamran/projects/1> (public). Tickets MKC-1 to MKC-60 exist as issues #1 to #60 (issue number = key).
 - **Done:** MKC-1 (ticket workflow and repo setup, PR #65), MKC-2 (code-only Turing mirror, README with links, PR #70), MKC-3 (agent instructions: assignment rule PR #67, HANDOFF.md PR #69, AGENTS.md + CLAUDE.md PR #72), MKC-4 (backend skeleton: uv project `backend/`, package `mkc`, FastAPI `/health` and `/api/version`, worker with clean SIGTERM shutdown, ruff and mypy strict, PR #75), MKC-5 (database layer: compose Postgres 17 + pgvector, SQLAlchemy 2, Alembic, `python -m mkc.db.check`, Supabase connection checked; PR #80), MKC-6 (secret hygiene, markdown lint, CI with required checks; PR #86), MKC-7 (frontend skeleton with Clerk; PR #91), MKC-8 (containers, Compose, GHCR image; PR #97), MKC-9 (Helm chart and kind test; PR #103), MKC-10 (continuous deployment; PR #109), MKC-11 (backups and restore drill; PRs #115 and #116). Each after a review-agent PASS; both remotes at the latest merge commit.
@@ -61,8 +61,9 @@ This is the living status document. It is updated whenever a decision is made or
   - k3s v1.37.2 with Traefik; cert-manager v1.21.3 with Let's Encrypt staging and prod issuers
   - API host `92-6-240-17.sslip.io`
   - Vercel project `messkonzept-copilot`; GitHub environment `production` with `VERCEL_TOKEN`
-- **Current ticket:** MKC-12 (Codeliste research and LBS reference data, #12), started 26.11.2026; research done (Codeliste 1.0, corrected edition of 13.12.2024; decision 50); `backend/data/lbs_structures.yaml` (15 structures), loader `mkc.reference.lbs` with check digit, table `lbs_structure` (migration 0003) and `mkc-load-lbs` built; PR next. MKC-11 is done (PR #116 merged as `33a3a65`): backups run nightly in production and one restore is proven.
-- **Next:** MKC-12 (Codeliste research and LBS reference data).
+- **Current ticket:** MKC-13 (Provider layer, `ModelClient`, #13), started 26.11.2026, PR #127. Built: `mkc.models` (`ModelClient` with `chat`, `chat_with_tools`, `vision`, `chat_structured`; role mapping and prices in `models.yaml`; record/replay; provider factory with OpenRouter zero-data-retention routing); decision 52.
+- **Live contract tests (MKC-13.6), 26.11.2026 15:58–16:00:** `cd backend && uv run --env-file .env pytest -m live tests/models/test_contract_live.py -v -s`: **12 passed**. Tool-call round-trip, structured output and vision (not a criterion; a 64×64 red PNG) for OpenRouter (`google/gemini-3.5-flash-lite`, zero-data-retention routing), Gemini (`gemini-3.5-flash-lite`, free tier), Anthropic (`claude-haiku-5-5`) and the Meta API (`muse-spark-1.3` on `api.meta.ai/v1`). The first runs (15:39–15:46) had no Meta key; Meta said "white" for a 16×16 image and "red" at 64×64, so the test image is 64 px. **Spend for the ticket:** under €0.02 by the price table (all runs plus two Meta probe calls; Anthropic prices are an OpenRouter stand-in, Gemini counted as free tier).
+- **Next:** MKC-13 (provider layer), then MKC-14 (tool registry).
 
 ## Key documents
 
@@ -81,7 +82,7 @@ This is the living status document. It is updated whenever a decision is made or
 | README (intro + links for both repos) | `README.md` |
 | Official brief | `AE.CAP_afa.md` |
 
-## Decisions so far (summary; the full log of 50 decisions is in design doc section 18)
+## Decisions so far (summary; the full log of 52 decisions is in design doc section 18)
 
 - **Idea:** Messkonzept-Copilot. It extracts operator Messkonzept PDFs into structured, LBS-keyed records with human approval, and gives household site advice with citations.
 - **Primary user:** MSB, VNB and energy-IT staff working across grid areas; installers are secondary; plus a public read-only demo.
@@ -103,11 +104,12 @@ This is the living status document. It is updated whenever a decision is made or
   - FastAPI + React (Vite, shadcn/ui), Clerk login
   - Supabase Postgres + Storage (ADR 003)
   - Langfuse tracing
-  - providers: OpenRouter (default), Gemini, Anthropic, Meta Llama
+  - providers: OpenRouter (default, zero data retention), Gemini, Anthropic, Meta API (the Meta Llama API closed on 6 July 2026; decision 52)
 - **DevOps (ADR 002):**
   - Docker, GitHub Actions (CI + eval gate + CD in a protected environment, SSH deploy), GHCR, Helm
   - kind in CI, k3s on Oracle Always Free, Vercel for the frontend
   - nightly backups to Oracle Object Storage plus one restore drill
+  - deploy approvals: the development agent approves both `production` gates after a PASS merge with green CI; the user can still reject (decision 51)
 - **Repos:** `origin` = <https://github.com/qamran/Messkonzept-Copilot> (personal, public, home); `turing` = the Turing submission mirror. `main` is pushed to both after every merge; both at the latest merge commit (named in HANDOFF.md). Turing's initial commit incl. their brief `AE.CAP_afa.md` was pushed to `origin` on 24.11.2026 with the user's OK.
 - **Ticket workflow (ADR 005):** GitHub Issues + sub-issues on a public Projects board (`Backlog → Ready → In progress → Testing → Done`); `MKC-<n>` keys in titles, branches and commits; the Turing repo as a code-only mirror with no issues and no token, the README linking the board (ADR 005 option (c), decision 35); tickets, sub-issues and PRs assigned to `qamran` (decision 33); the development agent continues without asking and stops only for genuine decisions (decision 36); rules for both agents in `AGENTS.md`; one branch per ticket; the **development agent (Opus 5.5)** builds and moves tickets to Testing, the **review agent (Fable)** reviews, merges after green CI and closes; started in-session with "next ticket".
 - **Not used:** hupe1980/mako, in any form.

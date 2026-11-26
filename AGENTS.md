@@ -15,7 +15,7 @@ Messkonzept-Copilot reads German grid operators' Messkonzept PDFs and turns them
 
 ## Roles
 
-- **Development agent (Claude Opus 5.5):** pulls a ticket, breaks it into sub-issues, works test-first in atomic commits, pushes a branch, opens the PR and moves the ticket to `Testing`. After each merge it pulls `main` and pushes it to the `turing` remote.
+- **Development agent (Claude Opus 5.5):** pulls a ticket, breaks it into sub-issues, works test-first in atomic commits, pushes a branch, opens the PR and moves the ticket to `Testing`. After each merge it pulls `main`, pushes it to the `turing` remote, and approves the `cd` run's two `production` gates itself (decision 51).
 - **Review agent (Fable):** reviews the PR item by item against the ticket's success criteria and this file, posts its verdict as a PR comment, and merges on PASS. It never writes or fixes the code it reviews.
 - **User (`qamran`):** owns decisions on scope and design, and the setup tasks only a human can do (accounts, keys, secrets). The development agent does not ask the user for permission to start the next ticket or step; it stops only for a genuine decision (decision 36).
 
@@ -33,7 +33,7 @@ Per ticket:
 2. Break it into sub-issues in the ticket format (goal, scope, depends on, interfaces, test, success criteria). Add each to the board and link it to its parent.
 3. Branch `mkc-<n>-<slug>` from `main`. Work test-first in atomic commits.
 4. Push, open a PR from `.github/pull_request_template.md` (`Closes #<issue>`, the key, the criteria with evidence, the test output), and set the ticket to `Testing`.
-5. The review agent posts PASS or FAIL. **PASS + green CI:** it merges with a merge commit (never squash, never rebase), the ticket closes and goes to `Done`, and the development agent pushes `main` to `turing` and checks that `origin/main` and `turing/main` are the same commit. **FAIL:** the ticket goes back to `In progress` and the development agent fixes the findings.
+5. The review agent posts PASS or FAIL. **PASS + green CI:** it merges with a merge commit (never squash, never rebase), the ticket closes and goes to `Done`, and the development agent pushes `main` to `turing` and checks that `origin/main` and `turing/main` are the same commit. It then approves the `cd` run's `production` gates (`backend`, then `frontend`) with `gh api -X POST repos/qamran/Messkonzept-Copilot/actions/runs/<run>/pending_deployments` (only after a PASS merge with green CI), checks the smoke results and logs both approvals in HANDOFF.md. The user can still reject a deploy in GitHub (decision 51). **FAIL:** the ticket goes back to `In progress` and the development agent fixes the findings.
 
 **HANDOFF.md** is the restart file. Update it in every commit and after every important ticket change: status change, sub-issue created or closed, PR opened or merged, review verdict. A change made outside a branch (on the board, a merge, a push to `turing`) goes into the next commit. Log times are local time (CET) taken from git and GitHub, never estimated. When a session's context passes about 80 %, make sure HANDOFF.md is current, tell the user and recommend a restart.
 
