@@ -56,7 +56,9 @@ class Built:
         return self.model
 
 
-def client(model: FakeChatModel, traces: list[CallTrace] | None = None) -> tuple[ModelClient, Built]:
+def client(
+    model: FakeChatModel, traces: list[CallTrace] | None = None
+) -> tuple[ModelClient, Built]:
     factory = Built(model)
     tracers = [traces.append] if traces is not None else []
     return ModelClient(config(), factory, mode="live", tracers=tracers), factory

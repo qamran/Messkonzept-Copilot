@@ -50,7 +50,7 @@ This file is how agents resume work after a session restart.
 
 - **MKC-13** (#13), Provider layer (`ModelClient`). Status `In progress`, assigned to `qamran` (26.11.2026 15:01). Branch `mkc-13-provider-layer` from `0c5268c`.
   - Plan: `docs/superpowers/plans/261120261517-mkc-13-provider-layer.md` (facts checked, decision 52 to record, sub-issue steps).
-  - Sub-issues (all assigned to `qamran`, linked to #13, on the board): #121 MKC-13.1 dependencies and guards (tests green), #122 MKC-13.2 types, role config and settings (tests green), #123 MKC-13.3 ModelClient over a fake model (`In progress`, red tests committed), #124 MKC-13.4 record/replay, #125 MKC-13.5 provider factory with zero data retention, #126 MKC-13.6 live contract tests and docs (all `Ready`).
+  - Sub-issues (all assigned to `qamran`, linked to #13, on the board): #121 MKC-13.1 dependencies and guards (tests green), #122 MKC-13.2 types, role config and settings (tests green), #123 MKC-13.3 ModelClient over a fake model (tests green), #124 MKC-13.4 record/replay, #125 MKC-13.5 provider factory with zero data retention, #126 MKC-13.6 live contract tests and docs (all `Ready`).
   - Key facts: no `langchain` meta-package (it pulls `langgraph`); `ChatOpenRouter(openrouter_provider={"zdr": True, "data_collection": "deny"})`, timeout in ms; prices from OpenRouter's ZDR endpoint list (26.11.2026, highest endpoint price), 1 EUR = 1.0935 USD (ECB 25.11.2026).
   - Needs the user for 13.6 only: the four provider API keys (see "Blocked / waiting on user").
   - Model rules that matter here (AGENTS.md): every model call goes through `ModelClient`; OpenRouter default with zero-data retention; LangChain only for model and tool plumbing, no `create_agent`.

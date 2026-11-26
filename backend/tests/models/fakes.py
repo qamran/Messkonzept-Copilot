@@ -7,6 +7,7 @@ from langchain_core.language_models.fake_chat_models import FakeMessagesListChat
 from langchain_core.messages import AIMessage, BaseMessage
 from langchain_core.outputs import ChatResult
 from langchain_core.runnables import Runnable
+from pydantic import Field
 
 
 def ai(
@@ -36,9 +37,9 @@ def ai(
 class FakeChatModel(FakeMessagesListChatModel):
     """Replays the given AIMessages in order and records what it was sent and bound."""
 
-    seen: list[list[BaseMessage]] = []
-    bound_tools: list[Any] = []
-    bind_kwargs: list[dict[str, Any]] = []
+    seen: list[list[BaseMessage]] = Field(default_factory=list)
+    bound_tools: list[Any] = Field(default_factory=list)
+    bind_kwargs: list[dict[str, Any]] = Field(default_factory=list)
     error: Exception | None = None
 
     def _generate(self, messages: list[BaseMessage], *args: Any, **kwargs: Any) -> ChatResult:
@@ -58,10 +59,4 @@ class FakeChatModel(FakeMessagesListChatModel):
 
 
 def fake(*responses: AIMessage, error: Exception | None = None) -> FakeChatModel:
-    return FakeChatModel(
-        responses=list(responses) or [ai("unused")],
-        seen=[],
-        bound_tools=[],
-        bind_kwargs=[],
-        error=error,
-    )
+    return FakeChatModel(responses=list(responses) or [ai("unused")], error=error)
