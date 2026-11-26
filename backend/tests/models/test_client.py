@@ -32,13 +32,13 @@ def config() -> ModelsConfig:
                 "openrouter": "a/cheap",
                 "gemini": "g",
                 "anthropic": "c-haiku",
-                "llama": "l",
+                "meta": "m",
             },
             "prices": {
                 "openrouter": {"a/cheap": {"input": 1.0, "output": 4.0}},
                 "gemini": {"g": {"input": 0, "output": 0}},
                 "anthropic": {"c-haiku": {"input": 2.0, "output": 10.0}},
-                "llama": {"l": {"input": 0.1, "output": 0.3}},
+                "meta": {"m": {"input": 0.1, "output": 0.3}},
             },
         }
     )

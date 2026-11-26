@@ -20,13 +20,13 @@ def _valid() -> dict[str, Any]:
             "openrouter": "a/cheap",
             "gemini": "g-flash",
             "anthropic": "c-haiku",
-            "llama": "l-scout",
+            "meta": "m-spark",
         },
         "prices": {
             "openrouter": {"a/cheap": {"input": 1.0, "output": 4.0}},
             "gemini": {"g-flash": {"input": 0, "output": 0}},
             "anthropic": {"c-haiku": {"input": 0.1, "output": 0.5}},
-            "llama": {"l-scout": {"input": 0.15, "output": 0.45}},
+            "meta": {"m-spark": {"input": 1.25, "output": 4.25}},
         },
     }
 
@@ -40,7 +40,7 @@ def _write(tmp_path: Path, data: dict[str, Any]) -> Path:
 def test_roles_match_the_ticket() -> None:
     assert set(get_args(Role)) == {"extract_vision", "facts", "explain", "judge", "gold_draft"}
     assert set(ROLES) == set(get_args(Role))
-    assert set(PROVIDERS) == {"openrouter", "gemini", "anthropic", "llama"}
+    assert set(PROVIDERS) == {"openrouter", "gemini", "anthropic", "meta"}
 
 
 def test_valid_file_loads(tmp_path: Path) -> None:
@@ -73,7 +73,7 @@ def _broken(change: str) -> dict[str, Any]:
     elif change == "role model without price":
         data["roles"]["facts"] = {"provider": "openrouter", "model": "a/dear"}
     elif change == "contract model without price":
-        data["contract_models"]["llama"] = "l-maverick"
+        data["contract_models"]["meta"] = "m-wonder"
     elif change == "missing contract provider":
         del data["contract_models"]["gemini"]
     elif change == "timeout above 180":
@@ -139,7 +139,7 @@ def test_settings_api_keys_are_secrets(monkeypatch: pytest.MonkeyPatch) -> None:
         "MKC_OPENROUTER_API_KEY": "openrouter_api_key",
         "MKC_GOOGLE_API_KEY": "google_api_key",
         "MKC_ANTHROPIC_API_KEY": "anthropic_api_key",
-        "MKC_LLAMA_API_KEY": "llama_api_key",
+        "MKC_META_API_KEY": "meta_api_key",
     }
     for env in names:
         monkeypatch.setenv(env, f"value-of-{env}")
@@ -165,6 +165,6 @@ def test_env_example_lists_the_model_settings() -> None:
         "MKC_OPENROUTER_API_KEY=",
         "MKC_GOOGLE_API_KEY=",
         "MKC_ANTHROPIC_API_KEY=",
-        "MKC_LLAMA_API_KEY=",
+        "MKC_META_API_KEY=",
     ):
         assert f"\n{name}\n" in text
