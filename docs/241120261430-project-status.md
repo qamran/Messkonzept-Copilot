@@ -1,6 +1,6 @@
 # Project status: Messkonzept-Copilot
 
-**Last updated:** 26.11.2026, 15:04
+**Last updated:** 26.11.2026, 15:15
 
 This is the living status document. It is updated whenever a decision is made or work is completed. Older brainstorming material lives in `brainstorming internal/` (gitignored and frozen).
 
@@ -81,7 +81,7 @@ This is the living status document. It is updated whenever a decision is made or
 | README (intro + links for both repos) | `README.md` |
 | Official brief | `AE.CAP_afa.md` |
 
-## Decisions so far (summary; the full log of 50 decisions is in design doc section 18)
+## Decisions so far (summary; the full log of 51 decisions is in design doc section 18)
 
 - **Idea:** Messkonzept-Copilot. It extracts operator Messkonzept PDFs into structured, LBS-keyed records with human approval, and gives household site advice with citations.
 - **Primary user:** MSB, VNB and energy-IT staff working across grid areas; installers are secondary; plus a public read-only demo.
@@ -108,6 +108,7 @@ This is the living status document. It is updated whenever a decision is made or
   - Docker, GitHub Actions (CI + eval gate + CD in a protected environment, SSH deploy), GHCR, Helm
   - kind in CI, k3s on Oracle Always Free, Vercel for the frontend
   - nightly backups to Oracle Object Storage plus one restore drill
+  - deploy approvals: the development agent approves both `production` gates after a PASS merge with green CI; the user can still reject (decision 51)
 - **Repos:** `origin` = <https://github.com/qamran/Messkonzept-Copilot> (personal, public, home); `turing` = the Turing submission mirror. `main` is pushed to both after every merge; both at the latest merge commit (named in HANDOFF.md). Turing's initial commit incl. their brief `AE.CAP_afa.md` was pushed to `origin` on 24.11.2026 with the user's OK.
 - **Ticket workflow (ADR 005):** GitHub Issues + sub-issues on a public Projects board (`Backlog → Ready → In progress → Testing → Done`); `MKC-<n>` keys in titles, branches and commits; the Turing repo as a code-only mirror with no issues and no token, the README linking the board (ADR 005 option (c), decision 35); tickets, sub-issues and PRs assigned to `qamran` (decision 33); the development agent continues without asking and stops only for genuine decisions (decision 36); rules for both agents in `AGENTS.md`; one branch per ticket; the **development agent (Opus 5.5)** builds and moves tickets to Testing, the **review agent (Fable)** reviews, merges after green CI and closes; started in-session with "next ticket".
 - **Not used:** hupe1980/mako, in any form.

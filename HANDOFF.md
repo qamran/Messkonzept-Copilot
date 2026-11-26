@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 26.11.2026, 15:12
+**Last updated:** 26.11.2026, 15:15
 
 This file is how agents resume work after a session restart.
 
@@ -107,14 +107,15 @@ This file is how agents resume work after a session restart.
 
 - **Docker Desktop** must be running for the local DB tests (`docker compose up -d db`), kind and the Compose smoke test. Start it only when needed and shut it down afterwards (stop the containers, quit Docker Desktop, `wsl --shutdown`): the user asked that `vmmemWSL` not keep running. CI uses its own Postgres service.
 - Later setup tasks (design doc section 13): provider API keys with caps. Done on 25.11.2026: Supabase project, Oracle VM with k3s, API host, Vercel project, GitHub `production` environment with `VERCEL_TOKEN`.
-- **Every deploy needs the user:** two approvals in the `production` environment (`backend`, then `frontend`) on the `cd` run after each merge.
-- **Waiting now:** nothing. The next deploy approvals come with the next merge.
+- **Deploys:** since decision 51 the development agent approves both `production` gates (`backend`, then `frontend`) itself after a PASS merge with green CI (runbook "Deploy and rollback"); the user no longer has to click.
+- **Waiting now:** the four provider API keys for MKC-13's live contract tests (`MKC_OPENROUTER_API_KEY`, `MKC_GOOGLE_API_KEY`, `MKC_ANTHROPIC_API_KEY`, `MKC_LLAMA_API_KEY` in `backend/.env`, each with a spending cap); the user was asked whether a Meta Llama API key is obtainable.
 - **The user's PC:** it went down without a clean shutdown on 23.11 and 26.11.2026 (cause not found; graphics-driver hang reports on both days; a memory test is not done yet). Commit and push often. Two files exist only on the PC: the VM's admin SSH key and `backend/.env` (runbook "Only on the PC"); the user was advised to copy them into a password manager.
 
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **26.11.2026 15:15** Decision 51 (user): the development agent approves the `cd` run's two `production` gates itself after a PASS merge with green CI, via `gh api .../pending_deployments`; recorded in AGENTS.md (with a check term in `scripts/check_agents.py`), the runbook, the design doc and the status doc. MKC-13: user asked for the four provider keys.
 - **26.11.2026 14:59–15:07** `cd` run 45834526785 on `0c5268c`, green: `image` 14:59:43–15:03:50; `backend` approved by the user, 15:06:13–15:07:01 (hook Job `mkc-migrate` ran `0002 -> 0003` and created the empty table `lbs_structure`; Helm revision 8); `frontend` approved by the user, 15:07:13–15:07:58. Checked afterwards: `/api/version` = `0c5268c…`, `/health` 200, `/api/admin/backup-status` without a token 401, the site 200, API and worker pods running, CronJob `mkc-backup` still there.
 - **26.11.2026 15:01** MKC-13 (#13) assigned to `qamran` and set to `In progress`; branch `mkc-13-provider-layer` from `0c5268c`. Local branches `mkc-12-codeliste-lbs` and `backup/mkc-12-before-reword` deleted. Board: #12 and #117–#119 `Done`. `cd` run 45834526785 started (13:59:39Z), waits for the user's approvals.
 - **26.11.2026 14:59** Review agent (Fable) verdict on PR #120: PASS on head `020bf22` (comment 13:59:29Z), no blocking finding, 14 non-blocking (listed under Next steps). It re-ran the build script on the PDF (byte-identical YAML) and checked pages 34, 38 and 43 against page images. Merged by the review agent (merge commit `0c5268c`, 13:59:36Z). #12 (13:59:39Z), #117, #118 and #119 (13:59:40Z–13:59:44Z) closed by the merge. `main` pushed to `turing` (15:00); `origin/main` = `turing/main` = `0c5268c`.
