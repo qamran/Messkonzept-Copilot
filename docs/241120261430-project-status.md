@@ -61,7 +61,7 @@ This is the living status document. It is updated whenever a decision is made or
   - k3s v1.37.2 with Traefik; cert-manager v1.21.3 with Let's Encrypt staging and prod issuers
   - API host `92-6-240-17.sslip.io`
   - Vercel project `messkonzept-copilot`; GitHub environment `production` with `VERCEL_TOKEN`
-- **Current ticket:** MKC-12 (Codeliste research and LBS reference data, #12), started 26.11.2026; nothing built yet. MKC-11 is done (PR #116 merged as `33a3a65`): backups run nightly in production and one restore is proven.
+- **Current ticket:** MKC-12 (Codeliste research and LBS reference data, #12), started 26.11.2026; research done (Codeliste 1.0, corrected edition of 13.12.2024; decision 50), loader and table in progress. MKC-11 is done (PR #116 merged as `33a3a65`): backups run nightly in production and one restore is proven.
 - **Next:** MKC-12 (Codeliste research and LBS reference data).
 
 ## Key documents
@@ -81,7 +81,7 @@ This is the living status document. It is updated whenever a decision is made or
 | README (intro + links for both repos) | `README.md` |
 | Official brief | `AE.CAP_afa.md` |
 
-## Decisions so far (summary; the full log of 49 decisions is in design doc section 18)
+## Decisions so far (summary; the full log of 50 decisions is in design doc section 18)
 
 - **Idea:** Messkonzept-Copilot. It extracts operator Messkonzept PDFs into structured, LBS-keyed records with human approval, and gives household site advice with citations.
 - **Primary user:** MSB, VNB and energy-IT staff working across grid areas; installers are secondary; plus a public read-only demo.
@@ -127,7 +127,7 @@ This is the living status document. It is updated whenever a decision is made or
   - [x] GitHub Secrets and the protected `production` environment (25.11.2026, `VERCEL_TOKEN`)
   - [x] a host name with TLS for the backend API (25.11.2026, `92-6-240-17.sslip.io`, decision 43)
   - [x] Oracle VM with k3s (25.11.2026, decision 44)
-- [ ] Research: BDEW Codeliste der Lokationsbündelstrukturen (version, format, licence)
+- [x] Research: BDEW Codeliste der Lokationsbündelstrukturen (version, format, licence) (26.11.2026, `docs/261120261404-codeliste-research.md`, decision 50)
 - [ ] Spike: the Jev call path via OpenRouter (start of Phase 7)
 
 ## Evidence from spikes (24.11.2026)
