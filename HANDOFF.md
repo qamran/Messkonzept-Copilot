@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 26.11.2026, 12:18
+**Last updated:** 26.11.2026, 13:09
 
 This file is how agents resume work after a session restart.
 
@@ -51,15 +51,16 @@ This file is how agents resume work after a session restart.
   - Sub-issues: MKC-11.1 (#110) to 11.4 (#113) closed by PR #115. MKC-11.5 (#114) is open and `In progress` (the merge closed it by mistake, see the log; reopened).
   - Production is prepared: `MKC_BACKUP_UPLOAD_URL` is in `mkc-secrets` on the VM (hash compared with the local file, which is deleted); `/etc/mkc/values.yaml` is the repo's `deploy/vm/values-production.yaml` (`backup.enabled: true`); `mkc-deployer` may create, patch and delete CronJobs and Jobs.
   - Runbook section "Where every setting and secret lives": the inventory of all outside settings (kept current by `scripts/check_runbook.py`).
-  - `cd` run 45808156597 on `0b6f49a` started 12:10; it needs the user's two approvals (`backend`, then `frontend`).
+  - `cd` run 45808156597 on `0b6f49a` is green (the user approved both jobs). First production backup 12:56 and restore drill 13:07 done; results in the runbook ("First backup and restore drill"), the status doc and ADR 003.
+  - Open before PR B: `/api/admin/backup-status` as admin (the user runs one line in the browser console while signed in; a first try failed because the page had no session), and the user's confirmation that the lifecycle rule shows as enabled.
 
 ## Next steps
 
 1. MKC-11:
-   - the user approves `backend` and `frontend` on `cd` run 45808156597; check the migration hook (`backup_runs` exists in production) and that the CronJob `mkc-backup` exists
-   - run one backup now: `sudo k3s kubectl -n mkc create job mkc-backup-now --from=cronjob/mkc-backup`; check the Job log, the object under `nightly/` in the bucket (the user looks in the console; the link can't list) and `/api/admin/backup-status`
-   - restore drill: the user downloads the object; `bash scripts/restore_backup.sh <file>` (Docker running, shut down afterwards); compare with `scripts/row_counts.sql` against Supabase
-   - PR B (docs only): drill steps, timing and row counts in the runbook; status doc; closes #114 and #11. Write "closes" only on the `Closes #<n>` lines of the PR body (see the log, 12:10)
+   - add the result of `/api/admin/backup-status` (expected `ok`, not stale) to the runbook's drill section when the user has run it
+   - open PR B from `mkc-11-drill-docs` (docs and `scripts/check_runbook.py` only): `Closes #114` and `Closes #11`, each on its own line; write "closes" nowhere else in the body (see the log, 12:11). Tick the criteria of #114 and #11 with the evidence. Review agent, merge on PASS, push `main` to `turing`
+   - after the merge: `cd` runs again and needs the user's two approvals (a docs-only change still deploys); the manual Job `mkc-backup-now` on the VM can be deleted (`sudo k3s kubectl -n mkc delete job mkc-backup-now`)
+   - tomorrow: check that the 03:30 run made a second object and that `backup_runs` has a second `ok` row
 2. Non-blocking follow-ups from the PR #109 review (MKC-10; for a later CI or deploy hardening ticket):
    - N2: nine MKC-10 commits don't touch HANDOFF.md; N6: `05c4962` and `e5072c6` are over 200 lines (history not rewritten)
    - N4: `cd_deploy.sh` prints "Helm rolled the release back itself" also when the VM refused the commit (exit 4) or SSH failed (255); no test covers those cases
@@ -89,12 +90,16 @@ This file is how agents resume work after a session restart.
 - **Docker Desktop** must be running for the local DB tests (`docker compose up -d db`), kind and the Compose smoke test. Start it only when needed and shut it down afterwards (stop the containers, quit Docker Desktop, `wsl --shutdown`): the user asked that `vmmemWSL` not keep running. CI uses its own Postgres service.
 - Later setup tasks (design doc section 13): provider API keys with caps. Done on 25.11.2026: Supabase project, Oracle VM with k3s, API host, Vercel project, GitHub `production` environment with `VERCEL_TOKEN`.
 - **Every deploy needs the user:** two approvals in the `production` environment (`backend`, then `frontend`) on the `cd` run after each merge.
-- **MKC-11 needs the user for:** the two deploy approvals on `cd` run 45808156597, a look into the bucket after the first backup, and the download of one backup for the restore drill. The Oracle setup (bucket, policy, lifecycle rule, upload link) is done (26.11.2026).
+- **MKC-11 needs the user for:** one call of `/api/admin/backup-status` as admin, and the two deploy approvals after PR B's merge. The Oracle setup (bucket, policy, lifecycle rule, upload link) is done (26.11.2026).
 
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **26.11.2026 13:07** Restore drill (MKC-11.5): `bash scripts/restore_backup.sh` on the downloaded backup (the browser saved it as `nightly_mkc-20261126T115613Z.sql.gz`, 1139 bytes, valid gzip, pg_dump 17.12). Restored into `pgvector/pgvector:pg17` without errors in 4 s (13:07:41–13:07:45). Row counts restored = production (read-only query at 12:57): `alembic_version` 1, `backup_runs` 1; restored version `0002`; the restored run row is `running`, as expected. Container removed, Docker Desktop closed, WSL shut down. Results written to the runbook, the status doc and ADR 003.
+- **26.11.2026 12:56** First production backup: Job `mkc-backup-now` from the CronJob, 11:56:10Z–11:56:18Z, log `backup ok: nightly/mkc-20261126T115613Z.sql.gz (1139 bytes)`; `backup_runs` row 1 `ok`. `/api/admin/backup-status` without a token: 401. The user downloaded the object from the bucket (13:05).
+- **26.11.2026 12:31–12:50** `cd` run 45808156597 green: `image` 12:10:36–12:15:12; `backend` approved by the user, 12:31:24–12:32:22 (hook Job `mkc-migrate` ran `0001` and `0002` in 11 s; Helm revision 6; CronJob `mkc-backup` created); `frontend` approved by the user, 12:49:59–12:50:37. `/api/version` = `0b6f49a…`, `/health` 200, the site 200.
+- **26.11.2026 12:26** MKC-11.5: the user asked for full paths on the PC in the inventory. They were added to the runbook (`bffa4e9`, 12:23) and taken out again by this commit: the repo is public and the paths carry the Windows user name. With the user's agreement the full-path version is a local file in the gitignored `internal/` folder (`261120261226-settings-and-secrets-inventory.md`; not on GitHub, not backed up). The runbook section stays the public version (`~` and repo paths); `check_runbook.py` is as in `76ce852`.
 - **26.11.2026 12:18** MKC-11.5: runbook section "Where every setting and secret lives" at the user's request (the upload link and the console settings were stored nowhere else): per service (the PC's local files, Oracle, the VM, Supabase, Clerk, Vercel, GitHub) what is set, where to find it, how to make it again, and what to do if the PC is lost. No secret values. New `scripts/check_runbook.py` (red first in `b3e7d79`: section missing): the section must name every workflow secret, the keys in `mkc-secrets`, the frontend's `VITE_` variables and the local key files. Checked live: GitHub secrets and branch protection, Vercel variable names, the Secret's key names on the VM. All `check_*.py` and markdownlint 0.18.1 green.
 - **26.11.2026 12:11** #114 (MKC-11.5) reopened (11:11:07Z) and set back to `In progress`. The merge of PR #115 had closed it (11:10:40Z): the PR body's sentence "PR B … closes #114 and #11" counted as a closing keyword for #114. #11 stayed open. Branch `mkc-11-drill-docs` from `0b6f49a` for PR B.
 - **26.11.2026 12:10** PR #115 merged by the development agent (merge commit `0b6f49a`, 11:10:30Z) after the review agent's PASS on the same head `24112a1`, CI green, branch up to date. #110–#113 closed by the merge. `main` pushed to `turing` (12:10:47); `origin/main` = `turing/main` = `0b6f49a`. `cd` run 45808156597 started (11:10:33Z).
