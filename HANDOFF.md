@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 26.11.2026, 14:39
+**Last updated:** 26.11.2026, 14:42
 
 This file is how agents resume work after a session restart.
 
@@ -47,7 +47,7 @@ This file is how agents resume work after a session restart.
 
 ## In progress
 
-- **MKC-12** (#12), Codeliste research and LBS reference data. Status `In progress`, assigned to `qamran` (26.11.2026 13:39). Branch `mkc-12-codeliste-lbs` from `33a3a65`.
+- **MKC-12** (#12), Codeliste research and LBS reference data. Status `Testing` (PR #120), assigned to `qamran` (26.11.2026 13:39). Branch `mkc-12-codeliste-lbs` from `33a3a65`.
   - Plan: `docs/superpowers/plans/261120261404-mkc-12-codeliste-lbs.md` (research results, three tasks, review focus).
   - Sub-issues: MKC-12.1 (#117, research note, done on the branch, `In progress` until the PR), MKC-12.2 (#118, loader, check digit, YAML, `In progress`), MKC-12.3 (#119, table `lbs_structure` and `mkc-load-lbs`, `In progress`). All assigned to `qamran` and linked to #12.
   - Research done (in the plan): the current edition is Codeliste der Lokationsbündelstrukturen 1.0, "konsolidierte Lesefassung mit Fehlerkorrekturen", Stand 13.12.2024 (bdew-mako.de document 7713, no end date, free). 15 structure codes. The Codeliste defines no check digit; every code fits BDEW's Lok- und Waggon-Kennzeichnungsverfahren (AWH "Identifikatoren in der Marktkommunikation" 1.2, section 8.1). Berlin's Messkonzepte 09-2026 (pages 6–7) list all 15 codes.
@@ -56,7 +56,7 @@ This file is how agents resume work after a session restart.
 
 ## Next steps
 
-1. MKC-12: see "In progress". Next: open the PR (closes #12, #117, #118, #119), ticket to `Testing`, review agent. MKC-12.1 to 12.3 are done on the branch.
+1. MKC-12: see "In progress". Next: PR #120 review (Fable) after green CI; on PASS merge with a merge commit, push `main` to `turing`, approve the deploy. Sub-issues #117–#119 are `Testing`.
 2. MKC-11, checks that are still to come:
    - the deploy of `33a3a65` is done and checked (`cd` run 45821615993, see the log); nothing is open there
    - 27.11.2026: the 03:30 run must have made a second object under `nightly/` and a second `ok` row in `backup_runs` (read-only: `cd backend && uv run --env-file .env python -m mkc.db.check` shows the connection works; the row itself with a `select` on `backup_runs`; or the user calls `/api/admin/backup-status` as admin)
@@ -104,6 +104,7 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **26.11.2026 14:41** PR #120 opened (13:41:41Z, assigned to `qamran`; closes #12, #117, #118, #119) on head `d98e1f2`, after the user approved the force-push of the reworded branch (`--force-with-lease` on `e27cc4e`). #12 and #117–#119 set to `Testing`, their criteria ticked with a pointer to the PR. Next: CI green, then the review agent (Fable).
 - **26.11.2026 14:39** MKC-12 checks before the PR. The branch's eight commits were reworded locally (no PR yet; backup branch `backup/mkc-12-before-reword`, local only; same tree, same dates): four `Refs:` trailers named `qamra/` instead of `qamran/`, and in all eight a blank line split `Refs:` from `Co-Authored-By:`, so git did not read it as a trailer. The rewritten branch needs a force-push (`--force-with-lease`), which waits for the user's OK. The log times 14:07–14:32 above were corrected to the commit times (they had been estimated). YAML checked three ways: exactly the PDF's 42 codes; every reference points to the right object type; every object position equals section 3.2 of the 2022 draft. Research note: two PDF entries without an end date (7345 and 7713); the 31.03.2023 and 13.12.2024 editions have the same 42 codes; licence pages not read are named as open. Plan aligned with the code. Status doc current.
 - **26.11.2026 14:32** MKC-12.3 green: migration `0003` (table `lbs_structure`, additive), model `LbsStructureRow`, `mkc.reference.sync.sync_lbs` (upsert by code) and the command `mkc-load-lbs`. One test fixed: the session-wide test database still held the previous test's rows, so the update test empties the table first. Full backend suite with Postgres: 119 passed, 1 skipped (POSIX-only); ruff, mypy, all check scripts green.
 - **26.11.2026 14:31** MKC-12.3 red: `backend/tests/db/test_lbs_structure.py` (migration 0003 up/down/up, `sync_lbs` twice gives 15 rows, an old row is updated, `mkc-load-lbs` loads) fails: no module `mkc.reference.sync`. #119 set to `In progress`. Docker Desktop started for the DB tests.
