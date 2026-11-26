@@ -76,7 +76,7 @@
 
 - `check_digit(payload: str) -> int`: payload of digits; positions counted from the left starting at 1; odd positions weight 1, even weight 2; result `(10 - sum % 10) % 10`.
 - `is_valid_code(code: str) -> bool`: 13 digits, last digit = `check_digit(code[:12])`.
-- `@dataclass(frozen=True) LbsObject(code: str, objekt: str, richtung: str, ebene: int, flexibilitaet: str, anzahl: str)`
+- `@dataclass(frozen=True) LbsObject(code: str, objekt: str, funktion: str | None, richtung: str | None, ebene: int, flexibilitaet: str, anzahl: str, referenz_melo: tuple[str, ...], referenz_nelo: tuple[str, ...])` (changed during the build: the tables also carry the MeLo's Funktion and the reference columns; references must point to an object of the same structure)
 - `@dataclass(frozen=True) LbsStructure(code: str, bezeichnung: str, page: int, objects: tuple[LbsObject, ...])`
 - `@dataclass(frozen=True) LbsSource(title: str, publisher: str, version: str, edition: str, applies_from: str, url: str, sha256: str)`
 - `load_lbs(path: Path) -> list[LbsStructure]`, `load_lbs_source(path: Path) -> LbsSource`; `DEFAULT_PATH` = `backend/data/lbs_structures.yaml`; errors raise `LbsDataError(ValueError)`.
@@ -90,7 +90,7 @@ structures:
     bezeichnung: "Verbrauch mit einer Messlokation (Standard)"
     page: 19
     objects:
-      - {code: "9992000001032", objekt: MeLo, richtung: "Verbrauch (Netzübergabe)", ebene: 1, flexibilitaet: Starr, anzahl: "1"}
+      - {code: '9992000001032', objekt: MeLo, funktion: Netzübergabe, richtung: Verbrauch, ebene: 1, flexibilitaet: Starr, anzahl: '1', referenz_melo: [], referenz_nelo: []}
 ```
 
 - [ ] **Step 1:** write the failing tests in `backend/tests/reference/test_lbs.py`:

@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 26.11.2026, 14:20
+**Last updated:** 26.11.2026, 14:52
 
 This file is how agents resume work after a session restart.
 
@@ -104,6 +104,7 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **26.11.2026 14:52** MKC-12.2: `scripts/build_lbs_yaml.py` and `backend/data/lbs_structures.yaml` (15 structures, 201 lines, one line per object). The script reads words by header position (pdfplumber's cell grid repeats text in split cells; footnote marks under 8 pt dropped; rows top-aligned), checks the PDF's sha256, and fails on an object code with two positions. Spot-checked 001 8, 008 4, 016 7 against the tables. Research note and plan updated for the extra fields (`funktion`, `referenz_melo`, `referenz_nelo`).
 - **26.11.2026 14:20** MKC-12.2 red: `backend/tests/reference/test_lbs.py` (check digit with the AWH example, 15 codes all valid, invalid check digit, duplicates, non-string codes, Berlin's 15 codes, umlaut, object-code consistency, section 4.2 composition, source edition) fails: no module `mkc.reference`. #118 set to `In progress`.
 - **26.11.2026 14:16** MKC-12.1 green: research note `docs/261120261404-codeliste-research.md` (version, sources with sha256, format, licence: none found, what may be committed, check digit); decision 50 in the design doc; status doc research item ticked. `check_codeliste_note.py` ok.
 - **26.11.2026 14:10** MKC-12.1 red: `scripts/check_codeliste_note.py` fails with "no research note" (exit 1).

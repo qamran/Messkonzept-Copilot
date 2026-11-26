@@ -80,7 +80,7 @@ This note records where the repo's LBS reference data (`backend/data/lbs_structu
 
 - **Allowed** (`backend/data/lbs_structures.yaml`):
   - each structure's code, its Bezeichnung and the page it is on
-  - per structure, its objects: object code, Objekt, Richtung, Ebene, Flexibilität, Anzahl
+  - per structure, its objects: object code, Objekt, Funktion of a MeLo, Richtung, Ebene, Flexibilität, Anzahl, and the object codes in the columns Referenz Messlokation and Referenz Netzlokation
   - a source block: title, publisher, version, edition, applicable-from date, URL, sha256, retrieval date
 - **Not allowed:**
   - the PDF or the Word file, in any form
@@ -88,6 +88,7 @@ This note records where the repo's LBS reference data (`backend/data/lbs_structu
   - any edi@energy or BDEW document
 - **The build script** (`scripts/build_lbs_yaml.py`) reads a PDF that the user downloaded into a temp directory and writes only the YAML. It checks the PDF's sha256 against the edition above.
 - **Tests** list Berlin's codes as facts (code and page), not text from Berlin's PDF.
+- **Normalised, not copied:** the MeLo's Funktion (Netzübergabe, Hinterschaltung, Differenzmessung) stands in the Objekt column on some pages and in the Richtung column on others; the YAML keeps it in `funktion`. "--" becomes empty. Footnote marks are dropped; the footnotes' text is not committed.
 
 ## Check digit
 
