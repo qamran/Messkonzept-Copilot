@@ -36,13 +36,13 @@ def test_openrouter_request_asks_for_zero_data_retention(settings: Settings) -> 
 
     def handler(request: httpx.Request) -> httpx.Response:
         sent.append(json.loads(request.content))
-        return httpx.Response(503, json={"error": {"code": 503, "message": "test stop"}})
+        return httpx.Response(400, json={"error": {"code": 400, "message": "test stop"}})
 
     model = build_chat_model("openrouter", "a/cheap", settings, 120)
     model.client = openrouter.OpenRouter(  # type: ignore[attr-defined]
         api_key="or-test", client=httpx.Client(transport=httpx.MockTransport(handler))
     )
-    with pytest.raises(Exception):  # noqa: B017 - the fake 503 ends the call
+    with pytest.raises(Exception):  # noqa: B017 - the fake 400 ends the call
         model.invoke([HumanMessage(content="Hi")])
     (body,) = sent
     assert body["model"] == "a/cheap"
@@ -107,9 +107,7 @@ def test_missing_key_is_a_clear_error(
 # --- ModelClient.from_settings ---------------------------------------------------------
 
 
-def test_from_settings_replay_needs_no_key(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
+def test_from_settings_replay_needs_no_key(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     for name in KEYS:
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("MKC_MODEL_MODE", "replay")

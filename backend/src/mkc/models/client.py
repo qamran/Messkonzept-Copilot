@@ -10,6 +10,7 @@ import logging
 import time
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Literal
 
 from langchain_core.language_models import BaseChatModel
@@ -23,7 +24,8 @@ from langchain_core.messages import (
 from langchain_core.utils.function_calling import convert_to_openai_tool
 from pydantic import BaseModel
 
-from mkc.models.config import ModelsConfig
+from mkc.config import Settings
+from mkc.models.config import DEFAULT_MODELS_FILE, ModelsConfig, load_models_config
 from mkc.models.replay import ReplayStore, replay_key
 from mkc.models.types import (
     Image,
@@ -113,6 +115,23 @@ class ModelClient:
         self._mode: ModelMode = mode
         self._store = store
         self._tracers = list(tracers)
+
+    @classmethod
+    def from_settings(cls, settings: Settings, tracers: Sequence[Tracer] = ()) -> "ModelClient":
+        """The client as configured by `MKC_MODEL_MODE`, `MKC_MODELS_FILE` and
+        `MKC_MODEL_REPLAY_DIR`. Keys are only checked when a live call builds a model."""
+        from mkc.models.providers import make_factory  # imports the provider packages
+
+        path = Path(settings.models_file) if settings.models_file else DEFAULT_MODELS_FILE
+        config = load_models_config(path)
+        store = None
+        if settings.model_mode != "live":
+            if not settings.model_replay_dir:
+                raise ModelConfigError(f"mode {settings.model_mode!r} needs MKC_MODEL_REPLAY_DIR")
+            store = ReplayStore(Path(settings.model_replay_dir))
+        return cls(
+            config, make_factory(settings), mode=settings.model_mode, store=store, tracers=tracers
+        )
 
     # --- public methods ---------------------------------------------------------------
 

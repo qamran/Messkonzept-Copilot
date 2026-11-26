@@ -10,7 +10,9 @@
 # - anthropic: no list taken from Anthropic yet; the OpenRouter price of the same model stands in
 #   until the live contract run (MKC-13.6) confirms the model id and price.
 # - meta: Meta's API (api.meta.ai, OpenAI-compatible; the Llama API closed on 6 July 2026).
-#   Standard-mode price of Muse Spark 1.3 from Meta's pricing docs; to confirm in MKC-13.6.
+#   Muse Spark 1.3 standard tier, $1.25 / $4.25 (Vercel AI Gateway listing and press coverage on
+#   26.11.2026; Meta's own page not read yet, to confirm in MKC-13.6). Never the `-contributor`
+#   models: that tier may train on prompts and completions.
 
 # ECB reference rate of 25.11.2026: 1 EUR = 1.0935 USD.
 eur_per_usd: 0.9145
@@ -45,4 +47,4 @@ prices:
   anthropic:
     claude-haiku-5-5: {input: 0.1, output: 0.5, source: "OpenRouter price of anthropic/claude-haiku-5.5, 26.11.2026"}
   meta:
-    muse-spark-1.3: {input: 1.25, output: 4.25, source: "Meta pricing docs, standard mode"}
+    muse-spark-1.3: {input: 1.25, output: 4.25, source: "Vercel AI Gateway listing, 26.11.2026"}
