@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 26.11.2026, 13:49
+**Last updated:** 26.11.2026, 14:08
 
 This file is how agents resume work after a session restart.
 
@@ -48,13 +48,15 @@ This file is how agents resume work after a session restart.
 ## In progress
 
 - **MKC-12** (#12), Codeliste research and LBS reference data. Status `In progress`, assigned to `qamran` (26.11.2026 13:39). Branch `mkc-12-codeliste-lbs` from `33a3a65`.
-  - Nothing is built yet. The branch holds only this close-out of MKC-11.
-  - Start: read the ticket (`gh issue view 12 -R qamran/Messkonzept-Copilot`), write the plan (`docs/superpowers/plans/<ddMMyyyyHHmm>-mkc-12-codeliste-lbs.md`), create the sub-issues, then work test-first.
+  - Plan: `docs/superpowers/plans/261120261404-mkc-12-codeliste-lbs.md` (research results, three tasks, review focus).
+  - Sub-issues: MKC-12.1 (#117, research note, `In progress`), MKC-12.2 (#118, loader, check digit, YAML, `Ready`), MKC-12.3 (#119, table `lbs_structure` and `mkc-load-lbs`, `Ready`). All assigned to `qamran` and linked to #12.
+  - Research done (in the plan): the current edition is Codeliste der Lokationsbündelstrukturen 1.0, "konsolidierte Lesefassung mit Fehlerkorrekturen", Stand 13.12.2024 (bdew-mako.de document 7713, no end date, free). 15 structure codes. The Codeliste defines no check digit; every code fits BDEW's Lok- und Waggon-Kennzeichnungsverfahren (AWH "Identifikatoren in der Marktkommunikation" 1.2, section 8.1). Berlin's Messkonzepte 09-2026 (pages 6–7) list all 15 codes.
+  - The PDFs used for research are in the session's scratchpad only, never in the repo. Fetch again from the URLs in the plan.
   - Data rules that matter here: no BDEW or edi@energy document in the repo; the YAML holds only codes, Bezeichnung and object composition with a citation; no mako in any form.
 
 ## Next steps
 
-1. MKC-12: see "In progress". First step: the plan and the sub-issues.
+1. MKC-12: see "In progress". Next: MKC-12.1 research note (check script red first), then 12.2, then 12.3.
 2. MKC-11, checks that are still to come:
    - the deploy of `33a3a65` is done and checked (`cd` run 45821615993, see the log); nothing is open there
    - 27.11.2026: the 03:30 run must have made a second object under `nightly/` and a second `ok` row in `backup_runs` (read-only: `cd backend && uv run --env-file .env python -m mkc.db.check` shows the connection works; the row itself with a `select` on `backup_runs`; or the user calls `/api/admin/backup-status` as admin)
@@ -102,6 +104,7 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **26.11.2026 14:06** MKC-12 sub-issues MKC-12.1 (#117), 12.2 (#118) and 12.3 (#119) created (13:06:00Z–13:06:18Z), assigned to `qamran`, linked to #12; #117 `In progress`, #118 and #119 `Ready`. Plan `261120261404-mkc-12-codeliste-lbs.md` written after the Codeliste research (sources: BNetzA Mitteilungen 32, 33, 58; bdew-mako.de document list; BDEW AWH Identifikatoren 1.2; Stromnetz Berlin Messkonzepte 09-2026).
 - **26.11.2026 13:39–13:47** `cd` run 45821615993 on `33a3a65`, green: `image` 13:39:01–13:42:08; `backend` approved by the user, 13:43:25–13:44:22 (hook Job `mkc-migrate` ran again in 7 s with nothing to migrate; Helm revision 7); `frontend` approved by the user, 13:46:16–13:46:56. Checked afterwards: `/api/version` = `33a3a65…`, `/health` 200, `/api/admin/backup-status` without a token 401, the site 200, CronJob `mkc-backup` still there, API and worker pods running. The session ends here at the user's request (restart); the working tree is clean and everything is pushed.
 - **26.11.2026 13:41** MKC-11 closed out on branch `mkc-12-codeliste-lbs`: HANDOFF (MKC-11 under Done; MKC-12 in progress; the checks still to come; review follow-ups; the log order fixed: the 13:14 entry stood above newer ones) and the status doc. The success criteria of #11 and #114 ticked. On the VM: the manual Job `mkc-backup-now` and the old values copy in `/tmp` deleted. Local branches of MKC-11 deleted, also the local backup of the old PR head.
 - **26.11.2026 13:39** MKC-12 (#12) assigned to `qamran` (12:39:51Z) and set to `In progress`; branch `mkc-12-codeliste-lbs` from `33a3a65`.
