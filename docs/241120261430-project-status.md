@@ -1,6 +1,6 @@
 # Project status: Messkonzept-Copilot
 
-**Last updated:** 26.11.2026, 09:11
+**Last updated:** 26.11.2026, 13:31
 
 This is the living status document. It is updated whenever a decision is made or work is completed. Older brainstorming material lives in `brainstorming internal/` (gitignored and frozen).
 
@@ -49,18 +49,19 @@ This is the living status document. It is updated whenever a decision is made or
   - `check_workflows.py` now allows secrets in `cd.yml` only, only in `production` jobs (the change MKC-6 asked for)
   - first `cd.yml` run (26.11.2026, run 45777350297, merge commit `edd4406`): `/api/version` = `edd4406…`; Vercel production built by the CLI with the same commit (no warning), no Git-made production deployment; a preview signed in and `/api/me` answered (role admin)
   - the preview-origin risk (decision 45) was accepted by the user on 26.11.2026; non-blocking review findings are listed in HANDOFF.md
-- **MKC-11 details** (backups and restore drill, branch `mkc-11-backups`; plan `docs/superpowers/plans/261120260951-mkc-11-backups.md`), sub-issues MKC-11.1 (#110) to 11.5 (#114). Two PRs: code first, then the drill results:
+- **MKC-11 details** (backups and restore drill, PR #115 merged as `0b6f49a`, docs in PR B; plan `docs/superpowers/plans/261120260951-mkc-11-backups.md`), sub-issues MKC-11.1 (#110) to 11.5 (#114). Two PRs: code first, then the drill results:
   - table `backup_runs` (migration 0002); a Helm hook Job runs `alembic upgrade head` on every install and upgrade; migrations are additive only (decision 48)
   - `mkc-backup`: pg_dump 17 of schema `public` → gzip → write-only Object Storage link; `postgresql-client-17` in the image (decision 49)
   - `GET /api/admin/backup-status` with a `stale` flag (26 h)
   - Helm CronJob (03:30 Europe/Berlin, on in production); `scripts/restore_backup.sh`, run by the Compose smoke test on every CI run
-  - open: the Oracle bucket and upload link (user), the first production backup and the restore drill (MKC-11.5)
+  - done on 26.11.2026 (MKC-11.5): the Oracle bucket, lifecycle rule and upload link (user); the first production backup (`nightly/mkc-20261126T115613Z.sql.gz`, 1139 bytes, 8 s); the restore drill (row counts match production: `alembic_version` 1, `backup_runs` 1; 4 s). Steps and numbers: runbook "First backup and restore drill"
+  - the runbook also lists where every outside setting and secret lives ("Where every setting and secret lives"; `scripts/check_runbook.py` checks that it names every workflow secret, both keys of `mkc-secrets`, the frontend's `VITE_` variables and the local key files)
 - **Server setup** (25.11.2026, for MKC-10; decisions 43 and 44; runbook `docs/251120261645-runbook.md`):
   - Oracle VM `mkc-k3s` (4 OCPUs, 24 GB, arm64, `92.6.240.17`); ports 80 and 443 open, 6443 closed
   - k3s v1.37.2 with Traefik; cert-manager v1.21.3 with Let's Encrypt staging and prod issuers
   - API host `92-6-240-17.sslip.io`
   - Vercel project `messkonzept-copilot`; GitHub environment `production` with `VERCEL_TOKEN`
-- **Current ticket:** MKC-11 (backups and restore drill, #11). Needs the user: an Oracle Object Storage bucket and credentials.
+- **Current ticket:** MKC-11 (backups and restore drill, #11). Backups run in production and the restore drill is done; PR B (#116, docs) closes #114 and #11.
 - **Next:** MKC-12 (Codeliste research and LBS reference data).
 
 ## Key documents
