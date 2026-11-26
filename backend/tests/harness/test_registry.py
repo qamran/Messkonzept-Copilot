@@ -35,7 +35,7 @@ def test_item_context_exposes_exactly_the_six_tools() -> None:
     names = [t.name for t in default_registry().for_context("item")]
     assert len(names) == 6
     assert set(names) == ITEM
-    assert set(ITEM_TOOLS) == ITEM
+    assert {t.name for t in ITEM_TOOLS} == ITEM
 
 
 def test_item_context_exposes_no_side_effect_tools() -> None:
@@ -45,7 +45,7 @@ def test_item_context_exposes_no_side_effect_tools() -> None:
 def test_run_context_holds_the_four_run_level_operations() -> None:
     names = {t.name for t in default_registry().for_context("run")}
     assert names == RUN
-    assert set(RUN_OPERATIONS) == RUN
+    assert {t.name for t in RUN_OPERATIONS} == RUN
 
 
 def test_side_effect_flags() -> None:

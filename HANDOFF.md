@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 26.11.2026, 21:43
+**Last updated:** 26.11.2026, 21:47
 
 This file is how agents resume work after a session restart.
 
@@ -51,13 +51,13 @@ This file is how agents resume work after a session restart.
 
 - **MKC-14** (#14), Tool registry and per-context allow-lists. Status `In progress`, assigned to `qamran` (26.11.2026 16:27). Branch `mkc-14-tool-registry` from `ab62236`. The first commit holds only the close-out of MKC-13.
   - Plan: `docs/superpowers/plans/261120262129-mkc-14-tool-registry.md`.
-  - Sub-issues (assigned to `qamran`, linked to #14, on the board): MKC-14.1 #128 tool types and registry core (code green, waits for the PR), MKC-14.2 #129 default registry (`In progress`), MKC-14.3 #130 docs (`Ready`).
+  - Sub-issues (assigned to `qamran`, linked to #14, on the board): MKC-14.1 #128 tool types and registry core (code green, waits for the PR), MKC-14.2 #129 default registry (code green, waits for the PR), MKC-14.3 #130 docs (`Ready`).
   - Decision 53 (in the plan, docs in MKC-14.3): `side_effect` = reaches outside the item (network, catalogue, approval queue, state not overwritable by key). `save_draft` only writes its own item's draft (idempotent), so it is an item tool; harness code runs `enqueue_approval` on its result. **MKC-23 must build it that way.**
   - Uses MKC-13: `ToolSpec` (name, description, Pydantic args) in `mkc.models.types`; `ModelClient.chat_with_tools`. Safety rules (AGENTS.md): the model never gets side-effect tools; tools can't be added at runtime.
 
 ## Next steps
 
-1. MKC-14: see "In progress". Next: MKC-14.2 code until `tests/harness/test_registry.py` is green (red commit done; MKC-14.1 code is green: `mkc.harness.tools`).
+1. MKC-14: see "In progress". Next: MKC-14.3 docs (decision 53), then the PR. MKC-14.1 and 14.2 code green: `mkc.harness.tools`, `mkc.harness.registry`.
 2. MKC-13, non-blocking findings of the PR #127 review (comment 26.11.2026 15:19Z), for MKC-17/MKC-18 or a hardening ticket:
    - 1: another module could import `mkc.models.providers.build_chat_model` and skip `ModelClient`; add a guard that only `client.py` imports `providers`
    - 2: Gemini, Anthropic and Meta have no request-count test (only `max_retries == 0`); the reviewer measured one request each against a local server
