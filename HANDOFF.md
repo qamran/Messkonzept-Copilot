@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 26.11.2026, 09:21
+**Last updated:** 26.11.2026, 09:53
 
 This file is how agents resume work after a session restart.
 
@@ -45,12 +45,14 @@ This file is how agents resume work after a session restart.
 
 ## In progress
 
-- **MKC-11** (#11), backups and restore drill. Status `In progress`, assigned to `qamran`. Branch `mkc-11-backups` from `edd4406`. Sub-issues and plan not written yet.
-  - Needs the user: an Oracle Object Storage bucket and credentials (ticket "Depends on").
+- **MKC-11** (#11), backups and restore drill. Status `In progress`, assigned to `qamran`. Branch `mkc-11-backups` from `edd4406`.
+  - Plan: `docs/superpowers/plans/261120260951-mkc-11-backups.md`. Two PRs: PR A (code, chart, tests; closes 11.1–11.4, not #11), then after its deploy the drill and PR B (docs only; closes 11.5 and #11).
+  - Sub-issues (assigned to `qamran`, linked to #11): MKC-11.1 (#110, `In progress`) table and migrations on deploy; 11.2 (#111) `mkc-backup`; 11.3 (#112) status endpoint; 11.4 (#113) CronJob and smoke test; 11.5 (#114) production, drill, docs (all `Ready`).
+  - Waiting on the user (asked 26.11.2026 in the session): Oracle bucket `mkc-backups` (eu-frankfurt-1), IAM policy for lifecycle, lifecycle rule 14 days on `nightly/`, write-only upload link (PAR, prefix `nightly/`, expiry 26.11.2027) saved to a local file, never pasted in the chat. The agent stores it in `mkc-secrets` over SSH stdin.
 
 ## Next steps
 
-1. MKC-11: write the plan and sub-issues (ticket format), then the red tests. Ask the user for the Object Storage bucket and credentials when the CronJob needs them.
+1. MKC-11: MKC-11.1 red tests (migration 0002, migration hook in `check_helm.py`), then 11.2–11.4 test-first (plan). When the user has saved the upload link: store it in `mkc-secrets` over stdin and delete the file.
 2. Non-blocking follow-ups from the PR #109 review (MKC-10; for a later CI or deploy hardening ticket):
    - N2: nine MKC-10 commits don't touch HANDOFF.md; N6: `05c4962` and `e5072c6` are over 200 lines (history not rewritten)
    - N4: `cd_deploy.sh` prints "Helm rolled the release back itself" also when the VM refused the commit (exit 4) or SSH failed (255); no test covers those cases
@@ -86,6 +88,7 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **26.11.2026 09:53** MKC-11 plan committed. Sub-issues MKC-11.1 (#110) to 11.5 (#114) created 09:52 (08:52:33Z–08:52:56Z), linked to #11, on the board (#110 `In progress`, the rest `Ready`). Checked: Supabase PostgreSQL 17.12; trixie `postgresql-client-17` 17.12; VM region `eu-frankfurt-1`. The user was asked for the Oracle setup (bucket, lifecycle rule, write-only upload link).
 - **26.11.2026 09:21** Decision 45: the user accepted the preview-origin risk (asked in the session; options were accept, previews CORS only, own domain for previews). Decision 45 and ADR 002 say "accepted", with the rule: sign in only on production or on a preview from one of our PRs; revisit before real data or a Clerk production instance.
 - **26.11.2026 09:11** MKC-10 closed out in the docs on branch `mkc-11-backups`: decision 45 and ADR 002 risk text corrected (review finding N3: any Vercel account can name a matching project; a sign-in there gives a token the API accepts; decided below); status doc (MKC-10 merged, MKC-11 current); HANDOFF (review findings N2, N4–N9 in Next steps).
 - **26.11.2026 09:10** MKC-11 (#11) assigned to `qamran` (08:10:05Z) and set to `In progress`; branch `mkc-11-backups` from `edd4406`.
