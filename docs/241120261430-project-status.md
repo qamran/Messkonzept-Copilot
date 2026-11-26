@@ -61,7 +61,7 @@ This is the living status document. It is updated whenever a decision is made or
   - k3s v1.37.2 with Traefik; cert-manager v1.21.3 with Let's Encrypt staging and prod issuers
   - API host `92-6-240-17.sslip.io`
   - Vercel project `messkonzept-copilot`; GitHub environment `production` with `VERCEL_TOKEN`
-- **Current ticket:** MKC-12 (Codeliste research and LBS reference data, #12), started 26.11.2026; research done (Codeliste 1.0, corrected edition of 13.12.2024; decision 50), loader and table in progress. MKC-11 is done (PR #116 merged as `33a3a65`): backups run nightly in production and one restore is proven.
+- **Current ticket:** MKC-12 (Codeliste research and LBS reference data, #12), started 26.11.2026; research done (Codeliste 1.0, corrected edition of 13.12.2024; decision 50); `backend/data/lbs_structures.yaml` (15 structures), loader `mkc.reference.lbs` with check digit, table `lbs_structure` (migration 0003) and `mkc-load-lbs` built; PR next. MKC-11 is done (PR #116 merged as `33a3a65`): backups run nightly in production and one restore is proven.
 - **Next:** MKC-12 (Codeliste research and LBS reference data).
 
 ## Key documents

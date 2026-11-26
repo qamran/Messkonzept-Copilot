@@ -78,7 +78,7 @@
 - `is_valid_code(code: str) -> bool`: 13 digits, last digit = `check_digit(code[:12])`.
 - `@dataclass(frozen=True) LbsObject(code: str, objekt: str, funktion: str | None, richtung: str | None, ebene: int, flexibilitaet: str, anzahl: str, referenz_melo: tuple[str, ...], referenz_nelo: tuple[str, ...])` (changed during the build: the tables also carry the MeLo's Funktion and the reference columns; references must point to an object of the same structure)
 - `@dataclass(frozen=True) LbsStructure(code: str, bezeichnung: str, page: int, objects: tuple[LbsObject, ...])`
-- `@dataclass(frozen=True) LbsSource(title: str, publisher: str, version: str, edition: str, applies_from: str, url: str, sha256: str)`
+- `@dataclass(frozen=True) LbsSource(title: str, publisher: str, version: str, edition: str, applies_from: str, url: str, sha256: str, retrieved: str)`
 - `load_lbs(path: Path) -> list[LbsStructure]`, `load_lbs_source(path: Path) -> LbsSource`; `DEFAULT_PATH` = `backend/data/lbs_structures.yaml`; errors raise `LbsDataError(ValueError)`.
 
 **YAML shape:**
@@ -120,7 +120,7 @@ structures:
 **Interfaces:**
 
 - Consumes: `load_lbs`, `load_lbs_source`, `DEFAULT_PATH` from Task 2.
-- Produces: table `lbs_structure(code varchar(13) primary key, bezeichnung text not null, objects jsonb not null, source text not null, version text not null)`; `sync_lbs(session: Session, structures: list[LbsStructure], source: LbsSource) -> int` (upsert by code; returns rows written; `source` = the URL plus the page, e.g. `"<url>#page=19"`; `version` = `"1.0 (Stand 13.12.2024)"`); `main() -> int` loads `DEFAULT_PATH` into `DATABASE_URL`.
+- Produces: table `lbs_structure(code varchar(13) primary key, bezeichnung text not null, objects jsonb not null, source text not null, version text not null)`; `sync_lbs(session: Session, structures: list[LbsStructure], source: LbsSource) -> int` (upsert by code; returns rows written; `source` = the URL plus the page, e.g. `"<url>#page=19"`; `version` = `"1.0 (Konsolidierte Lesefassung mit Fehlerkorrekturen, Stand 13.12.2024)"`, i.e. `f"{source.version} ({source.edition})"`); `main() -> int` loads `DEFAULT_PATH` into `DATABASE_URL`.
 
 - [ ] **Step 1:** failing tests in `backend/tests/db/test_lbs_structure.py`:
   - `test_0003_creates_lbs_structure_and_downgrades`: upgrade head → the table has exactly the five columns; downgrade `0002` → table gone; upgrade twice → no error.
