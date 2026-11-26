@@ -48,7 +48,7 @@ This is the living status document. It is updated whenever a decision is made or
   - first deploy and rollback drill on 25.11.2026: `https://92-6-240-17.sslip.io/api/version` live (Let's Encrypt certificate); a forced failing smoke test rolled back to revision 1
   - `check_workflows.py` now allows secrets in `cd.yml` only, only in `production` jobs (the change MKC-6 asked for)
   - first `cd.yml` run (26.11.2026, run 45777350297, merge commit `edd4406`): `/api/version` = `edd4406…`; Vercel production built by the CLI with the same commit (no warning), no Git-made production deployment; a preview signed in and `/api/me` answered (role admin)
-  - open: the preview-origin risk in decision 45 waits for the user's decision; non-blocking review findings are listed in HANDOFF.md
+  - the preview-origin risk (decision 45) was accepted by the user on 26.11.2026; non-blocking review findings are listed in HANDOFF.md
 - **Server setup** (25.11.2026, for MKC-10; decisions 43 and 44; runbook `docs/251120261645-runbook.md`):
   - Oracle VM `mkc-k3s` (4 OCPUs, 24 GB, arm64, `92.6.240.17`); ports 80 and 443 open, 6443 closed
   - k3s v1.37.2 with Traefik; cert-manager v1.21.3 with Let's Encrypt staging and prod issuers
