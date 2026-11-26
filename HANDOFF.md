@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 26.11.2026, 16:04
+**Last updated:** 26.11.2026, 23:08
 
 This file is how agents resume work after a session restart.
 
@@ -23,7 +23,7 @@ This file is how agents resume work after a session restart.
 - **Remotes:**
   - `origin` = qamran/Messkonzept-Copilot (home, public)
   - `turing` = TuringCollegeSubmissions/qshahz-AE.CAP.AFA.1.1 (code-only mirror, no issues; ADR 005 option (c), decision 35)
-  - Both at `0c5268c` (merge of PR #120).
+  - Both at `ab62236` (merge of PR #127).
 - **`main` is protected:** PRs only, enforced for admins. Required checks: the `ci` jobs `backend`, `frontend`, `gitleaks`, `dependency-scan` and `docs` (since 25.11.2026 09:50, MKC-6.5) `image` (since 13:52, MKC-8) and `kind` (since 15:42, MKC-9); the branch must be up to date with `main`. `publish` is not required (skipped on PRs).
 - **Agent rules:** `AGENTS.md` (CLAUDE.md imports it). The development agent continues without asking and stops only for genuine decisions (decision 36).
 - **Done:**
@@ -39,6 +39,7 @@ This file is how agents resume work after a session restart.
   - MKC-10: continuous deployment: `cd.yml` (push to `main`; `image` waits for the arm64 image; `backend` deploys over SSH to the forced command `mkc-deploy` (commits on `main` only), smoke test, rollback; `frontend` deploys Vercel production with `VITE_COMMIT`); two approvals per deploy in `production`; preview origin pattern for CORS and `azp`; version warning; runbook "Deploy and rollback" (decisions 45–47, PR #109)
   - MKC-11: backups and restore drill: table `backup_runs` and a Helm hook Job that runs the migrations on every deploy (additive only, decision 48); `mkc-backup` (pg_dump 17 → gzip → write-only Oracle Object Storage link, decision 49); `GET /api/admin/backup-status`; CronJob `mkc-backup` (03:30 Europe/Berlin, on in production); `scripts/restore_backup.sh`; first production backup and restore drill on 26.11.2026 (row counts matched); runbook "Backups and restore drill" and "Where every setting and secret lives" with `scripts/check_runbook.py` (PRs #115 and #116)
   - MKC-12: Codeliste research (`docs/261120261404-codeliste-research.md`: version 1.0, consolidated edition of 13.12.2024; no licence statement found; decision 50); `backend/data/lbs_structures.yaml` (15 structures, facts with a citation) built by `scripts/build_lbs_yaml.py` from a PDF outside the repo; loader `mkc.reference.lbs` (check digit = Lok- und Waggon-Kennzeichnungsverfahren); table `lbs_structure` (migration 0003) and `mkc-load-lbs`, not yet run on deploy (PR #120)
+  - MKC-13: provider layer `mkc.models`: `ModelClient` (`chat`, `chat_with_tools`, `vision`, `chat_structured`), role mapping and USD prices in the packaged `models.yaml`, EUR cost, traces, record/replay (`MKC_MODEL_MODE`, default `replay`), provider factory (OpenRouter with zero-data-retention routing and no SDK retries; Gemini; Anthropic; Meta API `api.meta.ai/v1` instead of the closed Llama API), ast guard tests, `live` contract tests (12 passed); decisions 51 and 52 (PR #127)
 - **Server (set up 25.11.2026, decisions 43 and 44):** Oracle VM `mkc-k3s`, `ubuntu@92.6.240.17`, admin login with the user's key `~/.ssh/oracle_mkc`; k3s v1.37.2 with Traefik; cert-manager v1.21.3 with ClusterIssuers `letsencrypt-staging` and `letsencrypt-prod`; API host `92-6-240-17.sslip.io`; 6443 closed from outside. Vercel project `messkonzept-copilot` (scope `qamran`); GitHub environment `production` (reviewer `qamran`, `main` only, secret `VERCEL_TOKEN`). Every step: `docs/251120261645-runbook.md`.
 - **Backups (since 26.11.2026):** bucket `mkc-backups` (eu-frankfurt-1), objects `nightly/mkc-<UTC time>.sql.gz`, deleted after 14 days by the rule `delete-after-14-days`; the upload link (`mkc-backup-upload`, write only, expires 26.11.2027) is `MKC_BACKUP_UPLOAD_URL` in `mkc-secrets` on the VM and nowhere else. Where every outside setting and secret lives: runbook section of that name. A copy with the PC's full paths is in the gitignored `internal/` folder (`261120261226-settings-and-secrets-inventory.md`; local only, not backed up).
 - **How to run the frontend:** `frontend/.env.local` holds `VITE_CLERK_PUBLISHABLE_KEY` and `VITE_API_URL=http://127.0.0.1:8000` (gitignored). Run the API with `cd backend && uv run --env-file .env uvicorn mkc.api.app:create_app --factory --port 8000` (`backend/.env` has `MKC_CLERK_ISSUER`), then `cd frontend && npm run dev` (`localhost:5173`). Test sign-ins: the user's Google account (admin); a `+clerk_test@example.com` user (code `424242`) and a second Gmail account (both no role).
@@ -48,19 +49,28 @@ This file is how agents resume work after a session restart.
 
 ## In progress
 
-- **MKC-13** (#13), Provider layer (`ModelClient`). Status `Testing` (16:03), assigned to `qamran`. Branch `mkc-13-provider-layer`; **PR #127 ready for review** (16:03, assigned to `qamran`).
-  - Plan: `docs/superpowers/plans/261120261517-mkc-13-provider-layer.md`. Decision 52 records the build.
-  - Sub-issues: #121 MKC-13.1 guards and pinned deps, #122 MKC-13.2 types/config/settings, #123 MKC-13.3 ModelClient, #124 MKC-13.4 record/replay, #125 MKC-13.5 provider factory: all built, tests green; fixed: the OpenRouter SDK retried 5XX with backoff for up to 1 h despite `max_retries=0`, now `NO_RETRIES` (one request on 503/500/429, tested). #126 MKC-13.6 live contract tests and docs: done. All six sub-issues `Testing` (16:03), criteria ticked with "Evidence: PR #127".
-  - **Meta Llama API is gone** (Meta shut it down on 6 July 2026). User confirmed (15:45): the provider `meta` is Meta's OpenAI-compatible API (`https://api.meta.ai/v1`, `muse-spark-1.3`, via `langchain-openai`); `langchain-meta` removed. Price $1.25/$4.25 from the Vercel AI Gateway listing; Meta's own page and the base URL get confirmed by the live run. Never use the `-contributor` models (they may train on inputs).
-  - Live contract tests (26.11.2026 15:58–16:00, keys in `backend/.env`): 12 passed (4 providers × tools, structured output, vision); spend under €0.02; result in the status doc. `api.meta.ai/v1` confirmed.
-  - Command: `cd backend && uv run --env-file .env pytest -m live tests/models/test_contract_live.py -v -s` (all four `MKC_…_API_KEY`s are in `backend/.env`, added by the user before 15:58).
-  - CI: full green run 45842497405 on `b441809` (all required jobs incl. `image`, `kind`, `dependency-scan`).
-  - Next: review agent (Fable) verdict on PR #127; on PASS merge, push `turing`, approve the deploy (decision 51).
+- **MKC-14** (#14), Tool registry and per-context allow-lists. Status `Testing` since 23:08 (`In progress` from 16:27), assigned to `qamran`. **PR #131** (opened 23:07:43, assigned to `qamran`) waits for the review agent. Branch `mkc-14-tool-registry` from `ab62236`. The first commit holds only the close-out of MKC-13.
+  - Plan: `docs/superpowers/plans/261120262129-mkc-14-tool-registry.md`.
+  - Sub-issues (assigned to `qamran`, linked to #14, on the board): MKC-14.1 #128 tool types and registry core (`Testing`), MKC-14.2 #129 default registry (`Testing`), MKC-14.3 #130 docs (`Testing`).
+  - Decision 53 (design doc section 18, ADR 001, status doc): `side_effect` = reaches outside the item (network, catalogue, approval queue, state not overwritable by key). `save_draft` only writes its own item's draft (idempotent), so it is an item tool; harness code runs `enqueue_approval` on its result. **MKC-23 must build it that way.**
+  - Uses MKC-13: `ToolSpec` (name, description, Pydantic args) in `mkc.models.types`; `ModelClient.chat_with_tools`. Safety rules (AGENTS.md): the model never gets side-effect tools; tools can't be added at runtime.
 
 ## Next steps
 
-1. MKC-13: see "In progress". Next: review of PR #127.
-2. MKC-12, still to do:
+1. MKC-14: see "In progress". Next: review agent verdict on PR #131; on PASS + green CI merge, push `main` to `turing`, approve the `cd` gates. MKC-14.1 and 14.2 code green: `mkc.harness.tools`, `mkc.harness.registry`.
+2. MKC-13, non-blocking findings of the PR #127 review (comment 26.11.2026 15:19Z), for MKC-17/MKC-18 or a hardening ticket:
+   - 1: another module could import `mkc.models.providers.build_chat_model` and skip `ModelClient`; add a guard that only `client.py` imports `providers`
+   - 2: Gemini, Anthropic and Meta have no request-count test (only `max_retries == 0`); the reviewer measured one request each against a local server
+   - 3: the OpenRouter timeout is per phase, not wall clock; the harness needs its own deadline (MKC-17)
+   - 4: replay traces carry the recorded cost; a spend tracer must skip `mode == "replay"`
+   - 5: Anthropic, Meta and Gemini prices are stand-ins (`models.yaml`); fix before evaluation spend is recorded on those routes
+   - 6, 7: disclosed in the PR: four commits over 200 lines, four without a HANDOFF change; some red tests failed on `ImportError` or a hang
+   - 8: decision 51 (agent approves deploys) merged with this PR; the user chose it in the session of 26.11.2026; no ADR mentions it (ADR 002 or 005 could)
+   - 9: stale text: #121's scope names `langchain-meta`; design doc line 338 says "Meta Llama"; PR body says 231 passed (head 234)
+   - 10: the role lookup and `to_langchain` run before the `try`, so those errors are not traced
+   - 11: the Gemini free-tier rule (public and synthetic input only) is not enforced in code; `MKC_MODELS_FILE` can map any role to `gemini`
+   - 12: the reviewer's first retry probe sent nine "Hi" requests with a dummy key to Google, Anthropic and Meta (all failed authentication; no key or project data)
+3. MKC-12, still to do:
    - the deploy of `0c5268c` is done and checked (`cd` run 45834526785, see the log); `lbs_structure` exists in production and is empty until `mkc-load-lbs` is wired in (finding 1)
    - non-blocking findings of the PR #120 review (comment 26.11.2026 13:59:29Z), for the ticket that first reads `lbs_structure` (MKC-22) or a later hardening ticket:
      - 1: wire `mkc-load-lbs` into the deploy (copy `backend/data/` into the image; `DEFAULT_PATH` points into the source tree)
@@ -72,25 +82,25 @@ This file is how agents resume work after a session restart.
      - 10, 11: the loader does not check the reference type, the Anzahl format, `funktion` only on a MeLo, or unknown keys; `is_valid_code` raises `ValueError` for digits like `²` instead of returning False
      - 12, 13: `test_mkc_load_lbs_command` runs on a table that already holds 15 rows; `test_object_codes_are_consistent` leaves out `funktion`; the reference-rule test landed with its rule
      - 14: the note's claims on the 2022 draft and Mitteilungen 56 and 58 were not checked by the reviewer
-3. MKC-11, checks that are still to come:
+4. MKC-11, checks that are still to come:
    - the deploy of `33a3a65` is done and checked (`cd` run 45821615993, see the log); nothing is open there
    - 27.11.2026: the 03:30 run must have made a second object under `nightly/` and a second `ok` row in `backup_runs` (read-only: `cd backend && uv run --env-file .env python -m mkc.db.check` shows the connection works; the row itself with a `select` on `backup_runs`; or the user calls `/api/admin/backup-status` as admin)
    - from 11.12.2026: the object `nightly/mkc-20261126T115613Z.sql.gz` must be gone from the bucket (the user looks in the console). That proves the lifecycle rule and its policy `objectstorage-lifecycle` work; the policy itself was never shown in a screenshot
    - decided by the user (26.11.2026): AGENTS.md stays as it is (development agent Opus 5.5, review agent Fable). The session of 26.11.2026 from 12:00 ran on Fable 5.2 as an exception, so the commits of PR #116 and this one carry the trailer `Co-Authored-By: Claude Fable 5.2`; the reviews were done by separate Fable agents that wrote none of the content
-4. Non-blocking follow-ups from the PR #115 and PR #116 reviews (for a later docs or hardening ticket; none has a ticket yet):
+5. Non-blocking follow-ups from the PR #115 and PR #116 reviews (for a later docs or hardening ticket; none has a ticket yet):
    - runbook "One-time Oracle setup", step 3, point 2 still says "in the 'Resources' list on the left, or a tab on newer consoles"; point 1 already names the tab **Policies**. Drop the bracket
    - `check_runbook.py` only checks that names are present: a bare list of names passes; the `mkc-secrets` keys are hard-coded, not read from the chart; the root `.env` is not in its list; no kept bad samples
    - the code findings 2, 5, 6, 7 and 9 of the first PR #115 verdict (comment of 26.11.2026 09:39:49Z on PR #115) are open
    - GitHub still serves the old commits `bffa4e9`, `df20e2a` and `f140e61` by SHA (they are in no branch; the PR #116 timeline links the old head). They hold the PC's full paths. Only GitHub Support can purge them; the user has not asked for that
    - the menu paths for Supabase and Clerk in the runbook's inventory are from memory; check them at the next visit to those dashboards
-5. Non-blocking follow-ups from the PR #109 review (MKC-10; for a later CI or deploy hardening ticket):
+6. Non-blocking follow-ups from the PR #109 review (MKC-10; for a later CI or deploy hardening ticket):
    - N2: nine MKC-10 commits don't touch HANDOFF.md; N6: `05c4962` and `e5072c6` are over 200 lines (history not rewritten)
    - N4: `cd_deploy.sh` prints "Helm rolled the release back itself" also when the VM refused the commit (exit 4) or SSH failed (255); no test covers those cases
    - N5: `check_workflows.py` accepts the home-repo guard with `|| true` appended
    - N7: small doc slips in the PR body and older HANDOFF entries (commit count, CI run id, log order)
    - N8: `cd.yml` lines 38, 39 and 83 lost their `\` line breaks (the commands still work)
    - N9: the `main` check in `mkc-deploy` calls GitHub's API without a token (rate limit, outage refuse a valid deploy); `behind` also accepts an old merged branch commit that has no image (the deploy then fails and Helm rolls back)
-6. Non-blocking follow-ups from the PR #103 review (for later tickets):
+7. Non-blocking follow-ups from the PR #103 review (for later tickets):
    - N1 (MKC-17/MKC-20): the heartbeat is only touched between polls; with max age 30 s and liveness 3 × 30 s, a turn of up to 240 s would get a healthy worker restarted. Beat during a turn or raise the max age (noted in ADR 002 and decision 42).
    - N2: `/tmp` is an `emptyDir` and survives a container restart, so an old heartbeat can make a restarted worker look Ready for up to 30 s; remove the file on start or add a `startupProbe`.
    - N3: the smoke test does not prove the heartbeat is refreshed; only the unit test does.
@@ -98,14 +108,14 @@ This file is how agents resume work after a session restart.
    - N6: `check_workflows.py` and `check_helm.py` are text-based and easy to fool; mutated samples are not kept as tests (same class as the PR #97 findings).
    - N7: the smoke script only prints the Ingress annotation and TLS secret; it does not assert them.
    - N11 (MKC-10): `checksum/secret` does not change with `existingSecret`; the secret checksum is visible in pod specs; API readiness does not check the database; the script leaves `mkc-backend:kind` in local Docker; a narrow race if the cluster name is taken after the guard.
-7. Non-blocking follow-ups from the PR #97 review (fold into a later CI-hardening ticket or MKC-9 where they touch the same files):
+8. Non-blocking follow-ups from the PR #97 review (fold into a later CI-hardening ticket or MKC-9 where they touch the same files):
    - check scripts are substring-based: flow-style `permissions: {…: write}`, `toJSON(secrets)`, `|| true` / `continue-on-error` on the scan, `if: false` on `image`, indented `USER root`, `USER 10001:0`, `COPY --chown --from=<unpinned>`, `!.env` after `.env`, `compose.override.yaml` all pass
    - no kept tests rerun the bad samples (they live only in the PR body and HANDOFF)
    - `cancel-in-progress: true` also applies on `main`: two quick merges can cancel a `publish`
    - the Grype database is not pinned, so a new high finding can turn unrelated PRs red
    - remove `pip` from the runtime image (source of most medium findings); `pgvector/pgvector:pg17` not digest-pinned; `publish` rebuilds instead of pushing the scanned image
    - the MKC-8 plan still lists `docker/metadata-action` (not used)
-8. Optional follow-ups from the PR #91 re-review (non-blocking): `apiBase()` could refuse a query, fragment or userinfo in `VITE_API_URL`; an empty `sub` is accepted; falsy non-string roles read as "no role".
+9. Optional follow-ups from the PR #91 re-review (non-blocking): `apiBase()` could refuse a query, fragment or userinfo in `VITE_API_URL`; an empty `sub` is accepted; falsy non-string roles read as "no role".
 
 ## Blocked / waiting on user
 
@@ -119,6 +129,13 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **26.11.2026 23:07–23:08** MKC-14: branch pushed; PR #131 opened (23:07:43) with criteria, evidence and disclosures; #14 and #128–#130 set to `Testing` (23:08).
+- **26.11.2026 23:06–23:07** MKC-14, after a self-review: registry maps are read-only (`MappingProxyType`, `6bbea6a`, 23:06; that commit has no HANDOFF change). Decision 53 made consistent in the other places: design 8.1 table (enqueue by the harness), ADR 001 (idempotency keys for the writes), backlog MKC-23 (`save_draft` interface and test name), plan (`ok=True` may carry `data=None`). Comment on #23 explains the change for MKC-23.
+- **26.11.2026 21:32–21:37** MKC-14: MKC-14.1 red tests and skeleton (`397b770`, 21:32; 14 of 15 failed on assertions; the commit message says 13), registry core green (`5c4ca34`, 21:33); MKC-14.2 red tests (`46f71ad`, 21:34; 14 of 16 failed on assertions), default registry green (`fb00815`, 21:36; the red test compared `Tool` objects with names and was fixed in that commit). #129 set to `In progress` between those commits (time not recorded). Local: 265 passed, 16 skipped (`MKC_SKIP_DB_TESTS=1`; Docker not started), ruff, mypy strict, markdownlint 0 errors, all check scripts pass. MKC-14.3: decision 53 in the design doc, ADR 001 and the status doc.
+- **Correction:** the `Last updated` lines of commits `397b770`, `5c4ca34`, `46f71ad` and `fb00815` (21:36, 21:40, 21:43, 21:47) were estimated ahead of the clock; the commit times above are the true ones. `0a53675` (21:37) matches its commit time.
+- **26.11.2026 21:29–21:31** MKC-14: plan `docs/superpowers/plans/261120262129-mkc-14-tool-registry.md` written (decision 53 on `side_effect`); sub-issues MKC-14.1 #128 (21:30:31), MKC-14.2 #129 (21:30:35), MKC-14.3 #130 (21:30:41) created, assigned to `qamran`, linked to #14 and put on the board (#128 `In progress`, #129 and #130 `Ready`).
+- **26.11.2026 16:19–16:27** `cd` run 45847918395 on `ab62236`, green: `image` 16:19:27–16:24:35; `backend` approved by the development agent (decision 51) at 16:24:44, 16:24:41–16:25:47; `frontend` approved at 16:26:13, 16:26:11–16:26:51. Checked afterwards: `/api/version` = `ab62236…`, `/health` 200, `/api/admin/backup-status` without a token 401, the site 200. MKC-14 (#14) assigned to `qamran` and set to `In progress` (16:27); branch `mkc-14-tool-registry` from `ab62236`.
+- **26.11.2026 16:19** Review agent (Fable) verdict on PR #127: PASS on head `35f4065` (comment 15:19:17Z), no blocking finding, 12 non-blocking (under Next steps). It ran 14 mutations (all red) and checked one request per provider on 503/500/429. Merged by the review agent (merge commit `ab62236`, 15:19:20Z); #13 closed by the merge (15:19:22Z); #121–#126 closed by the development agent (15:20:18Z–15:21:18Z) and all set to `Done`. `main` pushed to `turing` (16:19:57); `origin/main` = `turing/main` = `ab62236`.
 - **26.11.2026 16:03** PR #127 body written (criteria, evidence, disclosures) and marked ready; #13 and #121–#126 set to `Testing`; sub-issue criteria ticked.
 - **26.11.2026 15:58–16:00** User added all four `MKC_…_API_KEY`s to `backend/.env`. Live contract tests: 12 passed after the vision test image went from 16 to 64 px (Meta answered "white" for 16 px; the payload was a correct `image_url` data URL). CI run 45842497405 on `b441809` green (finished 15:50).
 - **26.11.2026 15:44–15:46** OpenRouter SDK retry fix (`adcd102`); OpenRouter live tests re-run green; live vision check passed on OpenRouter, Gemini and Anthropic. User confirmed the Meta API (Muse) as the fourth provider (15:45); waiting for `MKC_META_API_KEY`.
