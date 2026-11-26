@@ -9,7 +9,8 @@ Role = Literal["extract_vision", "facts", "explain", "judge", "gold_draft"]
 """What a model call is for; each role maps to a provider and model in `models.yaml`."""
 ROLES: tuple[Role, ...] = get_args(Role)
 
-Provider = Literal["openrouter", "gemini", "anthropic", "llama"]
+Provider = Literal["openrouter", "gemini", "anthropic", "meta"]
+"""`meta` is Meta's OpenAI-compatible API (api.meta.ai); the Llama API closed on 6 July 2026."""
 PROVIDERS: tuple[Provider, ...] = get_args(Provider)
 
 ModelMode = Literal["live", "record", "replay"]

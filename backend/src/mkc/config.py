@@ -83,8 +83,8 @@ class Settings(BaseSettings):
     anthropic_api_key: SecretStr = SecretStr("")
     """Anthropic API key. A secret."""
 
-    llama_api_key: SecretStr = SecretStr("")
-    """Meta Llama API key. A secret."""
+    meta_api_key: SecretStr = SecretStr("")
+    """Meta API key (api.meta.ai, Muse models). A secret."""
 
     @field_validator("clerk_authorized_parties", "cors_origins", mode="before")
     @classmethod
