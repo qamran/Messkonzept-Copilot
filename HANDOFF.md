@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 26.11.2026, 15:15
+**Last updated:** 26.11.2026, 15:19
 
 This file is how agents resume work after a session restart.
 
@@ -48,14 +48,16 @@ This file is how agents resume work after a session restart.
 
 ## In progress
 
-- **MKC-13** (#13), Provider layer (`ModelClient`). Status `In progress`, assigned to `qamran` (26.11.2026 15:01). Branch `mkc-13-provider-layer` from `0c5268c`. The first commit holds only the close-out of MKC-12.
-  - Start: read the ticket, write the plan (`docs/superpowers/plans/<ddMMyyyyHHmm>-mkc-13-provider-layer.md`), create the sub-issues, then work test-first.
-  - Needs the user for one criterion: provider API keys with spending caps (OpenRouter, Gemini, Anthropic, Meta Llama) for the `@pytest.mark.live` contract tests. Everything else (fake chat model, cost table, record/replay, ZDR routing parameters, grep test) needs no key.
+- **MKC-13** (#13), Provider layer (`ModelClient`). Status `In progress`, assigned to `qamran` (26.11.2026 15:01). Branch `mkc-13-provider-layer` from `0c5268c`.
+  - Plan: `docs/superpowers/plans/261120261517-mkc-13-provider-layer.md` (facts checked, decision 52 to record, sub-issue steps).
+  - Sub-issues (all assigned to `qamran`, linked to #13, on the board): #121 MKC-13.1 dependencies and guards (`In progress`), #122 MKC-13.2 types, role config and settings, #123 MKC-13.3 ModelClient over a fake model, #124 MKC-13.4 record/replay, #125 MKC-13.5 provider factory with zero data retention, #126 MKC-13.6 live contract tests and docs (all `Ready`).
+  - Key facts: no `langchain` meta-package (it pulls `langgraph`); `ChatOpenRouter(openrouter_provider={"zdr": True, "data_collection": "deny"})`, timeout in ms; prices from OpenRouter's ZDR endpoint list (26.11.2026, highest endpoint price), 1 EUR = 1.0935 USD (ECB 25.11.2026).
+  - Needs the user for 13.6 only: the four provider API keys (see "Blocked / waiting on user").
   - Model rules that matter here (AGENTS.md): every model call goes through `ModelClient`; OpenRouter default with zero-data retention; LangChain only for model and tool plumbing, no `create_agent`.
 
 ## Next steps
 
-1. MKC-13: see "In progress". First step: the plan and the sub-issues.
+1. MKC-13: see "In progress". Next: MKC-13.1 (red guard test, then the dependency commit).
 2. MKC-12, still to do:
    - the deploy of `0c5268c` is done and checked (`cd` run 45834526785, see the log); `lbs_structure` exists in production and is empty until `mkc-load-lbs` is wired in (finding 1)
    - non-blocking findings of the PR #120 review (comment 26.11.2026 13:59:29Z), for the ticket that first reads `lbs_structure` (MKC-22) or a later hardening ticket:
@@ -115,6 +117,7 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **26.11.2026 15:17–15:18** MKC-13 plan written (15:17); sub-issues #121–#126 (MKC-13.1 to 13.6) created, assigned to `qamran`, linked to #13 and added to the board (#121 `In progress`, the rest `Ready`).
 - **26.11.2026 15:15** Decision 51 (user): the development agent approves the `cd` run's two `production` gates itself after a PASS merge with green CI, via `gh api .../pending_deployments`; recorded in AGENTS.md (with a check term in `scripts/check_agents.py`), the runbook, the design doc and the status doc. MKC-13: user asked for the four provider keys.
 - **26.11.2026 14:59–15:07** `cd` run 45834526785 on `0c5268c`, green: `image` 14:59:43–15:03:50; `backend` approved by the user, 15:06:13–15:07:01 (hook Job `mkc-migrate` ran `0002 -> 0003` and created the empty table `lbs_structure`; Helm revision 8); `frontend` approved by the user, 15:07:13–15:07:58. Checked afterwards: `/api/version` = `0c5268c…`, `/health` 200, `/api/admin/backup-status` without a token 401, the site 200, API and worker pods running, CronJob `mkc-backup` still there.
 - **26.11.2026 15:01** MKC-13 (#13) assigned to `qamran` and set to `In progress`; branch `mkc-13-provider-layer` from `0c5268c`. Local branches `mkc-12-codeliste-lbs` and `backup/mkc-12-before-reword` deleted. Board: #12 and #117–#119 `Done`. `cd` run 45834526785 started (13:59:39Z), waits for the user's approvals.
