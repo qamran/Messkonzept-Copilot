@@ -1,6 +1,6 @@
 # Project status: Messkonzept-Copilot
 
-**Last updated:** 26.11.2026, 13:31
+**Last updated:** 26.11.2026, 13:40
 
 This is the living status document. It is updated whenever a decision is made or work is completed. Older brainstorming material lives in `brainstorming internal/` (gitignored and frozen).
 
@@ -9,7 +9,7 @@ This is the living status document. It is updated whenever a decision is made or
 - **Phase:** implementation, Phase 0 (foundation). The design doc was **approved by the user on 24.11.2026** (after an independent review, verdict "approve with changes", all required changes applied). The backend skeleton (MKC-4) is the first application code; MKC-5 added the database layer; MKC-6 added secret hygiene and CI; MKC-7 added the frontend and the login check; MKC-8 added containers; MKC-9 added the Helm chart and the kind test; MKC-10 added continuous deployment (merged in PR #109; the first `cd.yml` run deployed the merge commit on 26.11.2026). MKC-11 (backups and restore drill) is in progress.
 - **Restart file:** `HANDOFF.md` (repo root) is the agents' running log and next steps, updated with every commit and important ticket change (decision 34). This status doc stays the overview of decisions and documents.
 - **Board:** <https://github.com/users/qamran/projects/1> (public). Tickets MKC-1 to MKC-60 exist as issues #1 to #60 (issue number = key).
-- **Done:** MKC-1 (ticket workflow and repo setup, PR #65), MKC-2 (code-only Turing mirror, README with links, PR #70), MKC-3 (agent instructions: assignment rule PR #67, HANDOFF.md PR #69, AGENTS.md + CLAUDE.md PR #72), MKC-4 (backend skeleton: uv project `backend/`, package `mkc`, FastAPI `/health` and `/api/version`, worker with clean SIGTERM shutdown, ruff and mypy strict, PR #75), MKC-5 (database layer: compose Postgres 17 + pgvector, SQLAlchemy 2, Alembic, `python -m mkc.db.check`, Supabase connection checked; PR #80), MKC-6 (secret hygiene, markdown lint, CI with required checks; PR #86), MKC-7 (frontend skeleton with Clerk; PR #91), MKC-8 (containers, Compose, GHCR image; PR #97), MKC-9 (Helm chart and kind test; PR #103). Each after a review-agent PASS; both remotes at the latest merge commit.
+- **Done:** MKC-1 (ticket workflow and repo setup, PR #65), MKC-2 (code-only Turing mirror, README with links, PR #70), MKC-3 (agent instructions: assignment rule PR #67, HANDOFF.md PR #69, AGENTS.md + CLAUDE.md PR #72), MKC-4 (backend skeleton: uv project `backend/`, package `mkc`, FastAPI `/health` and `/api/version`, worker with clean SIGTERM shutdown, ruff and mypy strict, PR #75), MKC-5 (database layer: compose Postgres 17 + pgvector, SQLAlchemy 2, Alembic, `python -m mkc.db.check`, Supabase connection checked; PR #80), MKC-6 (secret hygiene, markdown lint, CI with required checks; PR #86), MKC-7 (frontend skeleton with Clerk; PR #91), MKC-8 (containers, Compose, GHCR image; PR #97), MKC-9 (Helm chart and kind test; PR #103), MKC-10 (continuous deployment; PR #109), MKC-11 (backups and restore drill; PRs #115 and #116). Each after a review-agent PASS; both remotes at the latest merge commit.
 - **MKC-5 details** (database layer, PR #80, plan `docs/superpowers/plans/241120262130-mkc-5-database-layer.md`):
   - `docker compose up db` (repo root; the file is `compose.yaml` since MKC-8): Postgres 17 with pgvector (`pgvector/pgvector:pg17`; Supabase hosts Postgres 17) on `127.0.0.1:5433`, dev-only credentials
   - `DATABASE_URL` setting, mapped to the psycopg 3 driver; SQLAlchemy 2; `mkc.db.base.Base`, `mkc.db.session.get_session()`
@@ -49,7 +49,7 @@ This is the living status document. It is updated whenever a decision is made or
   - `check_workflows.py` now allows secrets in `cd.yml` only, only in `production` jobs (the change MKC-6 asked for)
   - first `cd.yml` run (26.11.2026, run 45777350297, merge commit `edd4406`): `/api/version` = `edd4406…`; Vercel production built by the CLI with the same commit (no warning), no Git-made production deployment; a preview signed in and `/api/me` answered (role admin)
   - the preview-origin risk (decision 45) was accepted by the user on 26.11.2026; non-blocking review findings are listed in HANDOFF.md
-- **MKC-11 details** (backups and restore drill, PR #115 merged as `0b6f49a`, docs in PR B; plan `docs/superpowers/plans/261120260951-mkc-11-backups.md`), sub-issues MKC-11.1 (#110) to 11.5 (#114). Two PRs: code first, then the drill results:
+- **MKC-11 details** (backups and restore drill, done; PR #115 merged as `0b6f49a`, PR #116 as `33a3a65`; plan `docs/superpowers/plans/261120260951-mkc-11-backups.md`), sub-issues MKC-11.1 (#110) to 11.5 (#114). Two PRs: code first, then the drill results:
   - table `backup_runs` (migration 0002); a Helm hook Job runs `alembic upgrade head` on every install and upgrade; migrations are additive only (decision 48)
   - `mkc-backup`: pg_dump 17 of schema `public` → gzip → write-only Object Storage link; `postgresql-client-17` in the image (decision 49)
   - `GET /api/admin/backup-status` with a `stale` flag (26 h)
@@ -61,7 +61,7 @@ This is the living status document. It is updated whenever a decision is made or
   - k3s v1.37.2 with Traefik; cert-manager v1.21.3 with Let's Encrypt staging and prod issuers
   - API host `92-6-240-17.sslip.io`
   - Vercel project `messkonzept-copilot`; GitHub environment `production` with `VERCEL_TOKEN`
-- **Current ticket:** MKC-11 (backups and restore drill, #11). Backups run in production and the restore drill is done; PR B (#116, docs) closes #114 and #11.
+- **Current ticket:** MKC-12 (Codeliste research and LBS reference data, #12), started 26.11.2026; nothing built yet. MKC-11 is done (PR #116 merged as `33a3a65`): backups run nightly in production and one restore is proven.
 - **Next:** MKC-12 (Codeliste research and LBS reference data).
 
 ## Key documents
