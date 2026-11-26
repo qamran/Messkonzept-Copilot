@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 26.11.2026, 14:55
+**Last updated:** 26.11.2026, 14:59
 
 This file is how agents resume work after a session restart.
 
@@ -49,7 +49,7 @@ This file is how agents resume work after a session restart.
 
 - **MKC-12** (#12), Codeliste research and LBS reference data. Status `In progress`, assigned to `qamran` (26.11.2026 13:39). Branch `mkc-12-codeliste-lbs` from `33a3a65`.
   - Plan: `docs/superpowers/plans/261120261404-mkc-12-codeliste-lbs.md` (research results, three tasks, review focus).
-  - Sub-issues: MKC-12.1 (#117, research note, done on the branch, `In progress` until the PR), MKC-12.2 (#118, loader, check digit, YAML, `In progress`), MKC-12.3 (#119, table `lbs_structure` and `mkc-load-lbs`, `Ready`). All assigned to `qamran` and linked to #12.
+  - Sub-issues: MKC-12.1 (#117, research note, done on the branch, `In progress` until the PR), MKC-12.2 (#118, loader, check digit, YAML, `In progress`), MKC-12.3 (#119, table `lbs_structure` and `mkc-load-lbs`, `In progress`). All assigned to `qamran` and linked to #12.
   - Research done (in the plan): the current edition is Codeliste der Lokationsbündelstrukturen 1.0, "konsolidierte Lesefassung mit Fehlerkorrekturen", Stand 13.12.2024 (bdew-mako.de document 7713, no end date, free). 15 structure codes. The Codeliste defines no check digit; every code fits BDEW's Lok- und Waggon-Kennzeichnungsverfahren (AWH "Identifikatoren in der Marktkommunikation" 1.2, section 8.1). Berlin's Messkonzepte 09-2026 (pages 6–7) list all 15 codes.
   - The PDFs used for research are in the session's scratchpad only, never in the repo. Fetch again from the URLs in the plan.
   - Data rules that matter here: no BDEW or edi@energy document in the repo; the YAML holds only codes, Bezeichnung and object composition with a citation; no mako in any form.
@@ -104,6 +104,7 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **26.11.2026 14:59** MKC-12.3 red: `backend/tests/db/test_lbs_structure.py` (migration 0003 up/down/up, `sync_lbs` twice gives 15 rows, an old row is updated, `mkc-load-lbs` loads) fails: no module `mkc.reference.sync`. #119 set to `In progress`. Docker Desktop started for the DB tests.
 - **26.11.2026 14:55** MKC-12.2 green: `mkc.reference.lbs` (`check_digit`, `is_valid_code`, `LbsStructure`, `LbsObject`, `LbsSource`, `load_lbs`, `load_lbs_source`); PyYAML added. A 12th test (a reference outside its structure is rejected) was red before the rule. `pytest tests/reference` 12 passed; backend suite with `MKC_SKIP_DB_TESTS=1` green; ruff and mypy clean.
 - **26.11.2026 14:52** MKC-12.2: `scripts/build_lbs_yaml.py` and `backend/data/lbs_structures.yaml` (15 structures, 201 lines, one line per object). The script reads words by header position (pdfplumber's cell grid repeats text in split cells; footnote marks under 8 pt dropped; rows top-aligned), checks the PDF's sha256, and fails on an object code with two positions. Spot-checked 001 8, 008 4, 016 7 against the tables. Research note and plan updated for the extra fields (`funktion`, `referenz_melo`, `referenz_nelo`).
 - **26.11.2026 14:20** MKC-12.2 red: `backend/tests/reference/test_lbs.py` (check digit with the AWH example, 15 codes all valid, invalid check digit, duplicates, non-string codes, Berlin's 15 codes, umlaut, object-code consistency, section 4.2 composition, source edition) fails: no module `mkc.reference`. #118 set to `In progress`.
