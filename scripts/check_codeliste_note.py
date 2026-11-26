@@ -8,9 +8,9 @@ committed, and how the check digit works. Exactly one note must exist in docs/, 
 Usage: python scripts/check_codeliste_note.py  (exit code 0 = ok, 1 = problems)
 """
 
-from pathlib import Path
 import re
 import sys
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 NAME = re.compile(r"^\d{12}-codeliste-research\.md$")

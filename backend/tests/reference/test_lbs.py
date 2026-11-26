@@ -82,7 +82,7 @@ def test_invalid_check_digit_is_rejected(tmp_path: Path) -> None:
 
 
 def test_loader_rejects_duplicate_codes(tmp_path: Path) -> None:
-    with pytest.raises(LbsDataError, match="duplicate.*9992000000026"):
+    with pytest.raises(LbsDataError, match=r"duplicate.*9992000000026"):
         load_lbs(_write(tmp_path, '"9992000000026"', '"9992000000026"'))
 
 
@@ -90,6 +90,16 @@ def test_loader_rejects_non_string_code(tmp_path: Path) -> None:
     # Unquoted digits load as an int in YAML; the loader must not accept that silently.
     with pytest.raises(LbsDataError, match="string"):
         load_lbs(_write(tmp_path, "9992000000026"))
+
+
+def test_loader_rejects_reference_outside_the_structure(tmp_path: Path) -> None:
+    path = _write(tmp_path, '"9992000000026"')
+    text = path.read_text(encoding="utf-8").replace(
+        'anzahl: "1"}', 'anzahl: "1", referenz_melo: ["9992000001032"]}'
+    )
+    path.write_text(text, encoding="utf-8")
+    with pytest.raises(LbsDataError, match="9992000001032"):
+        load_lbs(path)
 
 
 def test_loader_accepts_a_valid_file(tmp_path: Path) -> None:

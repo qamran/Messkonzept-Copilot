@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 26.11.2026, 14:52
+**Last updated:** 26.11.2026, 14:55
 
 This file is how agents resume work after a session restart.
 
@@ -56,7 +56,7 @@ This file is how agents resume work after a session restart.
 
 ## Next steps
 
-1. MKC-12: see "In progress". Next: MKC-12.2 (loader tests red first), then 12.3. MKC-12.1 is done on the branch.
+1. MKC-12: see "In progress". Next: MKC-12.3 (table `lbs_structure`, tests red first; needs Docker for the DB tests). MKC-12.1 and 12.2 are done on the branch.
 2. MKC-11, checks that are still to come:
    - the deploy of `33a3a65` is done and checked (`cd` run 45821615993, see the log); nothing is open there
    - 27.11.2026: the 03:30 run must have made a second object under `nightly/` and a second `ok` row in `backup_runs` (read-only: `cd backend && uv run --env-file .env python -m mkc.db.check` shows the connection works; the row itself with a `select` on `backup_runs`; or the user calls `/api/admin/backup-status` as admin)
@@ -104,6 +104,7 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **26.11.2026 14:55** MKC-12.2 green: `mkc.reference.lbs` (`check_digit`, `is_valid_code`, `LbsStructure`, `LbsObject`, `LbsSource`, `load_lbs`, `load_lbs_source`); PyYAML added. A 12th test (a reference outside its structure is rejected) was red before the rule. `pytest tests/reference` 12 passed; backend suite with `MKC_SKIP_DB_TESTS=1` green; ruff and mypy clean.
 - **26.11.2026 14:52** MKC-12.2: `scripts/build_lbs_yaml.py` and `backend/data/lbs_structures.yaml` (15 structures, 201 lines, one line per object). The script reads words by header position (pdfplumber's cell grid repeats text in split cells; footnote marks under 8 pt dropped; rows top-aligned), checks the PDF's sha256, and fails on an object code with two positions. Spot-checked 001 8, 008 4, 016 7 against the tables. Research note and plan updated for the extra fields (`funktion`, `referenz_melo`, `referenz_nelo`).
 - **26.11.2026 14:20** MKC-12.2 red: `backend/tests/reference/test_lbs.py` (check digit with the AWH example, 15 codes all valid, invalid check digit, duplicates, non-string codes, Berlin's 15 codes, umlaut, object-code consistency, section 4.2 composition, source edition) fails: no module `mkc.reference`. #118 set to `In progress`.
 - **26.11.2026 14:16** MKC-12.1 green: research note `docs/261120261404-codeliste-research.md` (version, sources with sha256, format, licence: none found, what may be committed, check digit); decision 50 in the design doc; status doc research item ticked. `check_codeliste_note.py` ok.
