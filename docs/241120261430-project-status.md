@@ -1,6 +1,6 @@
 # Project status: Messkonzept-Copilot
 
-**Last updated:** 26.11.2026, 09:11
+**Last updated:** 26.11.2026, 13:31
 
 This is the living status document. It is updated whenever a decision is made or work is completed. Older brainstorming material lives in `brainstorming internal/` (gitignored and frozen).
 
@@ -55,13 +55,13 @@ This is the living status document. It is updated whenever a decision is made or
   - `GET /api/admin/backup-status` with a `stale` flag (26 h)
   - Helm CronJob (03:30 Europe/Berlin, on in production); `scripts/restore_backup.sh`, run by the Compose smoke test on every CI run
   - done on 26.11.2026 (MKC-11.5): the Oracle bucket, lifecycle rule and upload link (user); the first production backup (`nightly/mkc-20261126T115613Z.sql.gz`, 1139 bytes, 8 s); the restore drill (row counts match production: `alembic_version` 1, `backup_runs` 1; 4 s). Steps and numbers: runbook "First backup and restore drill"
-  - the runbook also lists where every outside setting and secret lives ("Where every setting and secret lives"; kept current by `scripts/check_runbook.py`)
+  - the runbook also lists where every outside setting and secret lives ("Where every setting and secret lives"; `scripts/check_runbook.py` checks that it names every workflow secret, both keys of `mkc-secrets`, the frontend's `VITE_` variables and the local key files)
 - **Server setup** (25.11.2026, for MKC-10; decisions 43 and 44; runbook `docs/251120261645-runbook.md`):
   - Oracle VM `mkc-k3s` (4 OCPUs, 24 GB, arm64, `92.6.240.17`); ports 80 and 443 open, 6443 closed
   - k3s v1.37.2 with Traefik; cert-manager v1.21.3 with Let's Encrypt staging and prod issuers
   - API host `92-6-240-17.sslip.io`
   - Vercel project `messkonzept-copilot`; GitHub environment `production` with `VERCEL_TOKEN`
-- **Current ticket:** MKC-11 (backups and restore drill, #11). Backups run in production and the restore drill is done; PR B (docs) closes #114 and #11.
+- **Current ticket:** MKC-11 (backups and restore drill, #11). Backups run in production and the restore drill is done; PR B (#116, docs) closes #114 and #11.
 - **Next:** MKC-12 (Codeliste research and LBS reference data).
 
 ## Key documents
