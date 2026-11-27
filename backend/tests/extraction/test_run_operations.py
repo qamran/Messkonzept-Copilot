@@ -7,6 +7,7 @@ operations, and `mkc run start --operator` (one queued item per concept region).
 """
 
 import re
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -167,4 +168,60 @@ def test_a_failed_fetch_creates_no_run(
     result = CliRunner().invoke(app, ["run", "start", "--operator", OPERATOR_ID])
     assert result.exit_code == 1
     assert "fetch_document" in result.output
+    assert rows(engine, "select count(*) from run") == runs_before
+
+
+def test_a_new_edition_keeps_its_number_and_flag_across_the_registry(
+    engine: Engine, sessions: sessionmaker[Session], store: MemoryStore
+) -> None:
+    v1, v2 = make_pdf(berlin_pages(["1"])), make_pdf(berlin_pages(["1", "2"]))
+    registry = _registry(sessions, store, v1, v2)
+    fetch = _call("fetch_document", operator_id=OPERATOR_ID)
+    first = registry.execute(fetch, "run", RUN_ENV).data
+    second = registry.execute(fetch, "run", RUN_ENV).data
+    assert (first["edition"], first["new_edition"]) == (1, False)
+    assert (second["edition"], second["new_edition"]) == (2, True)
+    found = registry.execute(
+        _call("segment_document", document_hash=second["sha256"]), "run", RUN_ENV
+    ).data
+    assert (found["operator_id"], found["edition"]) == (OPERATOR_ID, 2)
+
+
+def test_run_start_reports_a_new_edition(
+    engine: Engine, sessions: sessionmaker[Session], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from mkc.cli import app
+    from mkc.extraction.operations import DocumentOps
+
+    store = MemoryStore()
+    v1, v2 = make_pdf(berlin_pages(["1"])), make_pdf(berlin_pages(["1", "2"]))
+    get = FakeGet([(URL_OK, v1), (URL_OK, v2)])
+    monkeypatch.setattr(
+        "mkc.cli.make_documents",
+        lambda settings, s: DocumentOps(s, store, get=get, operators=operators()),
+    )
+    first = CliRunner().invoke(app, ["run", "start", "--operator", OPERATOR_ID])
+    second = CliRunner().invoke(app, ["run", "start", "--operator", OPERATOR_ID])
+    assert f"{OPERATOR_ID}: edition 1, sha256" in first.output
+    assert f"{OPERATOR_ID}: edition 2, a new edition, sha256" in second.output
+    run_id = int(re.findall(r"run (\d+) created", second.output)[0])
+    tasks = rows(engine, f"select task from item where run_id = {run_id}")
+    assert {t[0]["edition"] for t in tasks} == {2}
+
+
+def test_operator_and_items_together_are_refused_before_anything_runs(
+    engine: Engine, cli_docs: MemoryStore, tmp_path: Path
+) -> None:
+    from mkc.cli import app
+
+    items = tmp_path / "items.yaml"
+    items.write_text(
+        "- {concept_key: MK-1, document_hash: h, task: {region: page 3}}\n", encoding="utf-8"
+    )
+    runs_before = rows(engine, "select count(*) from run")
+    both = ["run", "start", "--operator", OPERATOR_ID, "--items", str(items)]
+    result = CliRunner().invoke(app, both)
+    assert result.exit_code == 2
+    assert "exactly one of --operator and --items" in result.output
+    assert cli_docs.data == {}, "nothing was fetched"
     assert rows(engine, "select count(*) from run") == runs_before
