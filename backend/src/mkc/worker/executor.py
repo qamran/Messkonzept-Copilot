@@ -137,6 +137,10 @@ class Executor:
         except SQLAlchemyError as error:
             self._database_error(None, error)
             return False
+        except Exception:
+            log.exception("claim failed, backing off")
+            self.wait(self.settings.worker_db_backoff_max_seconds)
+            return False
         if run_id is None:
             return False
         held = _Held(run_id)
@@ -296,7 +300,7 @@ class Executor:
             return
         try:
             self._heartbeat_file.touch()
-        except OSError as exc:
+        except Exception as exc:  # no error ends this thread (MKC-17 finding 6)
             log.warning("heartbeat %s not written: %s", self._heartbeat_file, exc)
 
     def _renew(self) -> None:
@@ -314,6 +318,9 @@ class Executor:
                 )
         except SQLAlchemyError as error:  # not a lost lease: the database may be back soon
             log.warning("run %s: lease not renewed: %s", held.run_id, type(error).__name__)
+            return
+        except Exception:  # no error ends this thread (MKC-17 finding 6); retried next time
+            log.exception("run %s: lease renewal failed", held.run_id)
             return
         if not ok:
             log.warning("run %s: lease taken over by another worker", held.run_id)
