@@ -212,3 +212,126 @@ class RunLog(Base):
     latency_ms: Mapped[int | None] = mapped_column(Integer)
     detail: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+# --- MKC-21: operators and their fetched documents (decisions 62 and 63) ---
+
+
+class Operator(Base):
+    """One grid operator from `backend/data/operators.yaml`, upserted on every fetch.
+
+    `edition` is the number of the operator's latest `source_document` (0 before a fetch).
+    """
+
+    __tablename__ = "operator"
+
+    id: Mapped[str] = mapped_column(Text, primary_key=True)
+    name: Mapped[str] = mapped_column(Text)
+    voltage_level: Mapped[str] = mapped_column(Text)
+    url: Mapped[str] = mapped_column(Text)
+    edition: Mapped[int] = mapped_column(Integer, server_default="0")
+    created_at: Mapped[datetime] = _created()
+    updated_at: Mapped[datetime] = _updated()
+
+
+class SourceDocument(Base):
+    """One edition of an operator's catalogue. The PDF itself is only in Storage, under the
+    ref `blob:sha256:<sha256>`; Postgres keeps no bytes. A different hash than the latest
+    edition's is a new edition, never an overwrite (decision 62)."""
+
+    __tablename__ = "source_document"
+    __table_args__ = (
+        UniqueConstraint("operator_id", "edition", name="uq_source_document_edition"),
+        Index("ix_source_document_sha256", "sha256"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
+    operator_id: Mapped[str] = mapped_column(Text, ForeignKey("operator.id"))
+    edition: Mapped[int] = mapped_column(Integer)
+    url: Mapped[str] = mapped_column(Text)
+    sha256: Mapped[str] = mapped_column(String(64))
+    page_count: Mapped[int] = mapped_column(Integer)
+    fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+# --- MKC-49: the RAG corpus (lane D) ------------------------------------------------------
+# Imported here, not at the top, so this block stays self-contained for parallel lanes.
+
+from sqlalchemy import Computed  # noqa: E402
+from sqlalchemy.dialects.postgresql import TSVECTOR  # noqa: E402
+from sqlalchemy.dialects.postgresql import base as postgresql_base  # noqa: E402
+from sqlalchemy.sql.elements import ColumnElement  # noqa: E402
+from sqlalchemy.types import UserDefinedType  # noqa: E402
+
+from mkc.rag.embeddings import EMBEDDING  # noqa: E402
+
+
+class Vector(UserDefinedType[list[float]]):
+    """pgvector's `vector(n)`, sent and read as its text form `[x,y,…]` (no extra package)."""
+
+    cache_ok = True
+
+    def __init__(self, dim: int | None = None) -> None:
+        self.dim = dim  # None only when reflected (the database knows the dimension)
+
+    def get_col_spec(self, **kw: Any) -> str:
+        return "vector" if self.dim is None else f"vector({self.dim})"
+
+    def bind_expression(self, bindvalue: Any) -> ColumnElement[Any]:
+        return func.cast(bindvalue, self)
+
+    def bind_processor(self, dialect: Any) -> Any:
+        def process(value: list[float] | None) -> str | None:
+            return None if value is None else "[" + ",".join(repr(float(x)) for x in value) + "]"
+
+        return process
+
+    def result_processor(self, dialect: Any, coltype: Any) -> Any:
+        def process(value: str | None) -> list[float] | None:
+            return None if value is None else [float(x) for x in value.strip("[]").split(",")]
+
+        return process
+
+
+postgresql_base.ischema_names["vector"] = Vector  # reflection knows the type, no warning
+
+
+class CorpusDocument(Base):
+    """One source of the narrow corpus (MKC-49, feature 69): metadata from
+    `backend/data/corpus_sources.yaml`, unique by `source_id`. No text: that is in `chunk`."""
+
+    __tablename__ = "corpus_document"
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
+    source_id: Mapped[str] = mapped_column(Text, unique=True)
+    title: Mapped[str] = mapped_column(Text)
+    # `law`, `bnetza_decision` or `operator_text`
+    source_type: Mapped[str] = mapped_column(String(32))
+    url: Mapped[str] = mapped_column(Text)
+    version: Mapped[str] = mapped_column(Text)
+    # `official` or `restricted`
+    licence: Mapped[str] = mapped_column(String(16))
+    loaded_at: Mapped[datetime] = _created()
+
+
+class Chunk(Base):
+    """One chunk of a corpus document (MKC-49, feature 70): its text, its reference
+    (`§ 14a Abs. 1`), its embedding and its German full-text vector (generated)."""
+
+    __tablename__ = "chunk"
+    __table_args__ = (
+        UniqueConstraint("document_id", "ordinal", name="uq_chunk_document_ordinal"),
+        Index("ix_chunk_tsv", "tsv", postgresql_using="gin"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
+    document_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("corpus_document.id", ondelete="CASCADE")
+    )
+    ordinal: Mapped[int] = mapped_column(Integer)
+    source_ref: Mapped[str] = mapped_column(Text)
+    text: Mapped[str] = mapped_column(Text)
+    embedding: Mapped[list[float]] = mapped_column(Vector(EMBEDDING.dim))
+    tsv: Mapped[Any] = mapped_column(
+        TSVECTOR, Computed("to_tsvector('german'::regconfig, text)", persisted=True)
+    )

@@ -31,6 +31,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from mkc.db.models import Item, Turn
 from mkc.harness.baseline import RunMemory
+from mkc.harness.blobs import BlobStore, DbBlobStore
 from mkc.harness.cache import ToolCache
 from mkc.harness.checkpoint import (
     INLINE_MAX_BYTES,
@@ -63,6 +64,7 @@ from mkc.harness.prompts import (
 from mkc.harness.queue import has_work, next_item, resumable_item, settle_run
 from mkc.harness.retry import RetriesExhausted, RetryInterrupted, call_model
 from mkc.harness.states import ItemState, transition
+from mkc.harness.storage import LayeredBlobStore
 from mkc.harness.tools import ToolEnv, ToolRegistry
 from mkc.models.client import ModelClient, TraceScope
 from mkc.models.types import Message, ModelConfigError, ModelReply, ReplayMiss, Role, ToolCall
@@ -135,6 +137,7 @@ def run_item(
     switches: Switches = FULL,
     memory: RunMemory | None = None,
     faults: FaultInjector | None = None,
+    blobs: BlobStore | None = None,
 ) -> ItemOutcome:
     """Run the model-driven tool loop for one claimed item: `running` in the database, or,
     with `durable_queue` off, claimed in `memory` (MKC-20, decision 60)."""
@@ -148,13 +151,14 @@ def run_item(
         document_hash=item.document_hash,
         concept_key=item.concept_key,
     )
-    ctx = _Ctx(session, item_id, item.run_id, inline_max_bytes, fence, tracers, queue)
+    store = None if blobs is None else LayeredBlobStore(blobs, DbBlobStore(session))
+    ctx = _Ctx(session, item_id, item.run_id, inline_max_bytes, fence, tracers, queue, store)
     specs = [tool.to_spec() for tool in registry.for_context("item")]
     cache = None
     if code_version is not None and switches.tool_cache:
         cache = ToolCache(sessionmaker(bind=session.get_bind()), code_version)
     if switches.checkpoints:
-        context = load_resume_context(session, item_id)
+        context = load_resume_context(session, item_id, blobs=store)
     else:  # every attempt starts from the task
         task = [Message(role="system", content=SYSTEM_PROMPT),
                 Message(role="user", content=task_message(item.task))]  # fmt: skip
@@ -247,11 +251,14 @@ def process_run(
     switches: Switches = FULL,
     memory: RunMemory | None = None,
     faults: FaultInjector | None = None,
+    blobs: BlobStore | None = None,
 ) -> list[ItemOutcome]:
     """Claim and run items until the queue is empty, then settle the run.
 
     `inline_max_bytes` and `code_version` go to every `run_item` (the worker passes
-    `Settings.turn_inline_max_bytes` and the build's commit, MKC-17). When `should_stop`
+    `Settings.turn_inline_max_bytes` and the build's commit, MKC-17). Large turn results go
+    to `blobs` (Supabase Storage when configured; refs already in the `blob` table stay
+    readable) or, with None, to the `blob` table (MKC-21, decision 56). When `should_stop`
     ends the run early, the run is not settled.
 
     With `durable_queue` off (baseline, decision 60), the items come from `memory` and nothing
@@ -264,7 +271,7 @@ def process_run(
         "session": session, "client": client, "registry": registry, "limits": limits,
         "inline_max_bytes": inline_max_bytes, "code_version": code_version,
         "should_stop": should_stop, "fence": fence, "tracers": tracers, "sleep": sleep,
-        "switches": switches, "memory": memory, "faults": faults,
+        "switches": switches, "memory": memory, "faults": faults, "blobs": blobs,
     }  # fmt: skip
     if queue is not None:
         while not should_stop():
@@ -472,13 +479,16 @@ class _Ctx:
     tracers: Sequence[StopTracer]
     memory: RunMemory | None = None
     """The baseline's in-memory queue (durable queue off), else None."""
+    blobs: BlobStore | None = None
+    """Where large turn results go (Storage, falling back to the `blob` table for old refs);
+    None: the `blob` table (MKC-21, decision 56)."""
 
     def store(self, turn: TurnRecord) -> None:
         """Store a turn that does not end the item; a stored turn is progress (decision 58)."""
         if self.memory is not None:
             self.memory.add_turn(turn)
             return
-        save_turn(self.session, turn, inline_max_bytes=self.inline_max_bytes)
+        save_turn(self.session, turn, blobs=self.blobs, inline_max_bytes=self.inline_max_bytes)
         self.session.execute(
             update(Item).where(Item.id == self.item_id).values(attempts_without_progress=0)
         )
@@ -524,7 +534,7 @@ class _Ctx:
         turns, spent = int(turns), Decimal(spent)
         item = session.get_one(Item, self.item_id)
         if turn is not None:
-            save_turn(session, turn, inline_max_bytes=self.inline_max_bytes)
+            save_turn(session, turn, blobs=self.blobs, inline_max_bytes=self.inline_max_bytes)
             item.attempts_without_progress = 0
             turns, spent = turns + 1, spent + turn.cost_eur
         stored = None

@@ -328,3 +328,101 @@ def _split(output: Any, method: Method) -> tuple[AIMessage, dict[str, Any] | Non
 
 def _err(error: BaseException) -> str:
     return f"{type(error).__name__}: {error}"
+
+
+# --- Embeddings (MKC-49) ------------------------------------------------------------------
+
+EmbedCall = Callable[[Sequence[str]], tuple[list[list[float]], int]]
+"""One provider request: texts → (vectors in input order, input tokens)."""
+
+EmbedFactory = Callable[[Provider, str, int, float], EmbedCall]
+"""Builds the embedding call for (provider, model, dimensions, timeout in seconds)."""
+
+EMBED_BATCH_SIZE = 32
+"""Texts per request; a chunk is at most about 1,000 tokens, so a request stays small."""
+
+
+@dataclass(frozen=True)
+class EmbeddingReply:
+    vectors: list[list[float]]
+    model_id: str
+    input_tokens: int
+    cost_eur: float
+    latency_ms: int
+
+
+class EmbeddingClient:
+    """Embeddings through the provider layer: the vector sibling of `ModelClient` (MKC-49).
+
+    Same `models.yaml` price table and the same error classes (`classify`), and like
+    `ModelClient` it never imports a provider package itself. Live only: replies are not
+    recorded, so `record` and `replay` mode refuse to embed rather than spend or guess."""
+
+    def __init__(
+        self,
+        config: ModelsConfig,
+        factory: EmbedFactory,
+        *,
+        provider: Provider,
+        model: str,
+        dim: int,
+        mode: ModelMode = "live",
+        classify: Classifier | None = None,
+        batch_size: int = EMBED_BATCH_SIZE,
+    ) -> None:
+        if mode != "live":
+            raise ModelConfigError(
+                f"embeddings run in live mode only (MKC_MODEL_MODE=live), not {mode!r}"
+            )
+        config.cost_eur(provider, model, 0, 0)  # no price: refused before any spend
+        self._config = config
+        self._factory = factory
+        self._provider: Provider = provider
+        self._model = model
+        self._dim = dim
+        self._classify = classify
+        self._batch_size = batch_size
+
+    @classmethod
+    def from_settings(
+        cls, settings: Settings, *, provider: Provider, model: str, dim: int
+    ) -> "EmbeddingClient":
+        from mkc.models.providers import classify_error, make_embed_factory  # provider packages
+
+        path = Path(settings.models_file) if settings.models_file else DEFAULT_MODELS_FILE
+        return cls(
+            load_models_config(path),
+            make_embed_factory(settings),
+            provider=provider,
+            model=model,
+            dim=dim,
+            mode=settings.model_mode,
+            classify=classify_error,
+        )
+
+    def embed(self, texts: Sequence[str]) -> EmbeddingReply:
+        """The texts' vectors in input order, sent in batches."""
+        start = time.perf_counter()
+        vectors: list[list[float]] = []
+        tokens = 0
+        if texts:
+            call = self._factory(
+                self._provider, self._model, self._dim, self._config.timeout_seconds
+            )
+            for at in range(0, len(texts), self._batch_size):
+                try:
+                    batch, used = call(texts[at : at + self._batch_size])
+                except Exception as error:
+                    mapped = self._classify(error) if self._classify is not None else None
+                    if mapped is not None:
+                        raise mapped from error
+                    raise
+                vectors += batch
+                tokens += used
+        return EmbeddingReply(
+            vectors=vectors,
+            model_id=f"{self._provider}:{self._model}",
+            input_tokens=tokens,
+            cost_eur=self._config.cost_eur(self._provider, self._model, tokens, 0),
+            latency_ms=round((time.perf_counter() - start) * 1000),
+        )
