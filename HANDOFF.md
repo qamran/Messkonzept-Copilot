@@ -60,10 +60,10 @@ From MKC-168 (decision 61), tickets run in parallel lanes. Each lane keeps its o
 
 | Lane | Tickets | File | State |
 |---|---|---|---|
-| A. Extraction | MKC-21 → 22 → 23 → 25 → 26 → 28 | `handoff/lane-a.md` | not started (wave 1) |
-| A2. SachsenNetze | MKC-27 (after MKC-21) | `handoff/lane-a2.md` | waits on MKC-21 |
+| A. Extraction | MKC-21 → 22 → 23 → 25 → 26 → 28 → 29 → 30 | `handoff/lane-a.md` | not started (wave 1) |
+| A2. SachsenNetze and gold | MKC-27 (after MKC-21) → 24 (after MKC-23) | `handoff/lane-a2.md` | waits on MKC-21 |
 | B. Advisor | MKC-36 → (37 after MKC-30) → 38 | `handoff/lane-b.md` | not started (wave 1) |
-| C. Decision layer | MKC-46 → (47 after MKC-36, MKC-26) → 48 | `handoff/lane-c.md` | not started (wave 1) |
+| C. Decision layer | MKC-46 → (47 after MKC-36, MKC-26) → (48 after MKC-31) | `handoff/lane-c.md` | not started (wave 1) |
 | D. RAG | MKC-49 → 50 → (51 after MKC-38) | `handoff/lane-d.md` | not started (wave 1) |
 
 ## In progress
@@ -201,12 +201,13 @@ From MKC-168 (decision 61), tickets run in parallel lanes. Each lane keeps its o
 
 - **Docker Desktop** must be running for the local DB tests (`docker compose up -d db`), kind and the Compose smoke test. Start it only when needed and shut it down afterwards (stop the containers, quit Docker Desktop, `wsl --shutdown`): the user asked that `vmmemWSL` not keep running. CI uses its own Postgres service.
 - Later setup tasks (design doc section 13): provider API keys with caps. Done on 25.11.2026: Supabase project, Oracle VM with k3s, API host, Vercel project, GitHub `production` environment with `VERCEL_TOKEN`.
-- **Deploys:** since decision 51 the development agent approves both `production` gates (`backend`, then `frontend`) itself after a PASS merge with green CI (runbook "Deploy and rollback"); the user no longer has to click.
+- **Deploys:** since decision 51 the development agent (with parallel lanes, the coordinator; decision 61) approves both `production` gates (`backend`, then `frontend`) itself after a PASS merge with green CI (runbook "Deploy and rollback"); the user no longer has to click.
 - **Waiting now:** nothing.
 - **The user's PC:** it went down without a clean shutdown on 23.11 and 26.11.2026 (cause not found; graphics-driver hang reports on both days; a memory test is not done yet). Commit and push often. Two files exist only on the PC: the VM's admin SSH key and `backend/.env` (runbook "Only on the PC"); the user was advised to copy them into a password manager.
 
 ## Recent log
 
+- **27.11.2026 19:39** MKC-168.4/168.5 after the advisor check: AGENTS.md (migration re-chain renumbers id and file name; merge of `main` into a PR, never a rebase; when a PASS stands after an update from `main` and when the review agent re-checks; how the coordinator's own `HANDOFF.md` changes land; "Docs stay current" and the checklist point to the PR's own restart file). Lane table checked against each ticket's "Depends on": MKC-29 and MKC-30 join lane A (MKC-37 waits on MKC-30), MKC-24 joins lane A2, MKC-48 also waits on MKC-31; "run by the coordinator" removed. Stale role lines fixed: status doc, runbook "Deploy and rollback", ADR 005 and design section 14 (HANDOFF line, roles note), this file's Deploys line. markdownlint 0 errors; every check script passes.
 - **27.11.2026 19:39** MKC-168.1: the CRLF case of `test_commit_report.py` never reached the script (`git commit -m` strips carriage returns); it now commits with `--cleanup=verbatim` and asserts the raw message holds a carriage return. 8 passed.
 - **27.11.2026 19:38** MKC-168.3: pre-PR advisor check (about 19:33): two lanes cut from the same `main` both write revision `0012`; Alembic only warns ("Revision 0011 is present more than once") and lists the id twice. Added `duplicate_revisions` with `test_revision_ids_are_unique` (real folder) and `test_a_second_revision_with_the_heads_id_is_caught` (copy); mutation (`> 2` for `> 1`): 1 failed, 3 passed; restored: 4 passed.
 - **27.11.2026 19:30** MKC-168.1 fix: the first real gate run (19:27:45) exited 0, but its pytest step showed 647 passed, 12 skipped: the 11 gate tests skipped themselves, since under Git Bash `git` is `mingw64/bin/git.exe` and the bash lookup only tried `cmd/`. New test `test_git_bash_is_found_from_either_git`: with the old lookup 1 failed, 1 passed; with the new one (up to three parents) 2 passed. A second gate run (19:30:14) failed on `ruff format --check` (two blank lines missing in the test): the gate caught it before a commit; its pytest step had 660 passed, 1 skipped (the Windows SIGTERM test).

@@ -51,14 +51,16 @@ Full rules: decision 61, ADR 005 (amendment of 27.11.2026) and the plan `docs/su
 - **Agents per lane:** the test agent writes the red acceptance tests first, then the development agent builds, then the test agent runs its mutation pass. Each lane works in its own git worktree on `mkc-<n>-<slug>`; no two agents write the same worktree at the same time.
 - **Shared files, one rule each:**
   - `HANDOFF.md`: the coordinator only. Lanes write `handoff/lane-<x>.md`.
-  - Migrations: `down_revision` = `main`'s head when the branch was cut. `test_single_migration_head` fails when `main` has two heads; the coordinator re-chains the second PR's revision when it updates the branch from `main`.
+  - Migrations: `down_revision` = `main`'s head when the branch was cut. Two lanes cut from the same `main` will both pick the next number, so `test_single_migration_head` (two heads) and `test_revision_ids_are_unique` (one id in two files) fail on the second PR once it is updated from `main`. The coordinator then re-chains that PR's revision: a new id and file name (the next free number) and `down_revision` = the new head.
   - Decision log (design section 18): each lane uses only its block of numbers (status doc); unused numbers are marked "not used" at the wave's end.
   - Status doc, runbook, design sections, backlog: each lane edits only its own ticket's section and adds new sections at the end of its own area; the coordinator resolves text conflicts.
   - `config.py`, `.env.example`: append-only, one block per lane with a comment naming the ticket.
   - `pyproject.toml`, `uv.lock`: a lane that adds a dependency says so in its PR; after a rebase the coordinator runs `uv lock`; the lock is never hand-merged.
   - `mkc/harness/registry.py` item tools: lane A only.
   - The board: each agent moves only its own ticket and sub-issues.
-- **Merge queue:** one merge at a time, by readiness (green CI and PASS first), not by ticket number; the backlog's dependencies still hold. Review starts only when `gh pr checks` is green. After each merge the coordinator updates every other open PR from `main`, and CI runs again. A FAIL goes back to its lane without blocking the others.
+- **Merge queue:** one merge at a time, by readiness (green CI and PASS first), not by ticket number; the backlog's dependencies still hold. Review starts only when `gh pr checks` is green. After each merge the coordinator updates every other open PR from `main` (a merge of `main` into the branch, never a rebase), and CI runs again. A FAIL goes back to its lane without blocking the others.
+- **A PASS after an update from `main`:** a PASS stands when the update only merged `main` in without conflicts in the lane's own files and CI is green again; the review agent then merges. When the coordinator had to resolve a conflict in the lane's files or re-chain a migration, the review agent re-checks that merge commit (a short verdict on the change) before it merges.
+- **The coordinator's own changes** (`HANDOFF.md` after merges and deploys, the backlog's lane table) go into the next ticket PR it builds, or into a short coordinator PR with the same gate and review, under the wave's coordinator issue (one issue per wave, opened by the coordinator when the wave starts). Lane branches are never used for them. A coordinator PR makes the open lane PRs stale too, so the coordinator batches its entries and opens one only between lane merges.
 - **Questions:** lanes never ask the user. A design question goes to the coordinator, who asks the user if it is a genuine decision (decision 36).
 - **Smoke tests:** the Compose and kind smoke tests use fixed names and ports; only the coordinator runs them, one at a time.
 - **Budget:** live model calls need the coordinator's go and are logged per lane.
@@ -78,7 +80,7 @@ Full rules: decision 61, ADR 005 (amendment of 27.11.2026) and the plan `docs/su
 
 ## Docs stay current
 
-- A ticket that changes a decision updates, in the same PR: the design doc's decision log (section 18), the matching ADR (or a new ADR in `docs/adr/`), `docs/241120261430-project-status.md` and `HANDOFF.md`.
+- A ticket that changes a decision updates, in the same PR: the design doc's decision log (section 18), the matching ADR (or a new ADR in `docs/adr/`), `docs/241120261430-project-status.md` and the agent's own restart file (`HANDOFF.md` for the coordinator, `handoff/lane-<x>.md` in a lane).
 - New Markdown docs, specs and plans are named `ddMMyyyyHHmm-<topic>.md`.
 - Docs are written in plain English: short sentences, lists over long paragraphs.
 
@@ -112,7 +114,7 @@ The review agent starts only when `gh pr checks` is green. It checks each item a
 - [ ] **Success criteria:** every success criterion of the ticket and its sub-issues is met, item by item.
 - [ ] **Tests prove it:** the tests or check scripts prove each criterion; the test was red before the change and is green now; CI is green. In a lane, the test agent's red tests are unchanged at the PR head (`git diff` of its red commit), or each change has a reason in the PR body.
 - [ ] **Global constraints:** the rules in this file hold (commit format and size, data, model and safety rules, assignment to `qamran`, merge commit only).
-- [ ] **Docs updated:** design doc decision log, ADR, status doc and HANDOFF.md are current, and HANDOFF.md log times match git and GitHub.
+- [ ] **Docs updated:** design doc decision log, ADR, status doc and the PR's restart file (`HANDOFF.md`, or `handoff/lane-<x>.md` for a lane PR, which leaves `HANDOFF.md` alone) are current, and its log times match git and GitHub.
 - [ ] **No secrets:** no keys, tokens, `.env` content, real customer data or committed PDFs anywhere in the diff.
 
 Verdict: PASS (merge with a merge commit) or FAIL (findings listed; do not merge).

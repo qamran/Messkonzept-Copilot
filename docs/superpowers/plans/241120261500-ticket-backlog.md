@@ -57,15 +57,15 @@ Added 27.11.2026 by MKC-168 (decision 61, plan `docs/superpowers/plans/271120261
 
 | Lane | Tickets, in order | Owns (new code) | Waits on another lane |
 |---|---|---|---|
-| A. Extraction | MKC-21 → MKC-22 → MKC-23 → MKC-25 → MKC-26 → MKC-28 | `mkc/extraction/`, the item tools in `mkc/harness/registry.py`, `backend/data/operators.yaml` | none |
-| A2. SachsenNetze | MKC-27 | `mkc/extraction/sachsen*.py` | A (MKC-21) |
+| A. Extraction | MKC-21 → MKC-22 → MKC-23 → MKC-25 → MKC-26 → MKC-28 → MKC-29 → MKC-30 | `mkc/extraction/`, the item tools in `mkc/harness/registry.py`, `backend/data/operators.yaml`, the review queue and commit (MKC-29, MKC-30) | none |
+| A2. SachsenNetze and gold | MKC-27 → MKC-24 | `mkc/extraction/sachsen*.py`, the gold tooling | MKC-27 on A (MKC-21); MKC-24 on A (MKC-23) |
 | B. Advisor | MKC-36 → MKC-37 → MKC-38 | `mkc/advisor/`, advisor API routes, advisor UI pages | MKC-37 waits on A (MKC-30) |
-| C. Decision layer | MKC-46 → MKC-47 → MKC-48 | `mkc/decision/` (`DecisionClient`) | MKC-47 waits on B (MKC-36) and A (MKC-26) |
+| C. Decision layer | MKC-46 → MKC-47 → MKC-48 | `mkc/decision/` (`DecisionClient`) | MKC-47 waits on B (MKC-36) and A (MKC-26); MKC-48 on MKC-31 (eval runner, no lane yet) |
 | D. RAG | MKC-49 → MKC-50 → MKC-51 | `mkc/rag/`, corpus loader, retriever | MKC-51 waits on B (MKC-38) |
 
 **Wave 1 (from 27.11.2026):** MKC-21 (lane A), MKC-36 (lane B), MKC-46 (lane C), MKC-49 (lane D); MKC-46 and MKC-49 are Phase 7 tickets built early.
 
-**Later waves:** MKC-27 (lane A2) joins once MKC-21 is merged. Tickets outside these lanes (for example MKC-24, MKC-29 to MKC-35) are assigned to a lane or run by the coordinator when their dependencies are done.
+**Later waves:** MKC-27 (lane A2) joins once MKC-21 is merged. The waits above come from each ticket's "Depends on" line. Tickets outside these lanes (for example the evaluation tickets MKC-31 to MKC-35) get a lane from the coordinator when their dependencies are done; the coordinator never builds lane code itself.
 
 ## Ticket format
 
