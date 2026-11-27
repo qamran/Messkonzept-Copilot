@@ -119,3 +119,57 @@ def test_http_get_fails_on_an_http_error() -> None:
 
     with pytest.raises(httpx.HTTPStatusError):
         http_get(URL_OK, transport=_transport({URL_OK: httpx.Response(404)}))
+
+
+def test_the_edition_keeps_the_final_url_after_redirects(
+    engine: Engine, sessions: sessionmaker[Session], store: MemoryStore
+) -> None:
+    from mkc.extraction.fetch import fetch_document
+
+    final = "https://netz.example/2026/messkonzepte-v2.pdf"
+    doc = fetch_document(
+        OPERATOR_ID, sessions=sessions, store=store,
+        get=FakeGet([(final, make_pdf(berlin_pages(["1"])))]), operators=operators(),
+    )  # fmt: skip
+    assert doc.url == final
+    assert rows(engine, "select url from source_document") == [(final,)]
+
+
+def _chain(hops: int) -> tuple[httpx.MockTransport, list[httpx.Request]]:
+    """`hops` redirects, each to a new host (a CDN off the allow-list), then the PDF."""
+    seen: list[httpx.Request] = []
+
+    def handle(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        n = len(seen)
+        if n <= hops:
+            return httpx.Response(302, headers={"location": f"https://cdn{n}.example/x.pdf"})
+        return httpx.Response(200, content=b"%PDF-data")
+
+    return httpx.MockTransport(handle), seen
+
+
+def test_http_get_follows_at_most_five_redirects() -> None:
+    from mkc.extraction.fetch import MAX_REDIRECTS, DisallowedUrl, http_get
+
+    assert MAX_REDIRECTS == 5
+    transport, seen = _chain(5)
+    assert http_get(URL_OK, transport=transport).url == "https://cdn5.example/x.pdf"
+    assert len(seen) == 6
+    transport, seen = _chain(6)
+    with pytest.raises(DisallowedUrl, match="more than 5 redirects"):
+        http_get(URL_OK, transport=transport)
+    assert len(seen) == 6, "the sixth redirect is not followed"
+
+
+def test_redirect_hops_get_a_plain_get_with_no_body_or_credentials() -> None:
+    # Known limit (decision 62): hops off the allow-list are requested; only the final URL is
+    # checked. They must learn nothing beyond the URL: no body, no auth, no cookies.
+    from mkc.extraction.fetch import http_get
+
+    transport, seen = _chain(2)
+    http_get(URL_OK, transport=transport)
+    for request in seen:
+        assert request.method == "GET"
+        assert request.content == b""
+        assert not {"authorization", "cookie", "proxy-authorization"} & set(request.headers)
