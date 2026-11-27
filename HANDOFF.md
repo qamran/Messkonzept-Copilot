@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 19:14
+**Last updated:** 27.11.2026, 19:18
 
 This file is how agents resume work after a session restart.
 
@@ -195,6 +195,7 @@ This file is how agents resume work after a session restart.
 
 ## Recent log
 
+- **27.11.2026 19:18** MKC-168.1 green: `scripts/pre_pr.sh` (CI's `backend` and `docs` commands verbatim, each step in a subshell, all steps run, exit 1 if any failed; `python3` shim for Windows; then `scripts/commit_report.py`), `scripts/commit_report.py` (subject, a `Refs: qamran/Messkonzept-Copilot#<n>` line, no other `Refs:` line, commits over 200 lines listed). `tests/test_pre_pr.py` and `tests/test_commit_report.py` 20 passed; `check_pre_pr.py` passes; ruff, format (133 files), mypy (48 files) clean. Fix on the way: Git for Windows' `bin/bash.exe` puts `/usr/bin` first, so the test prepends the stubs inside the shell. `50c868c` (the red tests) is 304 lines.
 - **27.11.2026 19:14** MKC-168.1 red: `scripts/check_pre_pr.py` (every `run:` line of CI's `backend` and `docs` jobs must be a line of `scripts/pre_pr.sh`; fails: file missing), `tests/test_pre_pr.py` (gate with stub `uv`, `npx`, `python3`, `bash`; one failing step each; a real mis-formatted probe) and `tests/test_commit_report.py` (subjects, `Refs:` trailers, commits over 200 lines, in a throwaway repo): 20 failed, since neither script exists.
 - **27.11.2026 19:12** MKC-168 sub-issues #169 to #173 created, assigned to `qamran`, linked to #168 and on the board (#169 `In progress`, the rest `Ready`).
 - **27.11.2026 19:06** The user chose: merge as ready, Phase 7 code may reach production early, start the setup ticket and then develop; refresh the session first. MKC-168 (#168) created (18:06:24Z = 19:06:24), assigned to `qamran`, `In progress` (19:06:32); local branch renamed `mkc-168-parallel-lanes` and pushed.

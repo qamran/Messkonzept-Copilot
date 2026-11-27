@@ -62,10 +62,27 @@ def stubs(tmp_path: Path) -> Path:
 def _run_gate(stubs: Path, **env: str) -> tuple[int, str, list[str]]:
     assert BASH is not None
     log = stubs.parent / "stub.log"
-    full_env = {**os.environ, "STUB_LOG": str(log), "PRE_PR_SKIP_COMMITS": "1", **env}
-    full_env["PATH"] = f"{stubs}{os.pathsep}{full_env['PATH']}"
+    full_env = {
+        **os.environ,
+        "STUB_LOG": str(log),
+        "STUB_DIR": str(stubs),
+        "PRE_PR_SKIP_COMMITS": "1",
+        **env,
+    }
+    # The stubs go first on the PATH inside the shell: Git for Windows' bash.exe launcher
+    # puts /usr/bin (with the real bash) ahead of the PATH it was given.
+    prepend = (
+        'd="$STUB_DIR"; '
+        'case "$d" in [A-Za-z]:*) d="$(cygpath -u "$d")" ;; esac; '
+        'PATH="$d:$PATH"; export PATH; exec "$BASH" "$0"'
+    )
     done = subprocess.run(
-        [BASH, str(GATE)], cwd=ROOT, env=full_env, capture_output=True, text=True, timeout=300
+        [BASH, "-c", prepend, str(GATE)],
+        cwd=ROOT,
+        env=full_env,
+        capture_output=True,
+        text=True,
+        timeout=300,
     )
     calls = log.read_text(encoding="utf-8").splitlines() if log.exists() else []
     return done.returncode, done.stdout + done.stderr, calls
