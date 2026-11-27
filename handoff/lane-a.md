@@ -1,6 +1,6 @@
 # Lane A: Extraction
 
-**Last updated:** 27.11.2026, 21:19
+**Last updated:** 27.11.2026, 21:43
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -58,6 +58,35 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 - The live test's `EXPECTED_BERLIN_CONCEPTS` is `None` until the first verified live run, which needs the coordinator's go.
 - Adding the PDF library (pdfplumber or PyMuPDF, design section 4) to `pyproject.toml`, and saying so in the PR. The synthetic PDF parses with both.
 
+### Mutation pass (test agent, 27.11.2026, head `7427125`)
+
+- Method: one hand-written mutant at a time (exact string replacement, CRLF-aware, checked as applied), `__pycache__` cleared, then `pytest tests/extraction tests/harness/test_storage.py tests/harness/test_resume_storage.py tests/harness/test_registry.py tests/harness/test_blobs.py tests/harness/test_resume.py tests/worker/test_executor.py tests/test_cli.py -x`, file restored after each. No mutant was committed.
+- Result: 85 mutants tried, 63 killed, 22 survived. Unmodified base run: `138 passed, 2 deselected`.
+- New acceptance tests (commit `6161098`) kill 2 of the survivors: `test_editions_are_numbered_per_operator` kills `fetch.py:164` (latest edition taken across all operators), and `test_the_cli_caches_pdfs_in_storage_when_it_is_configured` kills `cli.py:62` (CLI ignores the Storage settings). With them: 65 killed, 20 survived.
+- The changed fixtures (`berlin_pages`, `Side`, `make_pdf`) still test what the acceptance assertions meant: a cover, a contents page and an appendix give no region; a body line that cites another concept is not a heading; pages [3, 4, 5] carry hints [1, 2a, 3]; the sidebar is now in the PDF too.
+- Allow-list, order of checks, editions and the "no run on a failed fetch" rule are well covered: all of these mutants were killed: http allowed, suffix and substring host match, the configured URL or the final URL not checked, the final check on the configured URL, `store.put` before the final-URL check or before the PDF check, same hash as a new edition, edition +2 or starting at 0, `operator.edition` not updated, the `new_edition` flag always or never set, A,B,A with the oldest edition taken as latest, `document_by_hash` taking the oldest, and a run committed before the fetch.
+- Redirect hops: `http_get` requests every intermediate https hop, also on a host off the allow-list; only the final URL is checked. No test pins hop behaviour beyond "a hop to plain http is refused" and "the final URL is reported" (both mutants killed); the redirect limit is not pinned (survivor below).
+- Survivors (20), file:line, what the mutant changed:
+  1. `extraction/fetch.py:84` dropped the `"@" in netloc` check. Near-equivalent: `urlsplit().hostname` still yields the userinfo host's real host, so the userinfo case stays refused; only `https://user@<listed host>/` would pass.
+  2. `extraction/fetch.py:86` host compared case-sensitively. Near-equivalent: `urlsplit` lowercases the host and the loader lowercases `allowed_hosts`; only an upper-case host in a hand-built `OperatorConfig` would differ.
+  3. `extraction/fetch.py:99` one redirect more than `MAX_REDIRECTS`: the limit is not tested.
+  4. `extraction/fetch.py:113` `%PDF-` magic check removed: pdfplumber still refuses the three non-PDF cases.
+  5. `extraction/fetch.py:120` zero-page check off: no test with a zero-page PDF.
+  6. `extraction/fetch.py:146` check that the store's ref equals `blob:sha256:<digest>` removed: no test with a misbehaving store.
+  7. `extraction/fetch.py:173` the edition row stores the configured URL, not the final URL after redirects: no test with a redirect through `fetch_document`.
+  8. `extraction/fetch.py:161` `with_for_update()` lock on the operator row removed: no concurrent-fetch test.
+  9. `extraction/segment.py:30` `LINE_TOLERANCE` 0: synthetic words on one line share the same top.
+  10. `extraction/segment.py:77` graphics in the sidebar kept in the region: no test with a sidebar drawing.
+  11. `extraction/operators.py:64` loader accepts a URL with userinfo: not in `test_operators_file.py`.
+  12. `extraction/operations.py:60` the explicit unknown-hash refusal removed: the call still fails (later, on `None`), as a tool error.
+  13. `extraction/operations.py:53` `fetch_document` result: `new_edition` always False. The flag is lost at the registry boundary and in the CLI output, and no test asserts it there.
+  14. `extraction/operations.py:65` `segment_document` result: `edition` constant 1, not asserted.
+  15. `harness/storage.py:120` PUT signed as GET: the mock transport does not check the signature of `put`.
+  16. `harness/storage.py:121` no `content-type` header on PUT.
+  17. `cli.py:153` `--operator` together with `--items` accepted: `test_run_start_needs_exactly_one_source` still passes because the missing items file also fails.
+  18. `harness/loop.py:537` the turn that ends an item goes to the `blob` table instead of `blobs`.
+  19. `harness/loop.py:274` `process_run` does not pass `blobs` on to `run_item`.
+  20. `worker/executor.py:206` the executor does not pass `blobs` to the run: the test checks only `Executor.blobs`, so the worker would keep large turn results in the `blob` table.
 ## Next steps
 
 1. Development agent: `bash scripts/pre_pr.sh`, push the branch, report to the coordinator (no PR yet).
@@ -67,6 +96,8 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 5. Decisions taken for the test agent's open assumptions: 1 confirmed; 2 (a return to an older hash) is a new edition (decision 62); 3 replaced by the real layout (decision 64); 4 confirmed.
 
 ## Recent log
+
+- **27.11.2026 21:43** Test agent: mutation pass on `7427125`: 85 tried, 63 killed, 22 survived; two new acceptance tests (`6161098`) kill two survivors, leaving 20 (listed under "Mutation pass").
 
 - **27.11.2026 21:19** Development agent: fetches disclosed: besides the live tests (Berlin twice in `test_live_berlin.py`, once in `test_live_storage.py`), the Berlin PDF was downloaded once with `curl` into a scratch folder outside the repo to study the layout (now deleted), and sachsen-netze.de was read for the catalogue link (two HTML pages, and the PDF once to `/dev/null` to check the status and type). Gitleaks over the branch (`pre-commit run gitleaks --from-ref origin/main --to-ref HEAD`): Passed.
 
