@@ -1,5 +1,6 @@
 """Tool registry core (MKC-14.1): allow-lists, validation and structured errors."""
 
+from dataclasses import replace
 from typing import Any
 
 import pytest
@@ -235,3 +236,12 @@ def test_item_call_without_the_item_ids_is_a_harness_error(env: ToolEnv) -> None
     with pytest.raises(ValueError, match="item context needs"):
         make_registry(item_fn=spy).execute(call("extract_text", page=1), "item", env)
     assert spy.calls == []
+
+
+def test_trace_carries_the_harness_ids() -> None:
+    """MKC-19.2: run, item and step come from the harness's `ToolEnv`, never the model."""
+    traces: list[ToolTrace] = []
+    make_registry(traces=traces).execute(call("extract_text", page=1), "item",
+                                         replace(ENV, step=3))  # fmt: skip
+    (trace,) = traces
+    assert (trace.run_id, trace.item_id, trace.step) == (7, 42, 3)

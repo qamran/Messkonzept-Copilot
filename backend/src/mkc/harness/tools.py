@@ -50,6 +50,7 @@ class ToolEnv:
     item_id: int | None = None
     document_hash: str | None = None
     concept_key: str | None = None
+    step: int | None = None  # the item's model call this tool call answers (MKC-19)
 
 
 @dataclass(frozen=True)
@@ -105,6 +106,9 @@ class ToolTrace:
     refused: bool
     latency_ms: int
     cached: bool = False
+    run_id: int | None = None  # from `ToolEnv` (MKC-19)
+    item_id: int | None = None
+    step: int | None = None
 
 
 ToolTracer = Callable[[ToolTrace], None]

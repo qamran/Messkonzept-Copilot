@@ -50,6 +50,16 @@ ChatModelFactory = Callable[[Provider, str, float], BaseChatModel]
 
 
 @dataclass(frozen=True)
+class TraceScope:
+    """Where a model call belongs: the harness's run, item and step (MKC-19). The caller
+    passes it with the call, so a trace that arrives late still lands in its place."""
+
+    run_id: int
+    item_id: int | None = None
+    step: int | None = None
+
+
+@dataclass(frozen=True)
 class CallTrace:
     """One model call, as the trace hooks see it. `usage` is None when the call failed."""
 
@@ -60,6 +70,7 @@ class CallTrace:
     latency_ms: int
     usage: Usage | None
     error: str | None
+    scope: TraceScope | None = None
 
 
 Tracer = Callable[[CallTrace], None]
@@ -148,11 +159,18 @@ class ModelClient:
 
     # --- public methods ---------------------------------------------------------------
 
-    def chat(self, role: Role, messages: Sequence[Message]) -> ModelReply:
+    def chat(
+        self, role: Role, messages: Sequence[Message], *, scope: TraceScope | None = None
+    ) -> ModelReply:
         return self._call(role, "chat", messages, lambda model: model)
 
     def chat_with_tools(
-        self, role: Role, messages: Sequence[Message], tools: Sequence[ToolSpec]
+        self,
+        role: Role,
+        messages: Sequence[Message],
+        tools: Sequence[ToolSpec],
+        *,
+        scope: TraceScope | None = None,
     ) -> ModelReply:
         if not tools:
             raise ValueError("chat_with_tools needs at least one tool")
@@ -162,7 +180,12 @@ class ModelClient:
         )
 
     def vision(
-        self, role: Role, messages: Sequence[Message], images: Sequence[Image]
+        self,
+        role: Role,
+        messages: Sequence[Message],
+        images: Sequence[Image],
+        *,
+        scope: TraceScope | None = None,
     ) -> ModelReply:
         """Like `chat`, with the images added to the last user message."""
         if not images:
@@ -177,7 +200,12 @@ class ModelClient:
         return self._call(role, "vision", with_images, lambda model: model)
 
     def chat_structured(
-        self, role: Role, messages: Sequence[Message], schema: type[BaseModel]
+        self,
+        role: Role,
+        messages: Sequence[Message],
+        schema: type[BaseModel],
+        *,
+        scope: TraceScope | None = None,
     ) -> ModelReply:
         """A reply whose `parsed` field is `schema`, validated, as a plain dict."""
         return self._call(

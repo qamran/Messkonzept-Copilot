@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 15:14
+**Last updated:** 27.11.2026, 15:15
 
 This file is how agents resume work after a session restart.
 
@@ -58,7 +58,7 @@ This file is how agents resume work after a session restart.
   - Plan: `docs/superpowers/plans/271120261507-mkc-19-tracing.md` (decision 59).
   - Sub-issues: MKC-19.1 #156 (`In progress`), MKC-19.2 #157, MKC-19.3 #158, MKC-19.4 #159, MKC-19.5 #160 (`Ready`).
   - Waiting on the user (not blocking 19.1 to 19.4): Langfuse API keys in `backend/.env` (`MKC_LANGFUSE_PUBLIC_KEY`, `MKC_LANGFUSE_SECRET_KEY`, `MKC_LANGFUSE_BASE_URL`) for the real run of 19.5.
-  - MKC-19.1 done: `process_run` checks `has_work` before the run limits, so the reviewer's probe settles to `awaiting_approval` (harness and worker tests: 253 passed, 1 skipped). Next: MKC-19.2.
+  - MKC-19.1 done: `process_run` checks `has_work` before the run limits, so the reviewer's probe settles to `awaiting_approval` (harness and worker tests: 253 passed, 1 skipped). MKC-19.2 `In progress` (15:14:17): red tests for the trace ids committed with a skeleton (`TraceScope`, `CallTrace.scope`, `ToolEnv.step`, ids on `ToolTrace`, not yet filled in).
 
 ## Next steps
 

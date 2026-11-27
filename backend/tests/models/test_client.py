@@ -1,13 +1,15 @@
 """MKC-13.3: ModelClient over a fake LangChain chat model (live mode, no network)."""
 
+from pathlib import Path
 from typing import Any
 
 import pytest
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 from pydantic import BaseModel, Field
 
-from mkc.models.client import CallTrace, ModelClient
+from mkc.models.client import CallTrace, ModelClient, TraceScope
 from mkc.models.config import ModelsConfig
+from mkc.models.replay import ReplayStore
 from mkc.models.types import (
     ROLES,
     Image,
@@ -239,3 +241,26 @@ def test_a_failing_tracer_does_not_break_the_call() -> None:
 
     the_client = ModelClient(config(), Built(fake(ai("ok"))), mode="live", tracers=[broken])
     assert the_client.chat("facts", USER).text == "ok"
+
+
+def test_scope_is_traced_and_kept_out_of_the_replay_key(tmp_path: Path) -> None:
+    """MKC-19.2: the harness's run, item and step reach the trace; a replay without them
+    still finds the recording."""
+    traces: list[CallTrace] = []
+    scope = TraceScope(run_id=1, item_id=2, step=3)
+    store = ReplayStore(tmp_path)
+    recorder = ModelClient(config(), Built(fake(ai("rec"))), mode="record", store=store,
+                           tracers=[traces.append])  # fmt: skip
+    recorder.chat_with_tools("explain", USER, [LOOKUP], scope=scope)
+    replayer = ModelClient(config(), Built(fake()), mode="replay", store=store,
+                           tracers=[traces.append])  # fmt: skip
+    assert replayer.chat_with_tools("explain", USER, [LOOKUP]).text == "rec"
+    assert [t.scope for t in traces] == [scope, None]
+
+
+def test_failed_call_keeps_its_scope() -> None:
+    traces: list[CallTrace] = []
+    the_client = client(fake(error=TimeoutError("slow")), traces)[0]
+    with pytest.raises(TimeoutError):
+        the_client.chat("facts", USER, scope=TraceScope(run_id=4, item_id=5, step=6))
+    assert traces[0].scope == TraceScope(4, 5, 6)
