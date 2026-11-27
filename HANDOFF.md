@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 19:19
+**Last updated:** 27.11.2026, 19:20
 
 This file is how agents resume work after a session restart.
 
@@ -53,6 +53,18 @@ This file is how agents resume work after a session restart.
 - **How to run the whole stack in containers:** `docker compose --env-file frontend/.env.local up --build` (repo root; the env file gives the frontend build its Clerk key; without it the page says the key is missing). API on `127.0.0.1:8000`, frontend on `localhost:5173`, db on `127.0.0.1:5433`; `backend/.env` is loaded when present. `bash scripts/compose_smoke.sh` checks the stack as its own project (`mkc-smoke`, ports 15433/18000/15173, images tagged `smoke`) and removes its containers and volume afterwards.
 - **How to test the Helm chart:** `python scripts/check_helm.py` (static rules), then `bash scripts/kind_smoke.sh` (repo root; needs Docker Desktop running, plus `kind`, `helm` and `kubectl` on the PATH or in `KIND`, `HELM`, `KUBECTL`). It creates and deletes its own cluster `mkc-smoke` and never touches `~/.kube/config`. Lint: `helm lint --strict deploy/helm/mkc --set image.tag=lint`.
 - **How to test the backend:** `docker compose up -d db` (repo root; Postgres 17 + pgvector on `127.0.0.1:5433`), then `cd backend && uv sync && uv run pytest`. The DB tests fail if the db is down; `MKC_SKIP_DB_TESTS=1` skips them on purpose. Windows skips one POSIX-only worker test; run it in Linux with the Docker command in PR #75.
+
+## Lanes
+
+From MKC-168 (decision 61), tickets run in parallel lanes. Each lane keeps its own restart file in `handoff/` (made from `handoff/TEMPLATE.md`); only that lane's agents write it. This file is the coordinator's: the board summary, merges, deploys and the `turing` pushes. `scripts/check_handoff.py` checks both.
+
+| Lane | Tickets | File | State |
+|---|---|---|---|
+| A. Extraction | MKC-21 → 22 → 23 → 25 → 26 → 28 | `handoff/lane-a.md` | not started (wave 1) |
+| A2. SachsenNetze | MKC-27 (after MKC-21) | `handoff/lane-a2.md` | waits on MKC-21 |
+| B. Advisor | MKC-36 → (37 after MKC-30) → 38 | `handoff/lane-b.md` | not started (wave 1) |
+| C. Decision layer | MKC-46 → (47 after MKC-36, MKC-26) → 48 | `handoff/lane-c.md` | not started (wave 1) |
+| D. RAG | MKC-49 → 50 → (51 after MKC-38) | `handoff/lane-d.md` | not started (wave 1) |
 
 ## In progress
 
@@ -195,6 +207,7 @@ This file is how agents resume work after a session restart.
 
 ## Recent log
 
+- **27.11.2026 19:20** MKC-168.2 green: `check_handoff.py` checks `handoff/TEMPLATE.md` and every `handoff/lane-*.md` (`Last updated`, In progress, Next steps, Recent log) and wants `## Lanes` in this file; the Lanes table added above. `tests/test_check_handoff.py` 9 passed; `check_handoff.py` exit 0; markdownlint 0 errors on both files.
 - **27.11.2026 19:19** MKC-168.2 red: `handoff/TEMPLATE.md` (a lane's `Last updated`, In progress, Next steps, Recent log) and `tests/test_check_handoff.py`: 6 failed on assertions (lane files and the template are not checked; HANDOFF.md has no `## Lanes`), 3 passed. #170 `In progress` (19:18:55). `e51b239` (gate) is 201 lines.
 - **27.11.2026 19:18** MKC-168.1 green: `scripts/pre_pr.sh` (CI's `backend` and `docs` commands verbatim, each step in a subshell, all steps run, exit 1 if any failed; `python3` shim for Windows; then `scripts/commit_report.py`), `scripts/commit_report.py` (subject, a `Refs: qamran/Messkonzept-Copilot#<n>` line, no other `Refs:` line, commits over 200 lines listed). `tests/test_pre_pr.py` and `tests/test_commit_report.py` 20 passed; `check_pre_pr.py` passes; ruff, format (133 files), mypy (48 files) clean. Fix on the way: Git for Windows' `bin/bash.exe` puts `/usr/bin` first, so the test prepends the stubs inside the shell. `50c868c` (the red tests) is 304 lines.
 - **27.11.2026 19:14** MKC-168.1 red: `scripts/check_pre_pr.py` (every `run:` line of CI's `backend` and `docs` jobs must be a line of `scripts/pre_pr.sh`; fails: file missing), `tests/test_pre_pr.py` (gate with stub `uv`, `npx`, `python3`, `bash`; one failing step each; a real mis-formatted probe) and `tests/test_commit_report.py` (subjects, `Refs:` trailers, commits over 200 lines, in a throwaway repo): 20 failed, since neither script exists.
