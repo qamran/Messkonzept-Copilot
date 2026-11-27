@@ -113,11 +113,13 @@ Why a separate test agent:
 
 A new issue, "Parallel lanes: workflow, gate and checks", built by the coordinator alone:
 
-- [ ] Decision 61 in the design doc (this workflow, the user's phase decision), ADR 005 amendment (lanes, agents, merge queue), `AGENTS.md` roles (coordinator, test agent) and the lane rules, `check_agents.py` updated
-- [ ] `handoff/` folder with a template, `HANDOFF.md` reduced to the coordinator's summary, `check_handoff.py` checks the lane files (red first)
-- [ ] `scripts/pre_pr.sh` (CI's exact commands, trailer and size report), with a test that it fails on a mis-formatted file (red first)
-- [ ] `test_single_migration_head` (red with a second head made in a test database)
-- [ ] Decision-number blocks for wave 1 written in the status doc
-- [ ] The backlog marks the lanes and wave 1
+- [x] Decision 61 in the design doc (this workflow, the user's phase decision), ADR 005 amendment (lanes, agents, merge queue), `AGENTS.md` roles (coordinator, test agent) and the lane rules, `check_agents.py` updated
+- [x] `handoff/` folder with a template, `HANDOFF.md` reduced to the coordinator's summary, `check_handoff.py` checks the lane files (red first)
+- [x] `scripts/pre_pr.sh` (CI's exact commands, trailer and size report), with a test that it fails on a mis-formatted file (red first)
+- [x] `test_single_migration_head` (red with a second head made in a test database)
+- [x] Decision-number blocks for wave 1 written in the status doc
+- [x] The backlog marks the lanes and wave 1
+
+As built (MKC-168, #169–#173): the gate's own tests are pytest tests in `backend/tests` (the `backend` job runs them), and `commit_report.py` does the trailer and size report; the decision blocks are in the status doc, checked by `check_lanes.py`; the old HANDOFF log moved to `handoff/271120261920-handoff-log-archive.md`.
 
 Then wave 1 starts: MKC-21, MKC-36, MKC-46 and MKC-49, each `Ready` → `In progress`, each with its test agent first.
