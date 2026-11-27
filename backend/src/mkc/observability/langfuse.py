@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 from langfuse import Langfuse
+from langfuse.span_filter import is_langfuse_span
 from langfuse.types import TraceContext
 
 from mkc.config import Settings
@@ -25,7 +26,11 @@ from mkc.observability.trace import TraceRecord
 
 def make_client(settings: Settings, **extra: Any) -> Langfuse:
     """The Langfuse client for the settings; `extra` goes to the constructor (tests pass an
-    in-memory `span_exporter`)."""
+    in-memory `span_exporter`).
+
+    The SDK becomes the global OpenTelemetry provider, and its default filter also exports
+    other libraries' `gen_ai.*` spans (the Anthropic SDK traces its calls with the prompt).
+    `is_langfuse_span` lets only the sink's own observations leave (decision 59)."""
     return Langfuse(
         public_key=settings.langfuse_public_key,
         secret_key=settings.langfuse_secret_key.get_secret_value(),
@@ -33,6 +38,7 @@ def make_client(settings: Settings, **extra: Any) -> Langfuse:
         timeout=settings.langfuse_timeout_seconds,
         environment=settings.langfuse_environment,
         release=settings.commit,
+        should_export_span=is_langfuse_span,
         **extra,
     )
 
