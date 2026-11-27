@@ -16,6 +16,10 @@
   with backoff (1, 2, 4 … `worker_db_backoff_max_seconds`), and once the database is back it
   marks the run `waiting_for_database` (the durable trace of the outage) and returns; the next
   `run_once` claims the run back to `running` and resumes from the last complete turn.
+- Tracing (MKC-19, decision 59): with a `tracer`, each run gets its trace id before work
+  starts, every stop (also a setup stop) and every outage waited out is recorded, the default
+  registry reports tool calls, and the tracer is flushed after each run. The model hook is
+  the client factory's (`mkc.worker.main.build_executor`).
 """
 
 import logging
@@ -84,7 +88,9 @@ class Executor:
         self.owner = owner or default_owner()
         self._sessions = sessions
         self._client_factory = client_factory
-        self._registry = registry or default_registry(sessions=sessions)
+        hooks = (tracer.span_tool,) if tracer is not None else ()
+        self._registry = registry or default_registry(hooks, sessions=sessions)
+        self._stop_hooks = (tracer.span_stop,) if tracer is not None else ()
         self._stop = threading.Event()
         self._closing = threading.Event()
         self._held: _Held | None = None
@@ -155,6 +161,8 @@ class Executor:
         finally:
             with self._lock:
                 self._held = None
+            if self.tracer is not None:
+                self.tracer.flush()  # bounded by the export timeout; never raises
         return True
 
     def _claim(self) -> int | None:
@@ -169,6 +177,8 @@ class Executor:
     def _process(self, held: _Held) -> None:
         run_id = held.run_id
         settings = self.settings
+        if self.tracer is not None:
+            self.tracer.start_run(run_id)  # never raises; a resume keeps the trace id
         try:
             client = self._client_factory()
             with self._sessions() as session:
@@ -182,6 +192,7 @@ class Executor:
                     code_version=settings.commit,
                     should_stop=lambda: self._stop.is_set() or held.lost.is_set(),
                     fence=lambda s: fence(s, run_id, owner=self.owner),
+                    tracers=self._stop_hooks,
                     sleep=self.wait,
                 )
         except LeaseLost:
@@ -213,6 +224,7 @@ class Executor:
                     StopReason.SETUP_ERROR,
                     usage=run_usage(session, run_id),
                     fence=lambda s: fence(s, run_id, owner=self.owner),
+                    tracers=self._stop_hooks,
                     detail=type(error).__name__,
                 )
         except LeaseLost:
@@ -265,6 +277,8 @@ class Executor:
         log.info("database available again")
         if run_id is None:
             return
+        if self.tracer is not None:
+            self.tracer.outage(run_id, name)  # the durable record of the outage (MKC-19)
         try:
             with self._sessions() as session, session.begin():
                 marked = mark_waiting(session, run_id, owner=self.owner)

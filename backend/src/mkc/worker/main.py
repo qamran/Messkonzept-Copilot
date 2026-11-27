@@ -10,6 +10,8 @@ from sqlalchemy.orm import Session, sessionmaker
 from mkc.config import Settings, get_settings
 from mkc.db.session import get_engine
 from mkc.models.client import ModelClient
+from mkc.observability.langfuse import LangfuseSink
+from mkc.observability.trace import Tracer
 from mkc.worker.executor import Executor
 
 log = logging.getLogger("mkc.worker")
@@ -20,10 +22,12 @@ _STOP_SIGNALS = (signal.SIGTERM, signal.SIGINT)
 def build_executor(settings: Settings, sessions: sessionmaker[Session]) -> Executor:
     """The worker's executor with its tracer (MKC-19): `run_log` always, Langfuse when the
     keys are set. The model client is built only once a run is held."""
+    tracer = Tracer(sessions, LangfuseSink.from_settings(settings))
     return Executor(
         settings,
         sessions=sessions,
-        client_factory=lambda: ModelClient.from_settings(settings),
+        client_factory=lambda: ModelClient.from_settings(settings, tracers=[tracer.span_model]),
+        tracer=tracer,
     )
 
 
@@ -58,6 +62,8 @@ def run(stop: threading.Event | None = None) -> None:
                     executor.wait(settings.worker_poll_seconds)
     finally:
         stop.set()
+        if executor.tracer is not None:
+            executor.tracer.flush()  # what Langfuse still holds; bounded by its timeout
         for sig, handler in previous.items():
             signal.signal(sig, handler)
     log.info("worker stopped")
