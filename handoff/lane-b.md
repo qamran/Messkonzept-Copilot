@@ -1,6 +1,6 @@
 # Lane B: Advisor
 
-**Last updated:** 27.11.2026, 21:00
+**Last updated:** 27.11.2026, 21:18
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md`. Times are local time from git and GitHub, never estimated.
 
@@ -93,14 +93,35 @@ Frontend:
 5. **`operator_id` is opaque:** any non-empty string; no operator lookup in lane B.
 6. **Shared files:** the development agent edits `mkc/api/app.py` (one `include_router` line) and `frontend/src/App.tsx` (one route).
 
+### Mutation pass (test agent, 27.11.2026)
+
+One mutant at a time on `37151fe`, each reverted before the next, none committed. Backend runs `uv run pytest tests/advisor -q -x`; frontend runs `npx vitest run src/lib/advisor src/components/advisor src/pages/AdvisorPage`.
+
+- Backend (`facts.py`, `questions.py`, `api.py`): `back: tried 40, killed 37, survived 3`.
+- Frontend (`advisor.ts`, `FactsCard.tsx`, `AdvisorPage.tsx`): `front: tried 30, killed 27, survived 3`.
+
+Killed: Modul 3 allowed in `Sve`; each scope rule (site kind, plug-in PV, Modul 3) switched off; facts kept when out of scope; `unknown` not filtered or reordered; the blank check and strip removed; user text in the system message; data tags or `<` escaping removed; every question condition in `questions.py` except the out-of-scope guard; the API 422 checks, auth and 503 mapping; every API helper, facts card and page mutant except those below.
+
+Survivors (file:line at `37151fe`):
+
+1. `backend/src/mkc/advisor/questions.py:70`: `if facts.out_of_scope:` changed to `if False:`. **Killed now** by the new acceptance test `test_out_of_scope_gaps_are_never_asked` (`ac30db9`).
+2. `frontend/src/pages/AdvisorPage.tsx:48`: `requiredQuestions(confirmed)` changed to `requiredQuestions(facts)`, so the questions use the extracted facts and not the edited ones. **Killed now** by the new page test "asks the questions for the edited facts, not the extracted ones" (`ac30db9`).
+3. `backend/src/mkc/advisor/facts.py:179`: role `"facts"` changed to `"explain"`. No test checks which role the call uses. Left open: not one of the ticket's criteria.
+4. `backend/src/mkc/advisor/facts.py:29`: `MAX_TEXT_CHARS` changed from 2000 to 20000. The test reads the constant, so the value itself is not pinned. Left open: the ticket names no limit.
+5. `frontend/src/pages/AdvisorPage.tsx:67`: the textarea's `maxLength` removed. Left open: the backend 422 still covers it.
+6. `frontend/src/pages/AdvisorPage.tsx:29`: `event.preventDefault()` removed. jsdom does not navigate on a form submit. Left open.
+
+With the two new tests: `uv run pytest tests/advisor -q` gives `54 passed in 10.58s`; `npx vitest run src/pages/AdvisorPage` gives `Tests  13 passed (13)`. Re-running survivors 1 and 2 against them: both killed.
+
 ## Next steps
 
-1. Test agent: mutation pass on the development agent's code (the coordinator starts it).
+1. Done: the test agent's mutation pass (above).
 2. Development agent, on the coordinator's word: open the PR (`Closes #36`; disclose `frontend/src/test/setup.ts` and the test agent's ruff isort block), move #36, #176, #177, #178, #180 and #183 to `Testing`.
 3. Then MKC-37 waits on lane A's MKC-30.
 
 ## Recent log
 
+- **27.11.2026 21:18** Test agent: mutation pass on `37151fe`. Backend `tried 40, killed 37, survived 3`; frontend `tried 30, killed 27, survived 3`. `ac30db9` adds two acceptance tests that kill survivors 1 and 2; survivors 3 to 6 are listed above.
 - **27.11.2026 21:00** Development agent: more frontend cases for the mutation pass (generation-meter wording, "Other consumer", the button disabled while extracting, a second extraction clears the questions); the card's `key` was redundant (the page unmounts the card on a new extraction) and is gone. `npx vitest run` gives `Test Files  10 passed (10)`, `Tests  53 passed (53)`.
 - **27.11.2026 20:54** Development agent: `bash scripts/pre_pr.sh` on `d16ca1a`: exit 0, `715 passed, 1 skipped, 12 deselected in 129.53s`, `pre-PR gate: all steps passed`; CI frontend commands (`npm ci`, lint, typecheck, `npm test`: `Tests  49 passed (49)`, build) pass. No test agent test changed. Branch pushed; PR waits for the mutation pass.
 - **27.11.2026 20:50** Development agent: live check of the `facts` schema, three calls, €0.013138; docs: decisions 65, 66, design 7, backlog and status doc lines.
