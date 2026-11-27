@@ -41,9 +41,9 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 
 ### Assumptions (for the coordinator to confirm)
 
-1. The ticket's "11 items" means the 11 numbered concepts; the placeholder `13 / Nr. (tbd)` is not an item. If the coordinator wants 12 regions (placeholder included), two tests and the live test change.
+1. (Confirmed by the coordinator: 11.) The ticket's "11 items" means the 11 numbered concepts; the placeholder `13 / Nr. (tbd)` is not an item. If the coordinator wants 12 regions (placeholder included), two tests and the live test change.
 2. `number_hint` is without the colon.
-3. A lane A test breaks when `SEGMENTERS` gains `sachsennetze`: `test_segment_document_refuses_an_operator_without_a_segmenter` in `tests/extraction/test_segment_rules.py` uses `operator_id="sachsennetze"` as the operator without a segmenter. It must move to another id (for example `"unknown-operator"`). That file is lane A's: the coordinator grants the one-line change, or lane A makes it.
+3. (Granted by the coordinator; done in `18662d9`.) A lane A test breaks when `SEGMENTERS` gains `sachsennetze`: `test_segment_document_refuses_an_operator_without_a_segmenter` in `tests/extraction/test_segment_rules.py` uses `operator_id="sachsennetze"` as the operator without a segmenter. It must move to another id (for example `"unknown-operator"`). That file is lane A's: the coordinator grants the one-line change, or lane A makes it.
 4. The Berlin-style `ConceptRegion.bbox` convention (top-left origin) applies.
 
 ### Not covered by red tests
@@ -51,17 +51,18 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 - Which split method is chosen (by design, see above) and the quality of its reason in the plan doc.
 - A catalogue whose halves are not at the page middle (not in the real PDF).
 - The `operators.yaml` comment about "not checked yet" (the URL is correct: it is for the development agent to update the comment).
-- Mutation pass: not yet run (after the development agent's code).
+- Mutation pass: not yet run (the code is ready).
+- Development agent's own tests: `tests/extraction/test_sachsen_layout.py` (the real page furniture, the heading form, the placeholder by title, any page width).
 
 ## Next steps
 
-1. Coordinator: confirm the assumptions above (the 11 vs 12 and the lane A test change).
-2. Development agent: build `mkc/extraction/sachsen.py`, wire `SEGMENTERS`, write the plan doc, update the `operators.yaml` comment, make the red tests green, run `scripts/pre_pr.sh`.
-3. Test agent: mutation pass on that code.
-4. MKC-24 waits on lane A's MKC-23.
+1. Test agent: mutation pass on `mkc/extraction/sachsen.py` in this worktree; the development agent closes the survivors.
+2. Development agent: `scripts/pre_pr.sh`, PR, ticket to `Testing` (after the coordinator's go).
+3. MKC-24 waits on lane A's MKC-23.
 
 ## Recent log
 
+- **27.11.2026 23:19** Development agent: decision 74 (design section 18), the status doc's Lane A2 section, the backlog's MKC-27 "As built" note and the `operators.yaml` comment (09/2025, 9 pages, 11 concepts). Decision 75 is left for MKC-24.
 - **27.11.2026 23:19** Development agent: plan doc `docs/superpowers/plans/271120262318-mkc-27-sachsen-segmentation.md` (half page, with the reasons). The two log lines below had times written by hand; corrected to the commit times from git (23:15 and 23:18).
 - **27.11.2026 23:18** Development agent: `mkc/extraction/sachsen.py` (half page split, heading `Messkonzept <n>:` on the half's first line, placeholder by its `Nr. (tbd)` title, footer band at 0.91 of the height) and `SEGMENTERS["sachsennetze"]`. `tests/extraction`: `1 failed, 87 passed, 3 deselected` (only the plan doc test is left). Live run (coordinator's go, no model call): `1 passed in 1.48s`, 11 regions on pages 3 to 8.
 - **27.11.2026 23:15** Development agent: own red tests `test_sachsen_layout.py` (5 tests, the real page furniture: background, divider, frames, rule, logo; heading form; placeholder by title; any page width), red: `5 failed`.
