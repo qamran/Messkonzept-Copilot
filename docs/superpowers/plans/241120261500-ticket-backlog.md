@@ -365,6 +365,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] Lease and heartbeat timings in config, documented in the runbook
   - [ ] No state lost in any of the four tests (asserted on turn counts)
 - **Note (decision 56):** the worker calls `process_run` with `code_version=Settings.commit`, `inline_max_bytes=Settings.turn_inline_max_bytes` and `default_registry(sessions=...)`. Until then the tool cache, the inline limit setting and the real `save_draft` are off in production. A database error inside `save_draft` is caught by the registry and reaches the model as `tool_failed`; decide whether it should propagate like other database errors.
+- **As built (decision 57):** `claim_run` lives in `mkc.worker.lease` (re-exported by `mkc.worker.executor`) and takes `(session, *, owner, lease_seconds)`; `graceful_shutdown` is a method of `Executor`. The worker wires `process_run` as the note above says. A `save_draft` database error stays `tool_failed`: in an outage the turn's own commit fails too, so that turn is never stored and is asked again after the outage.
 
 ### MKC-18: Limits and retries
 
@@ -381,6 +382,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] Every stop shows its reason in the run record and the trace
   - [ ] Default limits set in config and justified in the plan for MKC-15/18
 - **Note (MKC-16 pre-PR review):** `process_run` resumes a `running` item before queued ones, with no attempt cap. An item that crashes on every restart blocks its run and pays a model call each time (a crashed call writes no turn row, so the step cap doesn't stop it). Add a resume-attempt counter on `item` and fail the item with its own reason after N attempts.
+- **Note (MKC-17, decision 57):** setup errors (`ModelConfigError`, `ReplayMiss`) make the executor release the lease and pause for `MKC_WORKER_DB_BACKOFF_MAX_SECONDS`, then claim the run again; turn them into a run stop with its own `StopReason`. A wall-clock deadline per turn (MKC-13 finding 3: the provider timeout is per phase) belongs to the run limits; without it a turn longer than the 300 s grace period is killed on deploy and resumed like a crash.
 
 ### MKC-19: Tracing (Langfuse + run log)
 
