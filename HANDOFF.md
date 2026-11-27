@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 19:21
+**Last updated:** 27.11.2026, 19:22
 
 This file is how agents resume work after a session restart.
 
@@ -207,6 +207,7 @@ From MKC-168 (decision 61), tickets run in parallel lanes. Each lane keeps its o
 
 ## Recent log
 
+- **27.11.2026 19:22** MKC-168.4 green (AGENTS.md): roles coordinator, test agent, development agent and review agent (one per lane or PR); the coordinator now does the `turing` push and the deploy gates; restart files (`HANDOFF.md` coordinator, `handoff/lane-<x>.md` lanes); `scripts/pre_pr.sh` before every PR; review only after `gh pr checks` is green; new section "Parallel lanes" (phases, waiting, worktrees, shared-file rules, merge queue by readiness); checklist: the test agent's red tests unchanged or explained. `check_agents.py` exit 0; markdownlint 0 errors.
 - **27.11.2026 19:21** MKC-168.4 red: `check_agents.py` wants a `## Parallel lanes` section and the terms Coordinator, Test agent, `handoff/lane-`, `scripts/pre_pr.sh`, merge queue, `gh pr checks`, `test_single_migration_head`, worktree; it fails on all nine (exit 1). #172 `In progress` (19:21:34).
 - **27.11.2026 19:21** MKC-168.3: `tests/db/test_migration_heads.py` (`test_single_migration_head` on the real versions folder; `test_a_forked_revision_makes_two_heads` on a temp copy, no database). Red shown with a forked revision `9999fork` (down_revision `0010`) put in the real folder: 2 failed, "two or more migration heads [0011, 9999fork]"; removed: 2 passed. #171 `In progress` (19:21:00).
 - **27.11.2026 19:20** MKC-168.2: the "Recent log" entries of 24.11. to 26.11.2026 (325 lines) moved unchanged to `handoff/271120261920-handoff-log-archive.md` (checked: the moved block is a substring of the old file); this file keeps the entries of 27.11.2026, all sections and the findings under Next steps. markdownlint 0 errors; `check_handoff.py` exit 0.
