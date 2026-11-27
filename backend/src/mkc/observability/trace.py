@@ -215,6 +215,7 @@ class Tracer:
                     "returned": trace.returned,
                     "keyword_hits": trace.keyword_hits,
                     "vector_hits": trace.vector_hits,
+                    "reference_hits": trace.reference_hits,
                 },
             )
         )

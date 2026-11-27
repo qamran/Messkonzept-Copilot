@@ -1,6 +1,7 @@
 """The hybrid retriever (MKC-50, feature 71, decisions 79 and 80).
 
-`retrieve(query, k)` asks two sides and fuses their rankings with reciprocal rank fusion:
+`retrieve(query, k)` asks up to three sides and fuses their rankings with reciprocal rank
+fusion:
 
 - **Keyword:** Postgres full-text search on `chunk.tsv` with the `german` configuration (the
   one `chunk.tsv` is built with, so "Wärmepumpen" finds "Wärmepumpe"). The query is plain
@@ -10,6 +11,10 @@
   is what the vector side is weak at.
 - **Vector:** the query's embedding (`embed_query`, with the model's query instruction)
   against `chunk.embedding` by cosine distance.
+- **Reference:** when the query names a paragraph (`§ 14a`, `§ 14a Abs. 1`), the chunks of
+  that paragraph by their `source_ref`, the named Absatz first. With the terms ORed, the other
+  words of "Was regelt § 14a Abs. 1?" match other paragraphs too, and the vector side is weak
+  at numbers; this side keeps the named paragraph in the result.
 
 Each side looks at up to `CANDIDATES` chunks; ties go to the lower chunk id everywhere, so
 the result is deterministic. A chunk's text is untrusted data: a prompt takes it only
@@ -22,6 +27,7 @@ hook that writes it to `run_log` and Langfuse when the call has a run scope.
 
 import json
 import logging
+import re
 import time
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
@@ -29,7 +35,7 @@ from dataclasses import dataclass
 from sqlalchemy import bindparam, text
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Session
-from sqlalchemy.types import BigInteger
+from sqlalchemy.types import BigInteger, Text
 
 from mkc.models.client import TraceScope
 from mkc.rag.embeddings import QueryEmbedder
@@ -64,6 +70,20 @@ _KEYWORD = text(
 _VECTOR = text(
     "SELECT id FROM chunk ORDER BY embedding <=> CAST(:vector AS vector), id LIMIT :limit"
 )
+_REFERENCE = text(
+    """
+    SELECT id FROM chunk
+    WHERE source_ref = ANY(:paragraphs) OR source_ref LIKE ANY(:prefixes)
+    ORDER BY source_ref = ANY(:absaetze) DESC, id
+    LIMIT :limit
+    """
+).bindparams(
+    bindparam("paragraphs", type_=ARRAY(Text)),
+    bindparam("prefixes", type_=ARRAY(Text)),
+    bindparam("absaetze", type_=ARRAY(Text)),
+)
+_PARAGRAPH_REF = re.compile(r"§§?\s*(\d+[a-z]?)\b(?:\s*Abs(?:atz|\.)?\s*(\d+[a-z]?)\b)?")
+"""A paragraph reference in a query, as `mkc.rag.chunking` writes `source_ref`."""
 _ROWS = text("SELECT id, source_ref, text FROM chunk WHERE id = ANY(:ids)").bindparams(
     bindparam("ids", type_=ARRAY(BigInteger))
 )
@@ -102,6 +122,8 @@ class RetrievalTrace:
     """`<Class>: SQLSTATE <code>` or `<Class>: message withheld` when the call failed (then
     `returned == 0`); never the message, which can quote the query."""
     scope: TraceScope | None = None
+    reference_hits: int = 0
+    """Chunks of a paragraph the query names (0 when it names none)."""
 
 
 RetrievalTracer = Callable[[RetrievalTrace], None]
@@ -134,6 +156,7 @@ def retrieve(
     start = time.perf_counter()
     keyword: list[int] = []
     vector: list[int] = []
+    reference: list[int] = []
     found: list[RetrievedChunk] = []
     error: str | None = None
     try:
@@ -142,7 +165,8 @@ def retrieve(
         vector = list(
             session.scalars(_VECTOR, {"vector": _vector_text(query_vector), "limit": CANDIDATES})
         )
-        found = _chunks(session, rrf_merge([keyword, vector])[:k])
+        reference = _reference_ranking(session, query)
+        found = _chunks(session, rrf_merge([keyword, vector, reference])[:k])
     except Exception as exc:
         error = _error(exc)
         raise
@@ -157,10 +181,30 @@ def retrieve(
                 vector_hits=len(vector),
                 error=error,
                 scope=scope,
+                reference_hits=len(reference),
             ),
             tracers,
         )
     return found
+
+
+def _reference_ranking(session: Session, query: str) -> list[int]:
+    """The chunks of each paragraph the query names, the named Absätze first."""
+    paragraphs: list[str] = []
+    absaetze: list[str] = []
+    for number, absatz in _PARAGRAPH_REF.findall(query):
+        paragraphs.append(f"§ {number}")
+        if absatz:
+            absaetze.append(f"§ {number} Abs. {absatz}")
+    if not paragraphs:
+        return []
+    params = {
+        "paragraphs": paragraphs,
+        "prefixes": [f"{p} Abs. %" for p in paragraphs],
+        "absaetze": absaetze,
+        "limit": CANDIDATES,
+    }
+    return list(session.scalars(_REFERENCE, params))
 
 
 def _error(exc: Exception) -> str:
@@ -191,9 +235,10 @@ def _trace(trace: RetrievalTrace, tracers: Sequence[RetrievalTracer]) -> None:
     error_class = None if trace.error is None else trace.error.split(":", 1)[0]
     log.info(
         "retrieval latency_ms=%d k=%d query_chars=%d returned=%d keyword_hits=%d "
-        "vector_hits=%d run_id=%s error=%s",
+        "vector_hits=%d reference_hits=%d run_id=%s error=%s",
         trace.latency_ms, trace.k, trace.query_chars, trace.returned, trace.keyword_hits,
-        trace.vector_hits, None if trace.scope is None else trace.scope.run_id, error_class,
+        trace.vector_hits, trace.reference_hits,
+        None if trace.scope is None else trace.scope.run_id, error_class,
     )  # fmt: skip
     for tracer in tracers:
         try:
