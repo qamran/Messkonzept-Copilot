@@ -130,12 +130,12 @@ This file is how agents resume work after a session restart.
    - N7: the smoke script only prints the Ingress annotation and TLS secret; it does not assert them.
    - N11 (MKC-10): `checksum/secret` does not change with `existingSecret`; the secret checksum is visible in pod specs; API readiness does not check the database; the script leaves `mkc-backend:kind` in local Docker; a narrow race if the cluster name is taken after the guard.
 10. Non-blocking follow-ups from the PR #97 review (fold into a later CI-hardening ticket or MKC-9 where they touch the same files):
-   - check scripts are substring-based: flow-style `permissions: {…: write}`, `toJSON(secrets)`, `|| true` / `continue-on-error` on the scan, `if: false` on `image`, indented `USER root`, `USER 10001:0`, `COPY --chown --from=<unpinned>`, `!.env` after `.env`, `compose.override.yaml` all pass
-   - no kept tests rerun the bad samples (they live only in the PR body and HANDOFF)
-   - `cancel-in-progress: true` also applies on `main`: two quick merges can cancel a `publish`
-   - the Grype database is not pinned, so a new high finding can turn unrelated PRs red
-   - remove `pip` from the runtime image (source of most medium findings); `pgvector/pgvector:pg17` not digest-pinned; `publish` rebuilds instead of pushing the scanned image
-   - the MKC-8 plan still lists `docker/metadata-action` (not used)
+    - check scripts are substring-based: flow-style `permissions: {…: write}`, `toJSON(secrets)`, `|| true` / `continue-on-error` on the scan, `if: false` on `image`, indented `USER root`, `USER 10001:0`, `COPY --chown --from=<unpinned>`, `!.env` after `.env`, `compose.override.yaml` all pass
+    - no kept tests rerun the bad samples (they live only in the PR body and HANDOFF)
+    - `cancel-in-progress: true` also applies on `main`: two quick merges can cancel a `publish`
+    - the Grype database is not pinned, so a new high finding can turn unrelated PRs red
+    - remove `pip` from the runtime image (source of most medium findings); `pgvector/pgvector:pg17` not digest-pinned; `publish` rebuilds instead of pushing the scanned image
+    - the MKC-8 plan still lists `docker/metadata-action` (not used)
 11. Optional follow-ups from the PR #91 re-review (non-blocking): `apiBase()` could refuse a query, fragment or userinfo in `VITE_API_URL`; an empty `sub` is accepted; falsy non-string roles read as "no role".
 
 ## Blocked / waiting on user
