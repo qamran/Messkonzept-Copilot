@@ -38,6 +38,36 @@ class Box:
     bottom: float
 
 
+@dataclass(frozen=True)
+class Line:
+    """A stroked straight line from (x0, top) to (x1, bottom)."""
+
+    x0: float
+    top: float
+    x1: float
+    bottom: float
+
+
+@dataclass(frozen=True)
+class Curve:
+    """A stroked Bezier curve through a box (x0, top, x1, bottom)."""
+
+    x0: float
+    top: float
+    x1: float
+    bottom: float
+
+
+@dataclass(frozen=True)
+class Image:
+    """A one-pixel inline image scaled to the box (x0, top, x1, bottom)."""
+
+    x0: float
+    top: float
+    x1: float
+    bottom: float
+
+
 def half(x: float, number: str, title: str, *, figure: bool = True, cites: str = "") -> list[Any]:
     """One concept half starting at x: heading, title, body and (optionally) a figure frame."""
     items: list[Any] = [
@@ -117,7 +147,18 @@ def make_landscape_pdf(
         )
         ops: list[str] = []
         for it in items:
-            if isinstance(it, Box):
+            if isinstance(it, Line):
+                ops.append(f"{it.x0:g} {h - it.top:g} m {it.x1:g} {h - it.bottom:g} l S")
+            elif isinstance(it, Curve):
+                a, b = h - it.top, h - it.bottom
+                ops.append(f"{it.x0:g} {a:g} m {it.x0:g} {b:g} {it.x1:g} {a:g} {it.x1:g} {b:g} c S")
+            elif isinstance(it, Image):
+                w_, h_ = it.x1 - it.x0, it.bottom - it.top
+                ops.append(
+                    f"q {w_:g} 0 0 {h_:g} {it.x0:g} {h - it.bottom:g} cm"
+                    " BI /W 1 /H 1 /CS /G /BPC 8 /F /AHx ID 80> EI Q"
+                )
+            elif isinstance(it, Box):
                 ops.append(
                     f"{it.x0:g} {h - it.bottom:g} {it.x1 - it.x0:g} {it.bottom - it.top:g} re S"
                 )
