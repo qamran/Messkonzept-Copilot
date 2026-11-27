@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 19:18
+**Last updated:** 27.11.2026, 19:19
 
 This file is how agents resume work after a session restart.
 
@@ -59,7 +59,7 @@ This file is how agents resume work after a session restart.
 - **MKC-168** (#168), Parallel lanes: workflow, gate and checks. Status `In progress`, assigned to `qamran` (27.11.2026 19:06:32). Branch `mkc-168-parallel-lanes` from `4dc0302`. Its first two commits are the MKC-20 close-out and the plan (both `Refs: ...#20`).
   - Plan: `docs/superpowers/plans/271120261901-parallel-lanes.md` (lanes A extraction, A2 SachsenNetze, B advisor, C decision layer, D RAG; a test agent per lane before the dev agent; shared-file rules; `scripts/pre_pr.sh`; merge queue).
   - **The user's choices (27.11.2026, about 19:05), to go into decision 61:** (1) tickets that can be built by parallel agents are built now, regardless of phase (so MKC-46 and MKC-49 join wave 1); (2) PRs merge as soon as they are ready (green CI and review PASS), not in ticket-number order; cross-lane dependencies of the backlog still hold; (3) Phase 7 code may reach production before the Phase 6 release (no feature flag); the release notes say which parts are Phase 7 and still unused; (4) after the setup ticket, get on with development (wave 1: MKC-21, MKC-36, MKC-46, MKC-49).
-  - **Sub-issues** (created 19:12, assigned to `qamran`, linked to #168, on the board): MKC-168.1 #169 pre-PR gate (`In progress`), MKC-168.2 #170 lane handoff files, MKC-168.3 #171 single migration head, MKC-168.4 #172 AGENTS.md roles, decision 61, ADR 005, MKC-168.5 #173 backlog lanes and decision blocks (all `Ready`).
+  - **Sub-issues** (created 19:12, assigned to `qamran`, linked to #168, on the board): MKC-168.1 #169 pre-PR gate (`In progress`), MKC-168.2 #170 lane handoff files (`In progress`), MKC-168.3 #171 single migration head, MKC-168.4 #172 AGENTS.md roles, decision 61, ADR 005, MKC-168.5 #173 backlog lanes and decision blocks (all `Ready`).
   - **Next:** build #169 to #173 in order, test-first; PR; review after green checks; merge; then wave 1 with the lanes.
   - Process rules after the MKC-20 FAIL round (the user asked what went wrong): run CI's exact commands (`.github/workflows/ci.yml`) before any claim; copy numbers from output, never add them up or estimate; times from `date` or git; start the review only after `gh pr checks` is green.
 
@@ -195,6 +195,7 @@ This file is how agents resume work after a session restart.
 
 ## Recent log
 
+- **27.11.2026 19:19** MKC-168.2 red: `handoff/TEMPLATE.md` (a lane's `Last updated`, In progress, Next steps, Recent log) and `tests/test_check_handoff.py`: 6 failed on assertions (lane files and the template are not checked; HANDOFF.md has no `## Lanes`), 3 passed. #170 `In progress` (19:18:55). `e51b239` (gate) is 201 lines.
 - **27.11.2026 19:18** MKC-168.1 green: `scripts/pre_pr.sh` (CI's `backend` and `docs` commands verbatim, each step in a subshell, all steps run, exit 1 if any failed; `python3` shim for Windows; then `scripts/commit_report.py`), `scripts/commit_report.py` (subject, a `Refs: qamran/Messkonzept-Copilot#<n>` line, no other `Refs:` line, commits over 200 lines listed). `tests/test_pre_pr.py` and `tests/test_commit_report.py` 20 passed; `check_pre_pr.py` passes; ruff, format (133 files), mypy (48 files) clean. Fix on the way: Git for Windows' `bin/bash.exe` puts `/usr/bin` first, so the test prepends the stubs inside the shell. `50c868c` (the red tests) is 304 lines.
 - **27.11.2026 19:14** MKC-168.1 red: `scripts/check_pre_pr.py` (every `run:` line of CI's `backend` and `docs` jobs must be a line of `scripts/pre_pr.sh`; fails: file missing), `tests/test_pre_pr.py` (gate with stub `uv`, `npx`, `python3`, `bash`; one failing step each; a real mis-formatted probe) and `tests/test_commit_report.py` (subjects, `Refs:` trailers, commits over 200 lines, in a throwaway repo): 20 failed, since neither script exists.
 - **27.11.2026 19:12** MKC-168 sub-issues #169 to #173 created, assigned to `qamran`, linked to #168 and on the board (#169 `In progress`, the rest `Ready`).
