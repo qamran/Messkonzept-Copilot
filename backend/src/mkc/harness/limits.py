@@ -6,13 +6,21 @@
 - Every stop, of either scope, is also a `StopEvent` for the trace hooks.
 """
 
-from collections.abc import Callable
+import logging
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, fields
 from decimal import Decimal
 from enum import StrEnum
 from typing import Literal
 
+from sqlalchemy import extract, func, select, update
+from sqlalchemy.orm import Session
+
 from mkc.config import Settings
+from mkc.db.models import Item, Run, Turn
+from mkc.harness.states import RunState, transition
+
+log = logging.getLogger(__name__)
 
 Scope = Literal["run", "item"]
 
@@ -131,3 +139,74 @@ def run_limit_hit(usage: RunUsage, limits: Limits) -> StopReason | None:
     if usage.wall_s >= limits.max_wall_s:
         return StopReason.WALL_TIME
     return None
+
+
+def start_clock(session: Session, run_id: int) -> None:
+    """Set `run.started_at` to the database's `now()` unless it is set. The caller commits."""
+    session.execute(
+        update(Run).where(Run.id == run_id, Run.started_at.is_(None)).values(started_at=func.now())
+    )
+
+
+def run_usage(session: Session, run_id: int) -> RunUsage:
+    """The run's stored turns, their cost and the seconds since `started_at` (0 if unset)."""
+    steps, cost = session.execute(
+        select(func.count(Turn.id), func.coalesce(func.sum(Turn.cost_eur), 0))
+        .join(Item, Item.id == Turn.item_id)
+        .where(Item.run_id == run_id)
+    ).one()
+    wall = session.scalar(
+        select(func.coalesce(extract("epoch", func.now() - Run.started_at), 0)).where(
+            Run.id == run_id
+        )
+    )
+    return RunUsage(steps=int(steps), cost_eur=Decimal(cost), wall_s=float(wall or 0))
+
+
+def stop_run(
+    session: Session,
+    run_id: int,
+    reason: StopReason,
+    *,
+    usage: RunUsage,
+    fence: Callable[[Session], None],
+    tracers: Sequence[StopTracer] = (),
+    item_id: int | None = None,
+    detail: str | None = None,
+) -> StopEvent | None:
+    """The one writer of a run stop: `running -> stopped` with `stop_reason`, fenced and
+    committed, then the trace. Its items are left as they are. A run that is not `running`
+    (stopped, done, awaiting approval) is left alone: None."""
+    if reason.scope != "run":
+        raise ValueError(f"{reason} is not a run stop reason")
+    run = session.scalars(select(Run).where(Run.id == run_id).with_for_update()).one()
+    if run.state != RunState.RUNNING:
+        session.commit()
+        return None
+    run.state = transition(RunState(run.state), RunState.STOPPED).value
+    run.stop_reason = reason.value
+    fence(session)
+    session.commit()
+    event = StopEvent("run", run_id, item_id, reason, detail, usage.steps, usage.cost_eur)
+    emit(tracers, event)
+    return event
+
+
+def emit(tracers: Sequence[StopTracer], event: StopEvent) -> None:
+    """Log the stop and call every trace hook; a failing hook is logged, never raised."""
+    where = f"run {event.run_id}" if event.scope == "run" else f"item {event.item_id}"
+    verb = "stopped" if event.scope == "run" else "failed"
+    log.warning(
+        "%s %s: %s%s (steps %s, cost %s EUR)",
+        where,
+        verb,
+        event.reason.value,
+        f" ({event.detail})" if event.detail else "",
+        event.steps,
+        event.cost_eur,
+    )
+    for tracer in tracers:
+        try:
+            tracer(event)
+        except Exception:
+            log.exception("stop trace hook failed for %s", where)

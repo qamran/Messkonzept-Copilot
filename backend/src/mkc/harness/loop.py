@@ -17,7 +17,7 @@ never stops the next item (extraction never waits for approvals).
 """
 
 from collections import Counter
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any
@@ -28,7 +28,15 @@ from sqlalchemy.orm import Session, sessionmaker
 from mkc.db.models import Item
 from mkc.harness.cache import ToolCache
 from mkc.harness.checkpoint import INLINE_MAX_BYTES, TurnRecord, load_resume_context, save_turn
-from mkc.harness.limits import Limits, StopReason
+from mkc.harness.limits import (
+    Limits,
+    StopReason,
+    StopTracer,
+    run_limit_hit,
+    run_usage,
+    start_clock,
+    stop_run,
+)
 from mkc.harness.prompts import SYSTEM_PROMPT, TOOL_RESULT_CLOSE, task_message, wrap_tool_result
 from mkc.harness.queue import next_item, resumable_item, settle_run
 from mkc.harness.states import ItemState, transition
@@ -92,6 +100,7 @@ def run_item(
     code_version: str | None = None,
     should_stop: Callable[[], bool] = _never,
     fence: Callable[[Session], None] = _unfenced,
+    tracers: Sequence[StopTracer] = (),
 ) -> ItemOutcome:
     """Run the model-driven tool loop for one claimed (`running`) item."""
     item = session.get_one(Item, item_id)
@@ -112,7 +121,11 @@ def run_item(
     session.commit()  # no transaction stays open across a model call
 
     cost = context.cost_eur
+    run_id = env.run_id
     for step in range(context.next_number, limits.max_steps_item + 1):
+        hit = _run_limit(session, run_id, item_id, limits, fence, tracers)
+        if hit is not None:
+            return ItemOutcome(item_id, ItemState.RUNNING, hit.value, step - 1, cost)
         try:
             reply = client.chat_with_tools(ROLE, messages, specs)
         except SETUP_ERRORS:
@@ -211,6 +224,7 @@ def process_run(
     code_version: str | None = None,
     should_stop: Callable[[], bool] = _never,
     fence: Callable[[Session], None] = _unfenced,
+    tracers: Sequence[StopTracer] = (),
 ) -> list[ItemOutcome]:
     """Claim and run items until the queue is empty, then settle the run.
 
@@ -219,8 +233,13 @@ def process_run(
     ends the run early, the run is not settled.
     """
     outcomes: list[ItemOutcome] = []
+    start_clock(session, run_id)
+    fence(session)
+    session.commit()
     while True:
         if should_stop():
+            return outcomes
+        if _run_limit(session, run_id, None, limits, fence, tracers) is not None:
             return outcomes
         item = resumable_item(session, run_id) or next_item(session, run_id)
         item_id = None if item is None else item.id
@@ -239,6 +258,7 @@ def process_run(
                 code_version=code_version,
                 should_stop=should_stop,
                 fence=fence,
+                tracers=tracers,
             )
         )
         if outcomes[-1].state is ItemState.RUNNING:
@@ -246,6 +266,28 @@ def process_run(
     settle_run(session, run_id)
     session.commit()
     return outcomes
+
+
+def _run_limit(
+    session: Session,
+    run_id: int,
+    item_id: int | None,
+    limits: Limits,
+    fence: Callable[[Session], None],
+    tracers: Sequence[StopTracer],
+) -> StopReason | None:
+    """Check the run limits before a model call or a claim; stop the run if one is hit.
+
+    Returns the reason only when this call stopped the run. Ends its transaction either way,
+    so none stays open across the model call."""
+    usage = run_usage(session, run_id)
+    hit = run_limit_hit(usage, limits)
+    if hit is None:
+        session.commit()
+        return None
+    event = stop_run(session, run_id, hit, usage=usage, fence=fence, tracers=tracers,
+                     item_id=item_id)  # fmt: skip
+    return None if event is None else hit
 
 
 def _with_ids(calls: list[ToolCall], step: int) -> tuple[ToolCall, ...]:
