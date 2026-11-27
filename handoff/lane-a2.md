@@ -1,6 +1,6 @@
 # Lane A2: SachsenNetze and gold
 
-**Last updated:** 27.11.2026, 23:10
+**Last updated:** 27.11.2026, 23:15
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -11,7 +11,8 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 
 ## In progress
 
-- `MKC-27` (`#27`): the test agent's red acceptance tests are written (see "Red tests" below). The development agent has not started.
+- `MKC-27` (`#27`): the test agent's red acceptance tests are written (see "Red tests" below). The development agent has started: sub-issues `MKC-27.1` (`#201`, segmenter and dispatch) and `MKC-27.2` (`#202`, plan doc, docs and live check), both In progress.
+- Coordinator answers (27.11.2026): assumption 1, 11 regions, the `13 / Nr. (tbd)` half is not an item; assumption 3, the coordinator grants the one-line change in lane A's `test_segment_rules.py` (`"sachsennetze"` → `"unknown-operator"`) and the `NoSegmenter` docstring in `segment.py`.
 
 ### Real SachsenNetze layout (studied 27.11.2026, one fetch, no model call)
 
@@ -61,4 +62,5 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 
 ## Recent log
 
+- **27.11.2026 23:15** Development agent: sub-issues `#201` and `#202` created; the coordinator-granted edits in lane A's files (the test's operator id and the `NoSegmenter` docstring) done.
 - **27.11.2026 23:10** Test agent: red tests for MKC-27 written; real PDF studied (9 landscape pages, 12 halves, 11 concepts plus one `Nr. (tbd)` placeholder).

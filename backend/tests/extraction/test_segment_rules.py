@@ -71,7 +71,7 @@ def test_segment_document_refuses_an_operator_without_a_segmenter() -> None:
     store = MemoryStore()
     ref = store.put(make_pdf(berlin_pages(["1"])))
     doc = SourceDocument(
-        operator_id="sachsennetze", url="https://x.example/a.pdf",
+        operator_id="unknown-operator", url="https://x.example/a.pdf",
         sha256=ref.rsplit(":", 1)[1], fetched_at=datetime.now(UTC), page_count=4,
         edition=1, new_edition=False,
     )  # fmt: skip

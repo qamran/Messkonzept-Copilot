@@ -33,7 +33,7 @@ NUMBER = re.compile(r"\d{1,2}(?:\.\d{1,2})*[a-z]?")
 
 
 class NoSegmenter(LookupError):
-    """No segmenter for this operator yet (SachsenNetze comes in MKC-27)."""
+    """No segmenter for this operator (`SEGMENTERS` has no entry for its id)."""
 
 
 @dataclass(frozen=True)
