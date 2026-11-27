@@ -69,15 +69,34 @@ The tests import these; module paths and names are fixed, internals are free.
 - An index for the vector side (HNSW or IVFFlat): no test; the corpus is small.
 - The injection guard on retrieved text (MKC-46/51) and the prompt layer that uses `as_prompt_data()` (MKC-51).
 
+### Mutation pass (MKC-50)
+
+The test agent, on `f1e9ee3`. One hand-written mutant at a time, applied exactly (each old text found once), `src/**/__pycache__` cleared before and after, restored after each run; none committed. Each run: `uv run pytest tests/rag tests/observability tests/models -q -x` (baseline `328 passed, 14 deselected, 4 warnings in 17.00s`).
+
+- **Scope:** `mkc/rag/retriever.py` (RRF, `MAX_K`/`CANDIDATES`, keyword side, vector side, reference side, `as_prompt_data`, `RetrievalTrace`, the error-text rule, the log line), `EmbedTrace` and the hooks in `EmbeddingClient`, `ProviderEmbedder.embed_query`/`query_text`, `Tracer.span_retrieval`, the `retrieval` branch of `LangfuseSink.send`, the demo's `RETRIEVER` type, the `§` heading rule in chunking, the loader's cache rule, the sources-path fallback, `--sources` in the CLI and the Dockerfile `COPY`.
+- **First run:** **108 tried, 86 killed, 22 survived** (all 108 applied; 0 not applied).
+- **New tests:** `da5d8c6`, `06c8798` and `c4963f6` kill 18 of the 22. The 22 survivors were run again against them: 18 killed, 4 survived.
+- **After the new tests:** **108 tried, 104 killed, 4 survived**, and all 4 are near-equivalent:
+  1. `backend/src/mkc/rag/retriever.py:48` `MAX_K = 20` → `50`. The value is not pinned (the pin is `10 <= MAX_K <= CANDIDATES`). Near-equivalent: a design value. Pin it only if decision 79/80 fixes it.
+  2. `backend/src/mkc/rag/retriever.py:51` `CANDIDATES = 50` → `20`. Same as above: the test corpora have at most 10 chunks.
+  3. `backend/src/mkc/rag/retriever.py:71` `<=>` (cosine) → `<#>` (negative inner product). Equivalent for normalised vectors: Qwen3's vectors are normalised, and so are the tests' vectors, except one that points along the query, where both orders agree. The L2 mutant `<->` is killed by `test_the_vector_side_ranks_by_cosine_not_by_length`.
+  4. `backend/src/mkc/rag/chunking.py:87` the first `after_blank = True` → `False`. Equivalent: before the first paragraph, `current is None` already lets a heading through.
+- **Killed by the new tests:**
+  - reference side: R26 (named Absatz `ASC`), R30 (prefix `§ 1%` spills into § 14), R32 (`Abs.2a`), R34 (no `Absatz`/`Abs` forms), R35 (no lettered Absatz), R36 (`§\s+`, so `§14a` is missed), R37 (`if not absatz`);
+  - vector side: R22 (`<->`);
+  - trace: R44 (SQLSTATE dropped), R51 (`query_chars` stripped), R58 (the log line carries the full error text, not the class), T10 (no early return outside a run, so a warning is logged), T11 (`span_retrieval` unguarded), L3 (the Langfuse `status_message` carries the error text);
+  - embeddings: C7 and C13 (latency 0 on error or on success), E2 (a space after `Query:`), E4 (no instruction).
+
 ## Next steps
 
 1. The development agent: `bash scripts/pre_pr.sh`, push, report to the coordinator (no PR yet).
-2. The test agent: mutation pass on the development agent's code in this worktree; the development agent closes the survivors.
+2. Done: the test agent's mutation pass (see "Mutation pass (MKC-50)"): 108 tried, 104 killed, 4 near-equivalent survivors.
 3. The PR (`Closes #50`), with the changed MKC-49 test (`test_an_official_only_cache_inside_the_repo_is_refused_too`) and the 282-line red commit `29ca7cd` disclosed.
 4. Open for the coordinator: `EmbedTrace` has no `run_log` bridge yet, so a query embedding's spend inside a run is not in `run_log` (only in `ProviderEmbedder`'s totals); the top docstring of `mkc/models/client.py` still calls `ModelClient` "the one way to call a model" (outside lane D's block).
 
 ## Recent log
 
+- **28.11.2026 00:39** Test agent: mutation pass on `f1e9ee3`, written up under "Mutation pass (MKC-50)". First run: 108 tried, 86 killed, 22 survived. Against the new tests (`da5d8c6`, `06c8798`, `c4963f6`), the 22 survivors were rerun: 18 killed, 4 survived (all near-equivalent). Final: 108 tried, 104 killed, 4 survived. `uv run pytest tests/rag tests/observability tests/models -q` with the new tests: `349 passed, 14 deselected, 4 warnings in 17.09s`.
 - **28.11.2026 00:39** Test agent (mutation pass): two tests in `tests/rag/test_embedding_trace_unit.py` kill C7, C13 (latency 0 on error / success) and E2, E4 (query format with a space, or without the instruction); `uv run pytest tests/rag/test_embedding_trace_unit.py -q`: `9 passed in 4.89s`.
 - **28.11.2026 00:39** Test agent (mutation pass): `tests/rag/test_retrieval_details.py` kills R22 (L2 instead of cosine), R44 (SQLSTATE dropped), R51 (query_chars stripped), R58 (log line with the full error), T10 (warning outside a run), T11 (`span_retrieval` unguarded) and L3 (Langfuse status message with the error text); `uv run pytest tests/rag/test_retrieval_details.py -q`: `7 passed in 1.51s`.
 - **28.11.2026 00:39** Test agent (mutation pass): `tests/rag/test_reference_side.py` kills the 7 reference-side survivors (R26, R30, R32, R34, R35, R36, R37); `uv run pytest tests/rag/test_reference_side.py -q`: `12 passed in 1.60s`.
