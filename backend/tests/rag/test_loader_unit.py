@@ -136,3 +136,11 @@ def test_a_bad_text_or_reply_stops_the_load(
     used = ShortEmbedder("fake", EMBEDDING.dim) if case == "short reply" else embedder
     with Session(corpus_engine) as session, pytest.raises(CorpusLoadError):
         load_corpus(session, _sources(sources_file), embedder=used, fetcher=fake_fetcher(texts))
+
+
+def test_repo_root_is_this_repository() -> None:
+    from mkc.rag.loader import REPO_ROOT
+
+    assert Path(__file__).resolve().parents[3] == REPO_ROOT
+    assert (REPO_ROOT / "AGENTS.md").is_file()
+    assert (REPO_ROOT / "backend" / "pyproject.toml").is_file()

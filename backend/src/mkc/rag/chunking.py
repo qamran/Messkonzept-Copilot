@@ -11,7 +11,9 @@
 
 Chunks never overlap and never cross a paragraph or section. Whitespace inside a line is
 collapsed; nothing else is added to the text. A section longer than `MAX_CHUNK_CHARS` is
-split at blank lines (each piece repeats the heading line).
+split at blank lines (each piece repeats the heading line). A law Absatz is never split
+(decision 72): it is the smallest unit a citation names, and the largest real one (MsbG,
+7,836 characters, about 2k tokens) fits the embedding model's 32k-token context.
 """
 
 import re
@@ -22,7 +24,7 @@ from typing import Literal
 Layout = Literal["law", "sections"]
 
 MAX_CHUNK_CHARS = 4000
-"""About 1,000 tokens of German text: well inside the embedding model's context."""
+"""About 1,000 tokens of German text; applies to `sections` text only (decision 72)."""
 
 PREAMBLE_REF = "Vorspann"
 """The reference of text before the first paragraph or section."""

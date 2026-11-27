@@ -1,6 +1,7 @@
 """MKC-49.6 unit tests for `mkc corpus load`: a subset of sources, the licence guard and a
 failed fetch (nothing written), and the report it prints."""
 
+import shutil
 from pathlib import Path
 from typing import Any
 
@@ -55,11 +56,14 @@ def test_a_cache_inside_the_repo_is_refused(
     from mkc.rag.loader import REPO_ROOT
 
     cache = REPO_ROOT / "backend" / ".mkc49-cli-cache-test"
-    result = runner.invoke(
-        app, ["corpus", "load", "--sources", str(sources_file), "--cache-dir", str(cache)]
-    )
-    assert result.exit_code == 2, result.output
-    assert not cache.exists()
+    try:
+        result = runner.invoke(
+            app, ["corpus", "load", "--sources", str(sources_file), "--cache-dir", str(cache)]
+        )
+        assert result.exit_code == 2, result.output
+        assert not cache.exists()
+    finally:
+        shutil.rmtree(cache, ignore_errors=True)  # a broken guard leaves nothing in the repo
     assert _count(corpus_engine, "corpus_document") == 0
 
 

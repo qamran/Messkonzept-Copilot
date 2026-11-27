@@ -106,3 +106,39 @@ def test_a_long_section_is_split_at_blank_lines() -> None:
     assert all(len(c.text) <= MAX_CHUNK_CHARS for c in chunks)
     joined = "\n".join(c.text for c in chunks)
     assert joined.count("Satz") == 3 * (MAX_CHUNK_CHARS // 10)
+
+
+def test_a_lettered_absatz_is_its_own_chunk() -> None:
+    from mkc.rag.chunking import chunk_text
+
+    text = "§ 14a Steuerung\n(1) Eins.\n(2) Zwei.\n(2a) Zwei a.\n(3) Drei.\n"
+    chunks = chunk_text(text, source_id="g")
+    assert [c.source_ref for c in chunks] == [
+        "§ 14a Abs. 1",
+        "§ 14a Abs. 2",
+        "§ 14a Abs. 2a",
+        "§ 14a Abs. 3",
+    ]
+    assert chunks[2].text == "§ 14a Steuerung\n(2a) Zwei a."
+
+
+def test_the_section_cap_is_4000_characters() -> None:
+    from mkc.rag.chunking import MAX_CHUNK_CHARS, chunk_text
+
+    assert MAX_CHUNK_CHARS == 4000
+    part = "Wort " * 380  # 1,900 characters per paragraph
+    two = chunk_text(f"4 Teil\n{part}\n\n{part}\n", source_id="d", layout="sections")
+    assert len(two) == 1, "3,800 characters stay one chunk"
+    three = chunk_text(f"4 Teil\n{part}\n\n{part}\n\n{part}\n", source_id="d", layout="sections")
+    assert len(three) == 2, "5,700 characters are split at a blank line"
+
+
+def test_a_long_law_absatz_stays_whole() -> None:
+    """Decision 72: an Absatz is the smallest unit a citation names, so it is never split;
+    the largest real one (MsbG, 7,836 characters) fits the model's 32k-token context."""
+    from mkc.rag.chunking import MAX_CHUNK_CHARS, chunk_text
+
+    long_absatz = "(1) " + "Satz. " * (2 * MAX_CHUNK_CHARS // 6)
+    (chunk,) = chunk_text(f"§ 5 Lang\n{long_absatz}\n", source_id="g")
+    assert chunk.source_ref == "§ 5 Abs. 1"
+    assert len(chunk.text) > MAX_CHUNK_CHARS

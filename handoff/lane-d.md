@@ -1,6 +1,6 @@
 # Lane D: RAG
 
-**Last updated:** 27.11.2026, 21:47
+**Last updated:** 27.11.2026, 21:50
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -82,6 +82,7 @@ The tests import these; module paths and names are fixed, internals are free.
 
 ## Recent log
 
+- **27.11.2026 21:50** Development agent: the 3 survivors and the leftover-folder finding. New tests: a lettered Absatz `(2a)` gets `§ 14a Abs. 2a`; the section cap is 4000 characters; a long law Absatz stays whole (decision 72); `REPO_ROOT` is the repo root; the CLI cache test cleans up in `finally`. `uv run pytest tests/rag -q`: `84 passed, 1 deselected, 4 warnings in 9.66s`. Each survivor re-applied by hand and restored: `(\d+)` → `1 failed, 12 passed`; `MAX_CHUNK_CHARS = 40` → `1 failed, 13 passed`; `parents[5]` → `1 failed, 69 passed` (all with `-x`).
 - **27.11.2026 21:47** Test agent: mutation pass on `d4de5fd`. One mutant at a time, each restored before the next; none committed. Each ran `uv run pytest tests/rag tests/models -q -x` (baseline `235 passed, 13 deselected, 4 warnings in 21.83s`). Scope: `mkc/rag/` (sources, chunking, embeddings, loader, fetch, cli), the embedding code in `mkc/models/client.py` and `providers.py`, the MKC-49 block of `mkc/db/models.py`, and migration `0012_corpus.py`. Result: **98 tried, 95 killed, 3 survived** (all 98 applied; 0 not applied). Survivors:
   1. `backend/src/mkc/rag/chunking.py:31` `_ABSATZ` `(\d+[a-z]?)` → `(\d+)`. A lettered Absatz such as `(2a)` no longer opens its own chunk: it is merged into the Absatz before it and gets that Absatz's `source_ref`. No test has a lettered Absatz. Real laws have them, so a unit test with `(1a)` would kill it.
   2. `backend/src/mkc/rag/chunking.py:24` `MAX_CHUNK_CHARS = 4000` → `40`. No test splits a long block. Law blocks have no inner blank lines, so the cap never applies to them. This matches the development agent's 21:03 log entry: the largest real MsbG chunk was 7836 characters, which is over the 4000 cap.
