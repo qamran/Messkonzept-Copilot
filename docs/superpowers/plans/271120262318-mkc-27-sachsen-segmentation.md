@@ -15,7 +15,7 @@
 - each half opens with `Messkonzept <number>:` (left at x = 11 pt, right at x = 499 pt, top 27.8 pt), the title on the line below
 - frames: left 3.7 to 474.3, a divider box 474.3 to 491.3 across the middle (480), right 491.3 to 956.3; their bottom lines lie at 479.8 to 485.8 pt
 - below the frames: a page-wide rule at 483.2 pt, the logo from 498 pt (right half), the footer text from 509 pt
-- page 8 right is `Messkonzept 13:` with the title `Nr. (tbd)` and no figure: a placeholder, so 11 concepts
+- page 8 right is `Messkonzept 13:` with the title `Nr. (tbd)`, no figure and an empty `Anwendungen: -` list: a placeholder, so 11 concepts (decision 74)
 
 ## Split method: half page
 

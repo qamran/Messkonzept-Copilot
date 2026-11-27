@@ -62,6 +62,7 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 
 ## Recent log
 
+- **27.11.2026 23:24** Development agent: decision 74 (2) now states only what the PDF shows for the placeholder (title `Nr. (tbd)`, no image, `Anwendungen: -`); the design's open question on the split method is marked answered. No ADR describes segmentation (ADR 003 is the database), so no ADR change.
 - **27.11.2026 23:24** Development agent: test `test_the_footer_band_keeps_a_frame_line_a_little_lower_than_page_8s` pins `FOOTER_BAND` (0.91): with 0.9 it fails (`1 failed, 5 passed`), with 0.91 `6 passed`.
 - **27.11.2026 23:19** Development agent: decision 74 (design section 18), the status doc's Lane A2 section, the backlog's MKC-27 "As built" note and the `operators.yaml` comment (09/2025, 9 pages, 11 concepts). Decision 75 is left for MKC-24.
 - **27.11.2026 23:19** Development agent: plan doc `docs/superpowers/plans/271120262318-mkc-27-sachsen-segmentation.md` (half page, with the reasons). The two log lines below had times written by hand; corrected to the commit times from git (23:15 and 23:18).
