@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 23:09
+**Last updated:** 27.11.2026, 23:32
 
 This file is how agents resume work after a session restart.
 
@@ -78,7 +78,8 @@ New tables go at the end of `mkc/db/models.py` in a block commented with the tic
 ## In progress
 
 - **MKC-200** (#200, created 23:04:52 per GitHub), Wave 2 coordinator log: `In progress` (23:05:19), branch `mkc-200-wave-2-coordinator`, cut from `mkc-175-wave-1-closeout` (it carries the wave 1 closeout log). Its PR opens between lane merges.
-- **Wave 2 started (27.11.2026):** #22 (MKC-22, lane A), #27 (MKC-27, lane A2), #50 (MKC-50, lane D) `In progress` and assigned to `qamran` (23:05:23 to 23:05:33). Worktrees and branches above, pushed. Docker Desktop and the Compose db started (23:06:46). Three test agents writing the red acceptance tests (lane A Opus, lane A2 Sonnet, lane D Opus); the development agents start after each lane's red commit.
+- **Wave 2 started (27.11.2026):** #22 (MKC-22, lane A), #27 (MKC-27, lane A2), #50 (MKC-50, lane D) `In progress` and assigned to `qamran` (23:05:23 to 23:05:33). Worktrees and branches above, pushed. Docker Desktop and the Compose db started (23:06:46). Red baselines (the last red-test commit per lane, for the review's diff check): lane A `c72296d` (`tests/extraction`: 32 failed, 81 passed, 1 skipped, 4 deselected), lane A2 `cc4dc26` (`-k sachsen`: 9 failed, 2 passed), lane D `50bcd89` (`tests/rag`: 38 failed, 87 passed, 1 deselected), as the test agents reported them from pytest. All three development agents started. Lane A2's code is done (`5b7b8b9`, gate exit 0); its mutation pass is running.
+- **Coordinator rulings in wave 2:** MKC-27: the SachsenNetze half `13 / Nr. (tbd)` is a placeholder, not an item (11 items, decision 74); lane A2 may change the operator id in lane A's `test_segment_rules.py` and the `NoSegmenter` docstring. MKC-50: latency reaches the trace through a new additive `retrieval` record kind (a `run_log` row and a Langfuse span inside a run; a log line outside one); the sources file gets a setting like `MKC_OPERATORS_FILE`; any corpus cache inside the repo is refused. MKC-22: wiring `DocumentOps` into `runner.py` goes to MKC-23 (lane A gets `runner.py` then); running the image test (`MKC_TEST_IMAGE`) in CI's `image` job is the coordinator's, open.
 - **Wave 1 done (27.11.2026):** MKC-46 (PR #195, `085323a`), MKC-36 (PR #196, `046f61e`), MKC-21 (PR #197, `2a841a2`), MKC-49 (PR #198, `6681d48`), each review PASS, merged and deployed; MKC-175 (PR #199, `d7fad1e`).
 - Process rules after the MKC-20 FAIL round: run CI's exact commands (now `bash scripts/pre_pr.sh`) before any claim; copy numbers from output; times from `date`, git or GitHub; start the review only after `gh pr checks` is green.
 
@@ -228,6 +229,10 @@ New tables go at the end of `mkc/db/models.py` in a block commented with the tic
 - **The user's PC:** it went down without a clean shutdown on 23.11 and 26.11.2026 (cause not found; graphics-driver hang reports on both days; a memory test is not done yet). Commit and push often. Two files exist only on the PC: the VM's admin SSH key and `backend/.env` (runbook "Only on the PC"); the user was advised to copy them into a password manager.
 
 ## Recent log
+
+- **27.11.2026 23:32** Wave 2 red tests done in all three lanes and all development agents started (baselines and rulings under In progress). MKC-27 sub-issues #201 and #202 created by lane A2.
+
+- **27.11.2026 23:09** Wave 2 started: MKC-200 (#200, 23:04:52) and its branch; #22, #27, #50 `In progress` (23:05:23 to 23:05:33); worktrees `lane-a`, `lane-a2`, `lane-d` from `d7fad1e`; Compose db up (23:06:46); PR #199 findings 3, 5, 7, 8 and part of 6 fixed (`d1f5671`).
 
 - **27.11.2026 23:01** PR #199 (MKC-175, coordinator) review PASS (Fable, comment 22:54:48; 9 non-blocking findings: (1) the remotes line was stale, fixed here; (2) #175 was created 20:08:24 per GitHub, not 20:08:41, fixed here; (3) the status doc header time 22:45 is not a git time; (4) PR #174's body showed the PC's folder path: edited to `<repo>` by the coordinator at 22:56:07; (5) AGENTS.md does not say how the coordinator's lane-branch edits fit "no two agents write the same worktree at the same time" (in wave 1 the coordinator edited a lane worktree only after its agents had finished); (6) the backlog (line 38) and `handoff/lane-d.md` still have the old model rule without `EmbeddingClient`, and the plan's section 2 may still say "rebase"; (7) a stray `**` in the status doc's MKC-46 line; (8) the status doc's lane D section is stale and its block table lists "76–" before "74–75"; (9) the backlog lane table needed no change in wave 1), merged as `d7fad1e` (22:54:59). #175 `Done` (22:55:42). `main` pushed to `turing` (22:55:45); `origin/main` = `turing/main` = `d7fad1e`. `cd` run 46073341792: `image` 22:55:05 to 22:58:41; `backend` approved at 22:58:56, ran 22:58:57 to 22:59:49; `frontend` approved at 23:00:06, ran 23:00:08 to 23:00:48; run exit 0. Checked: `/api/version` commit `d7fad1e...`, `/health` 200 (23:00:56). Docker Desktop stopped and WSL shut down (22:47:46, after the coordinator gate). Wave 1 worktrees removed. Findings 3 and 5 to 9 go to the wave 2 coordinator PR.
 
