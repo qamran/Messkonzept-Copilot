@@ -1,6 +1,6 @@
 # Lane D: RAG
 
-**Last updated:** 27.11.2026, 21:06
+**Last updated:** 27.11.2026, 21:09
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -11,15 +11,15 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 
 ## In progress
 
-- `MKC-49` (`#49`): the development agent is building it, test-first. The test agent's red acceptance tests are in `backend/tests/rag/`.
+- `MKC-49` (`#49`): built, all six sub-issues closed; the branch is pushed and waits for the test agent's mutation pass before the PR. The test agent's red acceptance tests are in `backend/tests/rag/`.
 - **Red commits:** `97c18ea` to `f515d26` "MKC-49: red test for the corpus tables' downgrade" (the test agent's last commit on this branch; diff the tests against it).
 - **Sub-issues** (all assigned to `qamran`, on the board, linked to `#49`):
   - `MKC-49.1` (`#179`) corpus sources file: done (`4ce0e06`), closed
   - `MKC-49.2` (`#181`) chunking per paragraph: done (`49462e7`), closed
   - `MKC-49.3` (`#182`) embedding model through the provider layer: done (`97b760c`, `0871d20`), closed
   - `MKC-49.4` (`#184`) corpus tables and migration 0012: done (`8f8117d`), closed
-  - `MKC-49.5` (`#185`) corpus loader with the licence guard: done (`2b94d13`), closed
-  - `MKC-49.6` (`#186`) `mkc corpus load` and the HTTP fetcher: In progress
+  - `MKC-49.5` (`#185`) corpus loader with the licence guard: done (`46f818c`), closed
+  - `MKC-49.6` (`#186`) `mkc corpus load` and the HTTP fetcher: done (`5c5f50d`, `3e1c8aa`), closed
 
 ### Pinned interfaces (MKC-49)
 
@@ -70,11 +70,13 @@ The tests import these; module paths and names are fixed, internals are free.
 
 ## Next steps
 
-1. The development agent builds `mkc/rag/`, the migration, `corpus_sources.yaml` and the ADR 004 entry until `uv run pytest tests/rag` is green.
-2. The test agent then runs its mutation pass on `mkc/rag/` and reports the surviving mutants.
+1. The test agent runs its mutation pass on `mkc/rag/` (and the embedding code at the end of `mkc/models/client.py` and `providers.py`) and reports the surviving mutants.
+2. Then the development agent opens the PR (on the coordinator's word), discloses the commits over 200 lines and the new code in `mkc/models/` and `mkc/db/models.py`, and moves `#49` to Testing.
+3. Open for the coordinator: decision 71 (the embedding model) needs the user's confirmation; PDF sources wait on the PDF library of MKC-21; the backend image does not copy `backend/data/` (as for the LBS file), so `mkc corpus load` in the container needs `--sources`.
 
 ## Recent log
 
+- **27.11.2026 21:09** Development agent: `bash scripts/pre_pr.sh` exit 1: every step green (`742 passed, 1 skipped, 13 deselected, 4 warnings in 128.45s`) except the commit check: two trailers read `Refs: qamra/` (my typo in `6dcb8ef`, `2b3774a`). Fixed with `git filter-branch --msg-filter` on the unpushed range `f515d26..HEAD`; from the loader's red tests on, the SHAs changed (`6dcb8ef`→`1d4df45`, `2b94d13`→`46f818c`, `2b3774a`→`ecd4252`, `972af4f`→`5c5f50d`, `4666aef`→`3e1c8aa`, `76633d3`→`fcc30be`); `#185` got a correcting comment. `#186` closed.
 - **27.11.2026 21:06** Development agent: status doc section "Lane D: RAG corpus (MKC-49)". Live end-to-end run 21:04:30–21:05:46 into a throwaway database (created and dropped by the script): `mkc corpus load --source enwg-14a --source msbg` exit 0, `enwg-14a: 4 chunks`, `msbg: 220 chunks`, `embeddings: 51934 tokens, 0.000475 EUR`; every vector 1024 dims; `plainto_tsquery('german', 'steuerbare Verbrauchseinrichtung')` finds `§ 14a Abs. 1` to `Abs. 4` first. Live spend of this lane so far (python sum of the logged costs): EUR `0.000479`, plus the first live-test run whose cost was not printed.
 - **27.11.2026 21:04** Development agent: `mkc corpus load` (`mkc.rag.cli`: `--sources`, `--source`, `--cache-dir`; mounted at the end of `mkc/cli.py`) and the runbook section "RAG corpus (MKC-49)".
 - **27.11.2026 21:03** Development agent: `mkc.rag.fetch` (https only, same-host redirects, 20 MB cap; gesetze-im-internet.de HTML to one line per heading and Absatz; PDFs refused until MKC-21's PDF library); `uv run pytest tests/rag/test_fetch_unit.py -q`: `13 passed`. Offline check on the real pages fetched at 20:39 (file times) into the session scratch folder (not the repo): EnWG § 14a gives 4 chunks, the MsbG 220 chunks (largest 7836 characters).
