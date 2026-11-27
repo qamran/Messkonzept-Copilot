@@ -1,6 +1,6 @@
 # Lane D: RAG
 
-**Last updated:** 27.11.2026, 23:36
+**Last updated:** 27.11.2026, 23:37
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -76,6 +76,7 @@ The tests import these; module paths and names are fixed, internals are free.
 
 ## Recent log
 
+- **27.11.2026 23:37** Development agent: `mkc.rag.retriever`: `rrf_merge` (`RRF_K = 60`, ties to the lower id), `RetrievedChunk.as_prompt_data()`, `RetrievalTrace`, `retrieve` (`MAX_K = 20`, `CANDIDATES = 50`; keyword: `plainto_tsquery('german')` with its terms ORed, `ts_rank`, then id; vector: cosine `<=>`, then id; one log line per call with counts and the error class). `uv run pytest tests/rag/test_retriever.py tests/rag/test_retriever_unit.py -q`: `27 passed in 2.33s`; `tests/rag/test_retrieval_trace.py`: 5 of 9 green, the 4 bridge tests wait on MKC-50.3.
 - **27.11.2026 23:36** Development agent: own red tests `tests/rag/test_retrieval_trace.py`: the keyword side ORs the query terms, refused arguments are not traced, one log line per call without the query, and the bridge (with a run scope one `run_log` row of kind `retrieval` and one sink record in the run's trace; outside a run no row and no sink call; a Langfuse `retriever` observation). `uv run pytest tests/rag/test_retrieval_trace.py -q`: `9 failed in 2.37s`.
 - **27.11.2026 23:35** Development agent: `EmbedTrace` and `EmbeddingClient(tracers=...)` (one trace per `embed()` call, also on a provider error, with the original error's class; a failing hook is logged and skipped; the factory call is inside the traced region), `embed(texts, *, scope=None)`; `ProviderEmbedder.embed_query` with Qwen3-Embedding's `Instruct: <task>\nQuery:<query>` format (`QUERY_INSTRUCTION`, `query_text`) and the `QueryEmbedder` protocol. `uv run pytest tests/rag/test_embedding_trace_unit.py tests/rag/test_embeddings_unit.py tests/models -q`: `175 passed, 12 deselected, 4 warnings in 8.00s`.
 - **27.11.2026 23:35** Development agent: `ruff format` on `loader.py` and two lint fixes in `test_sources_path_unit.py` (SIM300, RUF043); `uv run ruff check src tests`: `All checks passed!`.
