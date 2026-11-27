@@ -816,7 +816,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
 - **Scope:** features 66 and 67.
 - **Depends on:** MKC-46, MKC-36, MKC-26.
 - **Interfaces:**
-  - **Produces:** `mkc.decisions.client.DecisionClient`, with `noul(q, state) -> float`, `choice(q, criteria, state) -> ChoiceAnswer` and `score(q, rubric, state) -> ScoreAnswer`.
+  - **Produces:** `mkc.decision.client.DecisionClient`, with `noul(q, state) -> float`, `choice(q, criteria, state) -> ChoiceAnswer` and `score(q, rubric, state) -> ScoreAnswer`.
   - Backend chosen by `MKC_DECISION_BACKEND=jev|llm`.
 - **Test:**
   - `test_fallback_switch_routes_to_llm`
