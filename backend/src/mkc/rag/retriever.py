@@ -99,7 +99,8 @@ class RetrievalTrace:
     keyword_hits: int
     vector_hits: int
     error: str | None
-    """`<Class>: <text>` when the call failed (then `returned == 0`)."""
+    """`<Class>: SQLSTATE <code>` or `<Class>: message withheld` when the call failed (then
+    `returned == 0`); never the message, which can quote the query."""
     scope: TraceScope | None = None
 
 
@@ -143,8 +144,7 @@ def retrieve(
         )
         found = _chunks(session, rrf_merge([keyword, vector])[:k])
     except Exception as exc:
-        error = f"{type(exc).__name__}: {exc}"
-        found = []
+        error = _error(exc)
         raise
     finally:
         _trace(
@@ -161,6 +161,14 @@ def retrieve(
             tracers,
         )
     return found
+
+
+def _error(exc: Exception) -> str:
+    """`<Class>: …` without the message: a SQLAlchemy error quotes the statement's parameters
+    (the query), and a provider or tsquery error can quote the input. The SQLSTATE of a
+    database error is kept; the caller still gets the full exception."""
+    code = getattr(getattr(exc, "orig", None), "sqlstate", None)
+    return f"{type(exc).__name__}: " + (f"SQLSTATE {code}" if code else "message withheld")
 
 
 def _vector_text(vector: Sequence[float]) -> str:

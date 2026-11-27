@@ -195,8 +195,9 @@ def test_a_database_error_never_puts_the_query_into_the_trace(
     tracer.start_run(run_id)
     seen: list[Any] = []
     with FailingSession(corpus_engine) as failing, pytest.raises(OperationalError) as raised:
-        _retrieve(failing, "Wärmepumpe Musterstraße", 3, ScriptedEmbedder(dim),
-                  tracers=[tracer.span_retrieval, seen.append], scope=TraceScope(run_id))  # fmt: skip
+        hooks = [tracer.span_retrieval, seen.append]
+        _retrieve(failing, "Wärmepumpe Musterstraße", 3, ScriptedEmbedder(dim), tracers=hooks,
+                  scope=TraceScope(run_id))  # fmt: skip
     assert "Musterstraße" in str(raised.value), "the caller still gets the full error"
     (trace,) = seen
     assert trace.error is not None and trace.error.startswith("OperationalError")
