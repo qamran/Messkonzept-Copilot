@@ -1,17 +1,17 @@
 # Lane C: Decision layer
 
-**Last updated:** 27.11.2026, 21:12
+**Last updated:** 27.11.2026, 21:16
 
 Only lane C's agents write this file; the coordinator keeps `HANDOFF.md`. Times are local time (CET) from git and GitHub, never estimated.
 
 - **Tickets, in order:** `MKC-46` → `MKC-47` (after MKC-36, MKC-26) → `MKC-48` (after MKC-31)
 - **Branch and worktree:** `mkc-46-decision-spike`
-- **Owns:** `mkc/decision/` and `tests/decision/`; one function appended at the end of `mkc/models/providers.py`; one appended block in `config.py`
+- **Owns:** `mkc/decision/` and `tests/decision/`; in `mkc/models/providers.py`, new imports at the top (`cast`, `httpx2`, `langchain_core.decisions`, `TypeSafeClassifier`, `JsonValue`) plus, at the end, the constant `OPENROUTER_SYSTEM_ONE_BASE`, the subclass `_OpenRouterDecisionModel` and `build_decision_model`; one appended block each in `config.py` and `.env.example`
 - **Decision numbers:** 68–70
 
 ## In progress
 
-- `MKC-46` (`#46`), decision-layer spike: the test agent's red acceptance tests are committed in `backend/tests/decision/` (last red commit `dd184a2`). All green; the live spike passed; docs written. Next: `pre_pr.sh`, push, then the test agent's mutation pass.
+- `MKC-46` (`#46`), decision-layer spike: the test agent's red acceptance tests are committed in `backend/tests/decision/` (last red commit `dd184a2`). All green; the live spike passed; docs written; mutation pass done. Gate on `7a5efc8`: `bash scripts/pre_pr.sh` exit 0. The PR is opened right after this commit (its number goes into the next log entry).
   - Sub-issues: `MKC-46.1` (`#192`, settings, dependency, provider factory with ZDR routing; In progress), `MKC-46.2` (`#193`, `DecisionClient`; In progress), `MKC-46.3` (`#194`, live spike and docs; In progress). All three go to Testing with the PR.
   - **Spike result: the path works.** `POST https://openrouter.ai/api/v1/systemone` (TypeSafe SDK path, documented in OpenRouter's OpenAPI spec as "System One", "Compatible with the TypeSafe SDKs") answers 200 for `~typesafe/jev-latest`, resolved to `typesafe/jev-1.14-20261014`. So the base URL is `https://openrouter.ai/api`.
 
@@ -94,11 +94,12 @@ The re-check of survivors 3, 9, 10 and 11 against `8beb8c8` printed "killed" for
 
 ## Next steps
 
-1. Development agent: `bash scripts/pre_pr.sh`, push the branch, report to the coordinator (no PR yet).
-2. Test agent: mutation pass done (see "Mutation pass"). Next: the PR and the review agent.
+1. Development agent: open the PR; set #46 and #192–#194 to Testing.
+2. Coordinator: the review agent once `gh pr checks` is green.
 
 ## Recent log
 
+- **27.11.2026 21:16** Development agent: pulled the test agent's `8beb8c8`, `0b4e268`, `7a5efc8`. `bash scripts/pre_pr.sh` exit 0: "709 passed, 1 skipped, 13 deselected in 124.87s (0:02:04)"; mypy "Success: no issues found in 51 source files"; over 200 lines: `81fc41c` (229). Fixed the "Owns" line (`providers.py` has new imports, a constant, a subclass and the function).
 - **27.11.2026 21:12** Test agent (`0b4e268`): mutation pass on `f6216cb`: 40 mutants, 28 killed, 12 survived (see "Mutation pass"). Four survivors showed gaps in the parse criterion; three acceptance tests in `8beb8c8` kill them. `uv run pytest tests/decision tests/models -q`: "202 passed, 13 deselected".
 - **27.11.2026 20:50** Development agent: live spike passed (see "Live calls"); the result in ADR 004 (amendment), the status doc (MKC-46 line, open item ticked), decisions 68 and 69 in the design doc; the backlog's MKC-47 interface line now says `mkc.decision.client.DecisionClient`. Decision 70 is not used yet (kept for MKC-47 or MKC-48).
 - **27.11.2026 20:47** Development agent (`7f54dff`): `mkc/decision/` (`types.py`, `client.py`): `DecisionClient.decide` sends one `invoke` with `Noul`/`Choice`, checks 1 to 32 questions, and converts the reply into our frozen types; a missing, wrong-type or out-of-criteria answer is a `DecisionError`. `uv run pytest -q tests/decision`: "44 passed, 1 deselected"; `uv run mypy`: "Success: no issues found in 51 source files".
