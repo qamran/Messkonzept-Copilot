@@ -1,7 +1,8 @@
 """The tracer (MKC-19, decision 59).
 
 The harness already calls three kinds of hooks: `CallTrace` (each model call attempt),
-`ToolTrace` (each tool call) and `StopEvent` (each stop). `Tracer` turns each into one
+`ToolTrace` (each tool call) and `StopEvent` (each stop); `retrieve` calls a fourth,
+`RetrievalTrace` (MKC-50, decision 80). `Tracer` turns each into one
 `TraceRecord` and writes it twice: one row in `run_log` (its own short session) and one
 observation in Langfuse (the `Sink`). Each side is guarded on its own, so a tracing failure
 never reaches the run.
@@ -23,10 +24,11 @@ from mkc.db.models import Run, RunLog
 from mkc.harness.limits import StopEvent, StopReason
 from mkc.harness.tools import ToolTrace
 from mkc.models.client import CallTrace
+from mkc.rag.retriever import RetrievalTrace
 
 log = logging.getLogger(__name__)
 
-Kind = Literal["model", "tool", "stop", "outage"]
+Kind = Literal["model", "tool", "stop", "outage", "retrieval"]
 
 MAX_NAME = 100
 """A tool name is model-supplied: cut before it leaves the machine (finding 14#6)."""
@@ -184,6 +186,36 @@ class Tracer:
                 ok=False,
                 error=_cut(detail),
                 public_error=_error_class(detail),
+            )
+        )
+
+    def span_retrieval(self, trace: RetrievalTrace) -> None:
+        """Hook for `mkc.rag.retriever.retrieve(tracers=...)` (MKC-50): latency and counts,
+        never the query text. Outside a run (no scope) nothing is recorded here; `retrieve`
+        logs its own line."""
+        self._guarded("retrieval", self._span_retrieval, trace)
+
+    def _span_retrieval(self, trace: RetrievalTrace) -> None:
+        if trace.scope is None:
+            return  # not part of a run: no trace to join
+        self._record(
+            TraceRecord(
+                kind="retrieval",
+                run_id=trace.scope.run_id,
+                item_id=trace.scope.item_id,
+                step=trace.scope.step,
+                name="retrieve",
+                ok=trace.error is None,
+                error=_cut(trace.error),
+                public_error=_error_class(trace.error),
+                latency_ms=trace.latency_ms,
+                detail={
+                    "k": trace.k,
+                    "query_chars": trace.query_chars,
+                    "returned": trace.returned,
+                    "keyword_hits": trace.keyword_hits,
+                    "vector_hits": trace.vector_hits,
+                },
             )
         )
 

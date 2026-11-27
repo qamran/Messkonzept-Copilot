@@ -163,3 +163,12 @@ def test_a_retrieval_record_is_a_retriever_observation(exported: Any) -> None:
     assert found[ATTR + "metadata.latency_ms"] == "42"
     assert found[ATTR + "metadata.keyword_hits"] == "3"
     assert (span.end_time or 0) - (span.start_time or 0) >= 42 * 1_000_000
+
+
+def test_the_demo_expects_a_retriever_for_a_retrieval_row() -> None:
+    """The live demo compares `run_log` kinds with Langfuse's observation types."""
+    from collections import Counter
+
+    from mkc.observability.demo import expected_types
+
+    assert expected_types(["retrieval"]) == Counter({"RETRIEVER": 1})

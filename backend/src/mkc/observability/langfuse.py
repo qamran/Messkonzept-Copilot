@@ -2,7 +2,8 @@
 
 - One trace per run: every observation carries the run's `trace_id` as its trace context.
 - Model calls are generations (model, usage, cost in USD), tool calls are tool
-  observations, stops and outages are events. A failed record has level `ERROR`.
+  observations, retrievals (MKC-50) are retriever observations, stops and outages are
+  events. A failed record has level `ERROR`.
 - Metadata only: no prompts, replies, tool arguments or PDF text (decision 59).
 - Cost: Langfuse counts USD, so the EUR cost goes back to USD with the rate of
   `models.yaml`; replayed calls send no cost (finding 13#4).
@@ -78,6 +79,15 @@ class LangfuseSink:
                 model=record.name,
                 usage_details=_usage(record),
                 cost_details=self._cost(record),
+                metadata=metadata,
+                level=level,
+                status_message=record.public_error,
+            )
+        elif record.kind == "retrieval":
+            observation = self._client.start_observation(
+                trace_context=context,
+                name=record.name,
+                as_type="retriever",
                 metadata=metadata,
                 level=level,
                 status_message=record.public_error,
