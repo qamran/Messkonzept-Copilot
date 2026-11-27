@@ -5,7 +5,6 @@ the state columns have no CHECK constraint, so this function is the guard.
 """
 
 from enum import StrEnum
-from typing import TypeVar
 
 
 class ItemState(StrEnum):
@@ -30,13 +29,31 @@ class InvalidTransition(ValueError):
     """A state change that is not in the edge table."""
 
 
-EDGES: frozenset[tuple[ItemState, ItemState] | tuple[RunState, RunState]] = frozenset()
+_I, _R = ItemState, RunState
 
-TERMINAL: frozenset[ItemState | RunState] = frozenset()
+EDGES: frozenset[tuple[ItemState, ItemState] | tuple[RunState, RunState]] = frozenset(
+    {
+        (_I.QUEUED, _I.RUNNING),  # queue: next_item
+        (_I.RUNNING, _I.DRAFT_SAVED),  # loop: save_draft returned ok
+        (_I.RUNNING, _I.FAILED),  # loop: model or tool error, no tool call, step cap
+        (_I.DRAFT_SAVED, _I.PENDING_APPROVAL),  # harness: enqueue_approval (MKC-23)
+        (_I.PENDING_APPROVAL, _I.APPROVED),  # human (MKC-29/30)
+        (_I.PENDING_APPROVAL, _I.REJECTED),  # human (MKC-29/30)
+        (_I.APPROVED, _I.COMMITTED),  # worker: commit_record (MKC-30)
+        (_R.RUNNING, _R.AWAITING_APPROVAL),  # settle_run: drafts await a decision
+        (_R.RUNNING, _R.DONE),  # settle_run: every item terminal
+        (_R.RUNNING, _R.STOPPED),  # a run-level limit (MKC-18)
+        (_R.AWAITING_APPROVAL, _R.DONE),  # settle_run
+    }
+)
 
-S = TypeVar("S", ItemState, RunState)
+TERMINAL: frozenset[ItemState | RunState] = frozenset(
+    {_I.COMMITTED, _I.REJECTED, _I.FAILED, _R.DONE, _R.STOPPED}
+)
 
 
-def transition(current: S, target: S) -> S:
+def transition[S: (ItemState, RunState)](current: S, target: S) -> S:
     """Return `target` if `current -> target` is an edge; raise `InvalidTransition` if not."""
-    raise InvalidTransition(f"{current.value} -> {target.value}")
+    if type(current) is not type(target) or (current, target) not in EDGES:
+        raise InvalidTransition(f"{current.value} -> {target.value}")
+    return target
