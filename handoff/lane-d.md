@@ -1,6 +1,6 @@
 # Lane D: RAG
 
-**Last updated:** 28.11.2026, 00:43
+**Last updated:** 28.11.2026, 00:48
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -11,7 +11,7 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 
 ## In progress
 
-- `MKC-50` (`#50`), Hybrid retriever: built; the test agent's mutation pass is done (108 tried, 104 killed, 4 survivors accepted by the coordinator); the coordinator merged `main` (MKC-27) as `c9a2b58`; sub-issues MKC-50.1 to 50.5 (`#203`–`#207`), with MKC-50.4 (`#206`) the MKC-49 review findings. Next: the PR.
+- `MKC-50` (`#50`), Hybrid retriever: built; the test agent's mutation pass is done (108 tried, 104 killed, 4 survivors accepted by the coordinator); the coordinator merged `main` (MKC-27) as `c9a2b58`; sub-issues MKC-50.1 to 50.5 (`#203`–`#207`), with MKC-50.4 (`#206`) the MKC-49 review findings. PR #216 opened; in Testing.
 - Decisions written: 79 (the retriever), 80 (the retrieval and embedding traces), 81 (the corpus files); ADR 004 amendment "the query side".
 - Migration: MKC-49's is `0013_corpus.py` (`down_revision = "0012"`; the coordinator re-chained it at the merge). MKC-50 adds none.
 
@@ -89,12 +89,13 @@ The test agent, on `f1e9ee3`. One hand-written mutant at a time, applied exactly
 
 ## Next steps
 
-1. The development agent: the PR (`Closes #50`), #50 and #203–#207 to Testing; then the review agent.
+1. PR #216 is open; #50 and #203–#207 are in Testing. Next: CI green, then the review agent.
 2. Done: the test agent's mutation pass (see "Mutation pass (MKC-50)"): 108 tried, 104 killed, 4 near-equivalent survivors, accepted by the coordinator (`MAX_K` and `CANDIDATES` now pinned at 20 and 50 by decision 79).
 3. Follow-up for MKC-51: `EmbedTrace` has no `run_log` bridge yet, so a query embedding's spend inside a run is not in the run trace (only in `ProviderEmbedder`'s totals).
 
 ## Recent log
 
+- **28.11.2026 00:48** Development agent: `bash scripts/pre_pr.sh` exit 0 at `ab214ee` (00:45): `1056 passed, 1 skipped, 18 deselected, 4 warnings in 103.61s (0:01:43)`; `33 commits in origin/main..HEAD`; over 200 lines: `29ca7cd 282 lines`. Pushed; PR #216 opened (createdAt `2026-11-27T23:47:26Z`, 00:47 CET), assigned to `qamran`; `#50` and `#203`–`#207` set to Testing on the board.
 - **28.11.2026 00:43** Development agent: `bash scripts/pre_pr.sh` exit 1 at `0b92b87` (00:43): only `ruff format --check` failed (`tests/rag/test_retrieval_trace.py`, line endings of the appended pin test); `ruff format` fixed it.
 - **28.11.2026 00:41** Development agent: after the mutation pass and the coordinator's merge of `main` (`c9a2b58`): a pin test for `MAX_K = 20` and `CANDIDATES = 50` (decision 79 names both values; kills survivors 1 and 2), and the top docstring of `mkc/models/client.py` names `DecisionClient` and `EmbeddingClient` too (coordinator grant). The coordinator accepted all 4 survivors and the test agent's new pins.
 - **28.11.2026 00:39** Test agent: mutation pass on `f1e9ee3`, written up under "Mutation pass (MKC-50)". First run: 108 tried, 86 killed, 22 survived. Against the new tests (`da5d8c6`, `06c8798`, `c4963f6`), the 22 survivors were rerun: 18 killed, 4 survived (all near-equivalent). Final: 108 tried, 104 killed, 4 survived. `uv run pytest tests/rag tests/observability tests/models -q` with the new tests: `349 passed, 14 deselected, 4 warnings in 17.09s`.
