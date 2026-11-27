@@ -1,6 +1,6 @@
 # Lane B: Advisor
 
-**Last updated:** 27.11.2026, 20:40
+**Last updated:** 27.11.2026, 20:41
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md`. Times are local time from git and GitHub, never estimated.
 
@@ -17,7 +17,7 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md`. Tim
 
 Sub-issues (all assigned to `qamran`, on the board, linked to #36): `MKC-36.1` (#176) SiteFacts model and extraction, `MKC-36.2` (#177) follow-up questions, `MKC-36.3` (#178) API routes, `MKC-36.4` (#180) facts card and advisor page, `MKC-36.5` (#183) docs.
 
-- `MKC-36.1` (#176): In progress. Own tests in `backend/tests/advisor/test_facts_mapping.py` (prompt wrapping, note order).
+- `MKC-36.1` (#176): built `mkc/advisor/facts.py`; `test_facts.py` and `test_facts_mapping.py` green (`22 passed`). Own tests in `test_facts_mapping.py` (prompt wrapping, note order).
 
 ### Red tests (test agent)
 
@@ -96,6 +96,7 @@ Frontend:
 
 ## Recent log
 
+- **27.11.2026 20:41** Development agent: `mkc/advisor/facts.py` (SiteFacts, FactsExtraction, extract_facts); `tests/advisor/test_facts.py tests/advisor/test_facts_mapping.py` give `22 passed`.
 - **27.11.2026 20:40** Development agent: sub-issues #176, #177, #178, #180, #183 created; red test `test_facts_mapping.py` (`1 error in 0.35s`, missing `mkc.advisor.facts`).
 - **27.11.2026 20:33** Test agent: `4be85d4` tightens the red tests (page test no longer matches the typed text; `extra_households` cleared out of scope; no module question without an SVE). Backend `3 errors in 0.65s`; full vitest `Test Files  3 failed | 5 passed (8)`, `Tests  26 passed (26)`.
 - **27.11.2026 20:29** Test agent: red tests committed, `f1d3a05` (ruff isort config) to `6de3f64`. Backend `3 errors in 0.74s` (missing `mkc.advisor`); frontend `Test Files  3 failed (3)` on the three new files.
