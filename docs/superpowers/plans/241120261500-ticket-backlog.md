@@ -51,6 +51,22 @@ Failure modes the spec implies that no feature list names explicitly. Each has a
 4. **Supabase paused or unreachable** during a run. Expected: the worker backs off, the run shows `waiting_for_database`, no state is lost, and it resumes when the database is back. Test in **MKC-17**.
 5. **The model asks for a tool that doesn't exist, or one from the run-level set, with plausible arguments.** Expected: a structured error to the model, counted in the trace, nothing executed. Test in **MKC-14**.
 
+## Parallel lanes and waves
+
+Added 27.11.2026 by MKC-168 (decision 61, plan `docs/superpowers/plans/271120261901-parallel-lanes.md`). Tickets run in parallel lanes; each lane owns its package. Inside a lane, tickets run in order. A ticket that can be built in a lane is built now, whatever its phase (the user's choice). The dependencies below still hold: a lane whose next ticket waits on another lane pauses.
+
+| Lane | Tickets, in order | Owns (new code) | Waits on another lane |
+|---|---|---|---|
+| A. Extraction | MKC-21 → MKC-22 → MKC-23 → MKC-25 → MKC-26 → MKC-28 → MKC-29 → MKC-30 | `mkc/extraction/`, the item tools in `mkc/harness/registry.py`, `backend/data/operators.yaml`, the review queue and commit (MKC-29, MKC-30) | none |
+| A2. SachsenNetze and gold | MKC-27 → MKC-24 | `mkc/extraction/sachsen*.py`, the gold tooling | MKC-27 on A (MKC-21); MKC-24 on A (MKC-23) |
+| B. Advisor | MKC-36 → MKC-37 → MKC-38 | `mkc/advisor/`, advisor API routes, advisor UI pages | MKC-37 waits on A (MKC-30) |
+| C. Decision layer | MKC-46 → MKC-47 → MKC-48 | `mkc/decision/` (`DecisionClient`) | MKC-47 waits on B (MKC-36) and A (MKC-26); MKC-48 on MKC-31 (eval runner, no lane yet) |
+| D. RAG | MKC-49 → MKC-50 → MKC-51 | `mkc/rag/`, corpus loader, retriever | MKC-51 waits on B (MKC-38) |
+
+**Wave 1 (from 27.11.2026):** MKC-21 (lane A), MKC-36 (lane B), MKC-46 (lane C), MKC-49 (lane D); MKC-46 and MKC-49 are Phase 7 tickets built early.
+
+**Later waves:** MKC-27 (lane A2) joins once MKC-21 is merged. The waits above come from each ticket's "Depends on" line. Tickets outside these lanes (for example the evaluation tickets MKC-31 to MKC-35) get a lane from the coordinator when their dependencies are done; the coordinator never builds lane code itself.
+
 ## Ticket format
 
 Every ticket, issue and sub-issue on the board uses this template (also as the GitHub issue template, created in MKC-1):
@@ -475,6 +491,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
 - **Success criteria:**
   - [ ] `MesskonzeptDraft` JSON schema exported for the vision prompt (MKC-26)
 - **Note (decision 56):** the draft key (document hash, concept key) spans runs, so a new run of the same document overwrites a draft that may still await approval. Decide here what a save does once the draft is enqueued or approved.
+- **Note (PR #167 finding 7, decision 60):** a baseline item can be `draft_saved` with no `draft` row (its draft was in memory); approvals must not assume a row.
 
 ### MKC-24: Gold tooling
 
@@ -614,8 +631,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] No-fault arm: overhead in time, cost and steps, reported for full vs baseline
   - [ ] Fault arm: completion rate, cost, repeated side effects (= 0 for full), recovery time, for each fault type
   - [ ] Report + README-ready chart data committed
-- **Note (decision 60):** a re-prompt, a faulted tool result or a resume context changes the next request, so its replay key differs from a no-fault recording. Record each fault arm once (`MKC_MODEL_MODE=record`) before replaying it; a `ReplayMiss` stops the run with `setup_error`. Fault plans: `backend/data/e4_faults.yaml`; run them with `mkc run start --inline --mode full|baseline --faults ... --plan ...`. An injected tool timeout, 429 or malformed reply has no `run_log` row (it never reaches the registry or the provider); count it from the fault plan and the turn rows. Run baseline arms with `--inline`: a baseline crash loop in the worker has no cap across attempts. Open points from the PR #167 review (findings 3 to 6): fence before a baseline stop writes its report; CLI exit code 0 also for a run that ended `stopped`; `start --inline` creates and claims the run in two transactions, `--faults` without `--inline` is ignored, Ctrl-C leaves the lease to expire; baseline limits restart per attempt.
-- **Note for MKC-23 (PR #167 finding 7):** a baseline item can be `draft_saved` with no `draft` row (its draft was in memory); approvals must not assume a row. Repeated side effects in baseline are the extra entries in `RunMemory.approvals` and the extra `save_draft` rows in `run_log`.
+- **Note (decision 60):** a re-prompt, a faulted tool result or a resume context changes the next request, so its replay key differs from a no-fault recording. Record each fault arm once (`MKC_MODEL_MODE=record`) before replaying it; a `ReplayMiss` stops the run with `setup_error`. Fault plans: `backend/data/e4_faults.yaml`; run them with `mkc run start --inline --mode full|baseline --faults ... --plan ...`. An injected tool timeout, 429 or malformed reply has no `run_log` row (it never reaches the registry or the provider); count it from the fault plan and the turn rows. Run baseline arms with `--inline`: a baseline crash loop in the worker has no cap across attempts. Repeated side effects in baseline are the extra entries in `RunMemory.approvals` and the extra `save_draft` rows in `run_log`. Open points from the PR #167 review (findings 3 to 6): fence before a baseline stop writes its report; CLI exit code 0 also for a run that ended `stopped`; `start --inline` creates and claims the run in two transactions, `--faults` without `--inline` is ignored, Ctrl-C leaves the lease to expire; baseline limits restart per attempt.
 
 ### MKC-33: E5, safeguard suite
 
