@@ -1,6 +1,6 @@
 # Lane D: RAG
 
-**Last updated:** 27.11.2026, 21:09
+**Last updated:** 27.11.2026, 21:13
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -76,6 +76,7 @@ The tests import these; module paths and names are fixed, internals are free.
 
 ## Recent log
 
+- **27.11.2026 21:13** Development agent: `bash scripts/pre_pr.sh` exit 0 at `1d54b78` (`742 passed, 1 skipped, 13 deselected, 4 warnings in 136.96s`; commits over 200 lines: `d526f60` 232, `97b760c` 265, `ecd4252` 241). The test agent's red tests are unchanged since `f515d26` (`git diff --stat f515d26 HEAD` on them is empty).
 - **27.11.2026 21:09** Development agent: `bash scripts/pre_pr.sh` exit 1: every step green (`742 passed, 1 skipped, 13 deselected, 4 warnings in 128.45s`) except the commit check: two trailers read `Refs: qamra/` (my typo in `6dcb8ef`, `2b3774a`). Fixed with `git filter-branch --msg-filter` on the unpushed range `f515d26..HEAD`; from the loader's red tests on, the SHAs changed (`6dcb8ef`→`1d4df45`, `2b94d13`→`46f818c`, `2b3774a`→`ecd4252`, `972af4f`→`5c5f50d`, `4666aef`→`3e1c8aa`, `76633d3`→`fcc30be`); `#185` got a correcting comment. `#186` closed.
 - **27.11.2026 21:06** Development agent: status doc section "Lane D: RAG corpus (MKC-49)". Live end-to-end run 21:04:30–21:05:46 into a throwaway database (created and dropped by the script): `mkc corpus load --source enwg-14a --source msbg` exit 0, `enwg-14a: 4 chunks`, `msbg: 220 chunks`, `embeddings: 51934 tokens, 0.000475 EUR`; every vector 1024 dims; `plainto_tsquery('german', 'steuerbare Verbrauchseinrichtung')` finds `§ 14a Abs. 1` to `Abs. 4` first. Live spend of this lane so far (python sum of the logged costs): EUR `0.000479`, plus the first live-test run whose cost was not printed.
 - **27.11.2026 21:04** Development agent: `mkc corpus load` (`mkc.rag.cli`: `--sources`, `--source`, `--cache-dir`; mounted at the end of `mkc/cli.py`) and the runbook section "RAG corpus (MKC-49)".
