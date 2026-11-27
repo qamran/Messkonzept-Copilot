@@ -8,6 +8,7 @@ never reaches the run.
 """
 
 import logging
+import re
 import threading
 import uuid
 from collections.abc import Callable
@@ -19,7 +20,7 @@ from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from mkc.db.models import Run, RunLog
-from mkc.harness.limits import StopEvent
+from mkc.harness.limits import StopEvent, StopReason
 from mkc.harness.tools import ToolTrace
 from mkc.models.client import CallTrace
 
@@ -51,6 +52,10 @@ class TraceRecord:
     cost_eur: Decimal | None = None
     latency_ms: int | None = None
     detail: dict[str, Any] = field(default_factory=dict)
+    public_error: str | None = None
+    """What the sink may send of the error: the error class (and HTTP status), a tool error
+    code, or a tool name cut to `MAX_NAME`. Never the text, which can quote a prompt or a
+    model reply; `error` keeps that for `run_log` (MKC-20.5, finding 19#1)."""
 
 
 class Sink(Protocol):
@@ -93,6 +98,24 @@ class Tracer:
 
     def span_model(self, trace: CallTrace) -> None:
         """Hook for `ModelClient(tracers=...)`: one record per attempt."""
+        self._guarded("model", self._span_model, trace)
+
+    def span_tool(self, trace: ToolTrace) -> None:
+        """Hook for `ToolRegistry(tracers=...)`."""
+        self._guarded("tool", self._span_tool, trace)
+
+    def span_stop(self, event: StopEvent) -> None:
+        """Hook for `process_run(tracers=...)` and `stop_run`."""
+        self._guarded("stop", self._span_stop, event)
+
+    def _guarded(self, kind: str, build: Callable[[Any], None], event: Any) -> None:
+        """Build and record inside one guard: a hook never raises into the loop (19#3)."""
+        try:
+            build(event)
+        except Exception as error:
+            log.warning("%s trace not recorded: %s", kind, type(error).__name__)
+
+    def _span_model(self, trace: CallTrace) -> None:
         if trace.scope is None:
             return  # not part of a run: no trace to join
         usage = trace.usage
@@ -105,6 +128,7 @@ class Tracer:
                 name=trace.model_id,
                 ok=trace.error is None,
                 error=_cut(trace.error),
+                public_error=_error_class(trace.error),
                 mode=trace.mode,
                 input_tokens=None if usage is None else usage.input_tokens,
                 output_tokens=None if usage is None else usage.output_tokens,
@@ -114,8 +138,7 @@ class Tracer:
             )
         )
 
-    def span_tool(self, trace: ToolTrace) -> None:
-        """Hook for `ToolRegistry(tracers=...)`."""
+    def _span_tool(self, trace: ToolTrace) -> None:
         if trace.run_id is None:
             return
         self._record(
@@ -127,13 +150,13 @@ class Tracer:
                 name=trace.tool[:MAX_NAME],
                 ok=trace.ok,
                 error=trace.error_code,
+                public_error=trace.error_code,
                 latency_ms=trace.latency_ms,
                 detail={"ctx": trace.ctx, "refused": trace.refused, "cached": trace.cached},
             )
         )
 
-    def span_stop(self, event: StopEvent) -> None:
-        """Hook for `process_run(tracers=...)` and `stop_run`."""
+    def _span_stop(self, event: StopEvent) -> None:
         self._record(
             TraceRecord(
                 kind="stop",
@@ -142,6 +165,7 @@ class Tracer:
                 name=event.reason.value,
                 ok=False,
                 error=_cut(event.detail),
+                public_error=_public_detail(event),
                 detail={
                     "scope": event.scope,
                     "steps": event.steps,
@@ -159,11 +183,16 @@ class Tracer:
                 name="database_unavailable",
                 ok=False,
                 error=_cut(detail),
+                public_error=_error_class(detail),
             )
         )
 
     def flush(self) -> None:
-        """Send what the sink still holds; never raises."""
+        """Send what the sink still holds and forget the cached trace ids (the executor
+        flushes after each run, so the cache stays small; a late event looks its id up
+        again). Never raises."""
+        with self._lock:
+            self._trace_ids.clear()
         if self._sink is None:
             return
         try:
@@ -176,6 +205,9 @@ class Tracer:
     def _record(self, record: TraceRecord) -> None:
         trace_id = self._write(record)
         if self._sink is None:
+            return
+        if trace_id is None:  # without it Langfuse would open a trace of its own (19#2)
+            log.warning("run %s: no trace id; %s kept in run_log only", record.run_id, record.kind)
             return
         try:
             self._sink.send(record, trace_id)
@@ -206,7 +238,31 @@ class Tracer:
 def _row(record: TraceRecord) -> dict[str, Any]:
     fields = asdict(record)
     fields["detail"] = record.detail or None
+    del fields["public_error"]  # `error` holds the text; the public part is derived from it
     return fields
+
+
+_HTTP = re.compile(r"\bHTTP (\d{3})\b")
+_CLASS = re.compile(r"[A-Za-z_][A-Za-z0-9_.]*")
+
+
+def _error_class(text: str | None) -> str | None:
+    """`<Class>: <text>` -> `<Class>`, plus ` (HTTP <status>)` when the text names one."""
+    if text is None:
+        return None
+    head = text.split(":", 1)[0].strip()
+    name = head if _CLASS.fullmatch(head) else "error"
+    status = _HTTP.search(text)
+    return f"{name[:MAX_NAME]} (HTTP {status.group(1)})" if status else name[:MAX_NAME]
+
+
+def _public_detail(event: StopEvent) -> str | None:
+    """A tool name for `tool_retries`; the error class for every other detail."""
+    if event.detail is None:
+        return None
+    if event.reason is StopReason.TOOL_RETRIES:
+        return event.detail[:MAX_NAME]
+    return _error_class(event.detail)
 
 
 def _cut(text: str | None) -> str | None:

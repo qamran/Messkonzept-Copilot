@@ -185,7 +185,8 @@ def run_item(
         except RetryInterrupted:
             return ItemOutcome(item_id, ItemState.RUNNING, INTERRUPTED, step - 1, cost)
         except RetriesExhausted as exhausted:
-            last = str(exhausted.__cause__)[:300]
+            cause = exhausted.__cause__
+            last = f"{type(cause).__name__}: {cause}"[:300]  # the class for the trace sink
             return ctx.stop(StopReason.MODEL_UNAVAILABLE, last, step - 1, cost)
         except SETUP_ERRORS as error:
             return ctx.stop(StopReason.SETUP_ERROR, type(error).__name__, step - 1, cost)
