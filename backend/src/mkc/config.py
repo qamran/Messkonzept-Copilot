@@ -7,6 +7,8 @@ from typing import Annotated, Literal
 from pydantic import AliasChoices, Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
+from mkc.harness.mode import HarnessMode
+
 _PSYCOPG_SCHEME = "postgresql+psycopg://"
 _BARE_SCHEMES = ("postgres://", "postgresql://")
 _LOCAL_VITE = ["http://localhost:5173", "http://127.0.0.1:5173"]
@@ -89,6 +91,11 @@ class Settings(BaseSettings):
 
     model_replay_dir: str = ""
     """Directory of recorded replies; required in `record` and `replay` mode."""
+
+    harness_mode: HarnessMode = HarnessMode.FULL
+    """Mode of new runs (`run.mode`): `full`, or `baseline`, the simple loop with checkpoints,
+    tool cache, durable queue, idempotency and durable approvals off (MKC-20, decision 60).
+    Each run keeps the mode it was created with."""
 
     item_max_steps: int = Field(default=12, ge=1)
     """Model calls one item may make before it fails with `step_limit` (MKC-15, decision 58)."""

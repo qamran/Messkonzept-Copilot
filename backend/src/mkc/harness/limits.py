@@ -60,7 +60,8 @@ _RUN_REASONS = frozenset(
 class Limits:
     """Every limit of the harness. The defaults are the settings' defaults (plan of MKC-18).
 
-    `max_reprompts` (1, feature 22) has no setting; MKC-20's baseline mode sets it to 0.
+    `max_reprompts` (1, feature 22) has no setting. Baseline keeps it: the re-prompt is not
+    one of the baseline switches (decision 60).
     """
 
     max_steps_item: int = 12
