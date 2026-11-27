@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 18:18
+**Last updated:** 27.11.2026, 18:19
 
 This file is how agents resume work after a session restart.
 
@@ -58,7 +58,8 @@ This file is how agents resume work after a session restart.
 - **MKC-20** (#20), Baseline mode, failure injection and CLI. Status `In progress`, assigned to `qamran` (27.11.2026 17:14:51). Branch `mkc-20-baseline-cli` from `21f5eb8`. The first commit holds only the close-out of MKC-19.
   - Plan: `docs/superpowers/plans/271120261738-mkc-20-baseline-faults-cli.md` (decision 60: baseline is the same loop with five switches off; fault hooks; CLI; MKC-19 findings 1 to 3).
   - Sub-issues: MKC-20.1 #162 (`In progress`), MKC-20.2 #163, MKC-20.3 #164, MKC-20.4 #165, MKC-20.5 #166 (`Ready`).
-  - MKC-20.1 to MKC-20.5 and the docs done; pre-PR checks green at `ad7c287`. Next: push, PR, sub-issues and #20 to `Testing`, review agent.
+  - PR #167 open (18:19:01); #20 and #162 to #166 `Testing` (by 18:19:28). Next: review agent (Fable) verdict; on PASS, merge, push `turing`, approve the `cd` gates (decision 51).
+  - Then (user request, 27.11.2026): plan how later tickets can run with several development and testing agents on work that does not intersect.
 
 ## Next steps
 
@@ -191,6 +192,7 @@ This file is how agents resume work after a session restart.
 
 ## Recent log
 
+- **27.11.2026 18:19** MKC-20: PR #167 opened (18:19:01, GitHub `createdAt`); #20 and #162 to #166 set to `Testing` (by 18:19:28). Review agent (Fable) started next. The user asked for a plan to run later work with several dev and testing agents on non-intersecting work, after this ticket.
 - **27.11.2026 18:18** MKC-20 pre-PR checks at `ad7c287`: Windows `uv run pytest -q` 624 passed, 1 skipped; Linux container (`git archive HEAD` into `ghcr.io/astral-sh/uv:python3.12-bookworm`, Compose db) `tests/worker tests/harness tests/observability tests/db tests/test_cli.py` 359 passed (18:17:33); ruff, format, mypy (48 files), all check scripts, markdownlint clean; every `Refs:` trailer says `qamran/`. Commits over 200 lines (insertions plus deletions): `c719a96` 238, `172e1f1` 232, `9e97f8d` 323, `970c0ca` 233, `926bf67` 221. Docker Desktop stopped and WSL shut down (18:18:12).
 - **27.11.2026 18:16** (4) Docs: decision 60 (switch pairs, baseline status from `run_log`, known limit: a baseline crash loop in the worker has no cap, use `--inline`), design 8.3 cache line, runbook (pairs, known limit, resume and status for baseline, injected faults have no `run_log` row), backlog MKC-32 note, plan as built; HANDOFF marks MKC-19 findings 1 to 3 and MKC-18 finding 2 as done.
 - **27.11.2026 18:16** (3) `mkc run status` showed zeros for a baseline run (no turn rows): red test, then usage from `run_log` (model calls, cost, all attempts) and an `inspect --item` note; the CLI test fixture now keeps the tracer hooks like the real client.
