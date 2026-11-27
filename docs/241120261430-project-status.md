@@ -1,6 +1,6 @@
 # Project status: Messkonzept-Copilot
 
-**Last updated:** 27.11.2026, 22:45
+**Last updated:** 27.11.2026, 23:09
 
 This is the living status document. It is updated whenever a decision is made or work is completed. Older brainstorming material lives in `brainstorming internal/` (gitignored and frozen).
 
@@ -73,8 +73,8 @@ This is the living status document. It is updated whenever a decision is made or
 - **MKC-13 done** (PR #127 merged as `ab62236` on 26.11.2026, review PASS, deployed the same day). Built: `mkc.models` (`ModelClient` with `chat`, `chat_with_tools`, `vision`, `chat_structured`; role mapping and prices in `models.yaml`; record/replay; provider factory with OpenRouter zero-data-retention routing); decision 52.
 - **Live contract tests (MKC-13.6), 26.11.2026 15:58–16:00:** `cd backend && uv run --env-file .env pytest -m live tests/models/test_contract_live.py -v -s`: **12 passed**. Tool-call round-trip, structured output and vision (not a criterion; a 64×64 red PNG) for OpenRouter (`google/gemini-3.5-flash-lite`, zero-data-retention routing), Gemini (`gemini-3.5-flash-lite`, free tier), Anthropic (`claude-haiku-5-5`) and the Meta API (`muse-spark-1.3` on `api.meta.ai/v1`). The first runs (15:39–15:46) had no Meta key; Meta said "white" for a 16×16 image and "red" at 64×64, so the test image is 64 px. **Spend for the ticket:** under €0.02 by the price table (all runs plus two Meta probe calls; Anthropic prices are an OpenRouter stand-in, Gemini counted as free tier).
 - **MKC-36 done** (lane B; PR #196 merged as `046f61e` on 27.11.2026, review PASS, deployed the same day): sub-issues MKC-36.1 to 36.5 (#176, #177, #178, #180, #183). Built: `mkc.advisor.facts` (`SiteFacts`, `FactsExtraction`, `extract_facts`), `mkc.advisor.questions` (`required_questions`), `mkc.advisor.api` (`POST /api/advisor/facts`, `POST /api/advisor/questions`); the UI `FactsCard` (confirm and edit) and `AdvisorPage` on `/advisor`; decisions 65 and 66. **Spend:** €0.013138 (three live calls on synthetic text to check the schema with the real provider, 27.11.2026 20:49).
-- **MKC-46 done** (lane C; PR #195 merged as `085323a` on 27.11.2026, review PASS, deployed the same day), decision-layer spike: the Jev call path via OpenRouter works** (ADR 004 amendment, decisions 68 and 69; sub-issues MKC-46.1 to 46.3, #192–#194). Built: `langchain-typesafe==0.1.0`, `MKC_DECISION_BACKEND` (default `llm`, the fallback stays the default) and `MKC_DECISION_MODEL`, `build_decision_model` (base URL `https://openrouter.ai/api`, path `/api/v1/systemone`, zero-data-retention routing in every body), `mkc.decision` (`DecisionClient`, typed answers, `DecisionError`). Live: `uv run --env-file .env pytest -m live tests/decision/test_jev_live.py -v`: "1 passed in 10.26s" (20:47:56); `~typesafe/jev-latest` resolved to `typesafe/jev-1.14-20261014`. **Spend for the ticket (six live calls, 20:40–20:48):** three printed `usage.cost` 0.000011886, 0.000011886 and 0.000017934 USD; two 404 routing probes and the pytest run printed no cost. Call log: `handoff/lane-c.md`.
-- **Next:** wave 2: MKC-22 (lane A), MKC-27 (lane A2, after MKC-21), MKC-50 (lane D). Lane B pauses until MKC-30 (MKC-37), lane C until MKC-26 (MKC-47). The review findings of wave 1 are listed in `HANDOFF.md` under Next steps.
+- **MKC-46 done** (lane C; PR #195 merged as `085323a` on 27.11.2026, review PASS, deployed the same day), decision-layer spike: the Jev call path via OpenRouter works (ADR 004 amendment, decisions 68 and 69; sub-issues MKC-46.1 to 46.3, #192–#194). Built: `langchain-typesafe==0.1.0`, `MKC_DECISION_BACKEND` (default `llm`, the fallback stays the default) and `MKC_DECISION_MODEL`, `build_decision_model` (base URL `https://openrouter.ai/api`, path `/api/v1/systemone`, zero-data-retention routing in every body), `mkc.decision` (`DecisionClient`, typed answers, `DecisionError`). Live: `uv run --env-file .env pytest -m live tests/decision/test_jev_live.py -v`: "1 passed in 10.26s" (20:47:56); `~typesafe/jev-latest` resolved to `typesafe/jev-1.14-20261014`. **Spend for the ticket (six live calls, 20:40–20:48):** three printed `usage.cost` 0.000011886, 0.000011886 and 0.000017934 USD; two 404 routing probes and the pytest run printed no cost. Call log: `handoff/lane-c.md`.
+- **Wave 2 (started 27.11.2026):** MKC-22 (lane A, decisions 76–78), MKC-27 (lane A2, 74–75), MKC-50 (lane D, 79–81); the coordinator's log is MKC-200 (#200). Lane B pauses until MKC-30 (MKC-37), lane C until MKC-26 (MKC-47). The review findings of wave 1 are listed in `HANDOFF.md` under Next steps.
 
 ## Key documents
 
@@ -142,8 +142,10 @@ Parallel lanes write the design doc's decision log at the same time, so each lan
 | 65–67 | lane B, advisor (MKC-36 and on) | 1 |
 | 68–70 | lane C, decision layer (MKC-46 and on) | 1 |
 | 71–73 | lane D, RAG (MKC-49 and on) | 1 |
-| 76– | wave 2 lanes: the coordinator assigns blocks when wave 2 starts | 2 |
 | 74–75 | lane A2, SachsenNetze and gold (MKC-27, MKC-24) | 2 |
+| 76–78 | lane A, extraction (MKC-22 and on) | 2 |
+| 79–81 | lane D, RAG (MKC-50 and on) | 2 |
+| 82– | later waves: the coordinator assigns blocks when a wave starts | 3 |
 
 ## Open items
 
@@ -197,7 +199,7 @@ User choices:
 
 ## Lane D: RAG corpus (MKC-49)
 
-- **State (27.11.2026):** built on `mkc-49-corpus-loader`; the test agent's mutation pass killed 95 of 98 mutants, and the 3 survivors now have tests; the PR is next. Sub-issues MKC-49.1 to 49.6 (`#179`, `#181`, `#182`, `#184`, `#185`, `#186`).
+- **State (27.11.2026):** done: PR #198 merged as `6681d48` after a review PASS and deployed (migration 0013 ran by the hook Job). The test agent's mutation pass killed 95 of 98 mutants, and the 3 survivors got tests. MKC-50 (hybrid retriever) is lane D's wave 2 ticket. Sub-issues MKC-49.1 to 49.6 (`#179`, `#181`, `#182`, `#184`, `#185`, `#186`).
 - **Built:**
   - `backend/data/corpus_sources.yaml`: six sources (EnWG § 14a, MsbG, BK6-22-300, its Anlage 1, BK8-22/010-A, the Stromnetz Berlin catalogue), a licence class each, no text
   - `mkc.rag`: `sources`, `chunking` (one chunk per Absatz with a reference like `§ 14a Abs. 1`; numbered sections for other texts), `embeddings`, `loader` (licence guard for a cache inside the repo), `fetch` (gesetze-im-internet.de pages), `cli` (`mkc corpus load`)

@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 23:01
+**Last updated:** 27.11.2026, 23:09
 
 This file is how agents resume work after a session restart.
 
@@ -61,21 +61,25 @@ From MKC-168 (decision 61), tickets run in parallel lanes. Each lane keeps its o
 
 | Lane | Tickets | File | State |
 |---|---|---|---|
-| A. Extraction | MKC-21 → 22 → 23 → 25 → 26 → 28 → 29 → 30 | `handoff/lane-a.md` | MKC-21 done (PR #197, `2a841a2`); next MKC-22 |
-| A2. SachsenNetze and gold | MKC-27 (after MKC-21) → 24 (after MKC-23) | `handoff/lane-a2.md` | MKC-27 can start (wave 2) |
+| A. Extraction | MKC-21 → 22 → 23 → 25 → 26 → 28 → 29 → 30 | `handoff/lane-a.md` | MKC-21 done (PR #197, `2a841a2`); MKC-22 in progress (wave 2, decisions 76–78) |
+| A2. SachsenNetze and gold | MKC-27 (after MKC-21) → 24 (after MKC-23) | `handoff/lane-a2.md` | MKC-27 in progress (wave 2, decisions 74–75) |
 | B. Advisor | MKC-36 → (37 after MKC-30) → 38 | `handoff/lane-b.md` | MKC-36 done (PR #196, `046f61e`); paused: MKC-37 waits on MKC-30 |
 | C. Decision layer | MKC-46 → (47 after MKC-36, MKC-26) → (48 after MKC-31) | `handoff/lane-c.md` | MKC-46 done (PR #195, `085323a`); next MKC-47 waits on MKC-36 and MKC-26 |
-| D. RAG | MKC-49 → 50 → (51 after MKC-38) | `handoff/lane-d.md` | MKC-49 done (PR #198, `6681d48`); next MKC-50 |
+| D. RAG | MKC-49 → 50 → (51 after MKC-38) | `handoff/lane-d.md` | MKC-49 done (PR #198, `6681d48`); MKC-50 in progress (wave 2, decisions 79–81) |
 
-Worktrees (outside the repo folder, cut from `origin/main` `dcd2852`): `<lanes>/lane-a` on `mkc-21-fetch-segment`, `lane-b` on `mkc-36-site-facts`, `lane-c` on `mkc-46-decision-spike`, `lane-d` on `mkc-49-corpus-loader`, where `<lanes>` is the folder `mkc-lanes` next to the repo folder. Each has a copy of the gitignored `backend/.env`.
+Wave 2 worktrees (outside the repo folder, cut from `origin/main` `d7fad1e`): `<lanes>/lane-a` on `mkc-22-text-tables`, `lane-a2` on `mkc-27-sachsen-segment`, `lane-d` on `mkc-50-hybrid-retriever`, where `<lanes>` is the folder `mkc-lanes` next to the repo folder. Each has a copy of the gitignored `backend/.env`. (Wave 1's four worktrees were removed at 23:01.)
 
-Shared-code rules for wave 1 beyond AGENTS.md (the coordinator's, in each lane brief): new tables go at the end of `mkc/db/models.py` in a block commented with the ticket; a CLI sub-app is appended in `mkc/cli.py`; lane B adds one router line to `mkc/api/app.py`; in `mkc/models/` lane C may append one function to `providers.py`, lane D may add embedding support at the end of `client.py`, `providers.py` and `models.yaml`, anything else goes through the coordinator. Lane B treats `operator_id` as opaque (lane A owns the `operator` table). Live-call budget: lane C up to €0.50 for the spike, lanes B and D up to €0.50 each for recordings, lane A no model calls.
+Wave 2 grants beyond AGENTS.md (in each lane brief): lane A2 may change exactly two spots of lane A's package, the `sachsennetze` line in `SEGMENTERS` (`segment.py`) with its import and the `sachsennetze` entry in `operators.yaml`; A2 keeps its fixtures out of `tests/extraction/conftest.py`. Lane A takes the MKC-21 review findings as a fetch-hardening sub-issue of MKC-22, and may fix `is_valid_code` on `²` (MKC-12 finding 11) and `execute` raising on argument validators (MKC-14 finding 2); its naive baseline is pure Python (a system `pdftotext` comes to the coordinator first). Lane D takes the MKC-49 review findings as a sub-issue of MKC-50, owns `EmbeddingClient` (tracer hooks), may only append in `mkc/observability/`, and may add one `COPY data/corpus_sources.yaml` line to the Dockerfile. New migrations use `down_revision = "0013"`. Live use: lanes A and A2 fetch public PDFs only, no model calls; lane D up to €0.50 for live query embeddings. Deferred: `mkc-load-lbs` in the deploy (MKC-12 finding 1, a hardening ticket), the saved-draft minor (MKC-23).
+
+Wave 1 shared-code rules (still in force):
+
+New tables go at the end of `mkc/db/models.py` in a block commented with the ticket; a CLI sub-app is appended in `mkc/cli.py`; lane B adds one router line to `mkc/api/app.py`; in `mkc/models/` lane C may append one function to `providers.py`, lane D may add embedding support at the end of `client.py`, `providers.py` and `models.yaml`, anything else goes through the coordinator. Lane B treats `operator_id` as opaque (lane A owns the `operator` table). Live-call budget: lane C up to €0.50 for the spike, lanes B and D up to €0.50 each for recordings, lane A no model calls.
 
 ## In progress
 
-- **MKC-175** (#175, created 20:08:24 per GitHub), Wave 1 coordinator log: done (PR #199, merged as `d7fad1e`, deployed). This closeout branch `mkc-175-wave-1-closeout` holds the post-merge log; the next coordinator PR (wave 2's coordinator issue) carries it to `main`.
-- **Wave 1 done (27.11.2026):** MKC-46 (PR #195, `085323a`), MKC-36 (PR #196, `046f61e`), MKC-21 (PR #197, `2a841a2`), MKC-49 (PR #198, `6681d48`), each review PASS, merged and deployed (log below). Every lane: red acceptance tests by the test agent, the development agent, a mutation pass, `pre_pr.sh`, PR, review after green checks.
-- **Next: wave 2:** MKC-22 (lane A), MKC-27 (lane A2; MKC-21 is merged), MKC-50 (lane D). Lane B pauses until MKC-30 (MKC-37), lane C until MKC-26 (MKC-47). Assign decision blocks from 76 (lane A2 has 74–75). The four wave 1 worktrees are removed (23:01, all clean and pushed); cut new ones from `main` in `<lanes>`. Open wave 2's coordinator issue and cut its branch from this closeout branch. Recommended: start wave 2 in a fresh session (this one's context is large).
+- **MKC-200** (#200, created 23:04:52 per GitHub), Wave 2 coordinator log: `In progress` (23:05:19), branch `mkc-200-wave-2-coordinator`, cut from `mkc-175-wave-1-closeout` (it carries the wave 1 closeout log). Its PR opens between lane merges.
+- **Wave 2 started (27.11.2026):** #22 (MKC-22, lane A), #27 (MKC-27, lane A2), #50 (MKC-50, lane D) `In progress` and assigned to `qamran` (23:05:23 to 23:05:33). Worktrees and branches above, pushed. Docker Desktop and the Compose db started (23:06:46). Three test agents writing the red acceptance tests (lane A Opus, lane A2 Sonnet, lane D Opus); the development agents start after each lane's red commit.
+- **Wave 1 done (27.11.2026):** MKC-46 (PR #195, `085323a`), MKC-36 (PR #196, `046f61e`), MKC-21 (PR #197, `2a841a2`), MKC-49 (PR #198, `6681d48`), each review PASS, merged and deployed; MKC-175 (PR #199, `d7fad1e`).
 - Process rules after the MKC-20 FAIL round: run CI's exact commands (now `bash scripts/pre_pr.sh`) before any claim; copy numbers from output; times from `date`, git or GitHub; start the review only after `gh pr checks` is green.
 
 ## Next steps
