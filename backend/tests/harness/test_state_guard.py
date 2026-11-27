@@ -1,8 +1,16 @@
 """MKC-15 criterion 1: every run or item state write in `src/mkc` goes through `transition`.
 
-The check parses code. A state write is an assignment to an attribute named `state`, a
-`setattr(..., "state", ...)`, or a `state=` keyword in a `.values(...)` call. Its value must
-be `transition(...)` or `transition(...).value`.
+The check parses code. A state write is:
+
+- an assignment to an attribute named `state`, or `setattr(..., "state", ...)`
+- a `state=` keyword, a `**` argument or a dict with a `"state"` key in a `.values(...)` call
+
+Its value must be `transition(...)` or `transition(...).value`. Creating a row is not a
+transition, but it must start in the initial state: `Item(state=...)` only `queued`,
+`Run(state=...)` only `running`.
+
+Known gaps (not parsed): raw SQL text, bulk `execute(update(Item), [rows])`, and a
+`transition` call with a hard-coded current state.
 """
 
 import ast
@@ -14,6 +22,18 @@ SRC = Path(__file__).resolve().parents[2] / "src" / "mkc"
 
 EXEMPT = {"backup.py"}
 """`backup_runs.state` is the backup job's own status (MKC-11), not a run or item state."""
+
+
+INITIAL = {"Item": "queued", "Run": "running"}
+"""The state a new row must start in."""
+
+
+def _is_initial(node: ast.expr, initial: str) -> bool:
+    if isinstance(node, ast.Attribute) and node.attr == "value":
+        node = node.value
+    if isinstance(node, ast.Constant):
+        return bool(node.value == initial)
+    return isinstance(node, ast.Attribute) and node.attr == initial.upper()
 
 
 def _is_transition(node: ast.expr) -> bool:
@@ -49,7 +69,16 @@ def unguarded_state_writes(source: str) -> list[int]:
                 found.append(node.lineno)
             if isinstance(func, ast.Attribute) and func.attr == "values":
                 for kw in node.keywords:
-                    if kw.arg == "state" and not _is_transition(kw.value):
+                    if kw.arg is None or (kw.arg == "state" and not _is_transition(kw.value)):
+                        found.append(node.lineno)
+                for arg in node.args:
+                    if isinstance(arg, ast.Dict) and any(
+                        isinstance(k, ast.Constant) and k.value == "state" for k in arg.keys
+                    ):
+                        found.append(node.lineno)
+            if isinstance(func, ast.Name) and func.id in INITIAL:
+                for kw in node.keywords:
+                    if kw.arg == "state" and not _is_initial(kw.value, INITIAL[func.id]):
                         found.append(node.lineno)
     return found
 
@@ -63,6 +92,10 @@ def unguarded_state_writes(source: str) -> list[int]:
         "setattr(item, 'state', 'failed')",
         "session.execute(update(Item).values(state='failed'))",
         "item.state += 'x'",
+        "Item(run_id=1, state='failed')",
+        "Run(state=RunState.DONE.value)",
+        "session.execute(update(Item).values(**fields))",
+        "session.execute(update(Item).values({'state': 'failed'}))",
     ],
 )
 def test_unguarded_writes_are_found(source: str) -> None:
@@ -79,6 +112,10 @@ def test_unguarded_writes_are_found(source: str) -> None:
         "# item.state = 'failed'",
         "x = 'item.state = 1'",
         "if item.state == 'queued': pass",
+        "Item(run_id=1, state='queued')",
+        "Item(run_id=1, state=ItemState.QUEUED.value)",
+        "Run(state='running')",
+        "Run(state=RunState.RUNNING)",
     ],
 )
 def test_guarded_writes_and_non_writes_pass(source: str) -> None:
