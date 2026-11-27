@@ -17,6 +17,7 @@ COLUMNS = {
         "lease_owner",  # 0008 (MKC-17)
         "lease_expires_at",
         "started_at",  # 0009 (MKC-18)
+        "trace_id",  # 0010 (MKC-19)
         "created_at",
         "updated_at",
     },
