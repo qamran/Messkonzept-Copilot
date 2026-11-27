@@ -1,0 +1,17 @@
+# Grid operators whose Messkonzept catalogues the run may fetch (MKC-21, decision 63).
+# `fetch_document` requests only `url`, and only if its host is on `allowed_hosts`; the final
+# URL after redirects must be on the list too. Hosts match exactly (no subdomains).
+# Public PDFs, fetched at runtime and cached in Supabase Storage; never committed.
+operators:
+  - id: stromnetz-berlin
+    name: Stromnetz Berlin GmbH
+    voltage_level: NS
+    # "Messkonzepte", Ausgabe September 2026, 33 pages
+    url: https://www.stromnetz.berlin/files/globalassets/dokumente/anschluss/messkonzepte_09-2026.pdf
+    allowed_hosts: [www.stromnetz.berlin]
+  - id: sachsennetze
+    name: Sachsen Netze GmbH
+    voltage_level: NS
+    # "Standard-Messkonzepte in Niederspannung" (download centre, Strom); segmented in MKC-27
+    url: https://www.sachsen-netze.de/dam/jcr:d69c0bbc-3e02-4c41-8967-7050e6b3e3ad/Standard-Messkonzepte.pdf
+    allowed_hosts: [www.sachsen-netze.de]

@@ -160,6 +160,12 @@ class Settings(BaseSettings):
     langfuse_timeout_seconds: int = Field(default=5, ge=1, le=60)
     """Timeout of one export to Langfuse; bounds `flush` after a run and on shutdown."""
 
+    # --- MKC-21: operators and Supabase Storage (decision 63) ---
+
+    operators_file: str = ""
+    """The operator allow-list. Empty = `backend/data/operators.yaml` next to the source; the
+    image sets `/app/data/operators.yaml`."""
+
     @model_validator(mode="after")
     def _lease_outlives_renewals(self) -> "Settings":
         """A lease must survive two missed renewals, or a slow database loses it."""
