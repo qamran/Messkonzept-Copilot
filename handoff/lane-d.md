@@ -1,6 +1,6 @@
 # Lane D: RAG
 
-**Last updated:** 27.11.2026, 23:58
+**Last updated:** 28.11.2026, 00:01
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -11,7 +11,7 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 
 ## In progress
 
-- `MKC-50` (`#50`), Hybrid retriever: built; every red test is green; sub-issues MKC-50.1 to 50.5 (`#203`–`#207`, In progress), with MKC-50.4 (`#206`) the MKC-49 review findings. Next: `bash scripts/pre_pr.sh`, push, report to the coordinator; then the test agent's mutation pass, then the PR.
+- `MKC-50` (`#50`), Hybrid retriever: built and pushed, the gate green; every red test is green; sub-issues MKC-50.1 to 50.5 (`#203`–`#207`, In progress), with MKC-50.4 (`#206`) the MKC-49 review findings. Next: the test agent's mutation pass, then the PR.
 - Decisions written: 79 (the retriever), 80 (the retrieval and embedding traces), 81 (the corpus files); ADR 004 amendment "the query side".
 - Migration: MKC-49's is `0013_corpus.py` (`down_revision = "0012"`; the coordinator re-chained it at the merge). MKC-50 adds none.
 
@@ -78,6 +78,7 @@ The tests import these; module paths and names are fixed, internals are free.
 
 ## Recent log
 
+- **28.11.2026 00:01** Development agent: `bash scripts/pre_pr.sh` exit 0 at `ae6e5f2` (00:01): `1000 passed, 1 skipped, 17 deselected, 4 warnings in 107.78s (0:01:47)`; `26 commits in origin/main..HEAD`; over 200 lines: `29ca7cd 282 lines` (the test agent's red commit). The test agent's acceptance files: `75 passed in 8.19s`; `uv run pytest tests/rag -q -p no:warnings`: `146 passed, 2 deselected in 12.50s`. Red tests unchanged since `50bcd89` (the diff lists only my three new test files). Pushed; waiting for the coordinator and the mutation pass.
 - **27.11.2026 23:58** Development agent: checks before the report: the real MsbG and EnWG § 14a pages fetched and chunked in memory (no embedding, nothing written): `msbg chunks 220 unique refs 220 duplicates [] paragraphs 79 largest 7836`, `enwg-14a chunks 4 unique refs 4 duplicates [] paragraphs 1 largest 2564`, the same as MKC-49's 220 after the new `§` heading rule; `backend/.dockerignore` is a deny list without `data/`, so the new `COPY` line finds its file. Docs: the runbook names `MKC_CORPUS_SOURCES_FILE` and the lookup order; decision 79 the reference side, decision 80 the error text rule; the live spend wording says run 1's cost was not printed.
 - **27.11.2026 23:57** Development agent: the reference side: a `§ <n>` (optionally `Abs. <m>`) in the query ranks the chunks of that paragraph by `source_ref`, the named Absatz first, then by id; a third ranking in the fusion; `reference_hits` in `RetrievalTrace`, the log line and the `run_log` detail. Now "Wann gilt § 14a?" → `['§ 14a Abs. 2', '§ 14a Abs. 1', '§ 1 Abs. 2']` and "Was regelt § 14a Abs. 1?" → `['§ 14a Abs. 1', '§ 14a Abs. 2', '§ 1 Abs. 1']`. `uv run pytest tests/rag tests/observability -q -p no:warnings`: `173 passed, 2 deselected in 14.63s`.
 - **27.11.2026 23:55** Development agent: a check of mixed questions on the test corpus: with the terms ORed, "Wann gilt § 14a?" gave `['§ 1 Abs. 2', '§ 2 Abs. 3', '§ 14a Abs. 2']` (keyword hits 4) and "Was regelt § 14a Abs. 1?" `['§ 1 Abs. 1', '§ 1 Abs. 2', '§ 3 Abs. 1']` (keyword hits 8): "gilt", "regelt", "Abs." and "1" match other paragraphs, and the vector side ranks § 14a last there. Red tests for a third ranking, the reference side (a `§ <n>` in the query ranks the chunks of that paragraph, the named Absatz first; `reference_hits` in the trace), and for a stopword-only query. `uv run pytest tests/rag/test_retrieval_trace.py -q -p no:warnings`: `6 failed, 10 passed in 3.12s`.
