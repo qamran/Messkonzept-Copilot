@@ -73,9 +73,14 @@ Alternatives rejected:
 |---|---|
 | `baai/bge-m3` (1024 d, 8k context, $0.01/M) | Refused by the workspace guardrail; otherwise a close second |
 | `mistralai/mistral-embed-2312` (1024 d, 8k context, $0.10/M) | Ten times the price, one zero-data-retention endpoint (Mistral), no stated multilingual retrieval lead |
-| `google/gemini-embedding-001` (3072 d, $0.15/M) | Refused by the guardrail; 15 times the price |
-| `openai/text-embedding-3-large` (3072 d, $0.13/M) | 13 times the price; only an Azure endpoint |
+| `google/gemini-embedding-001` ($0.15/M) | Refused by the guardrail; 15 times the price |
+| `openai/text-embedding-3-large` ($0.13/M) | 13 times the price; only an Azure endpoint; not probed against the guardrail |
+| `qwen/qwen3-embedding-4b` ($0.02/M) | The smaller sibling at twice the price; not evaluated |
+| `google/gemini-embedding-2` ($0.20/M), `openai/text-embedding-3-small` ($0.02/M), `amazon/titan-embed-text-v2` ($0.02/M), the `perplexity/pplx-embed-*` models ($0.004–0.12/M) | Zero-data-retention endpoints exist; not evaluated (no comparison in this ticket, feature 80) |
+| English models with a 512-token context (`baai/bge-*-en-v1.5`, `intfloat/e5-*-v2`, `thenlper/gte-*`, `sentence-transformers/*`) | English only, per their OpenRouter descriptions |
 | `intfloat/multilingual-e5-large` (1024 d) | 512-token context is too short for a law Absatz; refused by the guardrail |
 | A local model (no provider call) | Needs a model download and a GPU or slow CPU runs in the worker image; the provider route is cheaper to run and keeps every model call in one layer |
+
+German legal quality was not measured; the only quality source is the model card's multilingual rank of June 2025.
 
 Sources: the [Qwen3-Embedding-8B model card](https://huggingface.co/Qwen/Qwen3-Embedding-8B); OpenRouter's `GET /api/v1/embeddings/models` and `GET /api/v1/endpoints/zdr` (27.11.2026); the live probes logged in `handoff/lane-d.md`.
