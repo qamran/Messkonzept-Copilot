@@ -60,7 +60,7 @@ def test_the_region_is_the_main_column_from_the_heading_down() -> None:
     assert region.page == 1
     assert 60 < x0 <= 72, "starts at the main column's left edge"
     assert x1 < 461, "the sidebar is not part of the region"
-    assert 842 - 72 - 14 < top < 842 - 72, "starts at the heading (top-down PDF points)"
+    assert 72 - 14 < top < 72, "starts at the heading (origin top left, baseline at 72 pt)"
     assert bottom > top + 18, "covers the lines below the heading"
 
 
