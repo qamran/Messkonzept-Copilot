@@ -64,6 +64,13 @@ def resumable_item(session: Session, run_id: int) -> Item | None:
     return session.scalars(statement).first()
 
 
+def has_work(session: Session, run_id: int) -> bool:
+    """Whether the run has an item extraction has not finished with (`queued` or `running`)."""
+    busy = [state.value for state in BUSY]
+    statement = select(Item.id).where(Item.run_id == run_id, Item.state.in_(busy)).limit(1)
+    return session.scalars(statement).first() is not None
+
+
 def settle_run(session: Session, run_id: int) -> RunState:
     """Derive the run's state from its items and store it if it changed.
 

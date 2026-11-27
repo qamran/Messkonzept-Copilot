@@ -50,6 +50,7 @@ class ToolEnv:
     item_id: int | None = None
     document_hash: str | None = None
     concept_key: str | None = None
+    step: int | None = None  # the item's model call this tool call answers (MKC-19)
 
 
 @dataclass(frozen=True)
@@ -105,6 +106,9 @@ class ToolTrace:
     refused: bool
     latency_ms: int
     cached: bool = False
+    run_id: int | None = None  # from `ToolEnv` (MKC-19)
+    item_id: int | None = None
+    step: int | None = None
 
 
 ToolTracer = Callable[[ToolTrace], None]
@@ -168,7 +172,10 @@ class ToolRegistry:
         result, cached = self._cached_run(call, ctx, env, cache)
         code = result.error.code if result.error else None
         latency_ms = round((time.perf_counter() - start) * 1000)
-        trace = ToolTrace(call.name, ctx, result.ok, code, code in REFUSALS, latency_ms, cached)
+        trace = ToolTrace(
+            call.name, ctx, result.ok, code, code in REFUSALS, latency_ms, cached,
+            run_id=env.run_id, item_id=env.item_id, step=env.step,
+        )  # fmt: skip
         self._trace(trace)
         return result
 

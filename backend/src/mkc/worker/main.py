@@ -5,16 +5,33 @@ import signal
 import threading
 from types import FrameType
 
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Session, sessionmaker
 
-from mkc.config import get_settings
+from mkc.config import Settings, get_settings
 from mkc.db.session import get_engine
 from mkc.models.client import ModelClient
+from mkc.observability.langfuse import LangfuseSink
+from mkc.observability.trace import Tracer
 from mkc.worker.executor import Executor
 
 log = logging.getLogger("mkc.worker")
 
 _STOP_SIGNALS = (signal.SIGTERM, signal.SIGINT)
+
+
+def build_executor(
+    settings: Settings, sessions: sessionmaker[Session], *, sink: LangfuseSink | None = None
+) -> Executor:
+    """The worker's executor with its tracer (MKC-19): `run_log` always, Langfuse when the
+    keys are set (or `sink`, built by the caller). The model client is built only once a run
+    is held."""
+    tracer = Tracer(sessions, sink or LangfuseSink.from_settings(settings))
+    return Executor(
+        settings,
+        sessions=sessions,
+        client_factory=lambda: ModelClient.from_settings(settings, tracers=[tracer.span_model]),
+        tracer=tracer,
+    )
 
 
 def run(stop: threading.Event | None = None) -> None:
@@ -28,11 +45,7 @@ def run(stop: threading.Event | None = None) -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(message)s")
     settings = get_settings()
     stop = stop or threading.Event()
-    executor = Executor(
-        settings,
-        sessions=sessionmaker(bind=get_engine()),
-        client_factory=lambda: ModelClient.from_settings(settings),  # only once a run is held
-    )
+    executor = build_executor(settings, sessionmaker(bind=get_engine()))
 
     def request_stop(signum: int, _frame: FrameType | None) -> None:
         log.info("signal %s received, stopping", signal.Signals(signum).name)
@@ -52,6 +65,8 @@ def run(stop: threading.Event | None = None) -> None:
                     executor.wait(settings.worker_poll_seconds)
     finally:
         stop.set()
+        if executor.tracer is not None:
+            executor.tracer.flush()  # what Langfuse still holds; bounded by its timeout
         for sig, handler in previous.items():
             signal.signal(sig, handler)
     log.info("worker stopped")

@@ -109,6 +109,18 @@ def test_a_failing_tracer_does_not_change_the_stop(
     assert "tracer down" in caplog.text
 
 
+def test_last_item_on_the_limit_turn_settles_the_run(engine: Engine) -> None:
+    """MKC-19.1 (finding 18#1): the limits are checked only while an item is left, so a run
+    whose last item ends on the turn that reaches a limit settles instead of stopping."""
+    run_id, _ = make_run(engine, "queued")
+    events: list[StopEvent] = []
+    go(engine, run_id, fake(ai(tool_calls=[SAVE])), Limits(max_steps_run=1),
+       tracers=[events.append])  # fmt: skip
+    assert states(engine, run_id) == ("awaiting_approval", ["draft_saved"])
+    assert stop_reason(engine, run_id) is None
+    assert events == []
+
+
 def test_cost_limit_counts_stored_turns_only(engine: Engine) -> None:
     """A model call that raises writes no turn row, so it costs nothing here (known limit)."""
     run_id, _ = make_run(engine, "queued")

@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 14:36
+**Last updated:** 27.11.2026, 16:53
 
 This file is how agents resume work after a session restart.
 
@@ -23,7 +23,7 @@ This file is how agents resume work after a session restart.
 - **Remotes:**
   - `origin` = qamran/Messkonzept-Copilot (home, public)
   - `turing` = TuringCollegeSubmissions/qshahz-AE.CAP.AFA.1.1 (code-only mirror, no issues; ADR 005 option (c), decision 35)
-  - Both at `0f9a413` (merge of PR #150).
+  - Both at `16beb56` (merge of PR #155).
 - **`main` is protected:** PRs only, enforced for admins. Required checks: the `ci` jobs `backend`, `frontend`, `gitleaks`, `dependency-scan` and `docs` (since 25.11.2026 09:50, MKC-6.5) `image` (since 13:52, MKC-8) and `kind` (since 15:42, MKC-9); the branch must be up to date with `main`. `publish` is not required (skipped on PRs).
 - **Agent rules:** `AGENTS.md` (CLAUDE.md imports it). The development agent continues without asking and stops only for genuine decisions (decision 36).
 - **Done:**
@@ -44,6 +44,7 @@ This file is how agents resume work after a session restart.
   - MKC-15: item loop, work queue and states: `mkc.harness.states` (edge table, one `transition` function, AST guard test), `ToolEnv` (the harness's ids for every tool call), migration 0004 (`run`, `item`, `turn`), `mkc.harness.queue` (`next_item` with `FOR UPDATE OF item SKIP LOCKED`, `settle_run`), `mkc.harness.loop` (`run_item`, `process_run`), `MKC_ITEM_MAX_STEPS`; decision 54 (PR #138)
   - MKC-16: checkpoints and resume: `mkc.harness.checkpoint` (`save_turn`: complete turns only; `load_resume_context`: task + `<earlier_turns>` summary + last turn), `mkc.harness.blobs` (table `blob`, migration 0005; refs for results over `MKC_TURN_INLINE_MAX_BYTES`), `mkc.harness.cache` (table `tool_cache`, migration 0006; key with the code version), `mkc.harness.drafts` (table `draft`, migration 0007; `record_key`), `process_run` resumes `running` items; `scripts/check_text_files.py`; decision 56 (PR #145)
   - MKC-17: run executor: migration 0008 (`run.lease_owner`, `run.lease_expires_at`), run state `waiting_for_database`, `mkc.worker.lease` (`claim_run`, `renew_lease`, `release_lease`, `fence`, `mark_waiting`), `mkc.worker.executor.Executor` (heartbeat-file and lease threads, `graceful_shutdown`, outage probe with backoff), `process_run(should_stop, fence)`, the worker runs the executor; runbook "Worker lease and outages"; decision 57 (PR #150)
+  - MKC-18: limits and retries: migration 0009 (`run.started_at`, `item.attempts_without_progress`), `mkc.harness.limits` (`Limits`, `StopReason`, `StopEvent`, `stop_run`), `mkc.harness.retry` (backoff, 180 s turn deadline), `TransientModelError`/`ModelAuthError` via `classify_error`, one re-prompt, tool-retry and resume caps, setup errors and outages stop the run, the executor's error holes closed; runbook "Limits and retries"; decision 58 (PR #155)
 - **Server (set up 25.11.2026, decisions 43 and 44):** Oracle VM `mkc-k3s`, `ubuntu@92.6.240.17`, admin login with the user's key `~/.ssh/oracle_mkc`; k3s v1.37.2 with Traefik; cert-manager v1.21.3 with ClusterIssuers `letsencrypt-staging` and `letsencrypt-prod`; API host `92-6-240-17.sslip.io`; 6443 closed from outside. Vercel project `messkonzept-copilot` (scope `qamran`); GitHub environment `production` (reviewer `qamran`, `main` only, secret `VERCEL_TOKEN`). Every step: `docs/251120261645-runbook.md`.
 - **Backups (since 26.11.2026):** bucket `mkc-backups` (eu-frankfurt-1), objects `nightly/mkc-<UTC time>.sql.gz`, deleted after 14 days by the rule `delete-after-14-days`; the upload link (`mkc-backup-upload`, write only, expires 26.11.2027) is `MKC_BACKUP_UPLOAD_URL` in `mkc-secrets` on the VM and nowhere else. Where every outside setting and secret lives: runbook section of that name. A copy with the PC's full paths is in the gitignored `internal/` folder (`261120261226-settings-and-secrets-inventory.md`; local only, not backed up).
 - **How to run the frontend:** `frontend/.env.local` holds `VITE_CLERK_PUBLISHABLE_KEY` and `VITE_API_URL=http://127.0.0.1:8000` (gitignored). Run the API with `cd backend && uv run --env-file .env uvicorn mkc.api.app:create_app --factory --port 8000` (`backend/.env` has `MKC_CLERK_ISSUER`), then `cd frontend && npm run dev` (`localhost:5173`). Test sign-ins: the user's Google account (admin); a `+clerk_test@example.com` user (code `424242`) and a second Gmail account (both no role).
@@ -53,14 +54,25 @@ This file is how agents resume work after a session restart.
 
 ## In progress
 
-- **MKC-18** (#18), Limits and retries. Status `In progress`, assigned to `qamran` (27.11.2026 12:59:40). Branch `mkc-18-limits-retries` from `0f9a413`. The first commit holds only the close-out of MKC-17.
-  - Plan: `docs/superpowers/plans/271120261324-mkc-18-limits-retries.md` (decision 58: stop reasons, the stop trace, run usage from the database, retries and turn deadline, re-prompt, tool-retry and resume caps, defaults with reasons). It folds in MKC-13 finding 3, MKC-15 findings 6 and 9, MKC-16 finding 2, MKC-17 findings 1, 6, 7 and 8.
-  - Sub-issues: MKC-18.1 #151 to MKC-18.4 #154, all assigned to `qamran`, linked to #18, on the board, all `In progress` (GitHub: #151 12:26:30Z = 13:26:30, #152 13:35:58, #153 13:42:12, #154 13:51:52).
-  - PR #155 open (14:36); #18 and #151 to #154 set to `Testing` (by 14:36:06). Next: review agent (Fable) verdict; on PASS merge, push `main` to `turing`, approve the `cd` gates.
+- **MKC-19** (#19), Tracing (Langfuse + run log). PR #161 open, status `Testing` (was `In progress`, assigned to `qamran` (27.11.2026 14:53:34). Branch `mkc-19-tracing` from `16beb56`.
+  - Plan: `docs/superpowers/plans/271120261507-mkc-19-tracing.md` (decision 59).
+  - Sub-issues: MKC-19.1 #156 (`In progress`), MKC-19.2 #157, MKC-19.3 #158, MKC-19.4 #159, MKC-19.5 #160 (`Ready`).
+  - Waiting on the user (not blocking 19.1 to 19.4): Langfuse API keys in `backend/.env` (`MKC_LANGFUSE_PUBLIC_KEY`, `MKC_LANGFUSE_SECRET_KEY`, `MKC_LANGFUSE_BASE_URL`) for the real run of 19.5.
+  - MKC-19.1 done: `process_run` checks `has_work` before the run limits, so the reviewer's probe settles to `awaiting_approval` (harness and worker tests: 253 passed, 1 skipped). MKC-19.2 `In progress` (15:14:17): trace ids done (`TraceScope` on every model call of the loop, `ToolEnv.step`, ids on `ToolTrace`; models, harness, worker: 410 passed). Migration 0010 (`run.trace_id`, table `run_log` without foreign keys, model `RunLog`) done; db tests 21 passed. MKC-19.2 complete. MKC-19.3 `In progress` (15:18:44): `langfuse==5.2.0` and the `MKC_LANGFUSE_*` settings added; the `Tracer` is built (`run_log` row and sink per event, each side guarded; observability, harness, worker, models: 419 passed before the extra no-raise test). `LangfuseSink` built (generations, tool observations, events; USD cost, none for replays; metadata only); observability tests 15 passed, 6 runs in a row. MKC-19.3 complete. MKC-19.4 `In progress` (15:27:50): the worker traces: `build_executor` makes one `Tracer` (Langfuse when keys are set), the executor sets the trace id, passes the stop hooks (also the setup stop), records outages and flushes after each run and on shutdown (worker tests 37 passed). runbook section "Tracing" and the Langfuse inventory, `.env.example`, `MKC_LANGFUSE_ENVIRONMENT: production` in `deploy/vm/values-production.yaml` (to copy to `/etc/mkc/values.yaml` on the VM before the deploy); every check script passes. MKC-19.4 complete. MKC-19.5 `In progress` (15:32:24): the demo run is built (`python -m mkc.observability.demo`: one synthetic item, local database, live mode only, through `build_executor`); observability tests 18 passed. Docs written: decision 59 in design section 18, design 8.5, ADR 001, backlog "As built", status doc. Found (advisor check): the Langfuse SDK becomes the global OpenTelemetry provider and its default filter exports any `gen_ai.*` span, e.g. the Anthropic SDK's own tracing with the prompt; fixed with `should_export_span=is_langfuse_span` (observability tests 19 passed, 3 runs). The demo now proves the trace arrived: Langfuse `auth_check` first, then it reads the trace's observations back and compares their types with `run_log` and checks that none carries input or output (observability and worker tests 59 passed). Langfuse set up by the user with the agent's step-by-step guide (EU cloud, org `qamran`, project `messkonzept-copilot`, keys `mkc-backend` in `backend/.env`); runbook "Set up Langfuse" documents it. **Real run done** 15:55:40-15:56:08: local run 1, trace `768b021193b64891963f3b0c9fd74ea2`; Langfuse holds 3 generations and 3 tool observations (same as `run_log`), none with content; spend €0.003364. Production keys: the first patch was blocked by the permission check (about 15:57); on the user's "retry the VM keys" the agent added both to `mkc-secrets` over stdin at 16:48:20 (key names checked). Still to do after the merge: copy `deploy/vm/values-production.yaml` to `/etc/mkc/values.yaml` before approving the deploy.
 
 ## Next steps
 
-1. MKC-18: see "In progress".
+1. MKC-19: see "In progress".
+   - MKC-18, non-blocking findings of the PR #155 review (comment 27.11.2026 14:45:01), for the tickets named:
+     - 1 (**fix first, in MKC-19 or a small fix ticket**; before the approval tickets): `process_run` checks the run limits before it checks for a next item, so a run whose last item ends on the turn that reaches a limit ends `stopped` instead of settled (reviewer probe: one item, `max_steps_run=1`, save on turn 1 gives `('stopped', ['draft_saved'])`). Check the limit only when an item is left to claim
+     - 2 (the ticket that adds run resume, Runs page): `stopped` is terminal and nothing resumes it; an outage longer than the retries (about 30 s of waits) stops the run for good with an item left `running`. Add the resume edge and a runbook recovery note
+     - 3 (MKC-19): the worker passes no `tracers`, so in production a stop is the row plus a log line; `_stop_for_setup` emits with `item_id=None`
+     - 4 (with MKC-15 finding 9, when the API can stop a run): `_run_limit` returns None when `stop_run` finds another state, and the call or claim goes ahead
+     - 5: no worker test fails if `sleep=self.wait` is dropped from the executor's `process_run` call
+     - 6: `providers.py` imports `openai` and `anthropic`, only transitive dependencies; declare them in `backend/pyproject.toml`
+     - 7: a `model_error` item has `ItemOutcome.steps = 1` but `StopEvent.steps = 0`; `classify_error` reads any int `code` from 100 to 599 as an HTTP status; tool failures count over the whole item, not consecutively (as decided)
+     - 8: HANDOFF said "PR #155 open (14:36)"; GitHub says 14:35:28
+     - 9: known limits, documented: a call cut off by the deadline may still bill beside its retry; a failed call's cost is counted nowhere; wall time includes outages
    - MKC-17, non-blocking findings of the PR #150 review (comment 27.11.2026 12:51:52), for the tickets named:
      - 1 (**done in MKC-18**: design 8.4 now says so; MKC-19's run log is the durable record): `waiting_for_database` is not a durable trace: it is written after the outage and overwritten by the next claim a moment later; production has no state history (the test uses a test-only trigger); design 8.4 and the PR body overstate it. Fix the wording or add a history row or timestamp
      - 2 (**before MKC-23/29**): tool writes are not fenced: `save_draft` and the tool cache commit in their own transactions, so a worker that lost its lease can still replace a draft body in its turn in flight; `save_draft` must refuse an item that is no longer `running`, or check the lease
@@ -172,7 +184,17 @@ This file is how agents resume work after a session restart.
 
 ## Recent log
 
+- **27.11.2026 16:53** MKC-19: PR #161 opened (16:52:39, GitHub `createdAt`); #19 and #156 to #160 set to `Testing` (by 16:53:15). Review agent (Fable) started next.
+
+- **27.11.2026 16:49-16:51** MKC-19 pre-PR checks at `0fefb33`: Windows `uv run pytest -q` 568 passed, 1 skipped; Linux container (`git archive HEAD` into `ghcr.io/astral-sh/uv:python3.12-bookworm`, Compose db) `tests/worker tests/harness tests/observability tests/db` 303 passed (16:51:44); ruff, format, mypy (43 files), all check scripts, markdownlint clean. Plan checkboxes ticked with an "As built" note.
+
+- **27.11.2026 15:14-15:36** MKC-19 work: #157 `In progress` 15:14:17, #158 15:18:44, #159 15:27:50, #160 15:32:24 (local clock after each board edit). One `Refs:` trailer said `qamra/` again (`8fade68`); fixed by a message-only `git rebase --exec` before any push, so every hash after `9c1691c` changed. Full backend suite on Windows: 564 passed, 1 skipped (15:35). `dd91a4b` (red tests for the tracer's records plus the skeleton) is 263 lines. Langfuse keys not yet in `backend/.env`.
+
+- **27.11.2026 15:07-15:10** MKC-19: plan written (decision 59); sub-issues MKC-19.1 #156 to MKC-19.5 #160 created 15:08:53-15:09:36 (GitHub `createdAt`), assigned to `qamran`, linked to #19 and put on the board (#156 `In progress`, the rest `Ready`, set by 15:10:13). Langfuse keys asked of the user for the real run.
+
 Newest first. Times are local (CET), taken from git and GitHub.
+
+- **27.11.2026 14:53** PR #155 review PASS (Fable, comment 14:45:01; 9 non-blocking findings, see Next steps), merged as `16beb56` (14:45:16); #18 and #151 to #154 closed (14:45:18-14:45:25) and `Done` (by 14:52:49). `main` pushed to `turing` (14:46); `origin/main` = `turing/main` = `16beb56`. `cd` run 46009830053 green: `image` 14:45:22 to 14:49:30; `backend` approved by the development agent (decision 51) at 14:49:55, ran 14:49:57 to 14:50:50 (migration 0008 -> 0009 by the hook Job); `frontend` approved at 14:51:04, ran 14:51:06 to 14:51:47. Checked afterwards: `/api/version` = `16beb56...`, `/health` 200, `/api/admin/backup-status` without a token 401, the site 200; worker pod `mkc-worker-679cdcf755-glpwt` Running, 0 restarts after 94 s, log `worker started as ...`; Job `mkc-migrate` Complete. Docker Desktop stopped and WSL shut down. No `Ready` ticket on the board; MKC-19 (#19) taken next in the plan's order, assigned to `qamran` and set to `In progress` (14:53:34); branch `mkc-19-tracing` from `16beb56`.
 
 - **27.11.2026 14:36** MKC-18: branch pushed, PR #155 opened; #18 and #151 to #154 set to `Testing` (by 14:36:06).
 

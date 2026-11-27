@@ -14,8 +14,8 @@ from mkc.harness.limits import Limits
 from mkc.harness.loop import TOOL_RESULT_CLOSE, ItemOutcome, process_run, run_item
 from mkc.harness.queue import next_item
 from mkc.harness.states import ItemState
-from mkc.harness.tools import Tool, ToolEnv, ToolRegistry
-from mkc.models.client import ModelClient
+from mkc.harness.tools import Tool, ToolEnv, ToolRegistry, ToolTrace
+from mkc.models.client import CallTrace, ModelClient, TraceScope
 from mkc.models.config import ModelsConfig
 from mkc.models.types import ROLES, Provider
 from tests.harness.conftest import make_run, states
@@ -93,8 +93,9 @@ class Tools:
         self.fetched += 1
         return "fetched"
 
-    def registry(self) -> ToolRegistry:
+    def registry(self, tracers: Any = ()) -> ToolRegistry:
         return ToolRegistry(
+            tracers=tracers,
             item=[
                 Tool("extract_text", "Page text.", PageArgs, self.extract_text, False, True),
                 Tool("save_draft", "Save the draft.", DraftArgs, self.save_draft, False, False),
@@ -154,7 +155,7 @@ def test_item_reaches_draft_saved(engine: Engine) -> None:
     draft, env = tools.saved[0]
     assert draft == {"lbs": "9992000000026"}
     # the harness's ids, not the model's
-    assert env == ToolEnv(run_id, item_id, "sha256:doc", "MK-1")
+    assert env == ToolEnv(run_id, item_id, "sha256:doc", "MK-1", step=2)
 
 
 def test_one_turn_row_per_step(engine: Engine) -> None:
@@ -350,3 +351,21 @@ def test_a_run_whose_items_all_fail_is_done(engine: Engine) -> None:
 
 
 # The setup errors moved to `test_model_stops.py` (MKC-18: they stop the run).
+
+
+def test_traces_carry_run_item_and_step(engine: Engine) -> None:
+    """MKC-19.2: every model and tool trace names the run, the item and the step."""
+    run_id, (item_id,) = start(engine)
+    calls: list[CallTrace] = []
+    tools: list[ToolTrace] = []
+    model = fake(ai(tool_calls=[READ]), ai(tool_calls=[SAVE]))
+    client = ModelClient(config(), lambda p, n, t: model, mode="live", tracers=[calls.append])
+    with Session(engine) as session:
+        run_item(item_id, session=session, client=client,
+                 registry=Tools().registry(tracers=[tools.append]), limits=Limits())  # fmt: skip
+    assert [c.scope for c in calls] == [TraceScope(run_id, item_id, 1),
+                                        TraceScope(run_id, item_id, 2)]  # fmt: skip
+    assert [(t.tool, t.run_id, t.item_id, t.step) for t in tools] == [
+        ("extract_text", run_id, item_id, 1),
+        ("save_draft", run_id, item_id, 2),
+    ]

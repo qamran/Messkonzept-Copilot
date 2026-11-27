@@ -137,6 +137,22 @@ class Settings(BaseSettings):
     meta_api_key: SecretStr = SecretStr("")
     """Meta API key (api.meta.ai, Muse models). A secret."""
 
+    langfuse_public_key: str = ""
+    """Langfuse project key (`pk-lf-...`). Empty: no Langfuse; `run_log` still records every
+    traced event (MKC-19, decision 59)."""
+
+    langfuse_secret_key: SecretStr = SecretStr("")
+    """Langfuse secret key (`sk-lf-...`). A secret: never logged."""
+
+    langfuse_base_url: str = "https://cloud.langfuse.com"
+    """The Langfuse host of the project's region."""
+
+    langfuse_environment: str = Field(default="development", pattern=r"^[a-z0-9_-]{1,40}$")
+    """Langfuse `environment` of every trace (`production` on the VM)."""
+
+    langfuse_timeout_seconds: int = Field(default=5, ge=1, le=60)
+    """Timeout of one export to Langfuse; bounds `flush` after a run and on shutdown."""
+
     @model_validator(mode="after")
     def _lease_outlives_renewals(self) -> "Settings":
         """A lease must survive two missed renewals, or a slow database loses it."""
