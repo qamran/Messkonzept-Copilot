@@ -18,6 +18,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any
 
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 
 from mkc.db.models import Item
@@ -231,6 +232,8 @@ def _run_calls(
             result = registry.execute(call, "item", env, cache)
             payload = result.model_dump(mode="json")
             content = wrap_tool_result(call.name, payload)
+        except SQLAlchemyError:
+            raise  # like every database error: the item stays `running` and resumes
         except Exception as error:
             raise _ToolErrorEscaped(error, results) from error
         results.append(

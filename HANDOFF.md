@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 10:56
+**Last updated:** 27.11.2026, 10:57
 
 This file is how agents resume work after a session restart.
 
@@ -152,6 +152,8 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+
+- **27.11.2026 10:57** MKC-16: `_run_calls` lets `SQLAlchemyError` through, so a database error in a tool call leaves the item `running` for resume. Full suite 409 passed, 1 skipped; mypy strict clean.
 
 - **27.11.2026 10:56** MKC-16, after an advisor check: red test that a database error in a tool call propagates (today it fails the item as `tool_error`); the one-commit test now records what each commit carries (a split `_finish` mutant fails it; checked by hand, file restored).
 
