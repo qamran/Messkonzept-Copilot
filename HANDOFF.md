@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 09:31
+**Last updated:** 27.11.2026, 09:35
 
 This file is how agents resume work after a session restart.
 
@@ -57,7 +57,7 @@ This file is how agents resume work after a session restart.
 
 ## Next steps
 
-1. MKC-15: see "In progress". MKC-15.1 done (`mkc.harness.states`, 17 tests green). MKC-15.2 done (#133, `execute(call, ctx, env)`, `fn(args, env)`). MKC-15.3 done (#134, migration 0004, ORM `Run`, `Item`, `Turn`). MKC-15.4 done (#135, `mkc.harness.queue`: `next_item`, `settle_run`; the DB fixtures moved to `tests/conftest.py`). MKC-15.5 (#136 `In progress` since 09:31): red loop tests (18 fail on the stubs), the env check in `execute` (3 fail) and an AST guard that state writes go through `transition` (passes on the current code; its bad samples prove it can fail); next: `mkc.harness.loop`. Docker Desktop is running for the DB tests; shut it down when done.
+1. MKC-15: see "In progress". MKC-15.1 done (`mkc.harness.states`, 17 tests green). MKC-15.2 done (#133, `execute(call, ctx, env)`, `fn(args, env)`). MKC-15.3 done (#134, migration 0004, ORM `Run`, `Item`, `Turn`). MKC-15.4 done (#135, `mkc.harness.queue`: `next_item`, `settle_run`; the DB fixtures moved to `tests/conftest.py`). MKC-15.5 done (#136, `mkc.harness.loop`: `run_item`, `process_run`; env check in `execute`; `MKC_ITEM_MAX_STEPS`). Next: MKC-15.6 docs, then the PR. Docker Desktop is running for the DB tests; shut it down when done.
 2. MKC-14, non-blocking findings of the PR #131 review (comment 26.11.2026 23:17:35), for the tickets named:
    - 2 (before MKC-22, 23, 28 add real argument models): `execute` can still raise: a bad `ctx` (`KeyError`), a tool exception whose `__str__` fails, an argument validator that raises `TypeError`/`AttributeError`/`KeyError` (only `ValidationError` is caught)
    - 3: the side-effect check is truthiness (`side_effect=None`/`0` passes at runtime; mypy catches it)
