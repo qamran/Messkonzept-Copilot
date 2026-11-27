@@ -58,7 +58,7 @@ This file is how agents resume work after a session restart.
 - **MKC-20** (#20), Baseline mode, failure injection and CLI. Status `In progress`, assigned to `qamran` (27.11.2026 17:14:51). Branch `mkc-20-baseline-cli` from `21f5eb8`. The first commit holds only the close-out of MKC-19.
   - Plan: `docs/superpowers/plans/271120261738-mkc-20-baseline-faults-cli.md` (decision 60: baseline is the same loop with five switches off; fault hooks; CLI; MKC-19 findings 1 to 3).
   - Sub-issues: MKC-20.1 #162 (`In progress`), MKC-20.2 #163, MKC-20.3 #164, MKC-20.4 #165, MKC-20.5 #166 (`Ready`).
-  - MKC-20.1 and MKC-20.2 done (baseline green; the executor runs each run in its mode through `execute_run`). MKC-20.3 (#164 `In progress` 17:51:38): done (`FaultInjector`, `load_fault_plans`, `backend/data/e4_faults.yaml`). MKC-20.4 (#165 `In progress` 17:55:55): red `tests/test_cli.py` (14 failed) and state tests for `stopped -> running` (4 failed); Typer 0.29.3 pinned. Next: the CLI.
+  - MKC-20.1 to MKC-20.4 done (mode, baseline, faults, CLI). Next: MKC-20.5, the tracing findings of PR #161, then the docs.
 
 ## Next steps
 
@@ -191,6 +191,7 @@ This file is how agents resume work after a session restart.
 
 ## Recent log
 
+- **27.11.2026 18:01** MKC-20.4 green: `mkc.cli` (`mkc run start|resume|status|inspect`, script `mkc`). CLI tests 14 passed; full backend suite 611 passed, 1 skipped; ruff, mypy clean. `9e97f8d` (red CLI tests) is 318 lines and this one about 250 (one new module).
 - **27.11.2026 18:01** MKC-20.4: edge `stopped -> running` (`stopped` left `TERMINAL`; `settle_run` still leaves a stopped run alone), `claim_run(run_id=...)`, `Executor(faults=...)` and `run_once(run_id)`, `build_executor(make_client=..., **executor_kw)`.
 - **27.11.2026 17:57** MKC-20.4 red: 14 CLI tests (Typer runner, test database, fake model through `mkc.cli.make_client`) and the state tests for the resume edge fail on assertions; skeleton `mkc.cli`, `claim_run(run_id=...)` accepted but not used yet; `typer==0.29.3` added (with `uv.lock`).
 - **27.11.2026 17:55** MKC-20.3 green: `FaultInjector` (each fault once per injector), tool error code `timeout`, `backend/data/e4_faults.yaml` (one plan per fault type). Fault tests 10 passed; full backend suite 595 passed, 1 skipped; ruff, mypy clean. The fire-once test passed a dict as a tool call (test bug, fixed).
