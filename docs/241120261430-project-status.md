@@ -139,6 +139,7 @@ Parallel lanes write the design doc's decision log at the same time, so each lan
 | 65–67 | lane B, advisor (MKC-36 and on) | 1 |
 | 68–70 | lane C, decision layer (MKC-46 and on) | 1 |
 | 71–73 | lane D, RAG (MKC-49 and on) | 1 |
+| 74–75 | lane A2, SachsenNetze and gold (MKC-27, MKC-24) | 2 |
 
 ## Open items
 
