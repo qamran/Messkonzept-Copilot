@@ -20,6 +20,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session, sessionmaker
 
+from mkc.harness.baseline import RunMemory, make_memory_save_draft
 from mkc.harness.drafts import make_save_draft
 from mkc.harness.tools import Tool, ToolEnv, ToolRegistry, ToolTracer
 
@@ -97,12 +98,21 @@ RUN_OPERATIONS: tuple[Tool, ...] = (
 
 
 def default_registry(
-    tracers: tuple[ToolTracer, ...] = (), *, sessions: sessionmaker[Session] | None = None
+    tracers: tuple[ToolTracer, ...] = (),
+    *,
+    sessions: sessionmaker[Session] | None = None,
+    approvals: RunMemory | None = None,
 ) -> ToolRegistry:
     """The registry of design 8.1. With `sessions`, `save_draft` is the real one (MKC-16.5);
-    tools reach the database through a factory like this, never through `ToolEnv`."""
+    tools reach the database through a factory like this, never through `ToolEnv`. With
+    `approvals` (baseline, durable approvals off), `save_draft` appends to that memory
+    instead, with no key (MKC-20, decision 60); the tool and its spec stay the same."""
     item = ITEM_TOOLS
-    if sessions is not None:
-        real = make_save_draft(sessions)
-        item = tuple(replace(t, fn=real) if t.name == "save_draft" else t for t in ITEM_TOOLS)
+    save = None
+    if approvals is not None:
+        save = make_memory_save_draft(approvals)
+    elif sessions is not None:
+        save = make_save_draft(sessions)
+    if save is not None:
+        item = tuple(replace(t, fn=save) if t.name == "save_draft" else t for t in ITEM_TOOLS)
     return ToolRegistry(item=item, run=RUN_OPERATIONS, tracers=tracers)

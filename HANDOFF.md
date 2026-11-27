@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 17:45
+**Last updated:** 27.11.2026, 17:51
 
 This file is how agents resume work after a session restart.
 
@@ -191,6 +191,7 @@ This file is how agents resume work after a session restart.
 
 ## Recent log
 
+- **27.11.2026 17:51** MKC-20.2: `RunMemory` (in-memory queue, turns, end states, approvals; `write_report`) and the in-memory `save_draft` in `default_registry(approvals=...)`.
 - **27.11.2026 17:45** MKC-20.2 red: 7 baseline tests fail on assertions (turn rows, draft rows, cache rows, no memory, item left `running`); the full-mode twins pass. `d3d20e0` (17:43:36) said `Last updated` 17:44, ahead of git.
 - **27.11.2026 17:44** MKC-20.1 green: `mkc.harness.mode` (`HarnessMode`, `Switches`, `SWITCHES`), `MKC_HARNESS_MODE` (default `full`), migration 0011 `run.mode` (server default `full`); the `Limits` note that baseline drops the re-prompt is corrected. `test_mode.py` and `tests/db` 28 passed; ruff, mypy clean.
 - **27.11.2026 17:42** MKC-20.1 red (`61d71e2`, 17:42:29): config test (6 failed on assertions and the missing setting) and migration test for `run.mode`. Its `Last updated` said 17:47 and the plan commit `7bcb8be` (17:40:59) said 17:42, both ahead of git (corrected here).
