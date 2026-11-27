@@ -9,10 +9,12 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from mkc.db.models import Turn
+from mkc.db.models import Item, Turn
 from mkc.harness.blobs import BlobStore, DbBlobStore
+from mkc.harness.prompts import SYSTEM_PROMPT, earlier_turns, task_message, wrap_tool_result
 from mkc.models.types import Message
 
 INLINE_MAX_BYTES = 16384
@@ -43,8 +45,32 @@ class ResumeContext:
 def load_resume_context(
     session: Session, item_id: int, *, blobs: BlobStore | None = None
 ) -> ResumeContext:
-    """The item task + a compact summary of earlier turns + the last complete turn."""
-    raise NotImplementedError
+    """The item task + a compact summary of earlier turns + the last complete turn.
+
+    With no stored turn this is a fresh start. A turn in flight at a crash has no row, so it
+    is not here and the loop re-requests it. The summary goes into the one user message:
+    not every provider takes two user messages in a row.
+    """
+    item = session.get_one(Item, item_id)
+    rows = list(session.scalars(select(Turn).where(Turn.item_id == item_id).order_by(Turn.number)))
+    task = task_message(item.task)
+    if len(rows) > 1:
+        task += "\n" + earlier_turns([_summary(row) for row in rows[:-1]])
+    messages = [Message(role="system", content=SYSTEM_PROMPT), Message(role="user", content=task)]
+    if not rows:
+        return ResumeContext(messages, next_number=1, steps_done=0, cost_eur=Decimal(0))
+    last, store = rows[-1], blobs or DbBlobStore(session)
+    messages.append(Message.model_validate(last.assistant))
+    messages += [
+        Message(
+            role="tool",
+            content=wrap_tool_result(entry["name"], stored_result(entry, store)),
+            tool_call_id=entry["tool_call_id"],
+        )
+        for entry in last.tool_results
+    ]
+    cost = sum((row.cost_eur for row in rows), Decimal(0))
+    return ResumeContext(messages, last.number + 1, last.number, cost)
 
 
 def stored_result(entry: dict[str, Any], blobs: BlobStore) -> dict[str, Any]:
@@ -91,7 +117,20 @@ def _stored(result: dict[str, Any], blobs: BlobStore, inline_max_bytes: int) -> 
     entry = {key: value for key, value in result.items() if key not in ("content", "result")}
     data = json.dumps(result["result"], ensure_ascii=False, sort_keys=True).encode()
     if len(data) > inline_max_bytes:
-        entry["result_ref"] = {"ref": blobs.put(data), "bytes": len(data)}
+        ok = result["result"]["ok"]
+        entry["result_ref"] = {"ref": blobs.put(data), "bytes": len(data), "ok": ok}
     else:
         entry["result"] = result["result"]
     return entry
+
+
+def _summary(row: Turn) -> dict[str, Any]:
+    """One earlier turn: each call's tool, arguments and whether it worked."""
+    calls = []
+    for call, entry in zip(row.assistant["tool_calls"], row.tool_results, strict=True):
+        result = entry.get("result") or entry["result_ref"]
+        summary = {"tool": call["name"], "args": call["args"], "ok": result["ok"]}
+        if result.get("error"):
+            summary["error"] = result["error"]["code"]
+        calls.append(summary)
+    return {"turn": row.number, "calls": calls}

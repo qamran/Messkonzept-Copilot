@@ -36,6 +36,12 @@ def wrap_tool_result(name: str, payload: dict[str, Any]) -> str:
     return f'<tool_result name="{safe_name}">{_json(payload)}{TOOL_RESULT_CLOSE}'
 
 
+def earlier_turns(summary: list[dict[str, Any]]) -> str:
+    """The compact summary of an item's earlier turns, given on resume (MKC-16.3), as data."""
+    intro = "This item was interrupted. Its earlier turns, summarised as data:"
+    return f"{intro}\n<earlier_turns>{_json(summary)}</earlier_turns>"
+
+
 def _json(value: Any) -> str:
     text = json.dumps(value, ensure_ascii=False, sort_keys=True)
     return text.replace("<", "\\u003c").replace(">", "\\u003e")

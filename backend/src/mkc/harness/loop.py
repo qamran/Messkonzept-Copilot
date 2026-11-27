@@ -6,8 +6,10 @@ never stops the next item (extraction never waits for approvals).
 
 - One step is one model call. Each step writes one `turn` row and commits.
 - The step that ends the item writes its turn row and the state change in one commit.
-- Model and tool exceptions fail the item. Setup errors (`SETUP_ERRORS`) and database errors
-  propagate: the item stays `running`, and resuming it is MKC-16/17.
+- Model and tool exceptions fail the item. Setup errors (`SETUP_ERRORS`), database errors and
+  crashes propagate: the item stays `running`.
+- Resume (MKC-16): `run_item` continues from the item's last complete turn
+  (`load_resume_context`); `process_run` serves `running` items before queued ones.
 - `run_item` commits whatever the caller's session has pending.
 """
 
@@ -19,9 +21,9 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from mkc.db.models import Item
-from mkc.harness.checkpoint import INLINE_MAX_BYTES, TurnRecord, save_turn
+from mkc.harness.checkpoint import INLINE_MAX_BYTES, TurnRecord, load_resume_context, save_turn
 from mkc.harness.prompts import SYSTEM_PROMPT, TOOL_RESULT_CLOSE, task_message, wrap_tool_result
-from mkc.harness.queue import next_item, settle_run
+from mkc.harness.queue import next_item, resumable_item, settle_run
 from mkc.harness.states import ItemState, transition
 from mkc.harness.tools import ToolEnv, ToolRegistry
 from mkc.models.client import ModelClient
@@ -80,14 +82,12 @@ def run_item(
         concept_key=item.concept_key,
     )
     specs = [tool.to_spec() for tool in registry.for_context("item")]
-    messages = [
-        Message(role="system", content=SYSTEM_PROMPT),
-        Message(role="user", content=task_message(item.task)),
-    ]
+    context = load_resume_context(session, item_id)
+    messages = list(context.messages)
     session.commit()  # no transaction stays open across a model call
 
-    cost = Decimal(0)
-    for step in range(1, max_steps + 1):
+    cost = context.cost_eur
+    for step in range(context.next_number, max_steps + 1):
         try:
             reply = client.chat_with_tools(ROLE, messages, specs)
         except SETUP_ERRORS:
@@ -145,7 +145,7 @@ def process_run(
     """Claim and run items until the queue is empty, then settle the run."""
     outcomes = []
     while True:
-        item = next_item(session, run_id)
+        item = resumable_item(session, run_id) or next_item(session, run_id)
         item_id = None if item is None else item.id
         session.commit()  # the claim is durable before the first model call
         if item_id is None:
