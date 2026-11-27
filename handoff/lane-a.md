@@ -1,102 +1,167 @@
 # Lane A: Extraction
 
-**Last updated:** 27.11.2026, 21:55
+**Last updated:** 28.11.2026, 00:37
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
 - **Tickets, in order:** `MKC-21` → `MKC-22` → `MKC-23` → `MKC-25` → `MKC-26` → `MKC-28` → `MKC-29` → `MKC-30`
-- **Branch and worktree:** `mkc-21-fetch-segment`
+- **Branch and worktree:** `mkc-22-text-tables`
 - **Owns:** `mkc/extraction/`, the item tools in `mkc/harness/registry.py`, `backend/data/operators.yaml`
-- **Decision numbers:** 62–64
+- **Decision numbers:** 76–78 (wave 2; 62–64 are used by MKC-21)
+
+## Done
+
+- `MKC-21` (`#21`): merged with PR #197 (merge commit `2a841a2`). Its pinned interfaces, assumptions and mutation pass are in this file at `e40115b`.
 
 ## In progress
 
-- `MKC-21` (`#21`): the test agent's red acceptance tests are in `backend/tests/extraction/`, in red commits `b18f652` to `c9202aa` (`git diff c9202aa` shows any later change to them). The development agent is building it.
-- Sub-issues (all assigned to `qamran`, on the board, linked to #21):
-  - `MKC-21.1` (#187): `operator` and `source_document` tables, `operators.yaml`, the YAML in the image
-  - `MKC-21.2` (#188): `fetch_document` with the allow-list and editions
-  - `MKC-21.3` (#189): Berlin segmentation
-  - `MKC-21.4` (#190): Supabase Storage `BlobStore`
-  - `MKC-21.5` (#191): run operations, `mkc run start --operator`, live run, docs
-- Real Berlin layout (studied 27.11.2026 on the September 2026 edition): a concept page opens with `<number> <title>` (`1 Volleinspeisung`, `4.1 Überschusseinspeisung …`) on the first line of the main column, not `Messkonzept <n>`. A sidebar at x ≈ 461 pt repeats `Messkonzepte`, `Seite/Umfang`, `n/33`. Pages 4, 5 and 7 are tables whose rows start with concept numbers. The synthetic PDF in `conftest.py` changes to this layout (reason in the PR).
+- `MKC-22` (`#22`, `Testing`, assigned to `qamran`; PR #215): built by the development agent against the test agent's red tests (red commits `60c1f2e` to `c72296d`; `git diff c72296d -- backend/tests` shows only added files, none of the red files changed). Code and docs are done; the mutation pass is done (15 survivors, all accepted by the coordinator as equivalent or near-equivalent). The coordinator merged `main` (MKC-27) as `5d013a5` and removed leftover conflict markers in `21d2b07`. Next: the PR.
+- Built: `mkc/extraction/text.py`, `tables.py`, `naive.py`, `cleantext.py`; the item tools in `registry.py` (`TextArgs`) and `DocumentOps.extract_text` / `extract_tables`; fetch hardening in `fetch.py`; `is_valid_code` (`mkc/reference/lbs.py`) and `ToolRegistry.execute` (`mkc/harness/tools.py`). Decisions 76 (text fields), 77 (tables, baseline), 78 (fetch hardening) in design section 18; decision 62 (5) notes the hop rules; status doc, backlog "As built" and runbook "The allow-list" updated. No new dependency, no migration, no `config.py` change.
+- The development agent's own tests (added files, for the PR body): `test_text_rules.py`, `test_table_rules.py`, `test_naive_rules.py`, `test_extract_args.py`, `test_fetch_limits.py`.
+- Coordinator's answers (27.11.2026): assumptions 1, 3, 5 and 6 confirmed; 2 decided by the development agent (decision 76 (2): kept as printed); 4 checked by the live run (passed); 7 goes to MKC-23 (wiring `DocumentOps` through `runner.py` and the executor).
+- Red run at `c72296d`: `uv run pytest tests/extraction -q`: `32 failed, 81 passed, 1 skipped, 4 deselected in 6.31s`; full suite `uv run pytest -q`: `43 failed, 947 passed, 2 skipped, 18 deselected, 4 warnings in 105.80s (0:01:45)`, all 43 failures this ticket's red tests. `ruff check .`: "All checks passed!"; `ruff format --check .`: "217 files already formatted".
+- Commits over 200 lines (for the PR body): `60c1f2e` (347 insertions, 84 deletions: the synthetic documents and the lane file rewrite), `b989630` (211 insertions) and `fcd70e0` (239 lines: `text.py` and `cleantext.py` in one commit).
+- Commits without a body (pushed, not rewritten): `96675e0`, `334a483`.
+- Sub-issues (all `Testing`, assigned to `qamran`, linked to #22): #208 `MKC-22.1` text fields, #209 `MKC-22.2` table rows and the naive baseline, #210 `MKC-22.3` the cached item tools, #211 `MKC-22.4` fetch hardening (PR #197 findings 1 to 4 and 7), #212 `MKC-22.5` reference and tool-registry hardening, #213 `MKC-22.6` docs and the live check.
 
-### Pinned interfaces (the development agent follows these)
+### Pinned interfaces (MKC-22; the tests import these)
 
-- `mkc/extraction/__init__.py`: the package.
-- `mkc/extraction/operators.py`:
-  - `OperatorConfig(id, name, voltage_level, url, allowed_hosts: tuple[str, ...])`, built by keyword.
-  - `load_operators() -> dict[str, OperatorConfig]`: reads the content of `backend/data/operators.yaml`. The Dockerfile copies only `src`, `alembic.ini` and `migrations`, so the worker image also needs the YAML (as `lbs_structures.yaml` will).
-- `backend/data/operators.yaml`: a top-level `operators:` list; each entry has `id`, `name`, `voltage_level`, `url` (https), `allowed_hosts`. Ids: `stromnetz-berlin` (as in `test_registry.py`) and `sachsennetze`.
-- `mkc/extraction/fetch.py`:
-  - `FetchResponse(url, content)`: `url` is the final URL after redirects.
-  - `http_get(url) -> FetchResponse`: the real getter (used only by the live test).
-  - `is_allowed_url(url, allowed_hosts) -> bool`: https only, exact host match (case-insensitive), no userinfo.
-  - `DisallowedUrl` (exception): raised before any request or write.
-  - `fetch_document(operator_id, *, sessions, store, get=http_get, operators=None) -> SourceDocument`. `sessions` is a `sessionmaker`; `store` is a `mkc.harness.blobs.BlobStore`; `operators=None` means `load_operators()`.
-  - `SourceDocument` (detached value): `operator_id`, `url`, `sha256` (hex), `fetched_at`, `page_count`, `edition`, `new_edition`.
-- `mkc/extraction/segment.py`:
-  - `ConceptRegion(page, bbox, number_hint)`: `page` is 1-based; `bbox` is `(x0, y0, x1, y1)` in PDF points inside the page; `number_hint` is `str | None`. Regions compare by value.
-  - `segment_document(doc, *, store) -> list[ConceptRegion]`: reads the PDF from `store` by `blob:sha256:<doc.sha256>` and picks the segmenter by `doc.operator_id`.
-- `mkc/extraction/storage.py`: `LOCAL_CACHE_DIR`, a folder inside the repo where a local run may cache PDFs; every file in it must be gitignored (`backend/.cache/...` already is).
-- Migration `0012` (`down_revision = "0011"`):
-  - Table `operator`: at least `id`, `name`, `voltage_level`, `url`, `edition`.
-  - Table `source_document`: at least `id`, `operator_id` (FK to `operator`), `url`, `sha256`, `fetched_at`, `page_count`, `edition`, and a unique constraint on `(operator_id, edition)`.
-  - No `bytea` column in either table. The PDF never goes into the Postgres `blob` table.
-- `fetch_document` upserts the `operator` row from its config and sets `operator.edition` to the latest edition.
+- `mkc/extraction/text.py`:
+  - `extract_text(pdf: bytes, region: ConceptRegion) -> TextFields`. Only words inside `region.bbox` count (`(x0, top, x1, bottom)`, top-left origin, as `segment_document` gives it).
+  - `TextFields` (frozen Pydantic): `title: str` (heading without its number; a wrapped title joined with one space), `applications: list[str]` (the `Anwendung:` bullets without the bullet sign; `LBS` bullets are not applications), `footnotes: list[str]` (one per `*n)`, starting with the marker; continuation lines joined with one space), `stated_lbs: list[StatedLbs]`.
+  - `StatedLbs` (frozen Pydantic): `code: str` (13 digits, spaces removed), `condition: str | None` (the text in brackets after the code).
+- `mkc/extraction/tables.py`:
+  - `extract_tables(pdf: bytes, kind: Literal["meter_tech", "lbs"]) -> list[Row]`.
+  - `Row` (frozen Pydantic): `kind`, `page: int` (1-based), `concepts: list[str]` (as printed, in order; `[]` for `nicht visualisiert`), `code: str | None` (`lbs`: 13 digits; `meter_tech`: None), `label: str` (`lbs`: the Bezeichnung; `meter_tech`: the table's heading, for example `Erzeugungsmessung (Z2)`), `cells: list[str]` (`meter_tech`: one per power band; `lbs`: `[]`).
+  - Wrapped cell text is joined with one space; header rows are not rows; a table over a page break is one list in page order; other ruled tables and unruled lines give nothing; a document without the table gives `[]`.
+- `mkc/extraction/naive.py` (the E1 baseline, pure Python, no system binary):
+  - `naive_text(pdf: bytes) -> str`: pdftotext-style, every page's text in reading order, pages separated by `"\f"` (one fewer than the pages).
+  - `naive_tables(pdf: bytes, kind) -> list[Row]`: the same row shape, read line by line from `naive_text`, no cell grid. It must get the wrapped row of `9992000000133` wrong on the synthetic table.
+- `mkc/harness/registry.py`: `default_registry(documents=DocumentOps(sessions, store))` makes `extract_text` and `extract_tables` real (without `documents` they stay placeholders). They read the PDF from `documents.store` at `blob:sha256:<env.document_hash>`. Arguments: `extract_text` takes `page` (>= 1) and an optional `bbox` (4 numbers; omitted means the whole page), so `{"page": 1}` stays valid; `extract_tables` takes `kind`. Results are plain JSON: `TextFields.model_dump(mode="json")` and a list of `Row.model_dump(mode="json")`. A page past the end gives `tool_failed`. No result holds a NUL character.
+- `mkc/extraction/fetch.py` (fetch hardening): `MAX_DOWNLOAD_BYTES = 50 * 1024 * 1024`; `DownloadTooLarge(ValueError)`; `http_get(url, *, transport=None, max_bytes=MAX_DOWNLOAD_BYTES)` streams the body and stops at the limit (also without `content-length`); a redirect target with userinfo raises `DisallowedUrl` before it is requested; no cookie jar across hops; `is_allowed_url` refuses a port other than the default (`:443` or none) and a malformed port, returning False.
+- `mkc/reference/lbs.py`: `is_valid_code` returns False for non-ASCII digits (`²`, full-width, Arabic-Indic).
+- `mkc/harness/tools.py`: `ToolRegistry.execute` returns `invalid_args` when an argument validator raises `TypeError`, `AttributeError` or `KeyError` (with or without a cache), and `tool_failed` when a tool's exception has a failing `__str__` (the message names the exception type).
+- Test helpers: `tests/extraction/synthetic.py` (the synthetic documents and expected values), `layout_pdf(..., nul_for=...)`, `ruled_table`, `Text`, `Box` in `conftest.py`, `MemoryStore.gets`.
 
-### Assumptions (the test agent's, for the coordinator to confirm)
+### Assumptions (for the coordinator to confirm)
 
-1. The first fetch is edition 1 with `new_edition = False`. A re-fetch of the same bytes adds no row and keeps `new_edition = False`. A new hash adds edition n+1 with `new_edition = True`.
-2. Not tested yet: what happens when the hash goes back to an older edition's hash. The tables do not require `(operator_id, sha256)` to be unique, so the development agent may choose either behaviour and should record it as a decision (62–64).
-3. A Berlin concept page starts with the heading `Messkonzept <n>` (for example `1`, `2a`). The cover, contents and appendix pages are not concepts. A body line that cites another concept is not a heading. The real layout is unknown until the live run. If it differs, the development agent changes the synthetic PDF in `conftest.py` and gives the reason in the PR body.
-4. "Records from two editions never mixed" is tested as follows: each edition keeps its own bytes in Storage, segments to its own concepts, and has its own `sha256`. Drafts are already keyed by `(document_hash, concept_key)` (MKC-16.5).
+1. `extract_text` and `extract_tables` take the PDF bytes; the item tools read them from the blob store by the item's document hash, so the model never names a document.
+2. `stated_lbs` holds only codes printed in an `LBS` bullet. What happens to a printed code that fails the check digit (drop it or keep it with a flag) is left to the development agent as a decision (76–78); no test pins it.
+3. The meter-tech `label` is the table's heading as printed. The real Z1 heading wraps with a hyphen (`Abgren-` / `zungsmessung (Z3)`); only `(Z2)` in the Z2 label is pinned live.
+4. The live expected codes are pinned, not `None`: read by hand on 27.11.2026 from the September 2026 edition (sha256 `4e12c90f…29a18`), table rows (pages 6 and 7) and concept pages 14, 20 and 32 agree. On a new edition the live test skips with the new hash.
+5. The image test (`test_image_operators.py`) is a pin, not a red test, and has never run: it runs only when `MKC_TEST_IMAGE` names a built image and is skipped otherwise (also in CI's `backend` job). The only local `mkc-backend:smoke` image dates from 26.11.2026, before MKC-21, so it was not tried. Wiring it into CI's `image` job is the coordinator's call.
+6. `extract_text` without `bbox` reads the whole page, sidebar included. The model is expected to pass the item's `bbox` from its task.
+7. Production wiring: the worker's runs build the registry in `mkc/harness/runner.py` (`execute_run`: `default_registry(tool_tracers, sessions=..., approvals=...)`), with no `documents`, so the two tools stay placeholders in a real run until `runner.py` and the executor pass a `DocumentOps`. No red test pins this (it is outside lane A's package); the coordinator decides whether MKC-22 wires it.
 
 ### Not covered by red tests (the development agent's items)
 
-- The real Supabase Storage `BlobStore` (decision 56 says MKC-21 adds it). It has no acceptance test here. The development agent writes its tests first, with no network access.
-- Wiring `fetch_document` and `segment_document` into `RUN_OPERATIONS` in `mkc/harness/registry.py`. `segment_document` there takes `document_hash`, so the development agent decides how a hash maps to a `source_document` row. `test_placeholders_return_not_implemented` must then drop those two tools, with the reason given in the PR.
-- The live test's `EXPECTED_BERLIN_CONCEPTS` is `None` until the first verified live run, which needs the coordinator's go.
-- Adding the PDF library (pdfplumber or PyMuPDF, design section 4) to `pyproject.toml`, and saying so in the PR. The synthetic PDF parses with both.
+- The E1 comparison itself (MKC-31 onward); MKC-22 only keeps the baseline.
+- Hyphenated line ends in titles and labels, and the real `∆t 15` subscripts in meter cells: only the synthetic forms are pinned.
+- A printed code with a wrong check digit, and conditions over two lines.
+- Adding the tools to the item prompt or task (the model learns `page` and `bbox` from the item's task, MKC-21 decision 64 (5)).
+- Wiring `MKC_TEST_IMAGE` into CI (coordinator).
+- Passing `documents` from `execute_run` (`mkc/harness/runner.py`) and the worker executor, so real runs get the real tools (assumption 7).
+- The `uv lock` and `pyproject.toml` stay unchanged unless the development agent adds a dependency (pdfplumber is already there).
 
-### Mutation pass (test agent, 27.11.2026, head `7427125`)
+### Mutation pass (MKC-22; test agent, 28.11.2026, head `f0bf9e8`)
 
-- Method: one hand-written mutant at a time (exact string replacement, CRLF-aware, checked as applied), `__pycache__` cleared, then `pytest tests/extraction tests/harness/test_storage.py tests/harness/test_resume_storage.py tests/harness/test_registry.py tests/harness/test_blobs.py tests/harness/test_resume.py tests/worker/test_executor.py tests/test_cli.py -x`, file restored after each. No mutant was committed.
-- Result: 85 mutants tried, 63 killed, 22 survived. Unmodified base run: `138 passed, 2 deselected`.
-- New acceptance tests (commit `6161098`) kill 2 of the survivors: `test_editions_are_numbered_per_operator` kills `fetch.py:164` (latest edition taken across all operators), and `test_the_cli_caches_pdfs_in_storage_when_it_is_configured` kills `cli.py:62` (CLI ignores the Storage settings). With them: 65 killed, 20 survived.
-- The changed fixtures (`berlin_pages`, `Side`, `make_pdf`) still test what the acceptance assertions meant: a cover, a contents page and an appendix give no region; a body line that cites another concept is not a heading; pages [3, 4, 5] carry hints [1, 2a, 3]; the sidebar is now in the PDF too.
-- Allow-list, order of checks, editions and the "no run on a failed fetch" rule are well covered: all of these mutants were killed: http allowed, suffix and substring host match, the configured URL or the final URL not checked, the final check on the configured URL, `store.put` before the final-URL check or before the PDF check, same hash as a new edition, edition +2 or starting at 0, `operator.edition` not updated, the `new_edition` flag always or never set, A,B,A with the oldest edition taken as latest, `document_by_hash` taking the oldest, and a run committed before the fetch.
-- Redirect hops: `http_get` requests every intermediate https hop, also on a host off the allow-list; only the final URL is checked. No test pins hop behaviour beyond "a hop to plain http is refused" and "the final URL is reported" (both mutants killed); the redirect limit is not pinned (survivor below).
-- Survivors (20), file:line, what the mutant changed:
-  1. `extraction/fetch.py:84` dropped the `"@" in netloc` check. Near-equivalent: `urlsplit().hostname` still yields the userinfo host's real host, so the userinfo case stays refused; only `https://user@<listed host>/` would pass.
-  2. `extraction/fetch.py:86` host compared case-sensitively. Near-equivalent: `urlsplit` lowercases the host and the loader lowercases `allowed_hosts`; only an upper-case host in a hand-built `OperatorConfig` would differ.
-  3. `extraction/fetch.py:99` one redirect more than `MAX_REDIRECTS`: the limit is not tested.
-  4. `extraction/fetch.py:113` `%PDF-` magic check removed: pdfplumber still refuses the three non-PDF cases.
-  5. `extraction/fetch.py:120` zero-page check off: no test with a zero-page PDF.
-  6. `extraction/fetch.py:146` check that the store's ref equals `blob:sha256:<digest>` removed: no test with a misbehaving store.
-  7. `extraction/fetch.py:173` the edition row stores the configured URL, not the final URL after redirects: no test with a redirect through `fetch_document`.
-  8. `extraction/fetch.py:161` `with_for_update()` lock on the operator row removed: no concurrent-fetch test.
-  9. `extraction/segment.py:30` `LINE_TOLERANCE` 0: synthetic words on one line share the same top.
-  10. `extraction/segment.py:77` graphics in the sidebar kept in the region: no test with a sidebar drawing.
-  11. `extraction/operators.py:64` loader accepts a URL with userinfo: not in `test_operators_file.py`.
-  12. `extraction/operations.py:60` the explicit unknown-hash refusal removed: the call still fails (later, on `None`), as a tool error.
-  13. `extraction/operations.py:53` `fetch_document` result: `new_edition` always False. The flag is lost at the registry boundary and in the CLI output, and no test asserts it there.
-  14. `extraction/operations.py:65` `segment_document` result: `edition` constant 1, not asserted.
-  15. `harness/storage.py:120` PUT signed as GET: the mock transport does not check the signature of `put`.
-  16. `harness/storage.py:121` no `content-type` header on PUT.
-  17. `cli.py:153` `--operator` together with `--items` accepted: `test_run_start_needs_exactly_one_source` still passes because the missing items file also fails.
-  18. `harness/loop.py:537` the turn that ends an item goes to the `blob` table instead of `blobs`.
-  19. `harness/loop.py:274` `process_run` does not pass `blobs` on to `run_item`.
-  20. `worker/executor.py:206` the executor does not pass `blobs` to the run: the test checks only `Executor.blobs`, so the worker would keep large turn results in the `blob` table.
+- Method: one hand-written mutant at a time (exact string replacement, CRLF-aware, checked as applied and restored byte for byte), `__pycache__` cleared, then `uv run pytest tests/extraction tests/harness/test_tools.py tests/harness/test_tools_hardening.py tests/harness/test_registry.py tests/reference -q -x`, non-live. No mutant was committed; no production code changed.
+- Unmodified base run: `196 passed, 1 skipped, 4 deselected in 6.21s`.
+- First run: 119 mutants tried, 65 killed, 54 survived, 0 not applied.
+- New acceptance tests (commits `3696aa4`, `989c8cf`, `f50c927`, `140a3fd`, `a49faf2`; 35 tests) were green on the real code and then killed 39 of the 54 survivors (re-run of the 54: 39 killed, 15 survived). With them: **119 tried, 104 killed, 15 survived**. Base run with the new tests: `231 passed, 1 skipped, 4 deselected in 6.51s`.
+- Killed by the new tests: text.py pitch, indent, title stops at `Anwendung:` and at another type size, only the list after `Anwendung:`, the 14th digit, NaN bbox and page past the end as `ValueError`; tables.py `nicht visualisiert` in any case, empty tokens, `all` vs `any`, `2a`, years, the exact `Code der LBS` header, a missing header, 12-digit codes, non-concept rows after the first, an empty grid row, the in-cell hyphen join, `Messkonzept` in a meter table's first column, `nicht visualisiert` in a meter table; cleantext.py white space, the capital after a hyphen, `sowie`, `ß`; naive.py lookbehind, `nicht visualisiert`, text before a code, the label, one meter cell, NUL in `naive_text`; `page` ge=1; the `content-length` check and the default `max_bytes`; the LBS code length and `check_digit`'s ASCII rule.
+- Survivors (15), file:line, what the mutant changed (NE = near-equivalent):
+  1. `extraction/text.py:172` footnote continuation does not stop at the next `*n)` line. NE: the joined text is split again at the marker (`_MARKER_INSIDE`).
+  2. `extraction/text.py:150` bullet continuation does not stop at the next bullet. NE: a bullet at the same x fails the indent rule anyway; only a nested, indented bullet would differ.
+  3. `extraction/text.py:184` `_follows` with `0 <=` instead of `0 <`. NE: pdfplumber puts words at one top into one line.
+  4. `extraction/text.py:202` the "bbox does not overlap the page" check off. NE: pdfplumber's `crop` refuses such a bbox itself (`test_a_bbox_off_the_page_is_tool_failed` still passes, with another message).
+  5. `extraction/text.py:97` lines with empty text kept. NE: only a line of control characters is empty after `clean`.
+  6. `extraction/text.py:191` the line text not cleaned. NE: every field goes through `clean` or `join_lines` later; only a control character before a bullet sign or `LBS` would differ.
+  7. `extraction/text.py:189` a line's size is the smallest char size, not the largest. NE: synthetic lines have one size each.
+  8. `extraction/text.py:42` `^` dropped from `_LBS`. Equivalent: `re.match` anchors at the start anyway.
+  9. `extraction/cleantext.py:15` `_SPLIT_WORD` without the lowercase letter before the hyphen (`-$`). NE: differs only for a digit or capital before the hyphen with a lowercase line after (`Z2-` / `zähler`).
+  10. `extraction/tables.py:111` code spaces removed with `replace(" ", "")` instead of `\s`. Equivalent: `cell_text` has already joined the lines with single spaces.
+  11. `extraction/tables.py:114` the label is the last cell, not the cell right of the code. Equivalent for the three-column Berlin LBS table.
+  12. `extraction/tables.py:122` `kVA` looked for in the first column too. NE: a first column never says `kVA`.
+  13. `extraction/naive.py:42` a heading line also read as a row. NE: only a heading that starts with a concept number would become a row.
+  14. `extraction/operations.py:87` the `document_hash is None` check off. NE: `execute` refuses an item call without a document hash before any tool runs.
+  15. `extraction/operations.py:80` `model_dump()` instead of `model_dump(mode="json")`. Equivalent for these models (strings, lists, None only).
+- Not mutated: `segment.py` (MKC-21), the live tests.
 
 ## Next steps
 
-1. Done: the mutation pass (section above); survivors 3, 7, 13 to 20 are killed by new tests; 1, 2, 4, 5, 6, 8 to 12 are accepted with reasons in the PR body.
-2. Done: PR #197 open; #21 and #187 to #191 are `Testing`. Next: the coordinator starts the review once `gh pr checks` is green.
-3. In the PR body: Changes to the test agent's tests, with reasons: `conftest.py` (`berlin_pages` in the real layout, `Side` sidebar lines in `make_pdf`), the docstring of `test_segment.py`, `EXPECTED_BERLIN_CONCEPTS = 26` in `test_live_berlin.py`.
-4. Admin, before the deploy: the five `MKC_STORAGE_*` values into `mkc-secrets` (runbook "Fetch and segment").
-5. Decisions taken for the test agent's open assumptions: 1 confirmed; 2 (a return to an older hash) is a new edition (decision 62); 3 replaced by the real layout (decision 64); 4 confirmed.
+1. Review agent (Fable) on PR #215 once `gh pr checks` is green; the development agent fixes any findings.
+2. MKC-23 (lane A's next ticket): pass `documents=DocumentOps(...)` from `execute_run` (`mkc/harness/runner.py`) and the worker executor, so real runs get the real `extract_text` and `extract_tables` (the coordinator grants `runner.py` then); tell the model `page` and `bbox` in the item's task or prompt.
+3. MKC-28: `validate_draft` must flag a stated code that fails the check digit or is not in the Codeliste (extraction keeps it as printed, decision 76 (2)).
+4. Coordinator: `MKC_TEST_IMAGE` in CI's `image` job, so `test_image_operators.py` runs (decision 78 (6)).
 
 ## Recent log
+
+- **28.11.2026 00:37** Development agent: `bash scripts/pre_pr.sh` at `ec8fead`: exit 0, "pre-PR gate: all steps passed"; pytest `1080 passed, 2 skipped, 19 deselected, 4 warnings in 97.88s (0:01:37)`. PR #215 opened (createdAt 2026-11-27T23:37:01Z, 00:37:01 CET), head `ec8fead`, assigned to `qamran`; #22 and #208 to #213 moved to `Testing`. This commit changes only this file.
+
+- **28.11.2026 00:33** Development agent: pulled the branch at `21d2b07` (the test agent's mutation pass and the coordinator's merge of `main`, MKC-27). The coordinator accepts the 15 survivors; no code change. Next: the gate and the PR.
+
+- **28.11.2026 00:32** Test agent: the "Mutation pass (MKC-22)" section itself (the commit before, `e499198`, carried only its log line because an edit had failed).
+
+- **28.11.2026 00:31** Test agent: mutation pass on `f0bf9e8`: 119 tried, 104 killed, 15 survived (first run 65 killed, 54 survived; 35 new tests in five commits killed 39 of them). The 15 survivors are equivalent or near-equivalent (section "Mutation pass (MKC-22)"). With the new tests: `231 passed, 1 skipped, 4 deselected in 6.51s`; `ruff check .`: "All checks passed!"; `ruff format --check .`: "230 files already formatted".
+
+- **28.11.2026 00:30** Test agent: two tests in `test_lbs_digits.py` kill L2 (`check_digit` without `isascii`) and L3 (no length check).
+
+- **28.11.2026 00:30** Test agent: `test_fetch_mutants.py` kills F9 (the `content-length` check before reading) and F11 (the default `max_bytes`).
+
+- **28.11.2026 00:30** Test agent: `test_page_zero_is_invalid_args` kills R4 (`page` ge=0).
+
+- **28.11.2026 00:30** Test agent: `test_table_grid_rules.py` (16 tests) and `test_naive_line_rules.py` (3 tests) kill the tables.py, cleantext.py and naive.py survivors B4 to B12, B16, B19 to B22, C3, C6, C7, C12, N2 to N5, N8, N10.
+
+- **28.11.2026 00:30** Test agent (MKC-22 mutation pass): `test_text_layout_rules.py` (11 tests) kills text.py survivors T2, T4, T5, T8, T12, T14 to T17, T28, T29: pitch, indent, title stops, the list after `Anwendung:`, the 14th digit, a NaN bbox and a page past the end as `ValueError`.
+
+- **28.11.2026 00:04** Development agent: `bash scripts/pre_pr.sh` at `af95d27`: exit 0, "pre-PR gate: all steps passed"; pytest `1011 passed, 2 skipped, 18 deselected, 4 warnings in 103.05s (0:01:43)`; commits over 200 lines `60c1f2e` (431), `b989630` (211), `fcd70e0` (239). Acceptance at `af95d27`: `uv run pytest tests/extraction -q`: `134 passed, 1 skipped, 4 deselected in 5.81s` (red at `c72296d`: `32 failed, 81 passed, 1 skipped, 4 deselected`); `test_tools_hardening.py test_lbs_digits.py`: `12 passed in 0.07s`. `git diff c72296d -- backend/tests`: 5 files, 276 insertions, all added files. Branch pushed; waiting for the mutation pass. This commit changes only this file.
+
+- **28.11.2026 00:01** Development agent: the naive baseline resets its meter heading on each page; `join_lines` keeps the hyphen of a suspended compound (`Bezugs-` / `und`); decision 77 (4) and (7) say so. `pytest tests/extraction`: `134 passed, 1 skipped, 4 deselected in 6.30s`.
+
+- **28.11.2026 00:00** Development agent: live run again at `334a483`, after the fetch hardening (23:57:24 to 23:57:35, 27.11.2026): `uv run pytest -m live tests/extraction/test_live_extract.py`: `2 passed in 9.08s`. Red tests: the naive meter heading must end with its page (`test_naive_rules.py`) and a suspended hyphen (`Bezugs-` / `und`) keeps its hyphen (`test_table_rules.py`): `2 failed, 3 passed in 0.37s`.
+
+- **27.11.2026 23:54** Development agent: `bash scripts/pre_pr.sh` at `89b750d`: exit 0, "pre-PR gate: all steps passed"; pytest `1009 passed, 2 skipped, 18 deselected, 4 warnings in 106.90s (0:01:46)`. Commits over 200 lines: `60c1f2e` (431), `b989630` (211), `fcd70e0` (239). Every `Refs:` line reads `qamran/`. Branch pushed; no PR yet (the test agent's mutation pass comes first). This commit changes only this file.
+
+- **27.11.2026 23:51** Development agent: docs: decisions 76 to 78 in design section 18, decision 62 (5) notes the hop rules, status doc line, backlog "As built", runbook "The allow-list". Full suite at `a4dc979` (`uv run pytest -q`): `1009 passed, 2 skipped, 18 deselected, 4 warnings in 103.00s (0:01:42)`. Fetch disclosed: the Berlin PDF was downloaded once with `curl` at 23:35 (sha256 `4e12c90f…29a18`) into a scratch folder outside the repo to read the real table grids and concept pages; deleted at 23:51. No model calls.
+
+- **27.11.2026 23:49** Development agent: fetch hardening (PR #197 findings 1 to 4): a redirect to a URL with userinfo is refused before it is requested; the client's jar refuses every cookie; `is_allowed_url` allows only the default port and is False for a malformed one; `http_get` streams and raises `DownloadTooLarge` past `MAX_DOWNLOAD_BYTES` (50 MiB), `content-length` only as an early exit. `pytest tests/extraction`: `132 passed, 1 skipped, 4 deselected`. My `test_fetch_limits.py` (malformed `content-length`) was written with the code; against a plain `int()` it gives `2 failed, 1 passed`.
+
+- **27.11.2026 23:47** Development agent: `extract_text` (`TextArgs`: `page`, optional `bbox` of four finite numbers, ordered) and `extract_tables` are real item tools through `default_registry(documents=DocumentOps(...))`; the PDF is read by the item's document hash. `test_extract_tools.py` (the red tests): passed; `pytest tests/extraction tests/harness/test_registry.py tests/harness/test_tools.py`: `11 failed, 148 passed, 1 skipped, 4 deselected`, the 11 all fetch hardening. My `test_extract_args.py` was written with the code; with the bbox rules taken out it gives `5 failed, 3 passed`, with them `8 passed`. Live run at 23:45:48: `uv run pytest -m live tests/extraction/test_live_extract.py`: `2 passed in 8.51s`.
+
+- **27.11.2026 23:45** Development agent: `mkc/extraction/naive.py` (`naive_text`, `naive_tables`), pure Python: `test_tables.py`: `8 passed in 0.35s`. On the scratch copy of the Berlin PDF the baseline finds all 15 LBS codes and pairs 13 of them with the right concepts (`extract_tables`: 15 of 15); its labels are mostly cut. A first number for E1 (MKC-31), not a measurement.
+
+- **27.11.2026 23:45** Development agent: `mkc/extraction/tables.py` (`extract_tables`, `table_rows`, `Row`): `test_table_rules.py test_tables.py`: 8 passed, the 3 naive-baseline tests still red. On the scratch copy of the Berlin PDF: 15 LBS rows (pages 6 and 7), 50 meter-tech rows (pages 4 and 5), the Z1 heading joined to `Bezugsmessung, Einspeisemessung (Z1 o. Zsv), Abgrenzungsmessung (Z3)`.
+
+- **27.11.2026 23:43** Development agent: red tests for the grid-to-rows rules on grids in the real Berlin shapes (`test_table_rules.py`: the six-row Z1 header with `Abgren-`/`zungsmessung`, blank rows round the LBS header, a short code cell, the decoy): `3 failed`.
+
+- **27.11.2026 23:43** Development agent: a footnote marker inside a footnote's text starts the next one: `test_text_rules.py test_text.py`: `10 passed in 0.42s`; Berlin page 22 now gives `*1)` and `*2)` apart.
+
+- **27.11.2026 23:42** Development agent: red test: a `*2)` at the end of a footnote line starts the next footnote (Berlin page 22): `1 failed, 4 passed in 0.50s`.
+
+- **27.11.2026 23:42** Development agent: `mkc/extraction/text.py` (`extract_text`, `read_page`, `TextFields`, `StatedLbs`) and `cleantext.py` (`clean`, `join_lines`): `test_text.py test_text_rules.py`: `9 passed in 0.34s`. On the scratch copy of the Berlin PDF all 26 regions give a title, applications and stated codes; on page 22 the PDF prints `*2)` at the end of the line before, so two footnotes merge (fixed next).
+
+- **27.11.2026 23:40** Development agent: red tests for the open `extract_text` rules (`test_text_rules.py`: a wrong check digit kept as printed, wrapped bullets and conditions, a superscript after a code, a hyphenated title): `4 failed in 0.48s`.
+
+- **27.11.2026 23:39** Development agent: `ToolRegistry.execute` gives `invalid_args` when a validator raises `TypeError`, `AttributeError` or `KeyError` (both the cached and the plain path), and `tool_failed` with the type name when an exception's `__str__` fails (MKC-14 finding 2): `test_tools.py test_tools_hardening.py`: passed.
+
+- **27.11.2026 23:39** Development agent: sub-issues #208 to #213 created, linked to #22, on the board `In progress`. `is_valid_code` and `check_digit` take ASCII digits only (MKC-12 finding 11): `tests/reference`: passed.
+
+- **27.11.2026 23:30** Test agent: lane file points at the final red commit `c72296d`; assumptions 5 to 7 added (the image test never ran; no `bbox` means the whole page; `runner.py` builds the item registry without `documents`).
+
+- **27.11.2026 23:30** Test agent: tightened after a review of the red tests: the naive baseline must return a row for `9992000000133` (an empty list no longer passes); the streaming test uses a 10 MB body and asserts reading stops before its end (any chunk size); a NUL in a table cell must not reach `extract_tables`' result; `test_synthetic.py` proves `nul_for` yields a NUL. `uv run pytest tests/extraction -q`: `32 failed, 81 passed, 1 skipped, 4 deselected in 6.31s`. Full suite `uv run pytest -q`: `43 failed, 947 passed, 2 skipped, 18 deselected, 4 warnings in 105.80s (0:01:45)`; all 43 failures are this ticket's red tests (32 extraction, 7 tools hardening, 4 LBS digits).
+
+- **27.11.2026 23:24** Test agent: pinned interfaces, assumptions and the items left to the development agent written above. Fetches disclosed: the Berlin PDF once with `curl` (sha256 `4e12c90f…29a18`, the same edition) into a scratch folder outside the repo to read the LBS table, the meter-tech tables and concept pages 14, 20 and 32; the folder is deleted. No model calls.
+
+- **27.11.2026 23:23** Test agent: red tests outside lane A's package, allowed by the coordinator: `tests/harness/test_tools_hardening.py` (MKC-14 finding 2: a validator raising `TypeError`, `AttributeError`, `KeyError`; an exception whose `__str__` fails) and `tests/reference/test_lbs_digits.py` (MKC-12 finding 11: `²`, full-width and Arabic-Indic digits): `11 failed, 1 passed in 0.34s`. The live test `test_live_extract.py` pins the Berlin codes read by hand (3, 4.4, 11.1) and the Z2 row of concept 3; not run (it would only fail on the missing modules after two fetches).
+
+- **27.11.2026 23:22** Test agent: red tests for the fetch hardening sub-issue (`test_fetch_hardening.py`): `11 failed, 3 passed, 1 skipped in 0.87s` with `test_image_operators.py`. Red: userinfo in a redirect, the hop cookie, four port cases, the download limit (`MAX_DOWNLOAD_BYTES`, `DownloadTooLarge`, `max_bytes`). Green pins: userinfo on a listed host (two cases) and `:443`. Skipped: the image test, which runs only with `MKC_TEST_IMAGE` set.
+
+- **27.11.2026 23:20** Test agent: red tests `test_extract_tools.py` (the item tools through `default_registry(documents=...)`, JSON results, the tool cache, no NUL in a result): `7 failed in 1.52s` (`unexpected arguments: bbox`, `not_implemented`). `layout_pdf(nul_for=...)` maps one glyph to U+0000 through `/ToUnicode`; pdfplumber then reads `'PV-Anlagen \x00'`.
+
+- **27.11.2026 23:18** Test agent: red tests `test_tables.py` (incl. `test_pdfplumber_rows_correct` and the naive baseline) and `test_text.py` (incl. `test_stated_lbs_parsed`): `13 failed, 4 passed in 0.54s` with `test_synthetic.py`; every failure is `No module named 'mkc.extraction.tables'`, `'...naive'` or `'...text'`.
+
+- **27.11.2026 23:18** Test agent (MKC-22): synthetic documents in the Berlin layout (`tests/extraction/synthetic.py`; `layout_pdf` and `ruled_table` in `conftest.py`; `MemoryStore.gets`). Fixture checks `test_synthetic.py`: 4 passed. The layout was read once from the real Berlin PDF (sha256 `4e12c90f…29a18`), fetched with `curl` into a scratch folder outside the repo.
 
 - **27.11.2026 21:55** Development agent: `bash scripts/pre_pr.sh` at `abfee85`: exit 0, `753 passed, 1 skipped, 14 deselected in 97.10s (0:01:37)`. PR #197 opened (createdAt 2026-11-27T20:54:19Z, 21:54:19 CET), head `abfee85`, assigned to `qamran`; #21 and #187 to #191 moved to `Testing`. This commit changes only this file.
 
