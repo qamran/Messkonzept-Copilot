@@ -6,6 +6,7 @@ the run ends), and approvals in memory only.
 
 from typing import Any
 
+import pytest
 from sqlalchemy import Engine, func, select, text, update
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -200,3 +201,33 @@ def test_baseline_takes_running_items_too(engine: Engine) -> None:
     result = go(engine, run_id, FakeChatModel(responses=[saved(1), saved(2)]))
     assert [o.state for o in result.outcomes] == ["draft_saved", "draft_saved"]
     assert states(engine, run_id) == ("awaiting_approval", ["draft_saved", "draft_saved"])
+
+
+def test_execute_run_differs_by_mode_only_in_the_switches(
+    engine: Engine, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Criterion 1 at the seam: what `execute_run` hands `process_run` for a full and a
+    baseline run differs only in `switches`, `memory` and the `save_draft` function."""
+    seen: dict[str, dict[str, Any]] = {}
+
+    def capture(run_id: int, **kw: Any) -> list[Any]:
+        seen[(kw["switches"].checkpoints and "full") or "baseline"] = kw
+        return []
+
+    monkeypatch.setattr("mkc.harness.runner.process_run", capture)
+    client = client_for(FakeChatModel(responses=[]))
+    no_wait = lambda s: False  # noqa: E731  (one object for both runs)
+    with Session(engine) as session:
+        for mode in ("full", "baseline"):
+            run_id, _ = make(engine, 1, mode=mode)
+            execute_run(run_id, session=session, sessions=sessionmaker(bind=engine),
+                        client=client, limits=Limits(), sleep=no_wait)  # fmt: skip
+    full, baseline = seen["full"], seen["baseline"]
+    assert full.keys() == baseline.keys()
+    differ = {k for k in full if k != "registry" and full[k] != baseline[k]}
+    assert differ == {"switches", "memory"}
+    tools = [r.for_context("item") for r in (full["registry"], baseline["registry"])]
+    assert [t.to_spec() for t in tools[0]] == [t.to_spec() for t in tools[1]]
+    changed = {a.name for a, b in zip(*tools, strict=True) if a != b}
+    assert changed == {"save_draft"}
+    assert full["registry"].for_context("run") == baseline["registry"].for_context("run")

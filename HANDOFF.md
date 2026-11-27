@@ -191,6 +191,7 @@ This file is how agents resume work after a session restart.
 
 ## Recent log
 
+- **27.11.2026 18:16** (2) Criterion 1 at the seam: `test_execute_run_differs_by_mode_only_in_the_switches` (what `execute_run` hands `process_run` differs only in `switches`, `memory` and the `save_draft` function); it passed once the test's own lambda was shared, since it pins built behaviour.
 - **27.11.2026 18:16** Pre-PR advisor review (about 18:11): four gaps. (1) `Switches` accepted mixes the loop does not honour (`idempotency` unread; `checkpoints` off with `durable_queue` on still wrote turns): now refused, red parametrized test first (2 of 3 failed). The Linux run at `5055477`: 353 passed (18:10:39).
 - **27.11.2026 18:09** MKC-20 docs green: runbook section "Baseline, faults and the CLI" (`check_runbook.py` passes), decision 60 in the design doc with 8.2 (edge `stopped -> running`) and 8.5 "Built in MKC-20", ADR 001 note, status doc, backlog notes (MKC-20 as built, MKC-32 replay of fault arms), plan ticked with an "As built" note. Markdown lint 0 errors; every check script passes.
 - **27.11.2026 18:07** MKC-20 docs red: `scripts/check_runbook.py` requires the section "Baseline, faults and the CLI" (fails: missing). Two pins from the plan's review focus added to `test_baseline.py` (`test_baseline_sigterm_writes_nothing`, `test_baseline_takes_running_items_too`); they passed on their first run, since they pin behaviour built in MKC-20.2.
