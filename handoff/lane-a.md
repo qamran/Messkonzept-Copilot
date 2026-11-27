@@ -1,6 +1,6 @@
 # Lane A: Extraction
 
-**Last updated:** 27.11.2026, 23:22
+**Last updated:** 27.11.2026, 23:23
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -25,6 +25,8 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 3. Test agent: mutation pass on the development agent's code.
 
 ## Recent log
+
+- **27.11.2026 23:23** Test agent: red tests outside lane A's package, allowed by the coordinator: `tests/harness/test_tools_hardening.py` (MKC-14 finding 2: a validator raising `TypeError`, `AttributeError`, `KeyError`; an exception whose `__str__` fails) and `tests/reference/test_lbs_digits.py` (MKC-12 finding 11: `²`, full-width and Arabic-Indic digits): `11 failed, 1 passed in 0.34s`. The live test `test_live_extract.py` pins the Berlin codes read by hand (3, 4.4, 11.1) and the Z2 row of concept 3; not run (it would only fail on the missing modules after two fetches).
 
 - **27.11.2026 23:22** Test agent: red tests for the fetch hardening sub-issue (`test_fetch_hardening.py`): `11 failed, 3 passed, 1 skipped in 0.87s` with `test_image_operators.py`. Red: userinfo in a redirect, the hop cookie, four port cases, the download limit (`MAX_DOWNLOAD_BYTES`, `DownloadTooLarge`, `max_bytes`). Green pins: userinfo on a listed host (two cases) and `:443`. Skipped: the image test, which runs only with `MKC_TEST_IMAGE` set.
 
