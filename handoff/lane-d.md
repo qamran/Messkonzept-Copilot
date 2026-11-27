@@ -1,6 +1,6 @@
 # Lane D: RAG
 
-**Last updated:** 28.11.2026, 00:01
+**Last updated:** 28.11.2026, 00:39
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -78,6 +78,7 @@ The tests import these; module paths and names are fixed, internals are free.
 
 ## Recent log
 
+- **28.11.2026 00:39** Test agent (mutation pass): `tests/rag/test_reference_side.py` kills the 7 reference-side survivors (R26, R30, R32, R34, R35, R36, R37); `uv run pytest tests/rag/test_reference_side.py -q`: `12 passed in 1.60s`.
 - **28.11.2026 00:01** Development agent: `bash scripts/pre_pr.sh` exit 0 at `ae6e5f2` (00:01): `1000 passed, 1 skipped, 17 deselected, 4 warnings in 107.78s (0:01:47)`; `26 commits in origin/main..HEAD`; over 200 lines: `29ca7cd 282 lines` (the test agent's red commit). The test agent's acceptance files: `75 passed in 8.19s`; `uv run pytest tests/rag -q -p no:warnings`: `146 passed, 2 deselected in 12.50s`. Red tests unchanged since `50bcd89` (the diff lists only my three new test files). Pushed; waiting for the coordinator and the mutation pass.
 - **27.11.2026 23:58** Development agent: checks before the report: the real MsbG and EnWG § 14a pages fetched and chunked in memory (no embedding, nothing written): `msbg chunks 220 unique refs 220 duplicates [] paragraphs 79 largest 7836`, `enwg-14a chunks 4 unique refs 4 duplicates [] paragraphs 1 largest 2564`, the same as MKC-49's 220 after the new `§` heading rule; `backend/.dockerignore` is a deny list without `data/`, so the new `COPY` line finds its file. Docs: the runbook names `MKC_CORPUS_SOURCES_FILE` and the lookup order; decision 79 the reference side, decision 80 the error text rule; the live spend wording says run 1's cost was not printed.
 - **27.11.2026 23:57** Development agent: the reference side: a `§ <n>` (optionally `Abs. <m>`) in the query ranks the chunks of that paragraph by `source_ref`, the named Absatz first, then by id; a third ranking in the fusion; `reference_hits` in `RetrievalTrace`, the log line and the `run_log` detail. Now "Wann gilt § 14a?" → `['§ 14a Abs. 2', '§ 14a Abs. 1', '§ 1 Abs. 2']` and "Was regelt § 14a Abs. 1?" → `['§ 14a Abs. 1', '§ 14a Abs. 2', '§ 1 Abs. 1']`. `uv run pytest tests/rag tests/observability -q -p no:warnings`: `173 passed, 2 deselected in 14.63s`.
