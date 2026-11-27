@@ -337,6 +337,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
 - **Interfaces:**
   - **Produces:** `mkc.harness.checkpoint.save_turn(...)` and `load_resume_context(item_id) -> ResumeContext`.
   - Tool cache keyed by `(tool, sha256(args), document_hash)`; idempotency keys on `save_draft` and `commit_record`.
+  - **As built (decision 56):** `save_turn(session, turn, *, blobs, inline_max_bytes)`, `load_resume_context(session, item_id, *, blobs)`; the cache key adds the code version (`ToolCache(sessions, code_version)`); `record_key(env)` is the key for both writes.
 - **Test:**
   - `test_crash_after_turn_k_resumes_at_k_plus_1`
   - `test_inflight_turn_is_discarded`
@@ -363,6 +364,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
 - **Success criteria:**
   - [ ] Lease and heartbeat timings in config, documented in the runbook
   - [ ] No state lost in any of the four tests (asserted on turn counts)
+- **Note (decision 56):** the worker calls `process_run` with `code_version=Settings.commit`, `inline_max_bytes=Settings.turn_inline_max_bytes` and `default_registry(sessions=...)`. Until then the tool cache, the inline limit setting and the real `save_draft` are off in production. A database error inside `save_draft` is caught by the registry and reaches the model as `tool_failed`; decide whether it should propagate like other database errors.
 
 ### MKC-18: Limits and retries
 
@@ -592,7 +594,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] `eval/iterations.md` started: each change made because of an eval result, with metrics before and after and the cases that changed (decision 55)
   - [ ] Reports include model ids, prompt versions, spend in EUR and set sizes
   - [ ] Results summarised in the status doc
-- **Note (decision 56):** run the items with `code_version` = the git `HEAD` commit, never `dev`, so the tool cache never serves a result from before a fix.
+- **Note (decision 56):** run the items with `code_version` = the git `HEAD` commit, never `dev`, so the tool cache never serves a result from before a fix. With uncommitted changes the cache must be off (`code_version=None`): `HEAD` does not name them.
 
 ### MKC-32: E4, harness vs baseline
 

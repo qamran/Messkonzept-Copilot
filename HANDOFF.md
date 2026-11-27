@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 10:57
+**Last updated:** 27.11.2026, 10:58
 
 This file is how agents resume work after a session restart.
 
@@ -54,7 +54,7 @@ This file is how agents resume work after a session restart.
 - **MKC-16** (#16), Turn checkpoints, resume, tool cache, idempotency. Status `In progress`, assigned to `qamran` (27.11.2026 09:57). Branch `mkc-16-checkpoints` from `ff76b94`. The first commit holds only the close-out of MKC-15.
   - Plan: `docs/superpowers/plans/271120261022-mkc-16-checkpoints.md` (decision 56: blob refs in the Postgres table `blob` until MKC-21's Storage, resume keeps the item `running`, cache key with `code_version`, tools reach the DB through a factory, `save_draft` keyed by `ToolEnv`).
   - Sub-issues: MKC-16.1 #139 (`In progress`), 16.2 #140, 16.3 #141, 16.4 #142, 16.5 #143, 16.6 #144 (`Ready`).
-  - MKC-16.1 green: `save_turn` checks the pairing; the loop stores every turn through it; tool-error turns answer every call; duplicate call ids made unique. MKC-16.2 (#140 `In progress` 10:29): green: migration `0005` (table `blob`), `DbBlobStore`, `save_turn` stores results over 16384 bytes as `result_ref`, `stored_result` reads them back. `MKC_TURN_INLINE_MAX_BYTES` in `Settings` and `.env.example`. MKC-16.3 (#141) `In progress` 10:34. MKC-16.3 green: `load_resume_context` (task + `<earlier_turns>` summary in one user message + last turn, blob refs rehydrated), `run_item` continues number, steps and cost, `queue.resumable_item` served first by `process_run`. MKC-16.4 (#142) `In progress` 10:38. MKC-16.4 green: migration `0006` (table `tool_cache`), `ToolCache` (key: tool, code version, sha256 of the validated args, document hash; `ok` results only; each write commits), `Tool.cacheable` on `extract_text`, `extract_tables`, `render_region`, hits traced `cached=True`; `run_item(..., code_version=None)` = cache off. MKC-16.5 (#143) `In progress` 10:41. MKC-16.5 green: migration `0007` (table `draft`, unique `(document_hash, concept_key)`), `record_key(env)`, `make_save_draft(sessions)` (upsert in its own transaction), `default_registry(..., sessions=...)`. MKC-16.6 (#144) `In progress` 10:44. MKC-16.6: decision 56 in the design doc (section 18, 8.2, 8.3), ADR 001, the backlog (notes on MKC-21, MKC-30, MKC-31), the status doc and the plan (rulings). Pre-PR review (fresh agent, 10:49): no Critical; Important 1 (`process_run` drops `code_version` and `inline_max_bytes`) and Minor 1 (`ToolCache` commits the loop's session) fixed; Important 2 deferred to MKC-18 (resume-attempt cap) and MKC-22 (NUL in PDF text). Backlog notes on MKC-18, MKC-22, MKC-23. Next: the PR.
+  - MKC-16.1 green: `save_turn` checks the pairing; the loop stores every turn through it; tool-error turns answer every call; duplicate call ids made unique. MKC-16.2 (#140 `In progress` 10:29): green: migration `0005` (table `blob`), `DbBlobStore`, `save_turn` stores results over 16384 bytes as `result_ref`, `stored_result` reads them back. `MKC_TURN_INLINE_MAX_BYTES` in `Settings` and `.env.example`. MKC-16.3 (#141) `In progress` 10:34. MKC-16.3 green: `load_resume_context` (task + `<earlier_turns>` summary in one user message + last turn, blob refs rehydrated), `run_item` continues number, steps and cost, `queue.resumable_item` served first by `process_run`. MKC-16.4 (#142) `In progress` 10:38. MKC-16.4 green: migration `0006` (table `tool_cache`), `ToolCache` (key: tool, code version, sha256 of the validated args, document hash; `ok` results only; each write commits), `Tool.cacheable` on `extract_text`, `extract_tables`, `render_region`, hits traced `cached=True`; `run_item(..., code_version=None)` = cache off. MKC-16.5 (#143) `In progress` 10:41. MKC-16.5 green: migration `0007` (table `draft`, unique `(document_hash, concept_key)`), `record_key(env)`, `make_save_draft(sessions)` (upsert in its own transaction), `default_registry(..., sessions=...)`. MKC-16.6 (#144) `In progress` 10:44. MKC-16.6: decision 56 in the design doc (section 18, 8.2, 8.3), ADR 001, the backlog (notes on MKC-21, MKC-30, MKC-31), the status doc and the plan (rulings). Pre-PR review (fresh agent, finished before 10:50): no Critical; Important 1 (`process_run` drops `code_version` and `inline_max_bytes`) and Minor 1 (`ToolCache` commits the loop's session) fixed; Important 2 deferred to MKC-18 (resume-attempt cap) and MKC-22 (NUL in PDF text). Backlog notes on MKC-18, MKC-22, MKC-23. Next: the PR.
 
 ## Next steps
 
@@ -63,14 +63,14 @@ This file is how agents resume work after a session restart.
    - 1: process, disclosed: `8fc77aa` 503 lines, `8d380c6` 201; `daeb2ce` has no HANDOFF change; `d2f883d` holds red tests and fix together; the guard test passed on its first run
    - 2: HANDOFF times: `Last updated` of `6853c47` (09:23 vs 09:21:09), `435ab83` (09:01 vs 09:00:21) and `54c8e52` (09:44 vs 09:43:17) were ahead of the commit; #15 `Testing` was 09:42:49, not 09:43; the HANDOFF named head `d2f883d`, the PR head was `54c8e52`
    - 3, 4: the status doc's "Phase" line said "continues with MKC-14" (fixed in this close-out); the backlog entry for MKC-15 still shows `run_item(item_id)` and `next_item(run_id)`
-   - 5 (MKC-16/17/21): no edge from `awaiting_approval` back to `running`; an item queued for an awaiting run is never served and `settle_run` raises
+   - 5 (MKC-21/23; not MKC-16: resume keeps an item `running` and needs no edge): no edge from `awaiting_approval` back to `running`; an item queued for an awaiting run is never served and `settle_run` raises
    - 6 (MKC-18): any model error other than `ModelConfigError`/`ReplayMiss` fails the item, so a fault hitting all items (a 401, a code bug) fails them all and the run reads `done`; a transient 429/5xx fails the item (no retries yet)
-   - 7 (**MKC-16 must**): a setup or database error leaves the item `running` with no edge out; turn numbers restart at 1 if `run_item` runs twice on one item (`IntegrityError` on `uq_turn_item_number`); resume must continue the numbering
+   - 7 (**done in MKC-16**: `process_run` resumes `running` items and turn numbers continue): a setup or database error leaves the item `running` with no edge out; turn numbers restart at 1 if `run_item` runs twice on one item (`IntegrityError` on `uq_turn_item_number`); resume must continue the numbering
    - 8: guard test gaps: raw SQL, bulk updates, a hard-coded current state; it matches the name `transition` only
    - 9 (MKC-18): `next_item` does not lock the run row; an item can be claimed while the run is stopped
    - 10: a billed model call that raises records cost 0; `ItemOutcome.cost_eur` is not rounded to 6 places like the turn rows
    - 11: a blank line separates `Refs:` from `Co-Authored-By:` in commit messages, so git does not parse `Refs` as a trailer (all history has this shape)
-   - pre-PR minors: a saved draft can remain when a later call in the same turn raises (MKC-22/23); duplicate non-empty tool call ids are not made unique; `TERMINAL`/`EDGES` mix the two enums, which compare by string value
+   - pre-PR minors: a saved draft can remain when a later call in the same turn raises (MKC-22/23); duplicate non-empty tool call ids are not made unique (done in MKC-16.1); `TERMINAL`/`EDGES` mix the two enums, which compare by string value
 3. MKC-14, non-blocking findings of the PR #131 review (comment 26.11.2026 23:17:35), for the tickets named:
    - 2 (before MKC-22, 23, 28 add real argument models): `execute` can still raise: a bad `ctx` (`KeyError`), a tool exception whose `__str__` fails, an argument validator that raises `TypeError`/`AttributeError`/`KeyError` (only `ValidationError` is caught)
    - 3: the side-effect check is truthiness (`side_effect=None`/`0` passes at runtime; mypy catches it)
@@ -78,7 +78,7 @@ This file is how agents resume work after a session restart.
    - 5: `default_registry()` reads module globals at call time; rebinding `ITEM_TOOLS` adds an item tool; pin with a test
    - 6 (MKC-19 and the real tools): `ToolTrace.tool` holds the untrimmed model-supplied name; `tool_failed` returns raw exception text to the model
    - 7: design doc line 630 still says "`save_draft` (which enqueues the approval)"; the body of #23 still has the old interface (a comment explains)
-   - 8 (**MKC-23 must**): bind the draft key (document hash, concept number) from the harness item context, not from model arguments (`DraftArgs` is a free dict); decide what a second save does after enqueue or approval
+   - 8 (**MKC-23 must**; the first half is done in MKC-16.5: `record_key(env)`): bind the draft key (document hash, concept number) from the harness item context, not from model arguments (`DraftArgs` is a free dict); decide what a second save does after enqueue or approval
    - 9: E4 "repeated side effects (must be 0)" should still count duplicate drafts and enqueues
    - 10: placeholder validation is lax (`page=True`, `1.0`; no DPI cap; `nan` bbox); a `validation_alias` field can't be called
    - 12: process, disclosed: `397b770` 262 lines; `6bbea6a` no HANDOFF change; `4b198cd` carries MKC-14 but closes out MKC-13; red test of `46f71ad` fixed in `fb00815`
@@ -153,6 +153,8 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **27.11.2026 10:58** MKC-16 records: sub-issue times corrected to GitHub `createdAt`; Next steps items closed by MKC-16 marked (MKC-15 finding 7 and the duplicate-id minor; first half of MKC-14 finding 8), MKC-15 finding 5 re-tagged MKC-21/23; backlog notes for MKC-16 (as built), MKC-17 (worker wiring, `save_draft` database errors) and MKC-31 (cache off with uncommitted changes); #142 interface text updated (10:58:30).
+
 - **27.11.2026 10:57** MKC-16: `_run_calls` lets `SQLAlchemyError` through, so a database error in a tool call leaves the item `running` for resume. Full suite 409 passed, 1 skipped; mypy strict clean.
 
 - **27.11.2026 10:56** MKC-16, after an advisor check: red test that a database error in a tool call propagates (today it fails the item as `tool_error`); the one-commit test now records what each commit carries (a split `_finish` mutant fails it; checked by hand, file restored).
@@ -191,7 +193,7 @@ Newest first. Times are local (CET), taken from git and GitHub.
 
 - **27.11.2026 10:28** MKC-16.1 red: `test_checkpoint.py` 8 failed, 1 passed (the one-commit test pins what `_finish` already does). Docker Desktop started for the DB tests.
 
-- **27.11.2026 10:22–10:25** MKC-16: plan written (decision 56); sub-issues MKC-16.1 #139 to MKC-16.6 #144 created 10:24:26–10:25:12, assigned to `qamran`, linked to #16 and put on the board (#139 `In progress`, the rest `Ready`).
+- **27.11.2026 10:22–10:25** MKC-16: plan written (decision 56); sub-issues MKC-16.1 #139 to MKC-16.6 #144 created 10:24:18–10:25:05 (GitHub `createdAt`), assigned to `qamran`, linked to #16 and put on the board (#139 `In progress`, the rest `Ready`).
 
 - **27.11.2026 10:12** The user pasted the official brief from the Turing College website: weights 20/13/7/13/13/13 (evals, new)/13/7 %; AI evaluations are now required; the AI evaluations topic asks for eval results and how they improved the project. Updated `AE.CAP_afa.md`, `docs/271120261003-eval-criteria-capstone.md` (official table replaces the estimate), decision 55 in the design doc, and the status doc.
 - **27.11.2026 10:03** New doc `docs/271120261003-eval-criteria-capstone.md`: the brief's grading criteria with shares, an estimate of the shares with the new evals criterion (about 13 %; the official table is not published yet), and where the project shows each criterion.
