@@ -1,5 +1,6 @@
 """MKC-5.2: the database URL setting. MKC-6.2: empty variables mean "unset"."""
 
+from decimal import Decimal
 from pathlib import Path
 
 import pytest
@@ -117,3 +118,48 @@ def test_lease_timings_default_and_read_the_environment(monkeypatch: pytest.Monk
 def test_three_renewals_must_fit_into_one_lease(lease: float, renew: float) -> None:
     with pytest.raises(ValidationError, match=r"three renewals|greater than 0"):
         Settings(worker_lease_seconds=lease, worker_lease_renew_seconds=renew)
+
+
+# MKC-18.1: limits and retries (decision 58).
+LIMIT_DEFAULTS = {
+    "run_max_steps": 300,
+    "run_max_wall_seconds": 7200,
+    "run_max_cost_eur": Decimal("3.00"),
+    "tool_max_retries": 3,
+    "model_max_retries": 4,
+    "model_backoff_base_seconds": 2,
+    "model_backoff_max_seconds": 60,
+    "turn_timeout_seconds": 180,
+    "item_max_resumes": 3,
+}
+
+
+def test_limit_settings_have_the_plan_defaults() -> None:
+    settings = Settings()
+    assert {name: getattr(settings, name) for name in LIMIT_DEFAULTS} == LIMIT_DEFAULTS
+
+
+def test_limit_settings_read_the_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("MKC_RUN_MAX_COST_EUR", "0.50")
+    monkeypatch.setenv("MKC_MODEL_MAX_RETRIES", "0")
+    settings = Settings()
+    assert (settings.run_max_cost_eur, settings.model_max_retries) == (Decimal("0.50"), 0)
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [
+        {"run_max_steps": 0},
+        {"run_max_wall_seconds": 0},
+        {"run_max_cost_eur": 0},
+        {"tool_max_retries": -1},
+        {"model_max_retries": -1},
+        {"model_backoff_base_seconds": 0},
+        {"turn_timeout_seconds": 0},
+        {"item_max_resumes": -1},
+        {"model_backoff_base_seconds": 10, "model_backoff_max_seconds": 5},
+    ],
+)
+def test_limit_settings_refuse_bad_values(bad: dict[str, object]) -> None:
+    with pytest.raises(ValidationError):
+        Settings(**bad)  # type: ignore[arg-type]
