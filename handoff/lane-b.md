@@ -1,6 +1,6 @@
 # Lane B: Advisor
 
-**Last updated:** 27.11.2026, 20:29
+**Last updated:** 27.11.2026, 20:33
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md`. Times are local time from git and GitHub, never estimated.
 
@@ -11,7 +11,7 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md`. Tim
 
 ## In progress
 
-- `MKC-36` (`#36`): the test agent's red tests are committed (red commits `f1d3a05` to `6de3f64`). The development agent builds against the interfaces below.
+- `MKC-36` (`#36`): the test agent's red tests are committed (red commits `f1d3a05` to `6de3f64`, tightened in `4be85d4`). The development agent builds against the interfaces below.
 
 ### Red tests (test agent)
 
@@ -26,7 +26,7 @@ Frontend:
 
 - `src/lib/advisor.test.ts`, `src/components/advisor/FactsCard.test.tsx`, `src/pages/AdvisorPage.test.tsx`.
 
-Red state at 20:29: `uv run pytest tests/advisor -q` gives `3 errors in 0.74s` (each `ModuleNotFoundError: No module named 'mkc.advisor'`; collection errors also stop the full suite). `npx vitest run` on the three files gives `Test Files  3 failed (3)` (failed to resolve the missing modules); the full run gives `Test Files  3 failed | 5 passed (8)`, `Tests  26 passed (26)`. `npm run typecheck` fails only with TS2307 for the missing modules. `ruff check`, `ruff format --check` and `npm run lint` pass.
+Red state at 20:33: `uv run pytest tests/advisor -q` gives `3 errors in 0.65s` (each `ModuleNotFoundError: No module named 'mkc.advisor'`; collection errors also stop the full suite). `npx vitest run` on the three files gives `Test Files  3 failed (3)` (failed to resolve the missing modules); the full run gives `Test Files  3 failed | 5 passed (8)`, `Tests  26 passed (26)`. `npm run typecheck` gives 5 errors, all TS2307 for the missing modules. `ruff check`, `ruff format --check` and `npm run lint` pass.
 
 `backend/pyproject.toml` got `[tool.ruff.lint.isort] known-first-party = ["mkc", "tests"]`: ruff matches the full module path, so imports of modules that did not exist yet sorted as third-party. Say so in the PR.
 
@@ -56,7 +56,7 @@ Red state at 20:29: `uv run pytest tests/advisor -q` gives `3 errors in 0.74s` (
 - `required_questions(facts: SiteFacts) -> list[Question]`, plain code, no model call:
   - out of scope: `[]`
   - asked: `unknown` keys that change the result (all `FactKey` except `pv.kwp`), plus missing values: PV present and `feed_in` is `None`; battery present and `inverter` is `None`; an SVE with `modul14a` `None`
-  - not asked: PV keys without PV; `battery.inverter` without a present battery
+  - not asked: PV keys without PV; `battery.inverter` without a present battery; `sve.modul14a` without an SVE
   - each field once; `options` are the allowed values (`pv.feed_in`: `["surplus", "full"]`, `battery.inverter`: `["shared", "separate"]`)
 
 `mkc/advisor/api.py`:
@@ -90,4 +90,5 @@ Frontend:
 
 ## Recent log
 
+- **27.11.2026 20:33** Test agent: `4be85d4` tightens the red tests (page test no longer matches the typed text; `extra_households` cleared out of scope; no module question without an SVE). Backend `3 errors in 0.65s`; full vitest `Test Files  3 failed | 5 passed (8)`, `Tests  26 passed (26)`.
 - **27.11.2026 20:29** Test agent: red tests committed, `f1d3a05` (ruff isort config) to `6de3f64`. Backend `3 errors in 0.74s` (missing `mkc.advisor`); frontend `Test Files  3 failed (3)` on the three new files.
