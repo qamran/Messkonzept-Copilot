@@ -191,6 +191,7 @@ This file is how agents resume work after a session restart.
 
 ## Recent log
 
+- **27.11.2026 17:51** MKC-20.2: the switches in `run_item`/`process_run` (no turn rows, no cache, memory queue, report at the end) and `mkc.harness.runner.execute_run` (reads `run.mode`); `test_baseline.py` 9 passed.
 - **27.11.2026 17:51** MKC-20.2: `RunMemory` (in-memory queue, turns, end states, approvals; `write_report`) and the in-memory `save_draft` in `default_registry(approvals=...)`.
 - **27.11.2026 17:45** MKC-20.2 red: 7 baseline tests fail on assertions (turn rows, draft rows, cache rows, no memory, item left `running`); the full-mode twins pass. `d3d20e0` (17:43:36) said `Last updated` 17:44, ahead of git.
 - **27.11.2026 17:44** MKC-20.1 green: `mkc.harness.mode` (`HarnessMode`, `Switches`, `SWITCHES`), `MKC_HARNESS_MODE` (default `full`), migration 0011 `run.mode` (server default `full`); the `Limits` note that baseline drops the re-prompt is corrected. `test_mode.py` and `tests/db` 28 passed; ruff, mypy clean.

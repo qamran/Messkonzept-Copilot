@@ -13,7 +13,7 @@ from mkc.db.models import Draft, Run, Turn
 from mkc.harness.baseline import RunMemory
 from mkc.harness.limits import Limits
 from mkc.harness.runner import RunResult, execute_run
-from mkc.harness.tools import Tool, ToolRegistry
+from mkc.harness.tools import Tool, ToolRegistry, ToolTrace
 from tests.harness.conftest import make_run, states
 from tests.harness.test_loop import PageArgs, Tools, call, client_for
 from tests.harness.test_resume import Crash, crashing
@@ -157,3 +157,13 @@ def test_baseline_skips_the_tool_cache(engine: Engine) -> None:
         go(engine, run_id, model, registry=_cached_registry(Tools()), code_version="abc")
         with engine.connect() as conn:
             assert conn.execute(text("select count(*) from tool_cache")).scalar_one() == rows
+
+
+def test_execute_run_builds_the_registry_with_the_tool_hooks(engine: Engine) -> None:
+    """The executor no longer holds a registry: `execute_run` builds one per run and mode,
+    and the tool hooks must reach it (MKC-19 traces every tool call)."""
+    seen: list[ToolTrace] = []
+    for mode in ("full", "baseline"):
+        run_id, _ = make(engine, 1, mode=mode)
+        go(engine, run_id, FakeChatModel(responses=[saved(1)]), tool_tracers=(seen.append,))
+    assert [(t.tool, t.ok) for t in seen] == [("save_draft", True), ("save_draft", True)]
