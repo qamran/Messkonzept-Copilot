@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 13:00
+**Last updated:** 27.11.2026, 13:28
 
 This file is how agents resume work after a session restart.
 
@@ -54,7 +54,9 @@ This file is how agents resume work after a session restart.
 ## In progress
 
 - **MKC-18** (#18), Limits and retries. Status `In progress`, assigned to `qamran` (27.11.2026 12:59:40). Branch `mkc-18-limits-retries` from `0f9a413`. The first commit holds only the close-out of MKC-17.
-  - Next: read the ticket, write the plan and the sub-issues. Fold in the MKC-17 items tagged MKC-18 below and the backlog notes on MKC-18.
+  - Plan: `docs/superpowers/plans/271120261324-mkc-18-limits-retries.md` (decision 58: stop reasons, the stop trace, run usage from the database, retries and turn deadline, re-prompt, tool-retry and resume caps, defaults with reasons). It folds in MKC-13 finding 3, MKC-15 findings 6 and 9, MKC-16 finding 2, MKC-17 findings 1, 6, 7 and 8.
+  - Sub-issues: MKC-18.1 #151 (`In progress`), MKC-18.2 #152, MKC-18.3 #153, MKC-18.4 #154 (`Ready`); all assigned to `qamran`, linked to #18, on the board.
+  - Next: MKC-18.1, red tests in `backend/tests/harness/test_limits.py`.
 
 ## Next steps
 
@@ -171,6 +173,8 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+
+- **27.11.2026 13:24-13:28** MKC-18: plan written (decision 58); sub-issues MKC-18.1 #151 to MKC-18.4 #154 created 13:26:02-13:26:14 (GitHub `createdAt`), assigned to `qamran`, linked to #18 and put on the board (#151 `In progress`, the rest `Ready`, set by 13:27:04).
 
 - **27.11.2026 13:00** PR #150 review PASS (Fable, comment 12:51:52; 11 non-blocking findings, see Next steps), merged as `0f9a413` (12:51:55); #17 and #146 to #149 closed (12:51:57) and `Done` (12:59:12-12:59:26). `main` pushed to `turing` (12:52:31); `origin/main` = `turing/main` = `0f9a413`. `cd` run 45993933759 green: `image` 12:52:02 to 12:56:06; `backend` approved by the development agent (decision 51) at 12:56:39, ran 12:56:40 to 12:57:29 (migration 0007 -> 0008 by the hook Job); `frontend` approved at 12:58:08, ran 12:58:09 to 12:58:49. Checked afterwards: `/api/version` = `0f9a413...`, `/health` 200, `/api/admin/backup-status` without a token 401, the site 200; worker pod `mkc-worker-864bcc48f4-2lnp7` Running, 0 restarts after 105 s, log `worker started as ...` with no database error. MKC-18 (#18) assigned to `qamran` and set to `In progress` (12:59:40); branch `mkc-18-limits-retries` from `0f9a413`.
 
