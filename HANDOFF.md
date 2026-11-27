@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 09:05
+**Last updated:** 27.11.2026, 09:20
 
 This file is how agents resume work after a session restart.
 
@@ -57,7 +57,7 @@ This file is how agents resume work after a session restart.
 
 ## Next steps
 
-1. MKC-15: see "In progress". Next: MKC-15.1 red tests (`tests/harness/test_states.py`).
+1. MKC-15: see "In progress". MKC-15.1 red tests and skeleton committed (13 of 17 fail on assertions); next: the edge table in `mkc.harness.states`.
 2. MKC-14, non-blocking findings of the PR #131 review (comment 26.11.2026 23:17:35), for the tickets named:
    - 2 (before MKC-22, 23, 28 add real argument models): `execute` can still raise: a bad `ctx` (`KeyError`), a tool exception whose `__str__` fails, an argument validator that raises `TypeError`/`AttributeError`/`KeyError` (only `ValidationError` is caught)
    - 3: the side-effect check is truthiness (`side_effect=None`/`0` passes at runtime; mypy catches it)
