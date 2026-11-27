@@ -1,6 +1,6 @@
 # Lane A: Extraction
 
-**Last updated:** 27.11.2026, 20:55
+**Last updated:** 27.11.2026, 21:00
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -64,6 +64,8 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 2. Test agent: run the mutation pass on the development agent's code.
 
 ## Recent log
+
+- **27.11.2026 21:00** Development agent: large turn results go through `blobs` (`run_item`, `process_run`, `_Ctx`, `load_resume_context`): Storage first, the `blob` table as fallback for old refs; the executor builds the store from the Storage settings. `pytest tests/harness tests/worker`: 312 passed, 1 skipped.
 
 - **27.11.2026 20:55** Development agent: red tests for large turn results through the configured store, old `blob`-table refs on resume, and the executor's store from settings (`test_resume_storage.py`: 3 failed).
 

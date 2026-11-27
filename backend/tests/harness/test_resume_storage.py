@@ -6,35 +6,43 @@ from sqlalchemy import Engine, func, select
 from sqlalchemy.orm import Session
 
 from mkc.db.models import Blob
+from mkc.harness.blobs import PREFIX
 from tests.extraction.conftest import MemoryStore
 from tests.harness.test_loop import SAVE, Tools, turns
 from tests.harness.test_resume import crash_after, go
 from tests.models.fakes import ai, fake
 
 
-def _blob_rows(engine: Engine) -> int:
+def _in_blob_table(engine: Engine, ref: str) -> bool:
+    digest = ref.removeprefix(PREFIX)
     with Session(engine) as session:
-        return session.scalar(select(func.count()).select_from(Blob)) or 0
+        return session.scalar(select(func.count()).where(Blob.sha256 == digest)) == 1
+
+
+def _ref(engine: Engine, item_id: int) -> str:
+    ref: str = turns(engine, item_id)[0].tool_results[0]["result_ref"]["ref"]
+    return ref
 
 
 def test_a_large_result_goes_to_the_store_and_resumes_from_it(engine: Engine) -> None:
     store = MemoryStore()
-    big = Tools(text="Seite " * 400)
+    big = Tools(text="Storage-Seite " * 400)  # a text no other test stores
     item_id = crash_after(engine, 1, big, inline_max_bytes=1000, blobs=store)
-    ref = turns(engine, item_id)[0].tool_results[0]["result_ref"]
+    ref = _ref(engine, item_id)
     assert ref in store.data
-    assert _blob_rows(engine) == 0, "nothing goes to the blob table when a store is set"
+    assert not _in_blob_table(engine, ref), "nothing goes to the blob table when a store is set"
     model = fake(ai(tool_calls=[SAVE]))
     go(engine, item_id, model, Tools(), blobs=store)
-    assert "Seite Seite" in str(model.seen[0][-1].content)
+    assert "Storage-Seite Storage-Seite" in str(model.seen[0][-1].content)
 
 
 def test_a_ref_from_the_blob_table_resumes_with_a_store_set(engine: Engine) -> None:
-    item_id = crash_after(engine, 1, Tools(text="Seite " * 400), inline_max_bytes=1000)
-    assert _blob_rows(engine) == 1
+    big = Tools(text="Tabellen-Seite " * 400)
+    item_id = crash_after(engine, 1, big, inline_max_bytes=1000)
+    assert _in_blob_table(engine, _ref(engine, item_id))
     model = fake(ai(tool_calls=[SAVE]))
     go(engine, item_id, model, Tools(), blobs=MemoryStore())
-    assert "Seite Seite" in str(model.seen[0][-1].content)
+    assert "Tabellen-Seite Tabellen-Seite" in str(model.seen[0][-1].content)
 
 
 def test_the_executor_uses_storage_when_the_settings_name_it() -> None:
