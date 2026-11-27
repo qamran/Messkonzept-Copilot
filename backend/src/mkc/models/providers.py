@@ -17,7 +17,7 @@ from pydantic import SecretStr
 
 from mkc.config import Settings
 from mkc.models.client import ChatModelFactory
-from mkc.models.types import ModelConfigError, Provider
+from mkc.models.types import ModelConfigError, ModelError, Provider
 
 OPENROUTER_ROUTING = {"zdr": True, "data_collection": "deny"}
 """OpenRouter provider preferences: only zero-data-retention endpoints, no data collection."""
@@ -89,3 +89,8 @@ def make_factory(settings: Settings) -> ChatModelFactory:
         return build_chat_model(provider, model, settings, timeout)
 
     return factory
+
+
+def classify_error(error: Exception) -> ModelError | None:
+    """Our error class for a provider error, or None to pass it on unchanged (MKC-18)."""
+    return None

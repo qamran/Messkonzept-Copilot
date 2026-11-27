@@ -64,6 +64,9 @@ class CallTrace:
 
 Tracer = Callable[[CallTrace], None]
 
+Classifier = Callable[[Exception], ModelError | None]
+"""Maps a provider error to `TransientModelError` or `ModelAuthError` (None: unchanged)."""
+
 
 def _image_block(image: Image) -> dict[str, Any]:
     data = base64.b64encode(image.data).decode("ascii")
@@ -107,6 +110,7 @@ class ModelClient:
         mode: ModelMode = "live",
         store: ReplayStore | None = None,
         tracers: Sequence[Tracer] = (),
+        classify: Classifier | None = None,
     ) -> None:
         if mode != "live" and store is None:
             raise ModelConfigError(f"mode {mode!r} needs a replay store (MKC_MODEL_REPLAY_DIR)")

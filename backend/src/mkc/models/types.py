@@ -30,6 +30,20 @@ class ReplayMiss(ModelError):
     """Replay mode found no stored reply for the request."""
 
 
+class ModelAuthError(ModelConfigError):
+    """The provider refused the key (401 or 403): a setup error, it stops the run (MKC-18)."""
+
+
+class TransientModelError(ModelError):
+    """A 408, 429 or 5xx, a timeout or a network error: worth a retry (MKC-18).
+
+    `retry_after` is the provider's `Retry-After` in seconds, when it sent one."""
+
+    def __init__(self, message: str, retry_after: float | None = None) -> None:
+        super().__init__(message)
+        self.retry_after = retry_after
+
+
 class _Frozen(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
