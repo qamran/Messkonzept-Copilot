@@ -65,7 +65,7 @@ from mkc.harness.retry import RetriesExhausted, RetryInterrupted, call_model
 from mkc.harness.states import ItemState, transition
 from mkc.harness.tools import ToolEnv, ToolRegistry
 from mkc.models.client import ModelClient, TraceScope
-from mkc.models.types import Message, ModelConfigError, ReplayMiss, Role, ToolCall
+from mkc.models.types import Message, ModelConfigError, ModelReply, ReplayMiss, Role, ToolCall
 
 ROLE: Role = "extract_vision"
 """The extraction model in `models.yaml`."""
@@ -170,7 +170,9 @@ def run_item(
         if hit is not None:
             return ItemOutcome(item_id, ItemState.RUNNING, hit.value, step - 1, cost)
         scope = TraceScope(ctx.run_id, item_id, step)
-        model_call = partial(client.chat_with_tools, ROLE, tuple(messages), specs, scope=scope)
+        model_call: Callable[[], ModelReply] = partial(
+            client.chat_with_tools, ROLE, tuple(messages), specs, scope=scope
+        )
         if faults is not None:
             model_call = faults.model(model_call)
         try:

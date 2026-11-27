@@ -1,1 +1,14 @@
-
+# Fault plans for E4 (MKC-32), one per fault type (MKC-20.3, decision 60).
+# Counts are 1-based: the n-th tool call, model call attempt or saved draft of one process.
+# Load with `mkc.harness.faults.load_fault_plans`, or `mkc run start --faults FILE --plan NAME`.
+no_faults: {}
+tool_timeout:
+  timeout_at: 1
+rate_limit:
+  rate_limit_at: 2
+malformed:
+  malformed_at: 2
+kill_at_turn:
+  kill_at_turn: 3
+kill_during_approval:
+  kill_during_approval: 1

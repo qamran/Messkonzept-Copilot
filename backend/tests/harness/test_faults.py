@@ -17,10 +17,10 @@ from mkc.config import Settings
 from mkc.db.models import Draft
 from mkc.harness.faults import FaultInjector, FaultPlan, InjectedKill, load_fault_plans
 from mkc.harness.prompts import REPROMPT
-from mkc.models.types import ModelReply, TransientModelError, Usage
+from mkc.models.types import ModelReply, ToolCall, TransientModelError, Usage
 from tests.harness.conftest import states
 from tests.harness.test_baseline import READ, go, make, saved
-from tests.harness.test_loop import Tools, call, turns
+from tests.harness.test_loop import Tools, turns
 from tests.models.fakes import FakeChatModel
 
 E4_FILE = Path(__file__).resolve().parents[2] / "data" / "e4_faults.yaml"
@@ -136,9 +136,9 @@ def test_each_fault_fires_once() -> None:
     with pytest.raises(TransientModelError):
         model()
     assert model().text == "" and model().text == ""
-    timed_out = injector.tool(call("extract_text", "a", page=1))
+    timed_out = injector.tool(ToolCall(id="a", name="extract_text"))
     assert timed_out is not None and timed_out.error is not None
-    assert injector.tool(call("extract_text", "b", page=1)) is None
+    assert injector.tool(ToolCall(id="b", name="extract_text")) is None
     assert injector.fired == ["rate_limit_at", "timeout_at"]
 
 
@@ -160,4 +160,3 @@ def test_fault_plans_load_from_yaml(tmp_path: Path) -> None:
 
 def test_no_fault_plan_comes_from_a_setting() -> None:
     assert not [name for name in Settings.model_fields if "fault" in name]
-
