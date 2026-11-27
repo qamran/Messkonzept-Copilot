@@ -8,7 +8,9 @@ left out. The cover, contents, table pages (rows such as `4.2 2RZ 60 A`) and the
 have no such first line.
 
 A region's `bbox` is `(x0, top, x1, bottom)` in PDF points with the origin at the top left
-(pdfplumber's convention, which `page.crop` takes): the main column from the heading down.
+(pdfplumber's convention, which `page.crop` takes): the main column from the heading down,
+words that start left of the sidebar and graphics that start there, also when a drawing
+reaches past the column edge (page 27 of the September 2026 edition does, to 461 pt).
 """
 
 import io
@@ -72,13 +74,13 @@ def _berlin_page(number: int, page: Any) -> ConceptRegion | None:
     graphics = [
         o
         for o in (*page.rects, *page.lines, *page.curves, *page.images)
-        if float(o["x1"]) <= limit and float(o["top"]) >= top - LINE_TOLERANCE
+        if float(o["x0"]) < limit and float(o["top"]) >= top - LINE_TOLERANCE
     ]
     content = below + graphics
     bbox = (
         round(max(0.0, min(float(o["x0"]) for o in content)), 2),
         round(max(0.0, min(float(o["top"]) for o in content)), 2),
-        round(min(limit, max(float(o["x1"]) for o in content)), 2),
+        round(min(float(page.width), max(float(o["x1"]) for o in content)), 2),
         round(min(float(page.height), max(float(o["bottom"]) for o in content)), 2),
     )
     return ConceptRegion(page=number, bbox=bbox, number_hint=str(first[0]["text"]))
