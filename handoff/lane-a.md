@@ -1,6 +1,6 @@
 # Lane A: Extraction
 
-**Last updated:** 27.11.2026, 21:04
+**Last updated:** 27.11.2026, 21:07
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -60,10 +60,15 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 
 ## Next steps
 
-1. Development agent: build `mkc/extraction/` and migration `0012` against the red tests, test-first and in atomic commits.
-2. Test agent: run the mutation pass on the development agent's code.
+1. Development agent: `bash scripts/pre_pr.sh`, push the branch, report to the coordinator (no PR yet).
+2. Test agent: run the mutation pass on the development agent's code (`mkc/extraction/`, `mkc/harness/storage.py`, the `blobs` path in `loop.py`, `--operator` in `cli.py`).
+3. Development agent: open the PR when the coordinator says so. Changes to the test agent's tests, with reasons: `conftest.py` (`berlin_pages` in the real layout, `Side` sidebar lines in `make_pdf`), the docstring of `test_segment.py`, `EXPECTED_BERLIN_CONCEPTS = 26` in `test_live_berlin.py`.
+4. Admin, before the deploy: the five `MKC_STORAGE_*` values into `mkc-secrets` (runbook "Fetch and segment").
+5. Decisions taken for the test agent's open assumptions: 1 confirmed; 2 (a return to an older hash) is a new edition (decision 62); 3 replaced by the real layout (decision 64); 4 confirmed.
 
 ## Recent log
+
+- **27.11.2026 21:07** Development agent: docs: decisions 62 (editions), 63 (Storage), 64 (segmentation and run start) in design section 18, decision 56 (1) marked done, ADR 003 amendment, status doc line for MKC-21, runbook section "Fetch and segment" and inventory rows, backlog "As built". All `scripts/check_*.py` pass; markdownlint on the six changed files: 0 errors.
 
 - **27.11.2026 21:04** Development agent: `DocumentOps` makes `fetch_document` and `segment_document` real in `default_registry(documents=...)` (placeholders without it, so `test_placeholders_return_not_implemented` is unchanged); `document_by_hash`; `mkc run start --operator <id>` fetches and segments inside the run's transaction and queues one item per concept (concept key = the number). `pytest tests/extraction tests/harness/test_registry.py tests/harness/test_tools.py tests/test_cli.py`: passed.
 

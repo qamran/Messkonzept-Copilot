@@ -117,7 +117,6 @@ def test_the_secret_is_not_in_the_store_repr() -> None:
 
 def test_layered_store_writes_the_primary_and_reads_old_refs_from_the_fallback() -> None:
     from mkc.harness.storage import LayeredBlobStore
-
     from tests.extraction.conftest import MemoryStore
 
     primary, old = MemoryStore(), MemoryStore()
