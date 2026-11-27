@@ -61,6 +61,47 @@ def test_a_chunk_with_more_query_terms_ranks_first_on_the_keyword_side(
     assert found[0].source_ref == "§ 14a Abs. 2"
 
 
+@pytest.mark.parametrize("question", ["Wann gilt § 14a?", "Was regelt § 14a Abs. 1?"])
+def test_a_question_with_a_reference_still_finds_the_paragraph(
+    corpus: dict[str, int], session: Session, dim: int, question: str
+) -> None:
+    """With the terms ORed, the other words of a question add hits but do not push the
+    `§ 14a` chunks out (the vector side ranks them last)."""
+    seen: list[Any] = []
+    found = _retrieve(session, question, 3, ScriptedEmbedder(dim), tracers=[seen.append])
+    refs = [c.source_ref for c in found]
+    print(question, "->", refs, "keyword hits", seen[0].keyword_hits)
+    assert {"§ 14a Abs. 1", "§ 14a Abs. 2"} <= set(refs), refs
+
+
+def test_a_named_absatz_comes_first(corpus: dict[str, int], session: Session, dim: int) -> None:
+    """The reference side ranks the named Absatz before the rest of its paragraph."""
+    seen: list[Any] = []
+    found = _retrieve(session, "Was steht in § 14a Abs. 1?", 1, ScriptedEmbedder(dim),
+                      tracers=[seen.append])  # fmt: skip
+    assert found[0].source_ref == "§ 14a Abs. 1"
+    assert seen[0].reference_hits == 2
+
+
+def test_without_a_reference_the_reference_side_is_empty(
+    corpus: dict[str, int], session: Session, dim: int
+) -> None:
+    seen: list[Any] = []
+    _retrieve(session, "Wärmepumpe", 3, ScriptedEmbedder(dim), tracers=[seen.append])
+    assert seen[0].reference_hits == 0
+
+
+def test_a_query_of_stopwords_only_uses_the_vector_side(
+    corpus: dict[str, int], session: Session, dim: int
+) -> None:
+    from tests.rag.test_retriever import VECTOR_ORDER
+
+    seen: list[Any] = []
+    found = _retrieve(session, "und der die", 3, ScriptedEmbedder(dim), tracers=[seen.append])
+    assert seen[0].keyword_hits == 0
+    assert [c.source_ref for c in found] == VECTOR_ORDER[:3]
+
+
 def test_refused_arguments_are_not_traced(session: Session, dim: int) -> None:
     """A wrong `k` or a blank query is the caller's bug: nothing ran, so nothing is traced."""
     seen: list[Any] = []
@@ -109,7 +150,8 @@ def test_a_retrieval_in_a_run_is_one_run_log_row_and_one_sink_record(
     assert (row.kind, row.name, row.ok, row.run_id, row.item_id, row.step) == (
         "retrieval", "retrieve", True, run_id, item_id, 2)  # fmt: skip
     assert row.latency_ms == seen[0].latency_ms
-    counts = {"k": 3, "query_chars": 5, "returned": 3, "keyword_hits": 3, "vector_hits": 10}
+    counts = {"k": 3, "query_chars": 5, "returned": 3, "keyword_hits": 3, "vector_hits": 10,
+              "reference_hits": 2}  # fmt: skip
     assert row.detail == counts
     ((record, sent_to),) = sink.sent
     assert sent_to == trace_id
@@ -139,7 +181,7 @@ def test_a_failed_retrieval_sends_the_error_class_only(engine: Engine) -> None:
     tracer = Tracer(sessionmaker(bind=engine), sink)
     tracer.start_run(run_id)
     tracer.span_retrieval(RetrievalTrace(latency_ms=12, k=3, query_chars=5, returned=0,
-                                         keyword_hits=0, vector_hits=0,
+                                         keyword_hits=0, vector_hits=0, reference_hits=0,
                                          error="RuntimeError: provider echoed § 14a",
                                          scope=TraceScope(run_id)))  # fmt: skip
     ((record, _),) = sink.sent

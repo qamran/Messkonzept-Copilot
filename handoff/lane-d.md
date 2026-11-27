@@ -1,6 +1,6 @@
 # Lane D: RAG
 
-**Last updated:** 27.11.2026, 23:53
+**Last updated:** 27.11.2026, 23:55
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -78,6 +78,7 @@ The tests import these; module paths and names are fixed, internals are free.
 
 ## Recent log
 
+- **27.11.2026 23:55** Development agent: a check of mixed questions on the test corpus: with the terms ORed, "Wann gilt § 14a?" gave `['§ 1 Abs. 2', '§ 2 Abs. 3', '§ 14a Abs. 2']` (keyword hits 4) and "Was regelt § 14a Abs. 1?" `['§ 1 Abs. 1', '§ 1 Abs. 2', '§ 3 Abs. 1']` (keyword hits 8): "gilt", "regelt", "Abs." and "1" match other paragraphs, and the vector side ranks § 14a last there. Red tests for a third ranking, the reference side (a `§ <n>` in the query ranks the chunks of that paragraph, the named Absatz first; `reference_hits` in the trace), and for a stopword-only query. `uv run pytest tests/rag/test_retrieval_trace.py -q -p no:warnings`: `6 failed, 10 passed in 3.12s`.
 - **27.11.2026 23:53** Development agent: the fix: `RetrievalTrace.error` is `<Class>: SQLSTATE <code>` or `<Class>: message withheld`, never the message; the caller still gets the full exception; the red test's long line split. `uv run pytest tests/rag tests/observability -q`: `168 passed, 2 deselected, 4 warnings in 16.77s`.
 - **27.11.2026 23:52** Development agent: found by my own check before the report: `RetrievalTrace.error` took `str(exc)`, and a SQLAlchemy error's text ends with `[parameters: {'query': …}]`, so a database failure put the query into the trace and `run_log.error`. Red test `test_a_database_error_never_puts_the_query_into_the_trace`; `uv run pytest tests/rag/test_retrieval_trace.py -q -k database`: `1 failed, 10 deselected in 2.32s`.
 - **27.11.2026 23:50** Development agent: `bash scripts/pre_pr.sh` exit 0 at `483a3f1` (23:50): `994 passed, 1 skipped, 17 deselected, 4 warnings in 103.11s (0:01:43)`; `20 commits in origin/main..HEAD`; over 200 lines: `29ca7cd 282 lines` (the test agent's red commit, to disclose). The test agent's red tests are unchanged since `50bcd89` (`git diff --stat 50bcd89 HEAD -- backend/tests/` lists only my three new files). The 23:48 entry's SHA corrected to `0aca7bb`. Pushed; waiting for the coordinator and the test agent's mutation pass (no PR yet).
