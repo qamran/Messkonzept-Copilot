@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 10:41
+**Last updated:** 27.11.2026, 10:42
 
 This file is how agents resume work after a session restart.
 
@@ -54,7 +54,7 @@ This file is how agents resume work after a session restart.
 - **MKC-16** (#16), Turn checkpoints, resume, tool cache, idempotency. Status `In progress`, assigned to `qamran` (27.11.2026 09:57). Branch `mkc-16-checkpoints` from `ff76b94`. The first commit holds only the close-out of MKC-15.
   - Plan: `docs/superpowers/plans/271120261022-mkc-16-checkpoints.md` (decision 56: blob refs in the Postgres table `blob` until MKC-21's Storage, resume keeps the item `running`, cache key with `code_version`, tools reach the DB through a factory, `save_draft` keyed by `ToolEnv`).
   - Sub-issues: MKC-16.1 #139 (`In progress`), 16.2 #140, 16.3 #141, 16.4 #142, 16.5 #143, 16.6 #144 (`Ready`).
-  - MKC-16.1 green: `save_turn` checks the pairing; the loop stores every turn through it; tool-error turns answer every call; duplicate call ids made unique. MKC-16.2 (#140 `In progress` 10:29): green: migration `0005` (table `blob`), `DbBlobStore`, `save_turn` stores results over 16384 bytes as `result_ref`, `stored_result` reads them back. `MKC_TURN_INLINE_MAX_BYTES` in `Settings` and `.env.example`. MKC-16.3 (#141) `In progress` 10:34. MKC-16.3 green: `load_resume_context` (task + `<earlier_turns>` summary in one user message + last turn, blob refs rehydrated), `run_item` continues number, steps and cost, `queue.resumable_item` served first by `process_run`. MKC-16.4 (#142) `In progress` 10:38. MKC-16.4 green: migration `0006` (table `tool_cache`), `ToolCache` (key: tool, code version, sha256 of the validated args, document hash; `ok` results only; each write commits), `Tool.cacheable` on `extract_text`, `extract_tables`, `render_region`, hits traced `cached=True`; `run_item(..., code_version=None)` = cache off. MKC-16.5 (#143) `In progress` 10:41. Next: MKC-16.5 red tests `tests/harness/test_drafts.py`.
+  - MKC-16.1 green: `save_turn` checks the pairing; the loop stores every turn through it; tool-error turns answer every call; duplicate call ids made unique. MKC-16.2 (#140 `In progress` 10:29): green: migration `0005` (table `blob`), `DbBlobStore`, `save_turn` stores results over 16384 bytes as `result_ref`, `stored_result` reads them back. `MKC_TURN_INLINE_MAX_BYTES` in `Settings` and `.env.example`. MKC-16.3 (#141) `In progress` 10:34. MKC-16.3 green: `load_resume_context` (task + `<earlier_turns>` summary in one user message + last turn, blob refs rehydrated), `run_item` continues number, steps and cost, `queue.resumable_item` served first by `process_run`. MKC-16.4 (#142) `In progress` 10:38. MKC-16.4 green: migration `0006` (table `tool_cache`), `ToolCache` (key: tool, code version, sha256 of the validated args, document hash; `ok` results only; each write commits), `Tool.cacheable` on `extract_text`, `extract_tables`, `render_region`, hits traced `cached=True`; `run_item(..., code_version=None)` = cache off. MKC-16.5 (#143) `In progress` 10:41. MKC-16.5: red tests committed (`tests/harness/test_drafts.py`, skeleton `mkc.harness.drafts`, `default_registry(..., sessions=...)`). Next: green.
 
 ## Next steps
 
@@ -152,6 +152,8 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+
+- **27.11.2026 10:42** MKC-16.5 red: `test_drafts.py` 5 failed, 1 passed (without `sessions` the placeholder stays; that pins today's behaviour).
 
 - **27.11.2026 10:41** MKC-16.4 green: full backend suite 400 passed, 1 skipped; ruff and mypy strict clean. #143 `In progress` at 10:41:57.
 

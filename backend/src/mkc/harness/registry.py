@@ -17,6 +17,7 @@ result; the model never queues anything itself.
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
+from sqlalchemy.orm import Session, sessionmaker
 
 from mkc.harness.tools import Tool, ToolEnv, ToolRegistry, ToolTracer
 
@@ -93,5 +94,7 @@ RUN_OPERATIONS: tuple[Tool, ...] = (
 )  # fmt: skip
 
 
-def default_registry(tracers: tuple[ToolTracer, ...] = ()) -> ToolRegistry:
+def default_registry(
+    tracers: tuple[ToolTracer, ...] = (), *, sessions: sessionmaker[Session] | None = None
+) -> ToolRegistry:
     return ToolRegistry(item=ITEM_TOOLS, run=RUN_OPERATIONS, tracers=tracers)
