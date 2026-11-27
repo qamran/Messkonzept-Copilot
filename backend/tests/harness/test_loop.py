@@ -247,17 +247,17 @@ def test_a_failed_save_does_not_count_as_saved(engine: Engine) -> None:
     assert (outcome.state, outcome.steps) == (ItemState.DRAFT_SAVED, 2)
 
 
-def test_no_tool_call_fails_the_item(engine: Engine) -> None:
+def test_no_tool_call_twice_fails_the_item(engine: Engine) -> None:
     run_id, (item_id,) = start(engine)
-    outcome = run(engine, item_id, fake(ai("I am done.")), Tools())
-    assert outcome == ItemOutcome(item_id, ItemState.FAILED, "no_tool_call", 1, STEP_COST)
+    outcome = run(engine, item_id, fake(ai("I am done.")), Tools())  # repeats after the re-prompt
+    assert outcome == ItemOutcome(item_id, ItemState.FAILED, "malformed_output", 2, 2 * STEP_COST)
     assert states(engine, run_id) == ("running", ["failed"])
-    (row,) = turns(engine, item_id)  # the step still cost money; it is recorded
-    assert row.tool_results == []
+    rows = turns(engine, item_id)  # the steps still cost money; they are recorded
+    assert [row.tool_results for row in rows] == [[], []]
     with Session(engine) as session:
         from mkc.db.models import Item
 
-        assert session.get_one(Item, item_id).failure_reason == "no_tool_call"
+        assert session.get_one(Item, item_id).failure_reason == "malformed_output"
 
 
 def test_step_limit_fails_the_item(engine: Engine) -> None:
@@ -329,7 +329,7 @@ def test_queue_continues_while_drafts_pending(engine: Engine) -> None:
 
 def test_a_failed_item_does_not_stop_the_queue(engine: Engine) -> None:
     run_id, _ = make_run(engine, "queued", "queued")
-    model = fake(ai("no tools"), ai(tool_calls=[SAVE]))
+    model = fake(ai("no tools"), ai("no tools"), ai(tool_calls=[SAVE]))
     with Session(engine) as session:
         outcomes = process_run(
             run_id, session=session, client=client_for(model), registry=Tools().registry(),
