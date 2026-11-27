@@ -378,6 +378,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
 - **Success criteria:**
   - [ ] Every stop shows its reason in the run record and the trace
   - [ ] Default limits set in config and justified in the plan for MKC-15/18
+- **Note (MKC-16 pre-PR review):** `process_run` resumes a `running` item before queued ones, with no attempt cap. An item that crashes on every restart blocks its run and pays a model call each time (a crashed call writes no turn row, so the step cap doesn't stop it). Add a resume-attempt counter on `item` and fail the item with its own reason after N attempts.
 
 ### MKC-19: Tracing (Langfuse + run log)
 
@@ -447,6 +448,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
 - **Success criteria:**
   - [ ] A naive pdftotext baseline function is kept for the E1 comparison
   - [ ] Both tools are deterministic and cached
+- **Note (MKC-16 pre-PR review):** Postgres JSONB rejects ` `, and PDF text can hold NUL characters. Strip them from tool output before it reaches `turn`, `tool_cache` or `blob` JSON, or the item stays `running` and crashes on every resume.
 
 ### MKC-23: Render, draft assembly, save_draft
 
@@ -464,6 +466,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - `test_saved_draft_is_enqueued_for_approval_once` (by the harness, not by `save_draft`)
 - **Success criteria:**
   - [ ] `MesskonzeptDraft` JSON schema exported for the vision prompt (MKC-26)
+- **Note (decision 56):** the draft key (document hash, concept key) spans runs, so a new run of the same document overwrites a draft that may still await approval. Decide here what a save does once the draft is enqueued or approved.
 
 ### MKC-24: Gold tooling
 
