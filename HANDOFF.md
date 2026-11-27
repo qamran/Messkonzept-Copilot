@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 20:20
+**Last updated:** 27.11.2026, 20:39
 
 This file is how agents resume work after a session restart.
 
@@ -61,11 +61,11 @@ From MKC-168 (decision 61), tickets run in parallel lanes. Each lane keeps its o
 
 | Lane | Tickets | File | State |
 |---|---|---|---|
-| A. Extraction | MKC-21 → 22 → 23 → 25 → 26 → 28 → 29 → 30 | `handoff/lane-a.md` | MKC-21: test agent writing red tests |
+| A. Extraction | MKC-21 → 22 → 23 → 25 → 26 → 28 → 29 → 30 | `handoff/lane-a.md` | MKC-21: development agent building (red `c9202aa`) |
 | A2. SachsenNetze and gold | MKC-27 (after MKC-21) → 24 (after MKC-23) | `handoff/lane-a2.md` | waits on MKC-21 |
-| B. Advisor | MKC-36 → (37 after MKC-30) → 38 | `handoff/lane-b.md` | MKC-36: test agent writing red tests |
-| C. Decision layer | MKC-46 → (47 after MKC-36, MKC-26) → (48 after MKC-31) | `handoff/lane-c.md` | MKC-46: test agent writing red tests |
-| D. RAG | MKC-49 → 50 → (51 after MKC-38) | `handoff/lane-d.md` | MKC-49: test agent writing red tests |
+| B. Advisor | MKC-36 → (37 after MKC-30) → 38 | `handoff/lane-b.md` | MKC-36: development agent building (red `4be85d4`) |
+| C. Decision layer | MKC-46 → (47 after MKC-36, MKC-26) → (48 after MKC-31) | `handoff/lane-c.md` | MKC-46: development agent building (red `dd184a2`) |
+| D. RAG | MKC-49 → 50 → (51 after MKC-38) | `handoff/lane-d.md` | MKC-49: development agent building (red `f515d26`) |
 
 Worktrees (outside the repo folder, cut from `origin/main` `dcd2852`): `<lanes>/lane-a` on `mkc-21-fetch-segment`, `lane-b` on `mkc-36-site-facts`, `lane-c` on `mkc-46-decision-spike`, `lane-d` on `mkc-49-corpus-loader`, where `<lanes>` is the folder `mkc-lanes` next to the repo folder. Each has a copy of the gitignored `backend/.env`.
 
@@ -218,6 +218,7 @@ Shared-code rules for wave 1 beyond AGENTS.md (the coordinator's, in each lane b
 
 ## Recent log
 
+- **27.11.2026 20:39** Wave 1 red tests done, all four development agents started. Red baselines for the review's diff check (the last red-test commit per lane): lane A `c9202aa` (extraction tests: 28 failed, 1 deselected), lane B `4be85d4` (backend: 3 collection errors, `No module named 'mkc.advisor'`; 3 vitest files fail to resolve), lane C `dd184a2` (`tests/decision`: 26 failed, 14 passed, 1 deselected; `81fc41c` is 229 lines), lane D `f515d26` (`tests/rag`: 10 failed, 7 errors). Counts as the test agents reported them from pytest/vitest. Coordinator choices: lane B's `[tool.ruff.lint.isort]` block in `backend/pyproject.toml` stays (other lanes told not to copy it); lane B's assumptions accepted (out of scope = 200 with notes; `POST /api/advisor/questions`); lane A has the go for one live Berlin fetch into `mkc-storage`; lane C fixes the backlog's MKC-47 interface line; lane D proposes the embedding model, marked "to be confirmed by the user".
 - **27.11.2026 20:21** Wave 1 started: #21, #36, #46, #49 `Ready` → `In progress`, assigned to `qamran` (20:18:24 to 20:18:42). Worktrees `lane-a` to `lane-d` from `origin/main` `dcd2852`, branches `mkc-21-fetch-segment`, `mkc-36-site-facts`, `mkc-46-decision-spike`, `mkc-49-corpus-loader` pushed. Docker Desktop started; Compose db started (20:19:20). Four test agents started on the red acceptance tests.
 - **27.11.2026 20:09** MKC-175 (#175) created (20:08:41), `In progress`, branch `mkc-175-wave-1-coordinator`. PR #174 review findings 1, 6 and 9 fixed in AGENTS.md (lock after an update from `main`; `<repo>` for the folder path in pasted gate output; lane A2 owns only its own files; the coordinator's lane-branch edits named) and the status doc (block 74–75 for lane A2, wave 2).
 - **27.11.2026 20:09** PR #174 review PASS (Fable, comment 20:01:32; 11 non-blocking findings, under Next steps), merged as `dcd2852` (20:01:46); #168 to #173 closed (20:01:48 to 20:01:57) and set `Done` (by 20:03:03). `main` pushed to `turing` (20:02:35); `origin/main` = `turing/main` = `dcd2852`. `cd` run 46053744212: `image` 20:01:52 to 20:05:57; `backend` approved by the coordinator (decision 51) at 20:06:14, ran 20:06:15 to 20:06:55; `frontend` approved at 20:07:17, ran 20:07:19 to 20:07:56; run exit 0. Checked: `/api/version` commit `dcd2852...`, `/health` 200 (20:08:04).
