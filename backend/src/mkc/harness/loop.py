@@ -50,7 +50,7 @@ from mkc.harness.prompts import (
     task_message,
     wrap_tool_result,
 )
-from mkc.harness.queue import next_item, resumable_item, settle_run
+from mkc.harness.queue import has_work, next_item, resumable_item, settle_run
 from mkc.harness.retry import RetriesExhausted, RetryInterrupted, call_model
 from mkc.harness.states import ItemState, transition
 from mkc.harness.tools import ToolEnv, ToolRegistry
@@ -229,6 +229,8 @@ def process_run(
     while True:
         if should_stop():
             return outcomes
+        if not has_work(session, run_id):
+            break  # nothing left: settle, even when the last turn reached a limit (MKC-19.1)
         if _run_limit(session, run_id, None, limits, fence, tracers) is not None:
             return outcomes
         item = resumable_item(session, run_id)
