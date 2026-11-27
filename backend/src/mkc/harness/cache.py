@@ -2,7 +2,8 @@
 
 Key: (tool, code version, sha256 of the validated arguments, document hash). A new commit
 misses, so a fixed tool never serves its old result. Only `ok` results are stored, and each
-write commits on its own: the hits on resume come from a turn that never got its checkpoint.
+write commits on its own, in its own session: the hits on resume come from a turn that never
+got its checkpoint, and a write never commits the loop's pending rows.
 """
 
 import hashlib
@@ -12,7 +13,7 @@ from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, sessionmaker
 
 from mkc.db.models import ToolCacheRow
 
@@ -25,8 +26,10 @@ class Cached:
 
 
 class ToolCache:
-    def __init__(self, session: Session, code_version: str) -> None:
-        self._session = session
+    """Reads and writes through short sessions of its own, never the caller's."""
+
+    def __init__(self, sessions: sessionmaker[Session], code_version: str) -> None:
+        self._sessions = sessions
         self._code_version = code_version
 
     def get(self, tool: str, args: dict[str, Any], document_hash: str) -> Cached | None:
@@ -36,11 +39,12 @@ class ToolCache:
             ToolCacheRow.args_hash == args_hash(args),
             ToolCacheRow.document_hash == document_hash,
         )
-        rows = self._session.execute(statement).all()
+        with self._sessions() as session:
+            rows = session.execute(statement).all()
         return Cached(rows[0].data) if rows else None
 
     def put(self, tool: str, args: dict[str, Any], document_hash: str, data: Any) -> None:
-        """Store an `ok` result and commit: the session must hold nothing else."""
+        """Store an `ok` result and commit it at once (first write wins)."""
         row = {
             "tool": tool,
             "code_version": self._code_version,
@@ -48,8 +52,8 @@ class ToolCache:
             "document_hash": document_hash,
             "data": data,
         }
-        self._session.execute(insert(ToolCacheRow).values(row).on_conflict_do_nothing())
-        self._session.commit()
+        with self._sessions.begin() as session:
+            session.execute(insert(ToolCacheRow).values(row).on_conflict_do_nothing())
 
 
 def args_hash(args: dict[str, Any]) -> str:

@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, sessionmaker
 
 from mkc.db.models import Item
 from mkc.harness.cache import ToolCache
@@ -84,7 +84,9 @@ def run_item(
         concept_key=item.concept_key,
     )
     specs = [tool.to_spec() for tool in registry.for_context("item")]
-    cache = None if code_version is None else ToolCache(session, code_version)
+    cache = None
+    if code_version is not None:
+        cache = ToolCache(sessionmaker(bind=session.get_bind()), code_version)
     context = load_resume_context(session, item_id)
     messages = list(context.messages)
     session.commit()  # no transaction stays open across a model call
@@ -143,9 +145,20 @@ def run_item(
 
 
 def process_run(
-    run_id: int, *, session: Session, client: ModelClient, registry: ToolRegistry, max_steps: int
+    run_id: int,
+    *,
+    session: Session,
+    client: ModelClient,
+    registry: ToolRegistry,
+    max_steps: int,
+    inline_max_bytes: int = INLINE_MAX_BYTES,
+    code_version: str | None = None,
 ) -> list[ItemOutcome]:
-    """Claim and run items until the queue is empty, then settle the run."""
+    """Claim and run items until the queue is empty, then settle the run.
+
+    `inline_max_bytes` and `code_version` go to every `run_item` (the worker passes
+    `Settings.turn_inline_max_bytes` and the build's commit, MKC-17).
+    """
     outcomes = []
     while True:
         item = resumable_item(session, run_id) or next_item(session, run_id)
@@ -155,7 +168,13 @@ def process_run(
             break
         outcomes.append(
             run_item(
-                item_id, session=session, client=client, registry=registry, max_steps=max_steps
+                item_id,
+                session=session,
+                client=client,
+                registry=registry,
+                max_steps=max_steps,
+                inline_max_bytes=inline_max_bytes,
+                code_version=code_version,
             )
         )
     settle_run(session, run_id)
