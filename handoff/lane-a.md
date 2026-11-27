@@ -1,6 +1,6 @@
 # Lane A: Extraction
 
-**Last updated:** 27.11.2026, 21:50
+**Last updated:** 27.11.2026, 21:55
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -91,12 +91,14 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 ## Next steps
 
 1. Done: the mutation pass (section above); survivors 3, 7, 13 to 20 are killed by new tests; 1, 2, 4, 5, 6, 8 to 12 are accepted with reasons in the PR body.
-2. Development agent: `bash scripts/pre_pr.sh` on the final head, then open the PR (coordinator's go, 27.11.2026); #21 and #187 to #191 to `Testing`.
+2. Done: PR #197 open; #21 and #187 to #191 are `Testing`. Next: the coordinator starts the review once `gh pr checks` is green.
 3. In the PR body: Changes to the test agent's tests, with reasons: `conftest.py` (`berlin_pages` in the real layout, `Side` sidebar lines in `make_pdf`), the docstring of `test_segment.py`, `EXPECTED_BERLIN_CONCEPTS = 26` in `test_live_berlin.py`.
 4. Admin, before the deploy: the five `MKC_STORAGE_*` values into `mkc-secrets` (runbook "Fetch and segment").
 5. Decisions taken for the test agent's open assumptions: 1 confirmed; 2 (a return to an older hash) is a new edition (decision 62); 3 replaced by the real layout (decision 64); 4 confirmed.
 
 ## Recent log
+
+- **27.11.2026 21:55** Development agent: `bash scripts/pre_pr.sh` at `abfee85`: exit 0, `753 passed, 1 skipped, 14 deselected in 97.10s (0:01:37)`. PR #197 opened (createdAt 2026-11-27T20:54:19Z, 21:54:19 CET), head `abfee85`, assigned to `qamran`; #21 and #187 to #191 moved to `Testing`. This commit changes only this file.
 
 - **27.11.2026 21:50** Development agent: the gate at `dfc03e4` failed on markdownlint in this file (no blank line before `## Next steps` after the mutation section); fixed. Pytest in that run: `753 passed, 1 skipped, 14 deselected in 96.55s`.
 
