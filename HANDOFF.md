@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 11:38
+**Last updated:** 27.11.2026, 11:58
 
 This file is how agents resume work after a session restart.
 
@@ -53,7 +53,9 @@ This file is how agents resume work after a session restart.
 ## In progress
 
 - **MKC-17** (#17), Run executor (worker with lease). Status `In progress`, assigned to `qamran` (27.11.2026 11:37:38). Branch `mkc-17-run-executor` from `266c37d`. The first commit holds only the close-out of MKC-16.
-  - Next: read the ticket, write the plan and the sub-issues. The worker must call `process_run` with `code_version=Settings.commit`, `inline_max_bytes=Settings.turn_inline_max_bytes` and `default_registry(sessions=...)` (backlog note on MKC-17, decision 56).
+  - Plan: `docs/superpowers/plans/271120261154-mkc-17-run-executor.md` (decision 57: lease on the run row with the database clock, fencing before every commit, heartbeat thread for the file and the lease, stop between turns, `waiting_for_database` written on the first successful probe after an outage).
+  - Sub-issues: MKC-17.1 #146 `In progress`; MKC-17.2 #147, MKC-17.3 #148, MKC-17.4 #149 `Ready`.
+  - Next: MKC-17.1, red tests in `backend/tests/worker/test_lease.py`.
 
 ## Next steps
 
@@ -159,6 +161,8 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+
+- **27.11.2026 11:54-11:57** MKC-17: plan written (decision 57); sub-issues MKC-17.1 #146 to MKC-17.4 #149 created 11:56:23-11:56:55 (GitHub `createdAt`), assigned to `qamran`, linked to #17 and put on the board (#146 `In progress`, the rest `Ready`).
 
 - **27.11.2026 11:30-11:38** PR #145 re-review PASS (Fable, comment 11:30:07; 7 non-blocking findings, see Next steps), merged as `266c37d` (11:30:11); #16 and #139 to #144 closed and `Done` (11:31:30). `main` pushed to `turing` (11:30:39); `origin/main` = `turing/main` = `266c37d`. `cd` run 45982634658 green: `image` 11:30:17 to 11:34:25; `backend` approved by the development agent (decision 51) at 11:34:53, ran 11:34:55 to 11:35:56 (migrations 0005 to 0007 by the hook Job); `frontend` approved at 11:36:16, ran 11:36:17 to 11:36:58. Checked afterwards: `/api/version` = `266c37d...`, `/health` 200, `/api/admin/backup-status` without a token 401, the site 200. The user made the Supabase Storage bucket `mkc-storage` (private, 50 MB) and the S3 key `mkc-backend` for MKC-21; the five `MKC_STORAGE_*` values are in `backend/.env` (checked by name, no quotes); the user also removed the quotes from every value there. Runbook inventory updated. MKC-17 (#17) assigned to `qamran` and set to `In progress` (11:37:38); branch `mkc-17-run-executor` from `266c37d`.
 
