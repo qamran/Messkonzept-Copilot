@@ -1,6 +1,6 @@
 # Lane D: RAG
 
-**Last updated:** 27.11.2026, 23:31
+**Last updated:** 27.11.2026, 23:32
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -76,6 +76,7 @@ The tests import these; module paths and names are fixed, internals are free.
 
 ## Recent log
 
+- **27.11.2026 23:32** Development agent: red tests for the sources path (`MKC_CORPUS_SOURCES_FILE`, then the source-tree file, then `/app/data/corpus_sources.yaml`; the CLI without `--sources`); `uv run pytest tests/rag/test_sources_path_unit.py -q`: `5 failed in 1.27s`.
 - **27.11.2026 23:31** Development agent: Review finding 5: `check_cache_dir` refuses any cache inside the repo, official-only sources included; loader docstring, CLI docstring and runbook say so. `uv run pytest tests/rag/test_loader_unit.py tests/rag/test_corpus_loader.py tests/rag/test_cli_unit.py tests/rag/test_corpus_cli.py -q`: `19 passed in 3.22s`.
 - **27.11.2026 23:31** Development agent: `#203`–`#207` (MKC-50.1 to 50.5) created, assigned to `qamran`, linked to `#50` and set to In progress. Review finding 2: in the `law` layout a `§` line is a heading only first or after a blank line; `uv run pytest tests/rag/test_chunking_unit.py -q`: `17 passed in 0.17s`.
 - **27.11.2026 23:23** Test agent: `test_the_keyword_side_uses_the_german_configuration` ("Wärmepumpen" stems to `warmepump` under `german` only, checked on the test Postgres); the latency test sleeps 70 ms for its 50 ms bound; the finding 2 rule reworded (a heading also comes when no paragraph is open, e.g. after a preamble) and checked satisfiable: `_law_blocks` patched by hand and restored, `uv run pytest tests/rag -q`: `34 failed, 90 passed, 1 deselected, 4 warnings in 10.81s` (the 3 finding-2 tests green, no new failure). Decision block 71–73 marked closed. `uv run pytest tests/rag/test_retriever.py -q`: `18 failed in 2.84s`; `uv run pytest tests/rag -q`: `38 failed, 87 passed, 1 deselected, 4 warnings in 11.10s`.
