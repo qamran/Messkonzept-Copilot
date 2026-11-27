@@ -1,4 +1,4 @@
-"""Postgres fixtures: every test session runs in a throwaway database.
+"""Postgres fixtures for every DB test (tests/db, tests/harness): a throwaway database.
 
 The database in DATABASE_URL (default: the `docker compose up db` service) is only used to
 create and drop a database named `mkc_test_<random>`. Dev data and Supabase are never touched.
