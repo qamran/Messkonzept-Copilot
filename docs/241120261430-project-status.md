@@ -208,3 +208,11 @@ User choices:
 - **Chunk size (decision 72):** one chunk per law Absatz, never split; other texts by numbered sections, split at blank lines over 4,000 characters.
 - **Not yet:** PDF sources (the two BNetzA decisions, Anlage 1 and the operator catalogue) wait on the PDF library of MKC-21; the two laws load today.
 - **LLM spend (MKC-49):** about €0.0005 in total: embedding probes and the live test (under €0.00001 together) and one live load of EnWG § 14a and the MsbG into a throwaway database (51,934 tokens, €0.000475). Each call is logged in `handoff/lane-d.md`.
+
+## Lane A2: SachsenNetze segmentation (MKC-27)
+
+- **State (27.11.2026):** built on `mkc-27-sachsen-segment`; the test agent's mutation pass killed 63 of 72 applied mutants; the coordinator accepted the 9 survivors (near-equivalent or not pinned on purpose); PR #214 is open, the ticket is in `Testing`. Sub-issues MKC-27.1 and 27.2 (`#201`, `#202`).
+- **Built:** `mkc/extraction/sachsen.py` (`segment_sachsen`), registered as `SEGMENTERS["sachsennetze"]`, so `mkc run start --operator sachsennetze` queues one item per concept.
+- **Split method (decision 74):** half page, with the reasons in the plan `docs/superpowers/plans/271120262318-mkc-27-sachsen-segmentation.md`.
+- **Catalogue:** "Standard-Messkonzepte in Niederspannung", 09/2025, 9 landscape pages; 12 halves, of which the placeholder `13 / Nr. (tbd)` is not an item. The live run gives 11 regions on pages 3 to 8.
+- **LLM spend (MKC-27):** none (no model call; one public PDF fetch for the study and the live test).

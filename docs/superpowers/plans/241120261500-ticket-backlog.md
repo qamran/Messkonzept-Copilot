@@ -548,6 +548,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - live: SachsenNetze yields 11 items
 - **Success criteria:**
   - [ ] The split method chosen (detected layout vs half page) is documented in the ticket plan, with the reason
+- **As built (decision 74):** `segment_sachsen(pdf) -> list[ConceptRegion]` in `mkc/extraction/sachsen.py`, registered as `SEGMENTERS["sachsennetze"]`. Half page split, as the plan `docs/superpowers/plans/271120262318-mkc-27-sachsen-segmentation.md` gives with its reasons. The 09/2025 catalogue has 12 halves; the placeholder `13 / Nr. (tbd)` is not an item, so the live count is 11.
 
 ### MKC-28: Validation and LBS inference
 
