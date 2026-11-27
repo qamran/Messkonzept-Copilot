@@ -13,13 +13,16 @@ from alembic import command
 from alembic.config import Config
 from sqlalchemy import Engine, create_engine, inspect
 from sqlalchemy.engine import URL
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, sessionmaker
 
+from mkc.db.models import Run
 from mkc.harness.cache import ToolCache
+from mkc.harness.loop import process_run
 from mkc.harness.registry import default_registry
 from mkc.harness.tools import Tool, ToolEnv, ToolRegistry, ToolTrace
 from mkc.models.types import ToolCall
-from tests.harness.test_loop import SAVE, PageArgs, Tools, call, start
+from tests.harness.conftest import make_run
+from tests.harness.test_loop import SAVE, PageArgs, Tools, call, client_for, start
 from tests.harness.test_resume import Crash, go
 from tests.models.fakes import ai, fake
 
@@ -74,12 +77,11 @@ def test_deterministic_tool_hits_cache_on_resume(engine: Engine) -> None:
 
 
 def execute(engine: Engine, tools: CountingTools, code: str, env: ToolEnv = ENV) -> Any:
-    with Session(engine) as session:
-        result = tools.registry().execute(
-            ToolCall(id="c1", name="extract_text", args={"page": 4}), "item", env,
-            ToolCache(session, code),
-        )  # fmt: skip
-        return result.model_dump(mode="json")
+    result = tools.registry().execute(
+        ToolCall(id="c1", name="extract_text", args={"page": 4}), "item", env,
+        ToolCache(sessionmaker(engine), code),
+    )  # fmt: skip
+    return result.model_dump(mode="json")
 
 
 def test_a_cache_hit_gives_the_same_result_without_running_the_tool(engine: Engine) -> None:
@@ -109,10 +111,10 @@ def test_an_error_result_is_not_cached(engine: Engine) -> None:
 
 def test_a_tool_that_is_not_cacheable_always_runs(engine: Engine) -> None:
     tools, code = Tools(), version()  # its extract_text is not cacheable
-    with Session(engine) as session:
-        for _ in range(2):
-            tools.registry().execute(ToolCall(id="c", name="save_draft", args={"draft": {}}),
-                                     "item", ENV, ToolCache(session, code))  # fmt: skip
+    cache = ToolCache(sessionmaker(engine), code)
+    for _ in range(2):
+        save = ToolCall(id="c", name="save_draft", args={"draft": {}})
+        tools.registry().execute(save, "item", ENV, cache)
     assert len(tools.saved) == 2
 
 
@@ -168,3 +170,29 @@ def test_0006_creates_tool_cache_and_downgrades(database_env: URL) -> None:
     assert describe() == (set(), set())
     command.upgrade(config, "head")
     assert describe()[0] == columns
+
+
+def test_a_cache_write_never_commits_the_callers_pending_rows(engine: Engine) -> None:
+    with Session(engine) as session:
+        session.add(Run(state="running"))  # pending in the caller's session
+        ToolCache(sessionmaker(engine), version()).put("extract_text", {"page": 1}, "sha256:d", 1)
+        session.rollback()
+    with Session(engine) as session:
+        assert session.query(Run).count() == 0
+
+
+def test_process_run_passes_the_code_version_and_the_inline_limit(engine: Engine) -> None:
+    run_id, ids = make_run(engine, "queued", "queued")  # two items of one document
+    tools = CountingTools()
+    model = fake(ai(tool_calls=[read(1)]), ai(tool_calls=[SAVE]),
+                 ai(tool_calls=[read(1)]), ai(tool_calls=[SAVE]))  # fmt: skip
+    with Session(engine) as session:
+        process_run(run_id, session=session, client=client_for(model),
+                    registry=tools.registry(), max_steps=5, code_version=version(),
+                    inline_max_bytes=10)  # fmt: skip
+    assert tools.pages == [1]  # the second item's read of page 1 hit the cache
+    with Session(engine) as session:
+        from mkc.db.models import Turn
+
+        first = session.query(Turn).filter_by(item_id=ids[0], number=1).one()
+        assert "result_ref" in first.tool_results[0]
