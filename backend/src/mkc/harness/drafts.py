@@ -9,16 +9,45 @@ from collections.abc import Callable
 from typing import Any
 
 from pydantic import BaseModel
+from sqlalchemy import func
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session, sessionmaker
 
+from mkc.db.models import Draft
 from mkc.harness.tools import ToolEnv
 
 
 def record_key(env: ToolEnv) -> tuple[str, str]:
     """(document hash, concept key): the idempotency key of a draft and of its commit."""
-    raise NotImplementedError
+    if env.document_hash is None or env.concept_key is None:
+        raise ValueError(f"a record key needs document_hash and concept_key: {env}")
+    return env.document_hash, env.concept_key
 
 
 def make_save_draft(sessions: sessionmaker[Session]) -> Callable[[BaseModel, ToolEnv], Any]:
-    """`save_draft` writing through its own short transaction from `sessions`."""
-    raise NotImplementedError
+    """`save_draft` writing through its own short transaction from `sessions`.
+
+    The arguments carry only the body (`args.draft`); the key and the item are the harness's.
+    Returns `{"draft_id": <id>}`, the same id for every save of one key.
+    """
+
+    def save_draft(args: BaseModel, env: ToolEnv) -> Any:
+        document_hash, concept_key = record_key(env)
+        body = getattr(args, "draft")  # noqa: B009  (any args model with a `draft` field)
+        row = {
+            "document_hash": document_hash,
+            "concept_key": concept_key,
+            "item_id": env.item_id,
+            "body": body,
+        }
+        new = insert(Draft).values(row)
+        upsert = new.on_conflict_do_update(
+            constraint="uq_draft_record_key",
+            set_={"body": new.excluded.body, "item_id": new.excluded.item_id,
+                  "updated_at": func.now()},
+        ).returning(Draft.id)  # fmt: skip
+        with sessions.begin() as session:
+            draft_id = session.execute(upsert).scalar_one()
+        return {"draft_id": draft_id}
+
+    return save_draft

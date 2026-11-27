@@ -154,3 +154,18 @@ class ToolCacheRow(Base):
     document_hash: Mapped[str] = mapped_column(Text)
     data: Mapped[Any] = mapped_column(JSONB, nullable=True)
     created_at: Mapped[datetime] = _created()
+
+
+class Draft(Base):
+    """One item's saved draft, unique by (document hash, concept key) (MKC-16.5)."""
+
+    __tablename__ = "draft"
+    __table_args__ = (UniqueConstraint("document_hash", "concept_key", name="uq_draft_record_key"),)
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
+    document_hash: Mapped[str] = mapped_column(Text)
+    concept_key: Mapped[str] = mapped_column(Text)
+    item_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("item.id"))
+    body: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    created_at: Mapped[datetime] = _created()
+    updated_at: Mapped[datetime] = _updated()
