@@ -1,6 +1,6 @@
 # Lane A2: SachsenNetze and gold
 
-**Last updated:** 27.11.2026, 23:42
+**Last updated:** 27.11.2026, 23:45
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -11,7 +11,7 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 
 ## In progress
 
-- `MKC-27` (`#27`): the test agent's red acceptance tests are written (see "Red tests" below). Built and mutation-tested: sub-issues `MKC-27.1` (`#201`, segmenter and dispatch) and `MKC-27.2` (`#202`, plan doc, docs and live check). The coordinator accepted the 9 mutation survivors (near-equivalent or not pinned on purpose; listed in the PR body). The PR is being opened.
+- `MKC-27` (`#27`): the test agent's red acceptance tests are written (see "Red tests" below). Built and mutation-tested: sub-issues `MKC-27.1` (`#201`, segmenter and dispatch) and `MKC-27.2` (`#202`, plan doc, docs and live check). The coordinator accepted the 9 mutation survivors (near-equivalent or not pinned on purpose; listed in the PR body). PR #214 open (created 27.11.2026 23:45, head `9e6641e` at creation); `#27`, `#201` and `#202` are in `Testing`.
 - Coordinator answers (27.11.2026): assumption 1, 11 regions, the `13 / Nr. (tbd)` half is not an item; assumption 3, the coordinator grants the one-line change in lane A's `test_segment_rules.py` (`"sachsennetze"` → `"unknown-operator"`) and the `NoSegmenter` docstring in `segment.py`.
 
 ### Real SachsenNetze layout (studied 27.11.2026, one fetch, no model call)
@@ -75,12 +75,13 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 
 ## Next steps
 
-1. Development agent: `scripts/pre_pr.sh` on the final head, PR, `#27`, `#201` and `#202` to `Testing`.
-2. Coordinator: review agent once `gh pr checks` is green.
+1. Coordinator: review agent on PR #214 once `gh pr checks` is green.
+2. Development agent: fix the findings if the verdict is FAIL.
 3. MKC-24 waits on lane A's MKC-23.
 
 ## Recent log
 
+- **27.11.2026 23:45** Development agent: `scripts/pre_pr.sh` at `9e6641e` exit 0 (`972 passed, 1 skipped, 17 deselected, 4 warnings in 100.86s`); PR #214 opened (createdAt `2026-11-27T22:45:05Z`, 23:45 CET), assigned to `qamran`; `#27`, `#201`, `#202` set to `Testing`.
 - **27.11.2026 23:42** Development agent: coordinator ruling: the 9 survivors are accepted, no code change. Preparing the PR.
 - **27.11.2026 23:40** Test agent: mutation pass on head `5b7b8b9`: 72 mutants applied, 47 killed, 25 survived; new tests `test_sachsen_rules.py` kill 16 more (63 killed, 9 survived, all near-equivalent or not pinned on purpose); `107 passed, 3 deselected`.
 - **27.11.2026 23:24** Development agent: decision 74 (2) now states only what the PDF shows for the placeholder (title `Nr. (tbd)`, no image, `Anwendungen: -`); the design's open question on the split method is marked answered. No ADR describes segmentation (ADR 003 is the database), so no ADR change.
