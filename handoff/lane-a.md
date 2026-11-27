@@ -1,6 +1,6 @@
 # Lane A: Extraction
 
-**Last updated:** 27.11.2026, 21:43
+**Last updated:** 27.11.2026, 21:45
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -96,6 +96,8 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 5. Decisions taken for the test agent's open assumptions: 1 confirmed; 2 (a return to an older hash) is a new edition (decision 62); 3 replaced by the real layout (decision 64); 4 confirmed.
 
 ## Recent log
+
+- **27.11.2026 21:45** Development agent: mutation survivors 18 to 20 killed: `tests/worker/test_executor_storage.py` (2 passed) sends large results through `process_run` and the executor, also on the turn that ends the item; each of the three mutants re-applied makes it fail.
 
 - **27.11.2026 21:43** Test agent: mutation pass on `7427125`: 85 tried, 63 killed, 22 survived; two new acceptance tests (`6161098`) kill two survivors, leaving 20 (listed under "Mutation pass").
 
