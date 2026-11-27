@@ -1,6 +1,6 @@
 # Lane C: Decision layer
 
-**Last updated:** 27.11.2026, 20:38
+**Last updated:** 27.11.2026, 20:37
 
 Only lane C's agents write this file; the coordinator keeps `HANDOFF.md`. Times are local time (CET) from git and GitHub, never estimated.
 
@@ -50,6 +50,7 @@ Only lane C's agents write this file; the coordinator keeps `HANDOFF.md`. Times 
 2. **Shared guard list:** `tests/models/guards.py` `PROVIDER_MODULES` lacks `langchain_typesafe` and `httpx2`; this lane checks them in `tests/decision/test_guards.py`. The coordinator may add them to the shared list.
 3. **LLM fallback scope:** only the default setting is pinned here. The fallback backend itself is MKC-47 (feature 66); it needs a model role (no `decide` role in `Role` or `models.yaml`), which is coordinator-owned.
 4. **`json_schema`:** ADR 004 says the fallback uses `method="json_schema"`, but `ModelClient.chat_structured` passes no method (LangChain's default). Not pinned; for MKC-47.
+5. **Pinned by assumption:** `DecisionError` subclasses `ModelError`, so the harness fails the item like any other model error (MKC-18); the guard also keeps `httpx2` (the transport of `langchain-typesafe`) inside `providers.py`, although the shared list does not forbid plain `httpx`.
 
 ## Next steps
 
@@ -59,5 +60,5 @@ Only lane C's agents write this file; the coordinator keeps `HANDOFF.md`. Times 
 
 ## Recent log
 
-- **27.11.2026 20:38** Test agent: checked the fake end to end (a scratch script: the canned body validates; `.nouls`, `.choices`, `.model` and `seen` as the tests expect). Split the live test's imports so ruff stays green once `mkc.decision` exists. Whole backend suite `uv run pytest -q`: "26 failed, 676 passed, 1 skipped, 13 deselected" (the 26 are this lane's red tests); `uv run mypy`: "Success: no issues found in 48 source files"; every `scripts/check_*.py` exits 0.
+- **27.11.2026 20:37** Test agent (`dd184a2`): checked the fake end to end (a scratch script: the canned body validates; `.nouls`, `.choices`, `.model` and `seen` as the tests expect). Split the live test's imports so ruff stays green once `mkc.decision` exists. Whole backend suite `uv run pytest -q`: "26 failed, 676 passed, 1 skipped, 13 deselected" (the 26 are this lane's red tests); `uv run mypy`: "Success: no issues found in 48 source files"; every `scripts/check_*.py` exits 0.
 - **27.11.2026 20:29** Test agent: red commits `1ed966f` (settings, provider factory, this file), `81fc41c` (`DecisionClient`, 229 lines: one test file and its fake), `485c89a` (guard and live tests). Red acceptance tests and the pinned interface. `uv run pytest tests/decision tests/models/test_guards.py -q`: "26 failed, 69 passed, 1 deselected"; `uv run pytest tests/decision -q`: "26 failed, 14 passed, 1 deselected". Reasons: `ModuleNotFoundError: No module named 'mkc.decision'`, `ImportError: cannot import name 'build_decision_model'`, and `Settings` without `decision_backend`/`decision_model`.
