@@ -21,6 +21,7 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from mkc.db.models import Item
+from mkc.harness.cache import ToolCache
 from mkc.harness.checkpoint import INLINE_MAX_BYTES, TurnRecord, load_resume_context, save_turn
 from mkc.harness.prompts import SYSTEM_PROMPT, TOOL_RESULT_CLOSE, task_message, wrap_tool_result
 from mkc.harness.queue import next_item, resumable_item, settle_run
@@ -83,6 +84,7 @@ def run_item(
         concept_key=item.concept_key,
     )
     specs = [tool.to_spec() for tool in registry.for_context("item")]
+    cache = None if code_version is None else ToolCache(session, code_version)
     context = load_resume_context(session, item_id)
     messages = list(context.messages)
     session.commit()  # no transaction stays open across a model call
@@ -115,7 +117,7 @@ def run_item(
                 inline_max_bytes,
             )
         try:
-            results, saved = _run_calls(registry, calls, env)
+            results, saved = _run_calls(registry, calls, env, cache)
         except _ToolErrorEscaped as escaped:
             answered = _answer_the_rest(calls, escaped)
             turn = _turn(item_id, step, assistant, answered, step_cost)
@@ -197,14 +199,17 @@ def _answer_the_rest(
 
 
 def _run_calls(
-    registry: ToolRegistry, calls: tuple[ToolCall, ...], env: ToolEnv
+    registry: ToolRegistry,
+    calls: tuple[ToolCall, ...],
+    env: ToolEnv,
+    cache: ToolCache | None,
 ) -> tuple[list[dict[str, Any]], bool]:
     """Run every call of the turn. Returns the results and whether a save succeeded."""
     results: list[dict[str, Any]] = []
     saved = False
     for call in calls:
         try:
-            result = registry.execute(call, "item", env)
+            result = registry.execute(call, "item", env, cache)
             payload = result.model_dump(mode="json")
             content = wrap_tool_result(call.name, payload)
         except Exception as error:

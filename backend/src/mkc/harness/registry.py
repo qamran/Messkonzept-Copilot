@@ -68,11 +68,11 @@ def _placeholder(ticket: str) -> Any:
 
 ITEM_TOOLS: tuple[Tool, ...] = (
     Tool("extract_text", "Text fields of one concept page.", PageArgs,
-         _placeholder("MKC-22"), side_effect=False, deterministic=True),
+         _placeholder("MKC-22"), side_effect=False, deterministic=True, cacheable=True),
     Tool("extract_tables", "Rows of the document's meter-tech or LBS table.", TablesArgs,
-         _placeholder("MKC-22"), side_effect=False, deterministic=True),
+         _placeholder("MKC-22"), side_effect=False, deterministic=True, cacheable=True),
     Tool("render_region", "Render a page region as an image (DPI capped).", RenderArgs,
-         _placeholder("MKC-23"), side_effect=False, deterministic=True),
+         _placeholder("MKC-23"), side_effect=False, deterministic=True, cacheable=True),
     Tool("read_diagram", "Read a rendered diagram into the topology schema.", ImageArgs,
          _placeholder("MKC-26"), side_effect=False, deterministic=False),
     Tool("validate_draft", "Check a draft; returns errors and warnings.", DraftArgs,

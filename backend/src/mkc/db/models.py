@@ -135,3 +135,22 @@ class Blob(Base):
     data: Mapped[bytes] = mapped_column(LargeBinary)
     size: Mapped[int] = mapped_column(Integer)
     created_at: Mapped[datetime] = _created()
+
+
+class ToolCacheRow(Base):
+    """One cached `ok` result of a deterministic document tool (MKC-16.4, decision 56)."""
+
+    __tablename__ = "tool_cache"
+    __table_args__ = (
+        UniqueConstraint(
+            "tool", "code_version", "args_hash", "document_hash", name="uq_tool_cache_key"
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
+    tool: Mapped[str] = mapped_column(Text)
+    code_version: Mapped[str] = mapped_column(Text)
+    args_hash: Mapped[str] = mapped_column(String(64))
+    document_hash: Mapped[str] = mapped_column(Text)
+    data: Mapped[Any] = mapped_column(JSONB, nullable=True)
+    created_at: Mapped[datetime] = _created()
