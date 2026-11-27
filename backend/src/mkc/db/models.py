@@ -6,6 +6,7 @@ from typing import Any
 
 from sqlalchemy import (
     BigInteger,
+    Boolean,
     CheckConstraint,
     DateTime,
     ForeignKey,
@@ -89,6 +90,8 @@ class Run(Base):
     # When `process_run` first worked on the run, by the database clock; the wall-time limit
     # counts from here (MKC-18, decision 58).
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # The run's Langfuse trace: 32 random hex digits, set once (MKC-19, decision 59).
+    trace_id: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = _created()
     updated_at: Mapped[datetime] = _updated()
 
@@ -179,3 +182,31 @@ class Draft(Base):
     body: Mapped[dict[str, Any]] = mapped_column(JSONB)
     created_at: Mapped[datetime] = _created()
     updated_at: Mapped[datetime] = _updated()
+
+
+class RunLog(Base):
+    """One traced event of a run: a model call attempt, a tool call, a stop or an outage
+    (MKC-19, decision 59). The same record goes to Langfuse. No foreign keys (migration 0010).
+    """
+
+    __tablename__ = "run_log"
+    __table_args__ = (Index("ix_run_log_run_id_id", "run_id", "id"),)
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
+    run_id: Mapped[int] = mapped_column(BigInteger)
+    item_id: Mapped[int | None] = mapped_column(BigInteger)
+    step: Mapped[int | None] = mapped_column(Integer)
+    # `model`, `tool`, `stop` or `outage`
+    kind: Mapped[str] = mapped_column(String(16))
+    # the model id, the tool name or the stop reason
+    name: Mapped[str] = mapped_column(Text)
+    ok: Mapped[bool] = mapped_column(Boolean)
+    error: Mapped[str | None] = mapped_column(Text)
+    # `live`, `record` or `replay` for a model call; spend sums take `live` only
+    mode: Mapped[str | None] = mapped_column(String(16))
+    input_tokens: Mapped[int | None] = mapped_column(Integer)
+    output_tokens: Mapped[int | None] = mapped_column(Integer)
+    cost_eur: Mapped[Decimal | None] = mapped_column(Numeric(12, 6))
+    latency_ms: Mapped[int | None] = mapped_column(Integer)
+    detail: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
