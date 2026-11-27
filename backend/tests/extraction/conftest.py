@@ -1,0 +1,160 @@
+"""Helpers for the extraction tests (MKC-21): a migrated test database, an in-memory Storage
+fake, a fake HTTP getter and a synthetic PDF builder. No test touches the network or a real
+PDF; `mkc.extraction` is imported inside the tests, so a missing module fails each test, not
+the collection.
+"""
+
+import hashlib
+from collections.abc import Iterator, Sequence
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any
+
+import pytest
+from alembic import command
+from alembic.config import Config
+from sqlalchemy import Engine, create_engine, inspect, text
+from sqlalchemy.engine import URL
+from sqlalchemy.orm import Session, sessionmaker
+
+from mkc.harness.blobs import PREFIX
+
+ALEMBIC_INI = Path(__file__).resolve().parents[2] / "alembic.ini"
+OPERATOR_ID = "stromnetz-berlin"
+URL_OK = "https://netz.example/messkonzepte.pdf"
+HOST_OK = "netz.example"
+
+
+@pytest.fixture
+def engine(database_env: URL) -> Iterator[Engine]:
+    """The test database at head, with the MKC-21 tables emptied (if they exist yet)."""
+    command.upgrade(Config(str(ALEMBIC_INI)), "head")
+    eng = create_engine(database_env)
+    with eng.begin() as conn:
+        present = [t for t in ("source_document", "operator") if inspect(conn).has_table(t)]
+        if present:
+            conn.execute(text(f"truncate {', '.join(present)} restart identity cascade"))
+        conn.execute(text("truncate blob"))
+    try:
+        yield eng
+    finally:
+        eng.dispose()
+
+
+@pytest.fixture
+def sessions(engine: Engine) -> sessionmaker[Session]:
+    return sessionmaker(engine)
+
+
+class MemoryStore:
+    """A `BlobStore` (mkc.harness.blobs) that keeps blobs in a dict: the Storage fake."""
+
+    def __init__(self) -> None:
+        self.data: dict[str, bytes] = {}
+        self.puts = 0
+
+    def put(self, data: bytes) -> str:
+        self.puts += 1
+        ref = PREFIX + hashlib.sha256(data).hexdigest()
+        self.data[ref] = data
+        return ref
+
+    def get(self, ref: str) -> bytes:
+        return self.data[ref]
+
+
+@pytest.fixture
+def store() -> MemoryStore:
+    return MemoryStore()
+
+
+@dataclass
+class FakeGet:
+    """A getter for `fetch_document(get=...)`: returns the queued responses in order and
+    records every URL asked for. A response is (final URL after redirects, bytes)."""
+
+    responses: list[tuple[str, bytes]]
+    calls: list[str] = field(default_factory=list)
+
+    def __call__(self, url: str) -> Any:
+        from mkc.extraction.fetch import FetchResponse
+
+        self.calls.append(url)
+        final_url, content = self.responses.pop(0)
+        return FetchResponse(url=final_url, content=content)
+
+
+def operators(url: str = URL_OK, hosts: tuple[str, ...] = (HOST_OK,)) -> dict[str, Any]:
+    """An operator mapping for `fetch_document(operators=...)` with one test operator."""
+    from mkc.extraction.operators import OperatorConfig
+
+    return {
+        OPERATOR_ID: OperatorConfig(
+            id=OPERATOR_ID,
+            name="Netz Musterstadt (test)",
+            voltage_level="NS",
+            url=url,
+            allowed_hosts=hosts,
+        )
+    }
+
+
+def rows(engine: Engine, sql: str) -> list[Any]:
+    with engine.connect() as conn:
+        return list(conn.execute(text(sql)))
+
+
+def berlin_pages(concepts: Sequence[str]) -> list[list[str]]:
+    """A Berlin-style catalogue: a cover, a contents page, one page per concept (heading
+    `Messkonzept <n>` as the page's first line), then an appendix page. One concept body
+    cites another concept number, which must not become a region of its own."""
+    pages: list[list[str]] = [
+        ["Netz Musterstadt GmbH", "Messkonzepte fuer Kundenanlagen", "Stand 01.2026"],
+        ["Inhaltsverzeichnis", *(f"{n}  Konzept ........ {i + 3}" for i, n in enumerate(concepts))],
+    ]
+    for i, n in enumerate(concepts):
+        body = [f"Messkonzept {n}", "Z1 Zweirichtungszaehler am Netzanschluss"]
+        if i > 0:
+            body.append(f"Wie Messkonzept {concepts[0]}, zusaetzlich Erzeugungsanlage G")
+        pages.append(body)
+    pages.append(["Anhang: Legende", "Z = Zaehler, G = Erzeugungsanlage"])
+    return pages
+
+
+def make_pdf(pages: Sequence[Sequence[str]], size: tuple[float, float] = (595.0, 842.0)) -> bytes:
+    """A small valid PDF with one text line per entry, Helvetica, ASCII only. Built by hand so
+    the tests need no PDF library and no PDF file is ever committed."""
+    w, h = size
+    objs: list[bytes] = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        (
+            f"<< /Type /Pages /Kids [{' '.join(f'{4 + 2 * i} 0 R' for i in range(len(pages)))}]"
+            f" /Count {len(pages)} >>"
+        ).encode(),
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+    ]
+    for i, lines in enumerate(pages):
+        objs.append(
+            (
+                f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {w:g} {h:g}]"
+                f" /Resources << /Font << /F1 3 0 R >> >> /Contents {5 + 2 * i} 0 R >>"
+            ).encode()
+        )
+        ops = ["BT", "/F1 14 Tf", "18 TL", f"72 {h - 72:g} Td"]
+        for line in lines:
+            esc = line.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
+            ops.append(f"({esc}) Tj T*")
+        ops.append("ET")
+        stream = "\n".join(ops).encode("latin-1")
+        objs.append(b"<< /Length %d >>\nstream\n" % len(stream) + stream + b"\nendstream")
+    out = bytearray(b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n")
+    offsets = []
+    for num, body in enumerate(objs, start=1):
+        offsets.append(len(out))
+        out += b"%d 0 obj\n" % num + body + b"\nendobj\n"
+    xref = len(out)
+    out += b"xref\n0 %d\n0000000000 65535 f \n" % (len(objs) + 1)
+    for off in offsets:
+        out += b"%010d 00000 n \n" % off
+    out += b"trailer\n<< /Size %d /Root 1 0 R >>\nstartxref\n%d\n%%%%EOF\n" % (len(objs) + 1, xref)
+    return bytes(out)
