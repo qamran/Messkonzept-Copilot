@@ -49,3 +49,33 @@ An independent review of the design found that both were added late without budg
 - Retrieved passages are untrusted input; the injection guard screens them as well.
 - If the Jev spike fails, E8 reports the LLM fallback against a smaller alternative, and the README states why.
 - `langchain-typesafe` is pinned; any breakage is contained by the fallback switch.
+
+## Amendment (27.11.2026, MKC-49): the embedding model
+
+Decision 71, by the development agent of lane D; **to be confirmed by the user.**
+
+- **Model:** `qwen/qwen3-embedding-8b` (Qwen3-Embedding-8B, Apache 2.0) through OpenRouter, with the zero-data-retention routing every chat call uses.
+- **Dimension:** 1024. The model gives up to 4096 and cuts its vectors to any size from 32 (Matryoshka); OpenRouter passes `dimensions=1024` on. 1024 stays under pgvector's 2000-dimension limit for an index on a `vector` column, so MKC-50 can add one.
+- **Price:** $0.01 per million input tokens on both zero-data-retention endpoints (Nebius, DeepInfra), from OpenRouter's `GET /api/v1/endpoints/zdr` on 27.11.2026. The narrow corpus costs well under one cent to embed.
+- **Where it lives:** the model and dimension in `mkc.rag.embeddings.EMBEDDING`; the price in `mkc/models/models.yaml`; the calls go through `mkc.models.client.EmbeddingClient`, which uses the provider layer like `ModelClient` (live mode only).
+- **Documents and queries:** chunks are embedded as stored, without an instruction; queries get a one-sentence instruction (the model card's advice), added in MKC-50.
+
+Why this model:
+
+- **Reachable on our route.** The OpenRouter workspace's guardrail allows it. On 27.11.2026 the guardrail refused `baai/bge-m3`, `google/gemini-embedding-001` and `intfloat/multilingual-e5-large` ("0 endpoints … available matching your guardrail restrictions").
+- **Multilingual.** The model card names 100+ languages and rank 1 on the MTEB multilingual leaderboard (5 June 2025, score 70.58). No German-only score was found, and no comparison was run here (feature 80 keeps the comparison deferred).
+- **Long context.** 32k tokens, so a long Absatz of the MsbG or a section of a BNetzA decision fits in one chunk.
+- **Two endpoints.** Both zero-data-retention providers honoured `dimensions=1024`; the same text embedded on each gave a cosine of 0.9942, so the corpus and the queries may land on different providers.
+
+Alternatives rejected:
+
+| Model | Why not |
+|---|---|
+| `baai/bge-m3` (1024 d, 8k context, $0.01/M) | Refused by the workspace guardrail; otherwise a close second |
+| `mistralai/mistral-embed-2312` (1024 d, 8k context, $0.10/M) | Ten times the price, one zero-data-retention endpoint (Mistral), no stated multilingual retrieval lead |
+| `google/gemini-embedding-001` (3072 d, $0.15/M) | Refused by the guardrail; 15 times the price |
+| `openai/text-embedding-3-large` (3072 d, $0.13/M) | 13 times the price; only an Azure endpoint |
+| `intfloat/multilingual-e5-large` (1024 d) | 512-token context is too short for a law Absatz; refused by the guardrail |
+| A local model (no provider call) | Needs a model download and a GPU or slow CPU runs in the worker image; the provider route is cheaper to run and keeps every model call in one layer |
+
+Sources: the [Qwen3-Embedding-8B model card](https://huggingface.co/Qwen/Qwen3-Embedding-8B); OpenRouter's `GET /api/v1/embeddings/models` and `GET /api/v1/endpoints/zdr` (27.11.2026); the live probes logged in `handoff/lane-d.md`.
