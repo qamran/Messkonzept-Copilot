@@ -75,6 +75,7 @@ The tests import these; module paths and names are fixed, internals are free.
 
 ## Recent log
 
+- **27.11.2026 23:19** Test agent: red tests for the `EmbeddingClient` hooks (`EmbedTrace`, one per `embed()` call, also on error, never the texts) and `ProviderEmbedder.embed_query` (Qwen3's `Instruct: …\nQuery:…` format) in `tests/rag/test_embedding_trace_unit.py`; `uv run pytest tests/rag/test_embedding_trace_unit.py -q`: `6 failed, 1 passed in 5.35s` (`test_passages_are_still_embedded_as_stored` is green already: it guards the passage side).
 - **27.11.2026 23:19** Test agent: red tests for `retrieve` on the test database (`tests/rag/test_retriever.py`: `test_paragraph_reference_found_by_keyword`, "BK6-22-300", ordering, `k` bounds, blank query, empty corpus, the RRF score, and `test_latency_per_query_logged_in_the_trace` with `RetrievalTrace`); hand-made unit vectors put both `§ 14a` chunks last on the vector side. `uv run pytest tests/rag/test_retriever.py -q`: `17 failed in 2.57s` (no `mkc.rag.retriever` yet). The commit is over 200 lines (one test module with its corpus fixture).
 - **27.11.2026 23:19** Test agent: red tests for reciprocal rank fusion (`RRF_K = 60`, ties to the lower chunk id) and the untrusted mark (`RetrievedChunk.as_prompt_data()`) in `tests/rag/test_retriever_unit.py`; `uv run pytest tests/rag/test_retriever_unit.py -q`: `9 failed in 0.24s` (no `mkc.rag.retriever` yet).
 - **27.11.2026 23:17** Test agent: lane file rewritten for MKC-50 (header, pinned interfaces, assumptions, what the red tests leave open); decision numbers 79–81.
