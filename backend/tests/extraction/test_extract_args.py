@@ -62,3 +62,15 @@ def test_a_bbox_off_the_page_is_tool_failed() -> None:
     call = ToolCall(id="c", name="extract_text", args={"page": 1, "bbox": [700, 900, 800, 1000]})
     result = _registry().execute(call, "item", ENV)
     assert result.error is not None and result.error.code == "tool_failed"
+
+
+def test_page_zero_is_invalid_args() -> None:
+    # Mutation pass (test agent): `page` is 1-based, so 0 never reaches the tool.
+    from mkc.harness.registry import default_registry
+    from mkc.harness.tools import ToolEnv
+    from mkc.models.types import ToolCall
+
+    env = ToolEnv(run_id=1, item_id=2, document_hash="h", concept_key="1")
+    call = ToolCall(id="c", name="extract_text", args={"page": 0})
+    result = default_registry().execute(call, "item", env)
+    assert result.error is not None and result.error.code == "invalid_args"
