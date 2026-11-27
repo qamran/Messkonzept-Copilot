@@ -82,6 +82,10 @@ class Run(Base):
     state: Mapped[str] = mapped_column(String(32))
     # Which run-level limit stopped the run (MKC-18); None unless `state` is `stopped`.
     stop_reason: Mapped[str | None] = mapped_column(Text)
+    # The worker that holds the run and until when, by the database clock (MKC-17,
+    # decision 57). Both None when the run is free.
+    lease_owner: Mapped[str | None] = mapped_column(Text)
+    lease_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = _created()
     updated_at: Mapped[datetime] = _updated()
 

@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 11:59
+**Last updated:** 27.11.2026, 12:00
 
 This file is how agents resume work after a session restart.
 
@@ -55,7 +55,7 @@ This file is how agents resume work after a session restart.
 - **MKC-17** (#17), Run executor (worker with lease). Status `In progress`, assigned to `qamran` (27.11.2026 11:37:38). Branch `mkc-17-run-executor` from `266c37d`. The first commit holds only the close-out of MKC-16.
   - Plan: `docs/superpowers/plans/271120261154-mkc-17-run-executor.md` (decision 57: lease on the run row with the database clock, fencing before every commit, heartbeat thread for the file and the lease, stop between turns, `waiting_for_database` written on the first successful probe after an outage).
   - Sub-issues: MKC-17.1 #146 `In progress`; MKC-17.2 #147, MKC-17.3 #148, MKC-17.4 #149 `Ready`.
-  - Next: MKC-17.1 green: migration 0008, `RunState.WAITING_FOR_DATABASE`, `mkc.worker.lease`.
+  - Next: MKC-17.2 red: `tests/worker/test_executor.py` (`test_sigterm_finishes_turn_then_releases_lease`, heartbeat, lost lease).
 
 ## Next steps
 
@@ -161,6 +161,8 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+
+- **27.11.2026 12:00** MKC-17.1 green: migration `0008_run_lease` (`run.lease_owner`, `run.lease_expires_at`), `RunState.WAITING_FOR_DATABASE` with two edges, `mkc.worker.lease` (`claim_run`, `renew_lease`, `release_lease`, `fence`/`LeaseLost`); the refused-pair count in `test_states.py` follows the new state. Full suite 426 passed, 1 skipped; ruff and mypy strict clean.
 
 - **27.11.2026 11:59** MKC-17.1 red: `tests/worker/test_lease.py` (claim, expiry, fence, renew, release), new run state and edges in `test_states.py`, lease columns in `test_harness_tables.py`; `mkc.worker.lease` is a stub. 15 failed, 16 passed (NotImplementedError, missing state and columns).
 

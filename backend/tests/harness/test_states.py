@@ -85,7 +85,7 @@ def test_every_pair_not_in_the_table_is_refused() -> None:
             with pytest.raises(InvalidTransition):
                 transition(a, b)
             refused += 1
-    assert refused == 8 * 8 - 7 + 4 * 4 - 4
+    assert refused == 8 * 8 - 7 + 5 * 5 - 6
 
 
 def test_item_and_run_states_do_not_mix() -> None:
