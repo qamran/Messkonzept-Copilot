@@ -70,6 +70,7 @@ def run_item(
     registry: ToolRegistry,
     max_steps: int,
     inline_max_bytes: int = INLINE_MAX_BYTES,
+    code_version: str | None = None,
 ) -> ItemOutcome:
     """Run the model-driven tool loop for one claimed (`running`) item."""
     item = session.get_one(Item, item_id)

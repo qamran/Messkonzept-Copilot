@@ -18,7 +18,7 @@ import time
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from types import MappingProxyType
-from typing import Any, Literal, get_args
+from typing import Any, Literal, Protocol, get_args
 
 from pydantic import BaseModel, ConfigDict, ValidationError, model_validator
 
@@ -62,6 +62,7 @@ class Tool:
     fn: Callable[[Any, ToolEnv], Any]
     side_effect: bool
     deterministic: bool
+    cacheable: bool = False
 
     def to_spec(self) -> ToolSpec:
         """What `ModelClient.chat_with_tools` takes."""
@@ -103,9 +104,18 @@ class ToolTrace:
     error_code: ErrorCode | None
     refused: bool
     latency_ms: int
+    cached: bool = False
 
 
 ToolTracer = Callable[[ToolTrace], None]
+
+
+class ResultCache(Protocol):
+    """What `execute` needs from a cache (`mkc.harness.cache.ToolCache`)."""
+
+    def get(self, tool: str, args: dict[str, Any], document_hash: str) -> Any: ...
+
+    def put(self, tool: str, args: dict[str, Any], document_hash: str, data: Any) -> None: ...
 
 
 class ToolRegistry:
@@ -140,7 +150,9 @@ class ToolRegistry:
     def for_context(self, ctx: Context) -> tuple[Tool, ...]:
         return self._contexts[ctx]
 
-    def execute(self, call: ToolCall, ctx: Context, env: ToolEnv) -> ToolResult:
+    def execute(
+        self, call: ToolCall, ctx: Context, env: ToolEnv, cache: "ResultCache | None" = None
+    ) -> ToolResult:
         """Run `call` in `ctx` with the harness's `env`, or return the error that says why not.
 
         Nothing the model sends makes this raise. An item-context call whose `env` lacks the
