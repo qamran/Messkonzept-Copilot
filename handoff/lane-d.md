@@ -1,6 +1,6 @@
 # Lane D: RAG
 
-**Last updated:** 27.11.2026, 23:17
+**Last updated:** 27.11.2026, 23:19
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -75,6 +75,7 @@ The tests import these; module paths and names are fixed, internals are free.
 
 ## Recent log
 
+- **27.11.2026 23:19** Test agent: red tests for reciprocal rank fusion (`RRF_K = 60`, ties to the lower chunk id) and the untrusted mark (`RetrievedChunk.as_prompt_data()`) in `tests/rag/test_retriever_unit.py`; `uv run pytest tests/rag/test_retriever_unit.py -q`: `9 failed in 0.24s` (no `mkc.rag.retriever` yet).
 - **27.11.2026 23:17** Test agent: lane file rewritten for MKC-50 (header, pinned interfaces, assumptions, what the red tests leave open); decision numbers 79–81.
 - **27.11.2026 21:56** Development agent: `bash scripts/pre_pr.sh` exit 0 at `5b39b61` (`746 passed, 1 skipped, 13 deselected, 4 warnings in 95.73s`); pushed; PR #198 opened (createdAt `2026-11-27T20:55:20Z`), assigned to `qamran`; `#49`, `#179`, `#181`, `#182`, `#184`, `#185`, `#186` set to Testing on the board.
 - **27.11.2026 21:51** Development agent: research note `docs/271120262150-embedding-model-research.md`, linked from ADR 004, decision 71 and the status doc; decision 71 marked confirmed by the user on 27.11.2026; decision 72 (chunk size) added.
