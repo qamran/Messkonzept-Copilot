@@ -228,3 +228,28 @@ def test_a_database_error_in_a_tool_call_propagates_and_the_item_can_resume(
     with Session(engine) as session:
         assert session.get_one(Item, item_id).state == "running"
     assert go(engine, item_id, fake(ai(tool_calls=[SAVE])), Tools()).state is ItemState.DRAFT_SAVED
+
+
+def test_the_summary_covers_failed_calls_and_results_stored_as_refs(engine: Engine) -> None:
+    _, (item_id,) = start(engine)
+    refused = call("fetch_document", "f1", operator_id="x")
+    first = crashing(ai(tool_calls=[refused]), ai(tool_calls=[read(1)]), ai(tool_calls=[read(2)]),
+                     at=4)  # fmt: skip
+    with pytest.raises(Crash):
+        go(engine, item_id, first, Tools(text="Seite " * 400), inline_max_bytes=1000)
+    model = fake(ai(tool_calls=[SAVE]))
+    go(engine, item_id, model, Tools())
+    content = str(model.seen[0][1].content)
+    summary = content[content.index("<earlier_turns>") : content.index("</earlier_turns>")]
+    assert '"error": "tool_not_allowed"' in summary and '"ok": false' in summary
+    assert '"page": 1' in summary and '"ok": true' in summary  # turn 2 is stored as a ref
+
+
+def test_a_stopped_run_does_not_resume_its_running_item(engine: Engine) -> None:
+    run_id, _ = make_run(engine, "running", run_state="stopped")
+    model = fake(ai(tool_calls=[SAVE]))
+    with Session(engine) as session:
+        outcomes = process_run(run_id, session=session, client=client_for(model),
+                               registry=Tools().registry(), max_steps=5)  # fmt: skip
+    assert outcomes == [] and model.seen == []
+    assert states(engine, run_id) == ("stopped", ["running"])

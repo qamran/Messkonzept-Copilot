@@ -117,3 +117,12 @@ def test_0007_creates_draft_and_downgrades(database_env: URL) -> None:
     assert describe() == (set(), set())
     command.upgrade(config, "head")
     assert describe()[0] == columns
+
+
+def test_a_save_from_a_later_run_moves_the_draft_to_its_item(engine: Engine) -> None:
+    first_run, (first_item,) = make_run(engine, "running")
+    second_run, (second_item,) = make_run(engine, "running")  # same document and concept
+    registry = default_registry(sessions=sessionmaker(engine))
+    save(registry, env_for(first_run, first_item), {"v": 1})
+    save(registry, env_for(second_run, second_item), {"v": 2})
+    assert [(d[2], d[3]) for d in drafts(engine)] == [(second_item, {"v": 2})]

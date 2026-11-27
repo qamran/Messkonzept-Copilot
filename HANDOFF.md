@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 11:19
+**Last updated:** 27.11.2026, 11:21
 
 This file is how agents resume work after a session restart.
 
@@ -152,6 +152,8 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+
+- **27.11.2026 11:21** MKC-16 review findings 2 and 4 to 7: red test `test_renamed_call_ids_never_collide_with_an_existing_id` (ids a, a, a-1 collide today); new tests kill the four surviving mutants (duplicate-id pairing check, summary error code over a ref turn, `Run.state` filter in `resumable_item`, `item_id` in the draft upsert; each checked by hand, source restored). Harness: 1 failed, 160 passed.
 
 - **27.11.2026 11:19** MKC-16: new check `scripts/check_text_files.py` (every tracked text file LF, no NUL byte; CI runs it with the other check scripts). It fails on `0c1f966` (the review's B1) and passes on HEAD and `ff76b94`. The same slip had hit HANDOFF.md in the local commit `b322143`, amended before any push as `b8421b3`.
 

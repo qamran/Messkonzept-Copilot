@@ -137,3 +137,22 @@ def test_the_last_turn_and_the_end_state_are_one_commit(engine: Engine) -> None:
     assert [r.number for r in turns(engine, item_id)] == [1]
     with Session(engine) as session:
         assert session.get_one(Item, item_id).state == "running"
+
+
+def test_save_turn_refuses_two_calls_with_one_id(engine: Engine) -> None:
+    _, (item_id,) = start(engine)
+    with Session(engine) as session, pytest.raises(ValueError, match="pair"):
+        save_turn(session, record(item_id, assistant("c1", "c1"), [result("c1"), result("c1")]))
+
+
+def test_renamed_call_ids_never_collide_with_an_existing_id(engine: Engine) -> None:
+    _, (item_id,) = start(engine)
+    clash = [call("extract_text", "a", page=1), call("extract_text", "a", page=2),
+             call("extract_text", "a-1", page=3)]  # fmt: skip
+    model = fake(ai(tool_calls=clash), ai(tool_calls=[SAVE]))
+    with Session(engine) as session:
+        outcome = run_item(item_id, session=session, client=client_for(model),
+                           registry=Tools().registry(), max_steps=3)  # fmt: skip
+    assert outcome.state.value == "draft_saved"
+    ids = [c["id"] for c in turns(engine, item_id)[0].assistant["tool_calls"]]
+    assert len(set(ids)) == 3 and ids[2] == "a-1"  # a unique id is kept as it is
