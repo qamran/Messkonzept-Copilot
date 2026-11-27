@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 26.11.2026, 23:26
+**Last updated:** 27.11.2026, 09:01
 
 This file is how agents resume work after a session restart.
 
@@ -57,8 +57,7 @@ This file is how agents resume work after a session restart.
 ## Next steps
 
 1. MKC-15: see "In progress". First step: the plan and the sub-issues.
-2. **User to confirm decision 53** (review finding 11, PR #131): `side_effect` = the tool reaches outside its own item, so `save_draft` is a model tool and harness code enqueues the approval. AGENTS.md could then point to it for the meaning of "side-effect tool".
-3. MKC-14, non-blocking findings of the PR #131 review (comment 26.11.2026 23:17:35), for the tickets named:
+2. MKC-14, non-blocking findings of the PR #131 review (comment 26.11.2026 23:17:35), for the tickets named:
    - 2 (before MKC-22, 23, 28 add real argument models): `execute` can still raise: a bad `ctx` (`KeyError`), a tool exception whose `__str__` fails, an argument validator that raises `TypeError`/`AttributeError`/`KeyError` (only `ValidationError` is caught)
    - 3: the side-effect check is truthiness (`side_effect=None`/`0` passes at runtime; mypy catches it)
    - 4: immutability tests: dropping `__setattr__` and a plain `_contexts` dict both survive; no `__delattr__`
@@ -69,7 +68,7 @@ This file is how agents resume work after a session restart.
    - 9: E4 "repeated side effects (must be 0)" should still count duplicate drafts and enqueues
    - 10: placeholder validation is lax (`page=True`, `1.0`; no DPI cap; `nan` bbox); a `validation_alias` field can't be called
    - 12: process, disclosed: `397b770` 262 lines; `6bbea6a` no HANDOFF change; `4b198cd` carries MKC-14 but closes out MKC-13; red test of `46f71ad` fixed in `fb00815`
-4. MKC-13, non-blocking findings of the PR #127 review (comment 26.11.2026 15:19Z), for MKC-17/MKC-18 or a hardening ticket:
+3. MKC-13, non-blocking findings of the PR #127 review (comment 26.11.2026 15:19Z), for MKC-17/MKC-18 or a hardening ticket:
    - 1: another module could import `mkc.models.providers.build_chat_model` and skip `ModelClient`; add a guard that only `client.py` imports `providers`
    - 2: Gemini, Anthropic and Meta have no request-count test (only `max_retries == 0`); the reviewer measured one request each against a local server
    - 3: the OpenRouter timeout is per phase, not wall clock; the harness needs its own deadline (MKC-17)
@@ -81,7 +80,7 @@ This file is how agents resume work after a session restart.
    - 10: the role lookup and `to_langchain` run before the `try`, so those errors are not traced
    - 11: the Gemini free-tier rule (public and synthetic input only) is not enforced in code; `MKC_MODELS_FILE` can map any role to `gemini`
    - 12: the reviewer's first retry probe sent nine "Hi" requests with a dummy key to Google, Anthropic and Meta (all failed authentication; no key or project data)
-5. MKC-12, still to do:
+4. MKC-12, still to do:
    - the deploy of `0c5268c` is done and checked (`cd` run 45834526785, see the log); `lbs_structure` exists in production and is empty until `mkc-load-lbs` is wired in (finding 1)
    - non-blocking findings of the PR #120 review (comment 26.11.2026 13:59:29Z), for the ticket that first reads `lbs_structure` (MKC-22) or a later hardening ticket:
      - 1: wire `mkc-load-lbs` into the deploy (copy `backend/data/` into the image; `DEFAULT_PATH` points into the source tree)
@@ -93,25 +92,25 @@ This file is how agents resume work after a session restart.
      - 10, 11: the loader does not check the reference type, the Anzahl format, `funktion` only on a MeLo, or unknown keys; `is_valid_code` raises `ValueError` for digits like `²` instead of returning False
      - 12, 13: `test_mkc_load_lbs_command` runs on a table that already holds 15 rows; `test_object_codes_are_consistent` leaves out `funktion`; the reference-rule test landed with its rule
      - 14: the note's claims on the 2022 draft and Mitteilungen 56 and 58 were not checked by the reviewer
-6. MKC-11, checks that are still to come:
+5. MKC-11, checks that are still to come:
    - the deploy of `33a3a65` is done and checked (`cd` run 45821615993, see the log); nothing is open there
    - 27.11.2026: the 03:30 run must have made a second object under `nightly/` and a second `ok` row in `backup_runs` (read-only: `cd backend && uv run --env-file .env python -m mkc.db.check` shows the connection works; the row itself with a `select` on `backup_runs`; or the user calls `/api/admin/backup-status` as admin)
    - from 11.12.2026: the object `nightly/mkc-20261126T115613Z.sql.gz` must be gone from the bucket (the user looks in the console). That proves the lifecycle rule and its policy `objectstorage-lifecycle` work; the policy itself was never shown in a screenshot
    - decided by the user (26.11.2026): AGENTS.md stays as it is (development agent Opus 5.5, review agent Fable). The session of 26.11.2026 from 12:00 ran on Fable 5.2 as an exception, so the commits of PR #116 and this one carry the trailer `Co-Authored-By: Claude Fable 5.2`; the reviews were done by separate Fable agents that wrote none of the content
-7. Non-blocking follow-ups from the PR #115 and PR #116 reviews (for a later docs or hardening ticket; none has a ticket yet):
+6. Non-blocking follow-ups from the PR #115 and PR #116 reviews (for a later docs or hardening ticket; none has a ticket yet):
    - runbook "One-time Oracle setup", step 3, point 2 still says "in the 'Resources' list on the left, or a tab on newer consoles"; point 1 already names the tab **Policies**. Drop the bracket
    - `check_runbook.py` only checks that names are present: a bare list of names passes; the `mkc-secrets` keys are hard-coded, not read from the chart; the root `.env` is not in its list; no kept bad samples
    - the code findings 2, 5, 6, 7 and 9 of the first PR #115 verdict (comment of 26.11.2026 09:39:49Z on PR #115) are open
    - GitHub still serves the old commits `bffa4e9`, `df20e2a` and `f140e61` by SHA (they are in no branch; the PR #116 timeline links the old head). They hold the PC's full paths. Only GitHub Support can purge them; the user has not asked for that
    - the menu paths for Supabase and Clerk in the runbook's inventory are from memory; check them at the next visit to those dashboards
-8. Non-blocking follow-ups from the PR #109 review (MKC-10; for a later CI or deploy hardening ticket):
+7. Non-blocking follow-ups from the PR #109 review (MKC-10; for a later CI or deploy hardening ticket):
    - N2: nine MKC-10 commits don't touch HANDOFF.md; N6: `05c4962` and `e5072c6` are over 200 lines (history not rewritten)
    - N4: `cd_deploy.sh` prints "Helm rolled the release back itself" also when the VM refused the commit (exit 4) or SSH failed (255); no test covers those cases
    - N5: `check_workflows.py` accepts the home-repo guard with `|| true` appended
    - N7: small doc slips in the PR body and older HANDOFF entries (commit count, CI run id, log order)
    - N8: `cd.yml` lines 38, 39 and 83 lost their `\` line breaks (the commands still work)
    - N9: the `main` check in `mkc-deploy` calls GitHub's API without a token (rate limit, outage refuse a valid deploy); `behind` also accepts an old merged branch commit that has no image (the deploy then fails and Helm rolls back)
-9. Non-blocking follow-ups from the PR #103 review (for later tickets):
+8. Non-blocking follow-ups from the PR #103 review (for later tickets):
    - N1 (MKC-17/MKC-20): the heartbeat is only touched between polls; with max age 30 s and liveness 3 × 30 s, a turn of up to 240 s would get a healthy worker restarted. Beat during a turn or raise the max age (noted in ADR 002 and decision 42).
    - N2: `/tmp` is an `emptyDir` and survives a container restart, so an old heartbeat can make a restarted worker look Ready for up to 30 s; remove the file on start or add a `startupProbe`.
    - N3: the smoke test does not prove the heartbeat is refreshed; only the unit test does.
@@ -119,14 +118,14 @@ This file is how agents resume work after a session restart.
    - N6: `check_workflows.py` and `check_helm.py` are text-based and easy to fool; mutated samples are not kept as tests (same class as the PR #97 findings).
    - N7: the smoke script only prints the Ingress annotation and TLS secret; it does not assert them.
    - N11 (MKC-10): `checksum/secret` does not change with `existingSecret`; the secret checksum is visible in pod specs; API readiness does not check the database; the script leaves `mkc-backend:kind` in local Docker; a narrow race if the cluster name is taken after the guard.
-10. Non-blocking follow-ups from the PR #97 review (fold into a later CI-hardening ticket or MKC-9 where they touch the same files):
-    - check scripts are substring-based: flow-style `permissions: {…: write}`, `toJSON(secrets)`, `|| true` / `continue-on-error` on the scan, `if: false` on `image`, indented `USER root`, `USER 10001:0`, `COPY --chown --from=<unpinned>`, `!.env` after `.env`, `compose.override.yaml` all pass
-    - no kept tests rerun the bad samples (they live only in the PR body and HANDOFF)
-    - `cancel-in-progress: true` also applies on `main`: two quick merges can cancel a `publish`
-    - the Grype database is not pinned, so a new high finding can turn unrelated PRs red
-    - remove `pip` from the runtime image (source of most medium findings); `pgvector/pgvector:pg17` not digest-pinned; `publish` rebuilds instead of pushing the scanned image
-    - the MKC-8 plan still lists `docker/metadata-action` (not used)
-11. Optional follow-ups from the PR #91 re-review (non-blocking): `apiBase()` could refuse a query, fragment or userinfo in `VITE_API_URL`; an empty `sub` is accepted; falsy non-string roles read as "no role".
+9. Non-blocking follow-ups from the PR #97 review (fold into a later CI-hardening ticket or MKC-9 where they touch the same files):
+   - check scripts are substring-based: flow-style `permissions: {…: write}`, `toJSON(secrets)`, `|| true` / `continue-on-error` on the scan, `if: false` on `image`, indented `USER root`, `USER 10001:0`, `COPY --chown --from=<unpinned>`, `!.env` after `.env`, `compose.override.yaml` all pass
+   - no kept tests rerun the bad samples (they live only in the PR body and HANDOFF)
+   - `cancel-in-progress: true` also applies on `main`: two quick merges can cancel a `publish`
+   - the Grype database is not pinned, so a new high finding can turn unrelated PRs red
+   - remove `pip` from the runtime image (source of most medium findings); `pgvector/pgvector:pg17` not digest-pinned; `publish` rebuilds instead of pushing the scanned image
+   - the MKC-8 plan still lists `docker/metadata-action` (not used)
+10. Optional follow-ups from the PR #91 re-review (non-blocking): `apiBase()` could refuse a query, fragment or userinfo in `VITE_API_URL`; an empty `sub` is accepted; falsy non-string roles read as "no role".
 
 ## Blocked / waiting on user
 
@@ -140,6 +139,7 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **27.11.2026 09:00** The user confirmed decision 53 (review finding 11 of PR #131) and chose to point AGENTS.md to it: the safety rule now says what a side-effect tool is. Design doc decision log and status doc record the confirmation.
 - **26.11.2026 23:17–23:25** PR #131 review PASS (Fable, comment 23:17:35; 12 non-blocking findings, see Next steps), merged as `1a42369` (23:17:44); #14 and #128–#130 closed and `Done`. `main` pushed to `turing`; `origin/main` = `turing/main` = `1a42369`. `cd` run 45903858656 green: `image` 23:17:50–23:21:57; `backend` approved by the development agent (decision 51) at 23:22:23, ran 23:22:25–23:23:27; `frontend` approved at 23:23:50, ran 23:23:52–23:24:31. Checked afterwards: `/api/version` = `1a42369…`, `/health` 200, `/api/admin/backup-status` without a token 401, the site 200. MKC-15 (#15) assigned to `qamran` and set to `In progress` (23:25); branch `mkc-15-item-loop` from `1a42369`.
 - **26.11.2026 23:07–23:08** MKC-14: branch pushed; PR #131 opened (23:07:43) with criteria, evidence and disclosures; #14 and #128–#130 set to `Testing` (23:08).
 - **26.11.2026 23:06–23:07** MKC-14, after a self-review: registry maps are read-only (`MappingProxyType`, `6bbea6a`, 23:06; that commit has no HANDOFF change). Decision 53 made consistent in the other places: design 8.1 table (enqueue by the harness), ADR 001 (idempotency keys for the writes), backlog MKC-23 (`save_draft` interface and test name), plan (`ok=True` may carry `data=None`). Comment on #23 explains the change for MKC-23.
