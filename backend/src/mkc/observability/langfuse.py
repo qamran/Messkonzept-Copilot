@@ -94,6 +94,14 @@ class LangfuseSink:
         # the span started just now (the SDK takes no start time): end it `latency_ms` later
         observation.end(end_time=time.time_ns() + (record.latency_ms or 0) * 1_000_000)
 
+    def auth_check(self) -> bool:
+        """Whether Langfuse accepts the keys (one request)."""
+        return False
+
+    def observations(self, trace_id: str) -> list[tuple[str, bool]]:
+        """The trace's observations as Langfuse stored them: (type, has input or output)."""
+        return []
+
     def flush(self) -> None:
         self._client.flush()
 

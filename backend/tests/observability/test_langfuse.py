@@ -130,3 +130,35 @@ def test_only_our_own_observations_leave(
         assert [s.name for s in spans(sink, exporter)] == ["extract_vision"]
     finally:
         client.shutdown()
+
+
+class _Obs:
+    def __init__(self, type_: str, input_: Any = None) -> None:
+        self.type, self.input, self.output = type_, input_, None
+
+
+class _Api:
+    def __init__(self) -> None:
+        self.asked: dict[str, Any] = {}
+        self.observations = self
+
+    def get_many(self, **kw: Any) -> Any:
+        self.asked = kw
+        return type("Page", (), {"data": [_Obs("GENERATION"), _Obs("TOOL", {"x": 1})]})()
+
+
+class _Client:
+    def __init__(self) -> None:
+        self.api = _Api()
+
+    def auth_check(self) -> bool:
+        return True
+
+
+def test_read_back_a_trace_s_observations() -> None:
+    """For the real run: what Langfuse stored, by type, and whether any carries content."""
+    client = _Client()
+    sink = LangfuseSink(client, eur_per_usd=EUR_PER_USD)  # type: ignore[arg-type]
+    assert sink.auth_check() is True
+    assert sink.observations(TRACE) == [("GENERATION", False), ("TOOL", True)]
+    assert client.api.asked["trace_id"] == TRACE

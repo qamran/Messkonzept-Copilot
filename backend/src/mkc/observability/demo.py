@@ -8,6 +8,7 @@ state and its trace id. Needs `MKC_MODEL_MODE=live` (it spends a few cents at mo
 """
 
 import sys
+from collections import Counter
 
 from sqlalchemy import create_engine
 from sqlalchemy.engine import make_url
@@ -43,6 +44,15 @@ def make_demo_run(session: Session) -> int:
     )
     session.flush()
     return run.id
+
+
+LANGFUSE_TYPES = {"model": "GENERATION", "tool": "TOOL", "stop": "EVENT", "outage": "EVENT"}
+"""The Langfuse observation type of each `run_log` kind."""
+
+
+def expected_types(kinds: list[str]) -> Counter[str]:
+    """The Langfuse observation types a run's `run_log` kinds should arrive as."""
+    return Counter()
 
 
 def main() -> int:
