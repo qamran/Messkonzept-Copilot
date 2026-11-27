@@ -2,21 +2,30 @@
 
 import logging
 from collections import Counter
+from decimal import Decimal
 from typing import Any
 
 import pytest
 from sqlalchemy import Engine
 from sqlalchemy.orm import Session
 
-from mkc.harness.limits import Limits
+from mkc.harness.limits import Limits, StopEvent, StopReason
 from mkc.harness.loop import process_run
-from mkc.models.client import ModelClient
+from mkc.harness.tools import ToolTrace
+from mkc.models.client import ModelClient, TraceScope
 from mkc.models.types import TransientModelError
 from mkc.observability.trace import Tracer
 from tests.harness.conftest import make_run, states
 from tests.harness.test_loop import READ, SAVE, Tools, call, config
 from tests.models.fakes import FakeChatModel, ai, fake
-from tests.observability.test_trace import BrokenSession, FakeLangfuse, rows, trace_id, tracer
+from tests.observability.test_trace import (
+    BrokenSession,
+    FakeLangfuse,
+    model_trace,
+    rows,
+    trace_id,
+    tracer,
+)
 
 
 def traced_run(engine: Engine, the_tracer: Tracer, model: FakeChatModel, limits: Limits) -> int:
@@ -68,3 +77,17 @@ def test_langfuse_down_run_continues(engine: Engine, caplog: pytest.LogCaptureFi
     assert states(engine, run_id) == ("awaiting_approval", ["draft_saved"])
     assert rows(engine, run_id) == [] and trace_id(engine, run_id) is None
     assert "langfuse down" in caplog.text and "database down" in caplog.text
+
+
+def test_no_hook_raises_when_both_sinks_are_down(engine: Engine) -> None:
+    """The harness guards its hooks too; the tracer must not rely on that (a hook may be
+    called from code without the guard, such as the executor)."""
+    run_id, (item_id,) = make_run(engine, "running")
+    broken = Tracer(lambda: BrokenSession(bind=engine), FakeLangfuse(fail=True))
+    assert broken.start_run(run_id) is None
+    broken.span_model(model_trace(TraceScope(run_id, item_id, 1)))
+    broken.span_tool(ToolTrace("extract_text", "item", True, None, False, 1,
+                               run_id=run_id, item_id=item_id, step=1))  # fmt: skip
+    broken.span_stop(StopEvent("run", run_id, None, StopReason.WALL_TIME, None, 0, Decimal(0)))
+    broken.outage(run_id, "OperationalError")
+    broken.flush()

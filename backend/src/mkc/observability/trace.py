@@ -8,13 +8,17 @@ never reaches the run.
 """
 
 import logging
+import threading
+import uuid
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from decimal import Decimal
 from typing import Any, Literal, Protocol
 
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
+from mkc.db.models import Run, RunLog
 from mkc.harness.limits import StopEvent
 from mkc.harness.tools import ToolTrace
 from mkc.models.client import CallTrace
@@ -58,27 +62,156 @@ class Sink(Protocol):
 
 
 class Tracer:
-    """One per worker process. Its hooks may be called from any thread."""
+    """One per worker process. Its hooks may be called from any thread (model hooks fire on
+    the `mkc-model-call` thread), so each write opens its own short session."""
 
     def __init__(self, sessions: Callable[[], Session], sink: Sink | None = None) -> None:
         self._sessions = sessions
         self._sink = sink
+        self._trace_ids: dict[int, str] = {}
+        self._lock = threading.Lock()
 
     def start_run(self, run_id: int) -> str | None:
-        """The run's trace id, set once if the run has none. None if it can't be read."""
-        return None
+        """The run's trace id, set once if the run has none (a resume by another worker reuses
+        it). None if the database can't be reached: the run goes on untraced."""
+        try:
+            with self._sessions() as session:
+                session.execute(
+                    update(Run)
+                    .where(Run.id == run_id, Run.trace_id.is_(None))
+                    .values(trace_id=uuid.uuid4().hex)
+                )
+                found = session.scalar(select(Run.trace_id).where(Run.id == run_id))
+                session.commit()
+        except Exception:
+            log.exception("run %s: trace id not set; tracing goes on without it", run_id)
+            return None
+        if found is not None:
+            with self._lock:
+                self._trace_ids[run_id] = found
+        return found
 
     def span_model(self, trace: CallTrace) -> None:
-        """Hook for `ModelClient(tracers=...)`."""
+        """Hook for `ModelClient(tracers=...)`: one record per attempt."""
+        if trace.scope is None:
+            return  # not part of a run: no trace to join
+        usage = trace.usage
+        self._record(
+            TraceRecord(
+                kind="model",
+                run_id=trace.scope.run_id,
+                item_id=trace.scope.item_id,
+                step=trace.scope.step,
+                name=trace.model_id,
+                ok=trace.error is None,
+                error=_cut(trace.error),
+                mode=trace.mode,
+                input_tokens=None if usage is None else usage.input_tokens,
+                output_tokens=None if usage is None else usage.output_tokens,
+                cost_eur=None if usage is None else _eur(usage.cost_eur),
+                latency_ms=trace.latency_ms,
+                detail={"role": trace.role, "method": trace.method},
+            )
+        )
 
     def span_tool(self, trace: ToolTrace) -> None:
         """Hook for `ToolRegistry(tracers=...)`."""
+        if trace.run_id is None:
+            return
+        self._record(
+            TraceRecord(
+                kind="tool",
+                run_id=trace.run_id,
+                item_id=trace.item_id,
+                step=trace.step,
+                name=trace.tool[:MAX_NAME],
+                ok=trace.ok,
+                error=trace.error_code,
+                latency_ms=trace.latency_ms,
+                detail={"ctx": trace.ctx, "refused": trace.refused, "cached": trace.cached},
+            )
+        )
 
     def span_stop(self, event: StopEvent) -> None:
         """Hook for `process_run(tracers=...)` and `stop_run`."""
+        self._record(
+            TraceRecord(
+                kind="stop",
+                run_id=event.run_id,
+                item_id=event.item_id,
+                name=event.reason.value,
+                ok=False,
+                error=_cut(event.detail),
+                detail={
+                    "scope": event.scope,
+                    "steps": event.steps,
+                    "cost_eur": str(event.cost_eur),
+                },
+            )
+        )
 
     def outage(self, run_id: int, detail: str) -> None:
         """A database outage the worker waited out (finding 17#1: the durable record)."""
+        self._record(
+            TraceRecord(
+                kind="outage",
+                run_id=run_id,
+                name="database_unavailable",
+                ok=False,
+                error=_cut(detail),
+            )
+        )
 
     def flush(self) -> None:
         """Send what the sink still holds; never raises."""
+        if self._sink is None:
+            return
+        try:
+            self._sink.flush()
+        except Exception as error:
+            log.warning("trace sink flush failed: %s", _cut(f"{type(error).__name__}: {error}"))
+
+    # --- one record, two sides ------------------------------------------------------------
+
+    def _record(self, record: TraceRecord) -> None:
+        trace_id = self._write(record)
+        if self._sink is None:
+            return
+        try:
+            self._sink.send(record, trace_id)
+        except Exception as error:
+            log.warning("run %s: %s not sent to the trace sink: %s", record.run_id, record.kind,
+                        _cut(f"{type(error).__name__}: {error}"))  # fmt: skip
+
+    def _write(self, record: TraceRecord) -> str | None:
+        """Insert the `run_log` row; return the run's trace id (looked up once per run)."""
+        with self._lock:
+            trace_id = self._trace_ids.get(record.run_id)
+        try:
+            with self._sessions() as session:
+                session.add(RunLog(**_row(record)))
+                if trace_id is None:
+                    trace_id = session.scalar(select(Run.trace_id).where(Run.id == record.run_id))
+                session.commit()
+        except Exception as error:
+            log.warning("run %s: %s not written to run_log: %s", record.run_id, record.kind,
+                        _cut(f"{type(error).__name__}: {error}"))  # fmt: skip
+            return trace_id
+        if trace_id is not None:
+            with self._lock:
+                self._trace_ids[record.run_id] = trace_id
+        return trace_id
+
+
+def _row(record: TraceRecord) -> dict[str, Any]:
+    fields = asdict(record)
+    fields["detail"] = record.detail or None
+    return fields
+
+
+def _cut(text: str | None) -> str | None:
+    return None if text is None else text[:MAX_ERROR]
+
+
+def _eur(value: float) -> Decimal:
+    return Decimal(str(value)).quantize(Decimal("0.000001"))

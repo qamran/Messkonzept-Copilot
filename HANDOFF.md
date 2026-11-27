@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 15:21
+**Last updated:** 27.11.2026, 15:23
 
 This file is how agents resume work after a session restart.
 
@@ -58,7 +58,7 @@ This file is how agents resume work after a session restart.
   - Plan: `docs/superpowers/plans/271120261507-mkc-19-tracing.md` (decision 59).
   - Sub-issues: MKC-19.1 #156 (`In progress`), MKC-19.2 #157, MKC-19.3 #158, MKC-19.4 #159, MKC-19.5 #160 (`Ready`).
   - Waiting on the user (not blocking 19.1 to 19.4): Langfuse API keys in `backend/.env` (`MKC_LANGFUSE_PUBLIC_KEY`, `MKC_LANGFUSE_SECRET_KEY`, `MKC_LANGFUSE_BASE_URL`) for the real run of 19.5.
-  - MKC-19.1 done: `process_run` checks `has_work` before the run limits, so the reviewer's probe settles to `awaiting_approval` (harness and worker tests: 253 passed, 1 skipped). MKC-19.2 `In progress` (15:14:17): trace ids done (`TraceScope` on every model call of the loop, `ToolEnv.step`, ids on `ToolTrace`; models, harness, worker: 410 passed). Migration 0010 (`run.trace_id`, table `run_log` without foreign keys, model `RunLog`) done; db tests 21 passed. MKC-19.2 complete. MKC-19.3 `In progress` (15:18:44): `langfuse==5.2.0` and the `MKC_LANGFUSE_*` settings added; red tests for the `Tracer` (fake Langfuse sink) committed with an empty skeleton.
+  - MKC-19.1 done: `process_run` checks `has_work` before the run limits, so the reviewer's probe settles to `awaiting_approval` (harness and worker tests: 253 passed, 1 skipped). MKC-19.2 `In progress` (15:14:17): trace ids done (`TraceScope` on every model call of the loop, `ToolEnv.step`, ids on `ToolTrace`; models, harness, worker: 410 passed). Migration 0010 (`run.trace_id`, table `run_log` without foreign keys, model `RunLog`) done; db tests 21 passed. MKC-19.2 complete. MKC-19.3 `In progress` (15:18:44): `langfuse==5.2.0` and the `MKC_LANGFUSE_*` settings added; the `Tracer` is built (`run_log` row and sink per event, each side guarded; observability, harness, worker, models: 419 passed before the extra no-raise test). Next: `LangfuseSink` over the SDK.
 
 ## Next steps
 
