@@ -86,6 +86,9 @@ class Run(Base):
     # decision 57). Both None when the run is free.
     lease_owner: Mapped[str | None] = mapped_column(Text)
     lease_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # When `process_run` first worked on the run, by the database clock; the wall-time limit
+    # counts from here (MKC-18, decision 58).
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = _created()
     updated_at: Mapped[datetime] = _updated()
 
@@ -111,6 +114,9 @@ class Item(Base):
     state: Mapped[str] = mapped_column(String(32))
     # Why the item failed, e.g. `step_limit`; None unless `state` is `failed`.
     failure_reason: Mapped[str | None] = mapped_column(Text)
+    # Resumes since the last stored turn; over `MKC_ITEM_MAX_RESUMES` the item fails with
+    # `resume_limit` (MKC-18, decision 58).
+    attempts_without_progress: Mapped[int] = mapped_column(Integer, server_default="0")
     created_at: Mapped[datetime] = _created()
     updated_at: Mapped[datetime] = _updated()
 
