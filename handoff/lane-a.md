@@ -1,6 +1,6 @@
 # Lane A: Extraction
 
-**Last updated:** 27.11.2026, 23:51
+**Last updated:** 27.11.2026, 23:54
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -70,6 +70,8 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 4. Coordinator: `MKC_TEST_IMAGE` in CI's `image` job, so `test_image_operators.py` runs (decision 78 (6)).
 
 ## Recent log
+
+- **27.11.2026 23:54** Development agent: `bash scripts/pre_pr.sh` at `89b750d`: exit 0, "pre-PR gate: all steps passed"; pytest `1009 passed, 2 skipped, 18 deselected, 4 warnings in 106.90s (0:01:46)`. Commits over 200 lines: `60c1f2e` (431), `b989630` (211), `fcd70e0` (239). Every `Refs:` line reads `qamran/`. Branch pushed; no PR yet (the test agent's mutation pass comes first). This commit changes only this file.
 
 - **27.11.2026 23:51** Development agent: docs: decisions 76 to 78 in design section 18, decision 62 (5) notes the hop rules, status doc line, backlog "As built", runbook "The allow-list". Full suite at `a4dc979` (`uv run pytest -q`): `1009 passed, 2 skipped, 18 deselected, 4 warnings in 103.00s (0:01:42)`. Fetch disclosed: the Berlin PDF was downloaded once with `curl` at 23:35 (sha256 `4e12c90f…29a18`) into a scratch folder outside the repo to read the real table grids and concept pages; deleted at 23:51. No model calls.
 
