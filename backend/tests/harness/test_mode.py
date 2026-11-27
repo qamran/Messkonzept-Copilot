@@ -36,6 +36,25 @@ def test_checkpoints_need_durable_queue() -> None:
         Switches(True, True, False, True, True)
 
 
+@pytest.mark.parametrize(
+    "switches",
+    [
+        (False, True, True, True, True),  # turn rows would still be written (no memory queue)
+        (True, True, True, False, True),  # an in-memory list has no key: idempotency = approvals
+        (True, True, True, True, False),
+    ],
+)
+def test_only_combinations_the_loop_honours(switches: tuple[bool, ...]) -> None:
+    """`checkpoints` goes with `durable_queue`, `idempotency` with `durable_approvals`; only
+    `tool_cache` is free (decision 60)."""
+    with pytest.raises(ValueError):
+        Switches(*switches)
+
+
+def test_tool_cache_alone_may_be_off() -> None:
+    assert not Switches(True, False, True, True, True).tool_cache
+
+
 def _settings(mode: str) -> Settings:
     return Settings(_env_file=None, harness_mode=mode)  # type: ignore[call-arg]
 

@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 18:09
+**Last updated:** 27.11.2026, 18:16
 
 This file is how agents resume work after a session restart.
 
@@ -64,15 +64,15 @@ This file is how agents resume work after a session restart.
 
 1. MKC-20: see "In progress".
    - MKC-19, non-blocking findings of the PR #161 review (comment 27.11.2026 17:04:15), for the tickets named:
-     - 1 (**the first ticket that scopes a `chat_structured` or `vision` call, at the latest MKC-20**): error text leaves for Langfuse: `CallTrace.error` (cut to 500) is the `status_message`, the `model_unavailable` stop detail is `str(__cause__)[:300]`; today provider error text only, but `_split` puts LangChain's parsing error, which quotes the model reply, into `ModelError`. Tool names in `tool_error`/`tool_retries` stop details are cut at 500, not 100. Send only the error class and status to the sink, keep the full text in `run_log`, test with a prompt-bearing error
-     - 2 (MKC-20 or the run-resume ticket): if `start_run` and the `run_log` write both fail, the sink gets `trace_id=None` and Langfuse opens a separate trace; skip the sink then, or document it
-     - 3 (with 1): `span_*` builds the record outside the tracer's own guard (relies on the callers' guards); the `_trace_ids` cache is never evicted
+     - 1 (**done in MKC-20.5**: `TraceRecord.public_error` is all Langfuse gets; tool names in stop details cut at 100): error text leaves for Langfuse: `CallTrace.error` (cut to 500) is the `status_message`, the `model_unavailable` stop detail is `str(__cause__)[:300]`; today provider error text only, but `_split` puts LangChain's parsing error, which quotes the model reply, into `ModelError`. Tool names in `tool_error`/`tool_retries` stop details are cut at 500, not 100. Send only the error class and status to the sink, keep the full text in `run_log`, test with a prompt-bearing error
+     - 2 (**done in MKC-20.5**: no sink call without a trace id): if `start_run` and the `run_log` write both fail, the sink gets `trace_id=None` and Langfuse opens a separate trace; skip the sink then, or document it
+     - 3 (**done in MKC-20.5**: `span_*` guarded while the record is built; `flush` clears the cache): `span_*` builds the record outside the tracer's own guard (relies on the callers' guards); the `_trace_ids` cache is never evicted
      - 4 (done in this close-out): HANDOFF "In progress" had an unclosed bracket and stale statuses; the status doc header said 14:54 and "Built so far"; #160 and the plan's 19.5 name `backend/scripts/trace_demo.py`, the code is `python -m mkc.observability.demo` (the plan is corrected here; #160 is closed)
      - 5: disclosed process slips confirmed (`dd91a4b` 263 lines; `5c14126`, `2fa25ca` without HANDOFF; settings without their own red test; a test landed with its code; the duration test loosened; one trailer fixed by a rebase before the push); commit size and HANDOFF-per-commit slips recur
      - 6 (done in this close-out, except the production trace): migration 0010 ran and the worker started with the keys (below); log the first production trace (environment `production`) when a production run happens
    - MKC-18, non-blocking findings of the PR #155 review (comment 27.11.2026 14:45:01), for the tickets named:
      - 1 (**fix first, in MKC-19 or a small fix ticket**; before the approval tickets): `process_run` checks the run limits before it checks for a next item, so a run whose last item ends on the turn that reaches a limit ends `stopped` instead of settled (reviewer probe: one item, `max_steps_run=1`, save on turn 1 gives `('stopped', ['draft_saved'])`). Check the limit only when an item is left to claim
-     - 2 (the ticket that adds run resume, Runs page): `stopped` is terminal and nothing resumes it; an outage longer than the retries (about 30 s of waits) stops the run for good with an item left `running`. Add the resume edge and a runbook recovery note
+     - 2 (**done in MKC-20.4**: `mkc run resume` and the edge `stopped -> running`; runbook "Recovery of a stopped run"; the Runs page button is still to come): `stopped` is terminal and nothing resumes it; an outage longer than the retries (about 30 s of waits) stops the run for good with an item left `running`. Add the resume edge and a runbook recovery note
      - 3 (MKC-19): the worker passes no `tracers`, so in production a stop is the row plus a log line; `_stop_for_setup` emits with `item_id=None`
      - 4 (with MKC-15 finding 9, when the API can stop a run): `_run_limit` returns None when `stop_run` finds another state, and the call or claim goes ahead
      - 5: no worker test fails if `sleep=self.wait` is dropped from the executor's `process_run` call
@@ -191,6 +191,7 @@ This file is how agents resume work after a session restart.
 
 ## Recent log
 
+- **27.11.2026 18:16** Pre-PR advisor review (about 18:11): four gaps. (1) `Switches` accepted mixes the loop does not honour (`idempotency` unread; `checkpoints` off with `durable_queue` on still wrote turns): now refused, red parametrized test first (2 of 3 failed). The Linux run at `5055477`: 353 passed (18:10:39).
 - **27.11.2026 18:09** MKC-20 docs green: runbook section "Baseline, faults and the CLI" (`check_runbook.py` passes), decision 60 in the design doc with 8.2 (edge `stopped -> running`) and 8.5 "Built in MKC-20", ADR 001 note, status doc, backlog notes (MKC-20 as built, MKC-32 replay of fault arms), plan ticked with an "As built" note. Markdown lint 0 errors; every check script passes.
 - **27.11.2026 18:07** MKC-20 docs red: `scripts/check_runbook.py` requires the section "Baseline, faults and the CLI" (fails: missing). Two pins from the plan's review focus added to `test_baseline.py` (`test_baseline_sigterm_writes_nothing`, `test_baseline_takes_running_items_too`); they passed on their first run, since they pin behaviour built in MKC-20.2.
 - **27.11.2026 18:06** MKC-20.5 green: `TraceRecord.public_error` (error class and HTTP status, tool error code, or a tool name cut to 100) is what Langfuse gets as `status_message`; `run_log.error` keeps the text; the `model_unavailable` detail now starts with the error class; no sink call without a trace id (`test_name_and_error_are_cut_before_they_leave` now calls `start_run`); `span_*` build inside the tracer's guard; `flush` clears the trace id cache. Full backend suite 616 passed, 1 skipped; ruff, mypy clean.

@@ -44,8 +44,16 @@ class Switches:
     durable_approvals: bool
 
     def __post_init__(self) -> None:
+        """Only the combinations the loop honours (decision 60): checkpoints and the durable
+        queue go together (the memory queue is what keeps turns out of the database), and so
+        do idempotency and durable approvals (an in-memory list has no key). `tool_cache` is
+        free."""
         if self.checkpoints and not self.durable_queue:
             raise ValueError("checkpoints need durable_queue: turn rows need durable claims")
+        if self.checkpoints != self.durable_queue:
+            raise ValueError("checkpoints and durable_queue are switched together")
+        if self.idempotency != self.durable_approvals:
+            raise ValueError("idempotency and durable_approvals are switched together")
 
 
 SWITCHES: Mapping[HarnessMode, Switches] = MappingProxyType(
