@@ -62,3 +62,17 @@ def test_a_hyphenated_title_is_joined() -> None:
     )  # fmt: skip
     assert fields.title == "Überschusseinspeisung mit Abgrenzungsmessung"
     assert fields.applications == ["PV-Anlagen"]
+
+
+def test_a_marker_at_the_end_of_a_line_starts_the_next_footnote() -> None:
+    """Berlin page 22 (concept 5.1) prints `*2)` at the end of the line before its text."""
+    fields = _fields(
+        [Text(72, 72, "5.1 Überschusseinspeisung", 10),
+         Text(72, 700, "*1) Der Anschluss ist parallel möglich bei:", 10),
+         Text(72, 714, "- Parallelbetrieb von PV-Anlagen *2)", 10),
+         Text(72, 728, "Der Anschluss von Speichern ist auch im Verbrauchspfad möglich", 10)]
+    )  # fmt: skip
+    assert fields.footnotes == [
+        "*1) Der Anschluss ist parallel möglich bei: - Parallelbetrieb von PV-Anlagen",
+        "*2) Der Anschluss von Speichern ist auch im Verbrauchspfad möglich",
+    ]
