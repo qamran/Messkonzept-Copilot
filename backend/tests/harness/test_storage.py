@@ -168,3 +168,21 @@ def test_storage_from_settings_needs_all_five_or_none() -> None:
 def test_settings_do_not_show_the_storage_secret() -> None:
     settings = _settings(storage_secret_access_key=SECRET)
     assert SECRET not in repr(settings)
+
+
+def test_each_request_is_signed_for_its_own_method_and_a_put_has_a_content_type() -> None:
+    from mkc.harness.storage import sigv4_headers
+
+    bucket = FakeBucket()
+    store = _store(bucket)
+    ref = store.put(b"%PDF-1.7 signed")
+    store.get(ref)
+    put, get = bucket.requests
+    assert put.headers["content-type"] == "application/octet-stream"
+    for request in (put, get):
+        when = datetime.strptime(request.headers["x-amz-date"], "%Y%m%dT%H%M%SZ")
+        expected = sigv4_headers(
+            request.method, str(request.url), request.headers["x-amz-content-sha256"],
+            key_id=KEY_ID, secret=SECRET, region="eu-west-1", now=when.replace(tzinfo=UTC),
+        )  # fmt: skip
+        assert request.headers["authorization"] == expected["authorization"], request.method
