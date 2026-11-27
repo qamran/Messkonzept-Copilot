@@ -96,11 +96,12 @@ class LangfuseSink:
 
     def auth_check(self) -> bool:
         """Whether Langfuse accepts the keys (one request)."""
-        return False
+        return bool(self._client.auth_check())
 
     def observations(self, trace_id: str) -> list[tuple[str, bool]]:
         """The trace's observations as Langfuse stored them: (type, has input or output)."""
-        return []
+        page = self._client.api.observations.get_many(trace_id=trace_id, limit=100)
+        return [(o.type, o.input is not None or o.output is not None) for o in page.data]
 
     def flush(self) -> None:
         self._client.flush()

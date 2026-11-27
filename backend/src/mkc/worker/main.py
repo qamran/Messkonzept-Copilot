@@ -19,10 +19,13 @@ log = logging.getLogger("mkc.worker")
 _STOP_SIGNALS = (signal.SIGTERM, signal.SIGINT)
 
 
-def build_executor(settings: Settings, sessions: sessionmaker[Session]) -> Executor:
+def build_executor(
+    settings: Settings, sessions: sessionmaker[Session], *, sink: LangfuseSink | None = None
+) -> Executor:
     """The worker's executor with its tracer (MKC-19): `run_log` always, Langfuse when the
-    keys are set. The model client is built only once a run is held."""
-    tracer = Tracer(sessions, LangfuseSink.from_settings(settings))
+    keys are set (or `sink`, built by the caller). The model client is built only once a run
+    is held."""
+    tracer = Tracer(sessions, sink or LangfuseSink.from_settings(settings))
     return Executor(
         settings,
         sessions=sessions,
