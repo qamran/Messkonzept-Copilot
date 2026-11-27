@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 18:06
+**Last updated:** 27.11.2026, 18:07
 
 This file is how agents resume work after a session restart.
 
@@ -191,6 +191,7 @@ This file is how agents resume work after a session restart.
 
 ## Recent log
 
+- **27.11.2026 18:07** MKC-20 docs red: `scripts/check_runbook.py` requires the section "Baseline, faults and the CLI" (fails: missing). Two pins from the plan's review focus added to `test_baseline.py` (`test_baseline_sigterm_writes_nothing`, `test_baseline_takes_running_items_too`); they passed on their first run, since they pin behaviour built in MKC-20.2.
 - **27.11.2026 18:06** MKC-20.5 green: `TraceRecord.public_error` (error class and HTTP status, tool error code, or a tool name cut to 100) is what Langfuse gets as `status_message`; `run_log.error` keeps the text; the `model_unavailable` detail now starts with the error class; no sink call without a trace id (`test_name_and_error_are_cut_before_they_leave` now calls `start_run`); `span_*` build inside the tracer's guard; `flush` clears the trace id cache. Full backend suite 616 passed, 1 skipped; ruff, mypy clean.
 - **27.11.2026 18:03** MKC-20.5 red: 5 tracer tests (error class only to the sink, cut stop details, no sink without a trace id, a bad record stays inside the tracer, trace id cache dropped on flush) and two changed expectations (Langfuse `status_message` is the public error; the `model_unavailable` detail names the error class). Three fail on the missing `public_error` field (AttributeError/TypeError), the rest on assertions.
 - **27.11.2026 18:01** MKC-20.4 green: `mkc.cli` (`mkc run start|resume|status|inspect`, script `mkc`). CLI tests 14 passed; full backend suite 611 passed, 1 skipped; ruff, mypy clean. `9e97f8d` (red CLI tests) is 318 lines and this one about 250 (one new module).

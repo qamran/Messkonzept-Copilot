@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from mkc.db.models import Draft, Run, Turn
 from mkc.harness.baseline import RunMemory
+from mkc.harness.faults import FaultInjector, FaultPlan
 from mkc.harness.limits import Limits
 from mkc.harness.runner import RunResult, execute_run
 from mkc.harness.tools import Tool, ToolRegistry, ToolTrace
@@ -167,3 +168,35 @@ def test_execute_run_builds_the_registry_with_the_tool_hooks(engine: Engine) -> 
         run_id, _ = make(engine, 1, mode=mode)
         go(engine, run_id, FakeChatModel(responses=[saved(1)]), tool_tracers=(seen.append,))
     assert [(t.tool, t.ok) for t in seen] == [("save_draft", True), ("save_draft", True)]
+
+
+class _AfterFirstItem(FaultInjector):
+    """No fault: it only notes when an item has ended, so `should_stop` can say yes then."""
+
+    def __init__(self) -> None:
+        super().__init__(FaultPlan())
+        self.ended = 0
+
+    def item_ended(self, outcome: Any) -> None:
+        self.ended += 1
+
+
+def test_baseline_sigterm_writes_nothing(engine: Engine) -> None:
+    """A shutdown after item 1 ended leaves nothing behind: the next claim starts over."""
+    run_id, _ = make(engine, 2)
+    hook = _AfterFirstItem()
+    model = FakeChatModel(responses=[saved(1), saved(2)])
+    result = go(engine, run_id, model, faults=hook, should_stop=lambda: hook.ended >= 1)
+    assert [o.state for o in result.outcomes] == ["draft_saved"]
+    assert states(engine, run_id) == ("running", ["queued", "queued"])
+    assert count(engine, Turn) == 0
+
+
+def test_baseline_takes_running_items_too(engine: Engine) -> None:
+    """An item a full-mode attempt left `running` is served again from its task."""
+    run_id, _ = make_run(engine, "running", "queued")
+    with Session(engine) as session, session.begin():
+        session.execute(update(Run).where(Run.id == run_id).values(mode="baseline"))
+    result = go(engine, run_id, FakeChatModel(responses=[saved(1), saved(2)]))
+    assert [o.state for o in result.outcomes] == ["draft_saved", "draft_saved"]
+    assert states(engine, run_id) == ("awaiting_approval", ["draft_saved", "draft_saved"])
