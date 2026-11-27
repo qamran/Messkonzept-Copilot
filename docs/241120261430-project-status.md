@@ -85,7 +85,7 @@ This is the living status document. It is updated whenever a decision is made or
 | README (intro + links for both repos) | `README.md` |
 | Official brief | `AE.CAP_afa.md` |
 
-## Decisions so far (summary; the full log of 54 decisions is in design doc section 18)
+## Decisions so far (summary; the full log of 55 decisions is in design doc section 18)
 
 - **Idea:** Messkonzept-Copilot. It extracts operator Messkonzept PDFs into structured, LBS-keyed records with human approval, and gives household site advice with citations.
 - **Primary user:** MSB, VNB and energy-IT staff working across grid areas; installers are secondary; plus a public read-only demo.
@@ -99,6 +99,7 @@ This is the living status document. It is updated whenever a decision is made or
 - **Core also includes (ADR 004):**
   - RAG over a narrow corpus: EnWG §14a, MsbG, BK6-22-300, BK8-22/010-A, operator texts
   - a decision layer (Jev via OpenRouter after a spike; LLM fallback by default)
+- **New grading criterion (27.11.2026, decision 55):** Turing College added "effective use of evals" (about 13 % of the score). The plan adds E9 (agent trajectory), per-case regression in the runner and CI gate, and the improvement log `eval/iterations.md`.
 - **Evaluation:**
   - E1–E8
   - independent gold: a different drafting model, blind subsets, a dev/test split

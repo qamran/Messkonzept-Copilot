@@ -582,6 +582,9 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - `test_e2_masks_berlin_printed_codes`
 - **Success criteria:**
   - [ ] E1 also reports the naive pdftotext baseline from MKC-22
+  - [ ] E9 (agent trajectory, decision 55): task completion, tool-choice accuracy, valid-argument rate, refusals, steps and cost per item, read from the `turn` rows
+  - [ ] Reports store pass/fail per case; `mkc eval diff` lists the cases that passed in the previous report and fail now (decision 55)
+  - [ ] `eval/iterations.md` started: each change made because of an eval result, with metrics before and after and the cases that changed (decision 55)
   - [ ] Reports include model ids, prompt versions, spend in EUR and set sizes
   - [ ] Results summarised in the status doc
 
@@ -634,6 +637,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
 - **Success criteria:**
   - [ ] The gate runs on a path filter; uses replay unless prompts or models changed; has a cost cap
   - [ ] Baseline and tolerance stored in the repo; the gate is a required check
+  - [ ] The gate also fails on any case of its subset that passed in the baseline and fails now, unless the PR names it as an accepted change (decision 55)
 
 ---
 
@@ -724,7 +728,8 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
 - **Depends on:** MKC-31 to MKC-35, MKC-39.
 - **Test:** vitest renders a report fixture.
 - **Success criteria:**
-  - [ ] Shows E1–E6 with set sizes, split, model ids, spend and date
+  - [ ] Shows E1–E6 and E9 with set sizes, split, model ids, spend and date
+  - [ ] Shows the regressions against the previous run and links the improvement log (decision 55)
 
 ### MKC-43: Public read-only demo
 
