@@ -1,6 +1,6 @@
 # Lane B: Advisor
 
-**Last updated:** 27.11.2026, 20:50
+**Last updated:** 27.11.2026, 20:54
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md`. Times are local time from git and GitHub, never estimated.
 
@@ -95,12 +95,13 @@ Frontend:
 
 ## Next steps
 
-1. Development agent: build `mkc/advisor/` and the UI to make the red tests green without changing them (a change needs a reason in the PR body), then `bash scripts/pre_pr.sh`, PR, ticket to `Testing`.
-2. Test agent: mutation pass on the development agent's code.
+1. Test agent: mutation pass on the development agent's code (the coordinator starts it).
+2. Development agent, on the coordinator's word: open the PR (`Closes #36`; disclose `frontend/src/test/setup.ts` and the test agent's ruff isort block), move #36 and #176–#183 to `Testing`.
 3. Then MKC-37 waits on lane A's MKC-30.
 
 ## Recent log
 
+- **27.11.2026 20:54** Development agent: `bash scripts/pre_pr.sh` on `d16ca1a`: exit 0, `715 passed, 1 skipped, 12 deselected in 129.53s`, `pre-PR gate: all steps passed`; CI frontend commands (`npm ci`, lint, typecheck, `npm test`: `Tests  49 passed (49)`, build) pass. No test agent test changed. Branch pushed; PR waits for the mutation pass.
 - **27.11.2026 20:50** Development agent: live check of the `facts` schema, three calls, €0.013138; docs: decisions 65, 66, design 7, backlog and status doc lines.
 - **27.11.2026 20:48** Development agent: `AdvisorPage.tsx` and the `/advisor` route; `npx vitest run` gives `Test Files  10 passed (10)`, `Tests  49 passed (49)`; eslint, `tsc -b`, `npm run build` pass.
 - **27.11.2026 20:47** Development agent: `FactsCard.tsx` (view, edit with native selects, confirm; out of scope shows the notes only); `npx vitest run src/components` gives `Test Files  5 passed (5)`, `Tests  21 passed (21)`.
