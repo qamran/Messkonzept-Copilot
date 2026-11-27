@@ -1,6 +1,6 @@
 # Project status: Messkonzept-Copilot
 
-**Last updated:** 27.11.2026, 09:59
+**Last updated:** 27.11.2026, 10:12
 
 This is the living status document. It is updated whenever a decision is made or work is completed. Older brainstorming material lives in `brainstorming internal/` (gitignored and frozen).
 
@@ -100,7 +100,7 @@ This is the living status document. It is updated whenever a decision is made or
 - **Core also includes (ADR 004):**
   - RAG over a narrow corpus: EnWG §14a, MsbG, BK6-22-300, BK8-22/010-A, operator texts
   - a decision layer (Jev via OpenRouter after a spike; LLM fallback by default)
-- **New grading criterion (27.11.2026, decision 55):** Turing College added "effective use of evals" (about 13 % of the score). The plan adds E9 (agent trajectory), per-case regression in the runner and CI gate, and the improvement log `eval/iterations.md`.
+- **New grading criterion (27.11.2026, decision 55):** Turing College added "effective use of evals" (13 % of the score; evals are now required; the other weights dropped, see `docs/271120261003-eval-criteria-capstone.md`). The plan adds E9 (agent trajectory), per-case regression in the runner and CI gate, and the improvement log `eval/iterations.md`.
 - **Evaluation:**
   - E1–E8
   - independent gold: a different drafting model, blind subsets, a dev/test split

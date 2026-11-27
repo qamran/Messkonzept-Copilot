@@ -1,47 +1,49 @@
 # Capstone evaluation criteria: tracking
 
-**Last updated:** 27.11.2026, 10:03
+**Last updated:** 27.11.2026, 10:12
 
-This doc tracks the capstone's grading criteria and where the project shows each one. Update it when Turing College changes the criteria or when a ticket adds evidence.
+This doc tracks the capstone's grading criteria and where the project shows each one. Update it when Turing College changes the criteria or when a ticket adds evidence. The full brief is in `AE.CAP_afa.md`.
 
-## Official criteria (from the brief)
+## Current criteria (official, since 27.11.2026)
 
-Source: `AE.CAP_afa.md`, section "Evaluation criteria". The reviewer scores each criterion separately; the shares are rounded (they add up to 99 %).
+Source: Turing College website, copied on 27.11.2026 (`AE.CAP_afa.md`, section "Evaluation criteria"). The reviewer scores each criterion separately; the shares are rounded (they add up to 99 %).
 
-| # | Area | Criterion | Share |
+| # | Area | What the reviewer checks | Weight |
 |---|---|---|---|
-| 1 | Application and functionality | Completeness and functionality of the project | 23 % |
-| 2 | Application and functionality | User interface and interaction quality (if applicable) | 15 % |
-| 3 | Application and functionality | Clear explanation of purpose, implementation and impact; a concise README paragraph on the goal, the problem solved and how the project works | 8 % |
-| 4 | AI engineering techniques | Effective use and understanding of frameworks and tools (e.g. LangChain, Claude Code, OpenRouter) | 15 % |
-| 5 | AI engineering techniques | Best practices applied in AI engineering and application design | 15 % |
-| 6 | Security and quality | Awareness of security, privacy and quality considerations in AI application development | 15 % |
-| 7 | Showcase submission (optional) | Upload to showcase.turingcollege.com before the review; link it in the README | 8 % |
+| 1 | Application and functionality | Completeness and functionality of the project | 20 % |
+| 2 | Application and functionality | User interface and interaction quality (if applicable) | 13 % |
+| 3 | Application and functionality | Clear explanation of purpose, implementation and impact; a concise README paragraph on the goal, the problem solved and how the project works | 7 % |
+| 4 | AI engineering techniques | Effective use and understanding of frameworks and tools (e.g. LangChain, Claude Code, OpenRouter) | 13 % |
+| 5 | AI engineering techniques | Best practices applied in AI engineering and application design | 13 % |
+| 6 | AI engineering techniques | **Effective use of evals for optimising and ensuring the reliability of core AI functionalities** (new) | 13 % |
+| 7 | Security and quality | Awareness of security, privacy and quality considerations in AI application development | 13 % |
+| 8 | Showcase submission (optional) | Upload to showcase.turingcollege.com before the review; link it near the top of the README | 7 % |
 
-## With the new evals criterion (estimate)
+## What changed on 27.11.2026
 
-On 27.11.2026 Turing College added a criterion, effective immediately: **"Effective use of evals for optimising and ensuring the reliability of core AI functionalities"**, about 13 % of the score.
-
-- The announcement gives only "~13 %". It does not say how the other shares change.
-- The shares below assume the seven old shares were scaled down evenly. **They are an estimate, not the official table.** Replace them when Turing publishes the new weights.
-
-| # | Criterion | Old share | Estimated new share |
+| # | Criterion | Before (brief of 23.11.2026) | Now |
 |---|---|---|---|
-| 1 | Completeness and functionality | 23 % | ~20 % |
-| 2 | User interface and interaction quality | 15 % | ~13 % |
-| 3 | Explanation of purpose, implementation and impact (README) | 8 % | ~7 % |
-| 4 | Frameworks and tools | 15 % | ~13 % |
-| 5 | Best practices in AI engineering and design | 15 % | ~13 % |
-| 6 | Security, privacy and quality | 15 % | ~13 % |
-| 7 | Showcase submission (optional) | 8 % | ~7 % |
-| 8 | **Effective use of evals (new)** | — | **~13 %** |
+| 1 | Completeness and functionality | 23 % | 20 % |
+| 2 | User interface | 15 % | 13 % |
+| 3 | README explanation | 8 % | 7 % |
+| 4 | Frameworks and tools | 15 % | 13 % |
+| 5 | Best practices | 15 % | 13 % |
+| 6 | **Evals (new)** | — | **13 %** |
+| 7 | Security, privacy and quality | 15 % | 13 % |
+| 8 | Showcase (optional) | 8 % | 7 % |
 
-What the announcement asks for under criterion 8:
+Two more changes in the brief:
+
+- **AI evaluations are now required.** The review topics were "recommendations"; now only the relevant topics need implementing, *except AI evaluations, which every capstone must include*.
+- **The AI evaluations topic asks for more:** show eval results for the core AI functionality, and how you used them to improve the project, besides choosing representative test tasks, defining success criteria and checking that changes do not reduce quality on tasks that passed before.
+
+Turing's announcement adds what this looks like in practice:
 
 - evals for the core AI functionality (e.g. answer quality for RAG, tool choice and task completion for an agent)
 - a small set of representative test cases, a definition of "good", and runs of them
 - evidence that the results were used to improve the project, and that changes did not break cases that passed before
 - eval results brought to the review, with the choices explained
+- course refreshers: Sprint 1 Part 4 (prompt evaluation, LLM-as-a-judge), Sprint 2 Part 4 (RAGAs, DeepEval), Sprint 2 Part 5 (tool-calling evals)
 
 ## Where the project shows each criterion
 
@@ -52,6 +54,6 @@ What the announcement asks for under criterion 8:
 | 3 | README explanation | README paragraph (MKC-2), final version at release | started |
 | 4 | Frameworks and tools | LangChain for model and tool plumbing, OpenRouter with zero data retention, own harness (ADR 001); Claude Code workflow (ADR 005) | started (MKC-13 to MKC-15) |
 | 5 | Best practices | TDD, tool allow-lists, checkpoints and resume, limits, traces, ADRs and a decision log | started |
-| 6 | Security, privacy and quality | no side-effect tools for the model, untrusted data wrapped, Clerk auth, secret hygiene and gitleaks, protected deploys, backups (design section 10) | started |
-| 7 | Showcase | upload before the review | not started |
-| 8 | Evals | E1–E9 (design 11.4), per-case regression and CI gate (11.5), improvement log `eval/iterations.md` (11.6); decision 55 | planned (MKC-31, MKC-35, MKC-42) |
+| 6 | Evals | E1–E9 (design 11.4), per-case regression and CI gate (11.5), improvement log `eval/iterations.md` (11.6); decision 55 | planned (MKC-31, MKC-35, MKC-42) |
+| 7 | Security, privacy and quality | no side-effect tools for the model, untrusted data wrapped, Clerk auth, secret hygiene and gitleaks, protected deploys, backups (design section 10) | started |
+| 8 | Showcase | upload before the review, link near the top of the README | not started |
