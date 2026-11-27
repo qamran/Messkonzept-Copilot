@@ -1,6 +1,6 @@
 # Lane D: RAG
 
-**Last updated:** 27.11.2026, 20:58
+**Last updated:** 27.11.2026, 20:59
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -75,6 +75,7 @@ The tests import these; module paths and names are fixed, internals are free.
 
 ## Recent log
 
+- **27.11.2026 20:59** Development agent: `mkc.rag.loader` (`load_corpus`, `check_cache_dir`, `CorpusLicenceError`, `CorpusLoadError`; optional read-through cache keyed by URL and version); `uv run pytest tests/rag -q`: `61 passed, 1 deselected, 4 warnings, 2 errors in 16.64s` (the 2 errors are the CLI tests, next).
 - **27.11.2026 20:58** Development agent: `#184` closed; red unit tests for `load_corpus` (`uv run pytest tests/rag/test_loader_unit.py -q`: `7 failed in 1.67s`).
 - **27.11.2026 20:57** Development agent: migration `0012_corpus.py` (`down_revision = "0011"`; lane A also writes a `0012`, the coordinator re-chains the second) and the ORM block `MKC-49` at the end of `mkc/db/models.py` (own `Vector` type, no new dependency). `uv run pytest tests/rag/test_corpus_orm_unit.py tests/rag/test_corpus_tables.py tests/db -q -W error::sqlalchemy.exc.SAWarning`: `30 passed in 16.81s`.
 - **27.11.2026 20:55** Development agent: `#182` closed; red ORM tests for the corpus tables (`uv run pytest tests/rag/test_corpus_orm_unit.py -q`: `2 errors in 1.02s`, `relation "chunk" does not exist`).

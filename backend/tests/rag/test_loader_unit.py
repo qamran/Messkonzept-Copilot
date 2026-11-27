@@ -47,7 +47,6 @@ def test_an_official_only_cache_inside_the_repo_is_allowed(
     corpus_engine: Engine, sources_file: Path, embedder: FakeEmbedder, tmp_path: Path
 ) -> None:
     from mkc.rag.loader import check_cache_dir
-
     from mkc.rag.sources import LicenceClass
 
     official = [s for s in _sources(sources_file) if s.licence is LicenceClass.OFFICIAL]
@@ -130,9 +129,8 @@ class ShortEmbedder(FakeEmbedder):
 def test_a_bad_text_or_reply_stops_the_load(
     corpus_engine: Engine, sources_file: Path, embedder: FakeEmbedder, case: str
 ) -> None:
-    from mkc.rag.loader import CorpusLoadError, load_corpus
-
     from mkc.rag.embeddings import EMBEDDING
+    from mkc.rag.loader import CorpusLoadError, load_corpus
 
     texts = dict(TEXTS, musterg=" \n") if case == "empty text" else TEXTS
     used = ShortEmbedder("fake", EMBEDDING.dim) if case == "short reply" else embedder
