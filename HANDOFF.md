@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 19:22
+**Last updated:** 27.11.2026, 19:23
 
 This file is how agents resume work after a session restart.
 
@@ -207,6 +207,7 @@ From MKC-168 (decision 61), tickets run in parallel lanes. Each lane keeps its o
 
 ## Recent log
 
+- **27.11.2026 19:23** MKC-168.4: decision 61 in the design doc (the user's four choices of 27.11.2026, attributed to the user; the mechanics 5 to 9, attributed to the development agent) and the ADR 005 amendment "Parallel lanes". markdownlint 0 errors; every check script passes.
 - **27.11.2026 19:22** MKC-168.4 green (AGENTS.md): roles coordinator, test agent, development agent and review agent (one per lane or PR); the coordinator now does the `turing` push and the deploy gates; restart files (`HANDOFF.md` coordinator, `handoff/lane-<x>.md` lanes); `scripts/pre_pr.sh` before every PR; review only after `gh pr checks` is green; new section "Parallel lanes" (phases, waiting, worktrees, shared-file rules, merge queue by readiness); checklist: the test agent's red tests unchanged or explained. `check_agents.py` exit 0; markdownlint 0 errors.
 - **27.11.2026 19:21** MKC-168.4 red: `check_agents.py` wants a `## Parallel lanes` section and the terms Coordinator, Test agent, `handoff/lane-`, `scripts/pre_pr.sh`, merge queue, `gh pr checks`, `test_single_migration_head`, worktree; it fails on all nine (exit 1). #172 `In progress` (19:21:34).
 - **27.11.2026 19:21** MKC-168.3: `tests/db/test_migration_heads.py` (`test_single_migration_head` on the real versions folder; `test_a_forked_revision_makes_two_heads` on a temp copy, no database). Red shown with a forked revision `9999fork` (down_revision `0010`) put in the real folder: 2 failed, "two or more migration heads [0011, 9999fork]"; removed: 2 passed. #171 `In progress` (19:21:00).
