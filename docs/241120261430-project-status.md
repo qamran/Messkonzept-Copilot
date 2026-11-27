@@ -1,6 +1,6 @@
 # Project status: Messkonzept-Copilot
 
-**Last updated:** 26.11.2026, 23:26
+**Last updated:** 27.11.2026, 09:35
 
 This is the living status document. It is updated whenever a decision is made or work is completed. Older brainstorming material lives in `brainstorming internal/` (gitignored and frozen).
 
@@ -61,7 +61,7 @@ This is the living status document. It is updated whenever a decision is made or
   - k3s v1.37.2 with Traefik; cert-manager v1.21.3 with Let's Encrypt staging and prod issuers
   - API host `92-6-240-17.sslip.io`
   - Vercel project `messkonzept-copilot`; GitHub environment `production` with `VERCEL_TOKEN`
-- **Current ticket:** MKC-15 (Item loop, work queue and states, #15), started 26.11.2026; nothing built yet.
+- **Current ticket:** MKC-15 (Item loop, work queue and states, #15), started 26.11.2026. Built on branch `mkc-15-item-loop`: `mkc.harness.states` (edge table, `transition`), `ToolEnv` in `mkc.harness.tools`, migration 0004 (`run`, `item`, `turn`), `mkc.harness.queue` (`next_item`, `settle_run`), `mkc.harness.loop` (`run_item`, `process_run`); decision 54. No model spend: the tests use a scripted fake model.
 - **MKC-14 done** (PR #131 merged as `1a42369` on 26.11.2026, review PASS, deployed the same day). Built: `mkc.harness.tools` (`Tool`, `ToolResult`, `ToolError`, `ToolTrace`, `ToolRegistry`) and `mkc.harness.registry.default_registry()` (the six item tools and four run-level operations of design 8.1, as `not_implemented` placeholders until their tickets); decision 53 (what `side_effect` means; `save_draft` is an item tool, harness code enqueues the approval), confirmed by the user on 27.11.2026; AGENTS.md points to it.
 - **MKC-13 done** (PR #127 merged as `ab62236` on 26.11.2026, review PASS, deployed the same day). Built: `mkc.models` (`ModelClient` with `chat`, `chat_with_tools`, `vision`, `chat_structured`; role mapping and prices in `models.yaml`; record/replay; provider factory with OpenRouter zero-data-retention routing); decision 52.
 - **Live contract tests (MKC-13.6), 26.11.2026 15:58–16:00:** `cd backend && uv run --env-file .env pytest -m live tests/models/test_contract_live.py -v -s`: **12 passed**. Tool-call round-trip, structured output and vision (not a criterion; a 64×64 red PNG) for OpenRouter (`google/gemini-3.5-flash-lite`, zero-data-retention routing), Gemini (`gemini-3.5-flash-lite`, free tier), Anthropic (`claude-haiku-5-5`) and the Meta API (`muse-spark-1.3` on `api.meta.ai/v1`). The first runs (15:39–15:46) had no Meta key; Meta said "white" for a 16×16 image and "red" at 64×64, so the test image is 64 px. **Spend for the ticket:** under €0.02 by the price table (all runs plus two Meta probe calls; Anthropic prices are an OpenRouter stand-in, Gemini counted as free tier).
@@ -84,7 +84,7 @@ This is the living status document. It is updated whenever a decision is made or
 | README (intro + links for both repos) | `README.md` |
 | Official brief | `AE.CAP_afa.md` |
 
-## Decisions so far (summary; the full log of 53 decisions is in design doc section 18)
+## Decisions so far (summary; the full log of 54 decisions is in design doc section 18)
 
 - **Idea:** Messkonzept-Copilot. It extracts operator Messkonzept PDFs into structured, LBS-keyed records with human approval, and gives household site advice with citations.
 - **Primary user:** MSB, VNB and energy-IT staff working across grid areas; installers are secondary; plus a public read-only demo.
@@ -92,6 +92,7 @@ This is the living status document. It is updated whenever a decision is made or
 - **Harness (ADR 001):**
   - custom loop and control; LangChain only for model and tool plumbing; no LangGraph
   - run-level operations are code, never model tools; a side-effect tool can't be registered in the item context (decision 53)
+  - one transition function for every run and item state; tools get the item's ids from the harness, not the model (decision 54)
   - checkpoints at turn boundaries
   - a single-replica worker with a Postgres lease
 - **Core also includes (ADR 004):**
