@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 18:19
+**Last updated:** 27.11.2026, 18:34
 
 This file is how agents resume work after a session restart.
 
@@ -57,8 +57,8 @@ This file is how agents resume work after a session restart.
 
 - **MKC-20** (#20), Baseline mode, failure injection and CLI. Status `In progress`, assigned to `qamran` (27.11.2026 17:14:51). Branch `mkc-20-baseline-cli` from `21f5eb8`. The first commit holds only the close-out of MKC-19.
   - Plan: `docs/superpowers/plans/271120261738-mkc-20-baseline-faults-cli.md` (decision 60: baseline is the same loop with five switches off; fault hooks; CLI; MKC-19 findings 1 to 3).
-  - Sub-issues: MKC-20.1 #162 (`In progress`), MKC-20.2 #163, MKC-20.3 #164, MKC-20.4 #165, MKC-20.5 #166 (`Ready`).
-  - PR #167 open (18:19:01); #20 and #162 to #166 `Testing` (by 18:19:28). Next: review agent (Fable) verdict; on PASS, merge, push `turing`, approve the `cd` gates (decision 51).
+  - Sub-issues: MKC-20.1 #162 to MKC-20.5 #166, all on the board with #20.
+  - PR #167 review FAIL (Fable, comment 18:33:08): blocker 1, CI `backend` red on `ruff format --check .` (`migrations/versions/0011_run_mode.py`; my pre-PR check covered `src tests` only, 119 of 131 files). #20 and #162 to #166 back to `In progress` (by 18:34:07). Fix round: finding 1 (format), 2 (fault tests in baseline), 7 (runbook resume wording), 9 (HANDOFF and status doc slips); 3 to 6 and 8 go to MKC-32 or later (see Next steps). Then re-review.
   - Then (user request, 27.11.2026): plan how later tickets can run with several development and testing agents on work that does not intersect.
 
 ## Next steps
@@ -192,6 +192,7 @@ This file is how agents resume work after a session restart.
 
 ## Recent log
 
+- **27.11.2026 18:34** PR #167 review FAIL (Fable, comment 18:33:08; reviewed at `f9640fd`): one blocker (CI `backend` red at `ruff format --check .`, run 46040951730; mypy and pytest skipped after it), nine non-blocking findings. #20 and #162 to #166 back to `In progress` (by 18:34:07). `ruff format .` reformats `0011_run_mode.py`; `ruff format --check .` now says 131 files formatted.
 - **27.11.2026 18:19** MKC-20: PR #167 opened (18:19:01, GitHub `createdAt`); #20 and #162 to #166 set to `Testing` (by 18:19:28). Review agent (Fable) started next. The user asked for a plan to run later work with several dev and testing agents on non-intersecting work, after this ticket.
 - **27.11.2026 18:18** MKC-20 pre-PR checks at `ad7c287`: Windows `uv run pytest -q` 624 passed, 1 skipped; Linux container (`git archive HEAD` into `ghcr.io/astral-sh/uv:python3.12-bookworm`, Compose db) `tests/worker tests/harness tests/observability tests/db tests/test_cli.py` 359 passed (18:17:33); ruff, format, mypy (48 files), all check scripts, markdownlint clean; every `Refs:` trailer says `qamran/`. Commits over 200 lines (insertions plus deletions): `c719a96` 238, `172e1f1` 232, `9e97f8d` 323, `970c0ca` 233, `926bf67` 221. Docker Desktop stopped and WSL shut down (18:18:12).
 - **27.11.2026 18:16** (4) Docs: decision 60 (switch pairs, baseline status from `run_log`, known limit: a baseline crash loop in the worker has no cap, use `--inline`), design 8.3 cache line, runbook (pairs, known limit, resume and status for baseline, injected faults have no `run_log` row), backlog MKC-32 note, plan as built; HANDOFF marks MKC-19 findings 1 to 3 and MKC-18 finding 2 as done.
@@ -206,7 +207,7 @@ This file is how agents resume work after a session restart.
 - **27.11.2026 18:01** MKC-20.4: edge `stopped -> running` (`stopped` left `TERMINAL`; `settle_run` still leaves a stopped run alone), `claim_run(run_id=...)`, `Executor(faults=...)` and `run_once(run_id)`, `build_executor(make_client=..., **executor_kw)`.
 - **27.11.2026 17:57** MKC-20.4 red: 14 CLI tests (Typer runner, test database, fake model through `mkc.cli.make_client`) and the state tests for the resume edge fail on assertions; skeleton `mkc.cli`, `claim_run(run_id=...)` accepted but not used yet; `typer==0.29.3` added (with `uv.lock`).
 - **27.11.2026 17:55** MKC-20.3 green: `FaultInjector` (each fault once per injector), tool error code `timeout`, `backend/data/e4_faults.yaml` (one plan per fault type). Fault tests 10 passed; full backend suite 595 passed, 1 skipped; ruff, mypy clean. The fire-once test passed a dict as a tool call (test bug, fixed).
-- **27.11.2026 17:52** MKC-20.3 red: 10 fault tests fail on assertions (no backoff, no timeout result, no re-prompt, no kill, no plans); the loop passes `faults` to its three hooks (model call, tool call, item end), which do nothing yet. `926bf67` is 221 lines with HANDOFF, not 208 as logged.
+- **27.11.2026 17:52** MKC-20.3 red: 9 fault tests fail on assertions (the reviewer's count at `172e1f1`: 9 failed, 1 passed; this line said 10) (no backoff, no timeout result, no re-prompt, no kill, no plans); the loop passes `faults` to its three hooks (model call, tool call, item end), which do nothing yet. `926bf67` is 221 lines with HANDOFF, not 208 as logged.
 - **27.11.2026 17:51** MKC-20.2 green: the executor runs each run through `execute_run` (registry per run and mode, tool hooks passed on). Full backend suite on Windows: 585 passed, 1 skipped; ruff, mypy clean. `926bf67` has 208 lines (loop and runner in one change).
 - **27.11.2026 17:51** MKC-20.2: the switches in `run_item`/`process_run` (no turn rows, no cache, memory queue, report at the end) and `mkc.harness.runner.execute_run` (reads `run.mode`); `test_baseline.py` 9 passed.
 - **27.11.2026 17:51** MKC-20.2: `RunMemory` (in-memory queue, turns, end states, approvals; `write_report`) and the in-memory `save_draft` in `default_registry(approvals=...)`.
