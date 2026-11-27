@@ -13,6 +13,10 @@ The section "Worker lease and outages" (MKC-17.4) must name every worker timing 
 `backend/src/mkc/config.py` (`worker_*` and `database_connect_timeout_seconds`) by its
 `MKC_` variable.
 
+The section "Limits and retries" (MKC-18.4) must name every limit setting (`item_max_steps`,
+`run_max_*`, `tool_max_retries`, `model_max_retries`, `model_backoff_*`,
+`turn_timeout_seconds`, `item_max_resumes`) by its `MKC_` variable.
+
 Usage: python scripts/check_runbook.py  (exit code 0 = ok, 1 = problems)
 """
 
@@ -36,6 +40,8 @@ SECRET_KEYS = [
 LOCAL_FILES = ["backend/.env", "frontend/.env.local", "~/.ssh/oracle_mkc"]
 SERVICES = ["Oracle", "Supabase", "Clerk", "Vercel", "GitHub"]
 WORKER_HEADING = "## Worker lease and outages"
+LIMITS_HEADING = "## Limits and retries"
+LIMIT_FIELDS = r"item_max_steps|run_max_\w+|tool_max_retries|model_max_retries|model_backoff_\w+|turn_timeout_seconds|item_max_resumes"
 CONFIG = "backend/src/mkc/config.py"
 
 
@@ -58,10 +64,10 @@ def required_names(root: Path) -> list[str]:
     return sorted(names)
 
 
-def worker_settings(root: Path) -> list[str]:
-    """The `MKC_` names of the worker timing settings, read from the Settings class."""
+def worker_settings(root: Path, pattern: str = r"worker_\w+|database_connect_timeout_seconds") -> list[str]:
+    """The `MKC_` names of the Settings fields that match `pattern`, read from the Settings class."""
     source = (root / CONFIG).read_text(encoding="utf-8")
-    fields = re.findall(r"^    (worker_\w+|database_connect_timeout_seconds):", source, flags=re.MULTILINE)
+    fields = re.findall(rf"^    ({pattern}):", source, flags=re.MULTILINE)
     return sorted(f"MKC_{name.upper()}" for name in fields)
 
 
@@ -78,7 +84,15 @@ def problems(root: Path = ROOT) -> list[str]:
     if worker is None:
         return [*found, f"{RUNBOOK}: section '{WORKER_HEADING}' missing"]
     missing = [name for name in worker_settings(root) if name not in worker]
-    return found + [f"{RUNBOOK}: '{WORKER_HEADING}' does not name '{name}'" for name in missing]
+    found += [f"{RUNBOOK}: '{WORKER_HEADING}' does not name '{name}'" for name in missing]
+    limits = section(text, LIMITS_HEADING)
+    if limits is None:
+        return [*found, f"{RUNBOOK}: section '{LIMITS_HEADING}' missing"]
+    settings = worker_settings(root, LIMIT_FIELDS)
+    if len(settings) < 10:
+        found.append(f"{CONFIG}: expected the 10 limit settings, found {len(settings)}")
+    missing = [name for name in settings if name not in limits]
+    return found + [f"{RUNBOOK}: '{LIMITS_HEADING}' does not name '{name}'" for name in missing]
 
 
 if __name__ == "__main__":
