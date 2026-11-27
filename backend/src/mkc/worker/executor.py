@@ -16,6 +16,7 @@
   with backoff (1, 2, 4 … `worker_db_backoff_max_seconds`), and once the database is back it
   marks the run `waiting_for_database` (the durable trace of the outage) and returns; the next
   `run_once` claims the run back to `running` and resumes from the last complete turn.
+- Each run runs in its own mode (`run.mode`, MKC-20) through `execute_run`.
 - Tracing (MKC-19, decision 59): with a `tracer`, each run gets its trace id before work
   starts, every stop (also a setup stop) and every outage waited out is recorded, the default
   registry reports tool calls, and the tracer is flushed after each run. The model hook is
@@ -38,8 +39,8 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from mkc.config import Settings
 from mkc.harness.limits import Limits, StopReason, run_usage, stop_run
-from mkc.harness.loop import SETUP_ERRORS, process_run
-from mkc.harness.registry import default_registry
+from mkc.harness.loop import SETUP_ERRORS
+from mkc.harness.runner import execute_run
 from mkc.harness.tools import ToolRegistry
 from mkc.models.client import ModelClient
 from mkc.observability.trace import Tracer
@@ -88,8 +89,8 @@ class Executor:
         self.owner = owner or default_owner()
         self._sessions = sessions
         self._client_factory = client_factory
-        hooks = (tracer.span_tool,) if tracer is not None else ()
-        self._registry = registry or default_registry(hooks, sessions=sessions)
+        self._tool_hooks = (tracer.span_tool,) if tracer is not None else ()
+        self._registry = registry  # None: the default registry for each run's mode
         self._stop_hooks = (tracer.span_stop,) if tracer is not None else ()
         self._stop = threading.Event()
         self._closing = threading.Event()
@@ -182,11 +183,13 @@ class Executor:
         try:
             client = self._client_factory()
             with self._sessions() as session:
-                process_run(
+                execute_run(
                     run_id,
                     session=session,
+                    sessions=self._sessions,
                     client=client,
                     registry=self._registry,
+                    tool_tracers=self._tool_hooks,
                     limits=Limits.from_settings(settings),
                     inline_max_bytes=settings.turn_inline_max_bytes,
                     code_version=settings.commit,
