@@ -5,7 +5,9 @@ variable), the configured timeout and no retries of its own: retries belong to t
 so faults such as a 429 stay visible to it (E4).
 """
 
+import anthropic
 import httpx
+import openai
 import openrouter
 from langchain_anthropic import ChatAnthropic
 from langchain_core.language_models import BaseChatModel
@@ -17,7 +19,13 @@ from pydantic import SecretStr
 
 from mkc.config import Settings
 from mkc.models.client import ChatModelFactory
-from mkc.models.types import ModelConfigError, ModelError, Provider
+from mkc.models.types import (
+    ModelAuthError,
+    ModelConfigError,
+    ModelError,
+    Provider,
+    TransientModelError,
+)
 
 OPENROUTER_ROUTING = {"zdr": True, "data_collection": "deny"}
 """OpenRouter provider preferences: only zero-data-retention endpoints, no data collection."""
@@ -91,6 +99,53 @@ def make_factory(settings: Settings) -> ChatModelFactory:
     return factory
 
 
+AUTH_STATUS = frozenset({401, 403})
+"""The provider refused the key: a setup error that would fail every item (MKC-18)."""
+
+_TRANSIENT_TYPES: tuple[type[BaseException], ...] = (
+    httpx.TransportError,  # timeouts and network errors (the OpenRouter SDK lets them through)
+    TimeoutError,
+    openai.APIConnectionError,  # includes APITimeoutError (Meta's OpenAI-compatible API)
+    anthropic.APIConnectionError,
+)
+
+
 def classify_error(error: Exception) -> ModelError | None:
-    """Our error class for a provider error, or None to pass it on unchanged (MKC-18)."""
+    """Our error class for a provider error, or None to pass it on unchanged (MKC-18).
+
+    By duck typing on `status_code` (OpenRouter, OpenAI, Anthropic) or `code` (Google), so a
+    new SDK version with new class names still maps: 401/403 are `ModelAuthError`; 408, 429
+    and 5xx, timeouts and network errors are `TransientModelError`. Everything else (a 400,
+    a bug) stays as it is and fails the item.
+    """
+    if isinstance(error, ModelError):
+        return None
+    status = _status(error)
+    name = type(error).__name__
+    if status in AUTH_STATUS:
+        return ModelAuthError(f"the provider refused the key: HTTP {status} ({name})")
+    if status in (408, 429) or (status is not None and 500 <= status <= 599):
+        return TransientModelError(f"HTTP {status} ({name})", _retry_after(error))
+    if isinstance(error, _TRANSIENT_TYPES):
+        return TransientModelError(f"{name}: {error}"[:300])
     return None
+
+
+def _status(error: Exception) -> int | None:
+    for attribute in ("status_code", "code"):
+        value = getattr(error, attribute, None)
+        if isinstance(value, int) and not isinstance(value, bool) and 100 <= value <= 599:
+            return value
+    return None
+
+
+def _retry_after(error: Exception) -> float | None:
+    """`Retry-After` in seconds from the error's response; a date or junk gives None."""
+    response = getattr(error, "raw_response", None) or getattr(error, "response", None)
+    headers = getattr(response, "headers", None)
+    value = headers.get("retry-after") if headers is not None else None
+    try:
+        seconds = float(value) if value is not None else None
+    except ValueError:
+        return None
+    return seconds if seconds is not None and seconds >= 0 else None
