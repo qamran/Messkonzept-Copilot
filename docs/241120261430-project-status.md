@@ -71,6 +71,7 @@ This is the living status document. It is updated whenever a decision is made or
 - **MKC-14 done** (PR #131 merged as `1a42369` on 26.11.2026, review PASS, deployed the same day). Built: `mkc.harness.tools` (`Tool`, `ToolResult`, `ToolError`, `ToolTrace`, `ToolRegistry`) and `mkc.harness.registry.default_registry()` (the six item tools and four run-level operations of design 8.1, as `not_implemented` placeholders until their tickets); decision 53 (what `side_effect` means; `save_draft` is an item tool, harness code enqueues the approval), confirmed by the user on 27.11.2026; AGENTS.md points to it.
 - **MKC-13 done** (PR #127 merged as `ab62236` on 26.11.2026, review PASS, deployed the same day). Built: `mkc.models` (`ModelClient` with `chat`, `chat_with_tools`, `vision`, `chat_structured`; role mapping and prices in `models.yaml`; record/replay; provider factory with OpenRouter zero-data-retention routing); decision 52.
 - **Live contract tests (MKC-13.6), 26.11.2026 15:58–16:00:** `cd backend && uv run --env-file .env pytest -m live tests/models/test_contract_live.py -v -s`: **12 passed**. Tool-call round-trip, structured output and vision (not a criterion; a 64×64 red PNG) for OpenRouter (`google/gemini-3.5-flash-lite`, zero-data-retention routing), Gemini (`gemini-3.5-flash-lite`, free tier), Anthropic (`claude-haiku-5-5`) and the Meta API (`muse-spark-1.3` on `api.meta.ai/v1`). The first runs (15:39–15:46) had no Meta key; Meta said "white" for a 16×16 image and "red" at 64×64, so the test image is 64 px. **Spend for the ticket:** under €0.02 by the price table (all runs plus two Meta probe calls; Anthropic prices are an OpenRouter stand-in, Gemini counted as free tier).
+- **MKC-46 (lane C), decision-layer spike, 27.11.2026: the Jev call path via OpenRouter works** (ADR 004 amendment, decisions 68 and 69; sub-issues MKC-46.1 to 46.3, #192–#194). Built: `langchain-typesafe==0.1.0`, `MKC_DECISION_BACKEND` (default `llm`, the fallback stays the default) and `MKC_DECISION_MODEL`, `build_decision_model` (base URL `https://openrouter.ai/api`, path `/api/v1/systemone`, zero-data-retention routing in every body), `mkc.decision` (`DecisionClient`, typed answers, `DecisionError`). Live: `uv run --env-file .env pytest -m live tests/decision/test_jev_live.py -v`: "1 passed in 10.26s" (20:47:56); `~typesafe/jev-latest` resolved to `typesafe/jev-1.14-20261014`. **Spend for the ticket (six live calls, 20:40–20:48):** three printed `usage.cost` 0.000011886, 0.000011886 and 0.000017934 USD; two 404 routing probes and the pytest run printed no cost. Call log: `handoff/lane-c.md`.
 - **Next:** merge MKC-168, then wave 1 (MKC-21, MKC-36, MKC-46, MKC-49 in parallel lanes).
 
 ## Key documents
@@ -154,7 +155,7 @@ Parallel lanes write the design doc's decision log at the same time, so each lan
   - [x] a host name with TLS for the backend API (25.11.2026, `92-6-240-17.sslip.io`, decision 43)
   - [x] Oracle VM with k3s (25.11.2026, decision 44)
 - [x] Research: BDEW Codeliste der Lokationsbündelstrukturen (version, format, licence) (26.11.2026, `docs/261120261404-codeliste-research.md`, decision 50)
-- [ ] Spike: the Jev call path via OpenRouter (start of Phase 7)
+- [x] Spike: the Jev call path via OpenRouter (start of Phase 7) (27.11.2026, MKC-46: works, ADR 004 amendment)
 
 ## Evidence from spikes (24.11.2026)
 
