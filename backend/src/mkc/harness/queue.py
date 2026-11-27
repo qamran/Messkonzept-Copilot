@@ -44,6 +44,26 @@ def next_item(session: Session, run_id: int) -> Item | None:
     return item
 
 
+def resumable_item(session: Session, run_id: int) -> Item | None:
+    """The oldest `running` item of a `running` run: one a crash or a setup error left behind.
+
+    It is not locked or moved: it stays `running` and the loop resumes it (decision 56). Safe
+    only with one worker per run (MKC-17's lease); `uq_turn_item_number` stops a second writer.
+    """
+    statement = (
+        select(Item)
+        .join(Run, Run.id == Item.run_id)
+        .where(
+            Item.run_id == run_id,
+            Item.state == ItemState.RUNNING.value,
+            Run.state == RunState.RUNNING.value,
+        )
+        .order_by(Item.id)
+        .limit(1)
+    )
+    return session.scalars(statement).first()
+
+
 def settle_run(session: Session, run_id: int) -> RunState:
     """Derive the run's state from its items and store it if it changed.
 

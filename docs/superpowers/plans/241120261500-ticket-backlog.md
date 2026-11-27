@@ -337,6 +337,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
 - **Interfaces:**
   - **Produces:** `mkc.harness.checkpoint.save_turn(...)` and `load_resume_context(item_id) -> ResumeContext`.
   - Tool cache keyed by `(tool, sha256(args), document_hash)`; idempotency keys on `save_draft` and `commit_record`.
+  - **As built (decision 56):** `save_turn(session, turn, *, blobs, inline_max_bytes)`, `load_resume_context(session, item_id, *, blobs)`; the cache key adds the code version (`ToolCache(sessions, code_version)`); `record_key(env)` is the key for both writes.
 - **Test:**
   - `test_crash_after_turn_k_resumes_at_k_plus_1`
   - `test_inflight_turn_is_discarded`
@@ -363,6 +364,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
 - **Success criteria:**
   - [ ] Lease and heartbeat timings in config, documented in the runbook
   - [ ] No state lost in any of the four tests (asserted on turn counts)
+- **Note (decision 56):** the worker calls `process_run` with `code_version=Settings.commit`, `inline_max_bytes=Settings.turn_inline_max_bytes` and `default_registry(sessions=...)`. Until then the tool cache, the inline limit setting and the real `save_draft` are off in production. A database error inside `save_draft` is caught by the registry and reaches the model as `tool_failed`; decide whether it should propagate like other database errors.
 
 ### MKC-18: Limits and retries
 
@@ -378,6 +380,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
 - **Success criteria:**
   - [ ] Every stop shows its reason in the run record and the trace
   - [ ] Default limits set in config and justified in the plan for MKC-15/18
+- **Note (MKC-16 pre-PR review):** `process_run` resumes a `running` item before queued ones, with no attempt cap. An item that crashes on every restart blocks its run and pays a model call each time (a crashed call writes no turn row, so the step cap doesn't stop it). Add a resume-attempt counter on `item` and fail the item with its own reason after N attempts.
 
 ### MKC-19: Tracing (Langfuse + run log)
 
@@ -431,6 +434,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
 - **Success criteria:**
   - [ ] PDFs cached only in Storage and gitignored locally
   - [ ] Records from two editions never mixed (test)
+- **Note (decision 56):** add a Supabase Storage `BlobStore` and make it the default for turn results; `blob:sha256:` refs written to the `blob` table must stay readable.
 
 ### MKC-22: Text and table extraction
 
@@ -446,6 +450,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
 - **Success criteria:**
   - [ ] A naive pdftotext baseline function is kept for the E1 comparison
   - [ ] Both tools are deterministic and cached
+- **Note (MKC-16 pre-PR review):** Postgres JSONB rejects `\u0000`, and PDF text can hold NUL characters. Strip them from tool output before it reaches `turn`, `tool_cache` or `blob` JSON, or the item stays `running` and crashes on every resume.
 
 ### MKC-23: Render, draft assembly, save_draft
 
@@ -463,6 +468,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - `test_saved_draft_is_enqueued_for_approval_once` (by the harness, not by `save_draft`)
 - **Success criteria:**
   - [ ] `MesskonzeptDraft` JSON schema exported for the vision prompt (MKC-26)
+- **Note (decision 56):** the draft key (document hash, concept key) spans runs, so a new run of the same document overwrites a draft that may still await approval. Decide here what a save does once the draft is enqueued or approved.
 
 ### MKC-24: Gold tooling
 
@@ -565,6 +571,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
 - **Success criteria:**
   - [ ] The run reaches `done` only when every item is committed, rejected or failed
   - [ ] Berlin fully extracted and approved once, end to end (counts in the status doc)
+- **Note (decision 56):** the commit key is `mkc.harness.drafts.record_key` (document hash, concept key). `messkonzept` must have a unique constraint on it, and a test must show that a double commit leaves one record.
 
 ---
 
@@ -582,8 +589,12 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - `test_e2_masks_berlin_printed_codes`
 - **Success criteria:**
   - [ ] E1 also reports the naive pdftotext baseline from MKC-22
+  - [ ] E9 (agent trajectory, decision 55): task completion, tool-choice accuracy, valid-argument rate, refusals, steps and cost per item, read from the `turn` rows
+  - [ ] Reports store pass/fail per case; `mkc eval diff` lists the cases that passed in the previous report and fail now (decision 55)
+  - [ ] `eval/iterations.md` started: each change made because of an eval result, with metrics before and after and the cases that changed (decision 55)
   - [ ] Reports include model ids, prompt versions, spend in EUR and set sizes
   - [ ] Results summarised in the status doc
+- **Note (decision 56):** run the items with `code_version` = the git `HEAD` commit, never `dev`, so the tool cache never serves a result from before a fix. With uncommitted changes the cache must be off (`code_version=None`): `HEAD` does not name them.
 
 ### MKC-32: E4, harness vs baseline
 
@@ -634,6 +645,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
 - **Success criteria:**
   - [ ] The gate runs on a path filter; uses replay unless prompts or models changed; has a cost cap
   - [ ] Baseline and tolerance stored in the repo; the gate is a required check
+  - [ ] The gate also fails on any case of its subset that passed in the baseline and fails now, unless the PR names it as an accepted change (decision 55)
 
 ---
 
@@ -724,7 +736,8 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
 - **Depends on:** MKC-31 to MKC-35, MKC-39.
 - **Test:** vitest renders a report fixture.
 - **Success criteria:**
-  - [ ] Shows E1–E6 with set sizes, split, model ids, spend and date
+  - [ ] Shows E1–E6 and E9 with set sizes, split, model ids, spend and date
+  - [ ] Shows the regressions against the previous run and links the improvement log (decision 55)
 
 ### MKC-43: Public read-only demo
 

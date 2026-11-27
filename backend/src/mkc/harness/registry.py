@@ -14,10 +14,13 @@ number), so it has no side effect (decision 53). Harness code runs `enqueue_appr
 result; the model never queues anything itself.
 """
 
+from dataclasses import replace
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
+from sqlalchemy.orm import Session, sessionmaker
 
+from mkc.harness.drafts import make_save_draft
 from mkc.harness.tools import Tool, ToolEnv, ToolRegistry, ToolTracer
 
 
@@ -68,11 +71,11 @@ def _placeholder(ticket: str) -> Any:
 
 ITEM_TOOLS: tuple[Tool, ...] = (
     Tool("extract_text", "Text fields of one concept page.", PageArgs,
-         _placeholder("MKC-22"), side_effect=False, deterministic=True),
+         _placeholder("MKC-22"), side_effect=False, deterministic=True, cacheable=True),
     Tool("extract_tables", "Rows of the document's meter-tech or LBS table.", TablesArgs,
-         _placeholder("MKC-22"), side_effect=False, deterministic=True),
+         _placeholder("MKC-22"), side_effect=False, deterministic=True, cacheable=True),
     Tool("render_region", "Render a page region as an image (DPI capped).", RenderArgs,
-         _placeholder("MKC-23"), side_effect=False, deterministic=True),
+         _placeholder("MKC-23"), side_effect=False, deterministic=True, cacheable=True),
     Tool("read_diagram", "Read a rendered diagram into the topology schema.", ImageArgs,
          _placeholder("MKC-26"), side_effect=False, deterministic=False),
     Tool("validate_draft", "Check a draft; returns errors and warnings.", DraftArgs,
@@ -93,5 +96,13 @@ RUN_OPERATIONS: tuple[Tool, ...] = (
 )  # fmt: skip
 
 
-def default_registry(tracers: tuple[ToolTracer, ...] = ()) -> ToolRegistry:
-    return ToolRegistry(item=ITEM_TOOLS, run=RUN_OPERATIONS, tracers=tracers)
+def default_registry(
+    tracers: tuple[ToolTracer, ...] = (), *, sessions: sessionmaker[Session] | None = None
+) -> ToolRegistry:
+    """The registry of design 8.1. With `sessions`, `save_draft` is the real one (MKC-16.5);
+    tools reach the database through a factory like this, never through `ToolEnv`."""
+    item = ITEM_TOOLS
+    if sessions is not None:
+        real = make_save_draft(sessions)
+        item = tuple(replace(t, fn=real) if t.name == "save_draft" else t for t in ITEM_TOOLS)
+    return ToolRegistry(item=item, run=RUN_OPERATIONS, tracers=tracers)

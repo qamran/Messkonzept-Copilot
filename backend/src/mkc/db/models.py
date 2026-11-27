@@ -12,6 +12,7 @@ from sqlalchemy import (
     Identity,
     Index,
     Integer,
+    LargeBinary,
     Numeric,
     String,
     Text,
@@ -123,3 +124,48 @@ class Turn(Base):
     tool_results: Mapped[list[dict[str, Any]]] = mapped_column(JSONB)
     cost_eur: Mapped[Decimal] = mapped_column(Numeric(12, 6))
     created_at: Mapped[datetime] = _created()
+
+
+class Blob(Base):
+    """A large tool output, addressed by its sha256 (MKC-16.2, decision 56)."""
+
+    __tablename__ = "blob"
+
+    sha256: Mapped[str] = mapped_column(String(64), primary_key=True)
+    data: Mapped[bytes] = mapped_column(LargeBinary)
+    size: Mapped[int] = mapped_column(Integer)
+    created_at: Mapped[datetime] = _created()
+
+
+class ToolCacheRow(Base):
+    """One cached `ok` result of a deterministic document tool (MKC-16.4, decision 56)."""
+
+    __tablename__ = "tool_cache"
+    __table_args__ = (
+        UniqueConstraint(
+            "tool", "code_version", "args_hash", "document_hash", name="uq_tool_cache_key"
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
+    tool: Mapped[str] = mapped_column(Text)
+    code_version: Mapped[str] = mapped_column(Text)
+    args_hash: Mapped[str] = mapped_column(String(64))
+    document_hash: Mapped[str] = mapped_column(Text)
+    data: Mapped[Any] = mapped_column(JSONB, nullable=True)
+    created_at: Mapped[datetime] = _created()
+
+
+class Draft(Base):
+    """One item's saved draft, unique by (document hash, concept key) (MKC-16.5)."""
+
+    __tablename__ = "draft"
+    __table_args__ = (UniqueConstraint("document_hash", "concept_key", name="uq_draft_record_key"),)
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
+    document_hash: Mapped[str] = mapped_column(Text)
+    concept_key: Mapped[str] = mapped_column(Text)
+    item_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("item.id"))
+    body: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    created_at: Mapped[datetime] = _created()
+    updated_at: Mapped[datetime] = _updated()

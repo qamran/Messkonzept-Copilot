@@ -1,6 +1,6 @@
 # AI Capstone Project - AI Engineering
 
-> Source: Turing College website, copied 2026-11-23. This replaces the older repo copy (still in git history).
+> Source: Turing College website, copied 2026-11-23; updated 2026-11-27 with the new evals criterion ("AI evaluations" is now required, weights changed). Earlier copies are in git history.
 
 ## Objective
 
@@ -131,13 +131,13 @@ An agent harness is the software around an LLM that manages its tools, context, 
 During the review, you are expected to answer questions across the following topics and explain your architecture decisions, trade-offs, and results:
 
 - **Deployment:** Explain where your application runs, how you configure it and manage secrets, how you release updates, and how you handle failures.
-- **AI evaluations:** Explain how you choose representative test tasks, define success criteria, and check that changes do not reduce quality on previously passing tasks.
+- **AI evaluations:** Explain how you choose representative test tasks, define success criteria, and check that changes do not reduce quality on previously passing tasks. Show eval results for the core AI functionality of your project, and how you used them to improve it.
 - **LLM observability:** Explain how you record and inspect model requests, tool calls, latency, token usage, and cost to diagnose problems.
 - **AI safeguards:** Explain how you validate inputs and outputs, control access and tool permissions, protect sensitive data, and address prompt injection, where untrusted content tries to redirect the model.
 - **Agentic workflows:** Explain how tools, saved state, retries, execution limits, and human oversight support tasks involving multiple steps.
 - **Agentic coding techniques:** Explain how you use AGENTS.md instructions, planning, codebase exploration, reusable agent skills, and code review to guide coding agents. Show how you verify generated code and keep changes aligned with project requirements.
 
-These topics are recommendations for your project.
+You don't need to implement every topic. Implement the ones relevant to your project, and be ready to explain the others. The exception is AI evaluations: your capstone must include them.
 
 Implement the features relevant to your chosen project and bring evidence from working runs, such as evaluation results, logs, and failure tests. Be ready to explain which approaches you used, what you learnt, and their limitations. For topics that do not require implementation in your project, explain their relevance and why you chose that scope.
 
@@ -147,13 +147,14 @@ Your reviewer scores each criterion separately. The percentages below are rounde
 
 | Area | What the reviewer checks | Approx. weight |
 |---|---|---|
-| Application and functionality | Completeness and functionality of the project. | 23% |
-| Application and functionality | User interface and interaction quality (if applicable). | 15% |
-| Application and functionality | Clear explanation of purpose, implementation, and impact. A concise README.md paragraph explains the goal, the problem solved, and how the project works. | 8% |
-| AI engineering techniques | Effective use and understanding of frameworks and tools (e.g. LangChain, Claude Code, OpenRouter). | 15% |
-| AI engineering techniques | Best practices applied in AI engineering and application design. | 15% |
-| Security and quality | Awareness of security, privacy, and quality considerations in AI application development. | 15% |
-| Showcase submission (optional) | Upload before the review and include the link in your README.md. See showcase details. | 8% |
+| Application and functionality | Completeness and functionality of the project. | 20% |
+| Application and functionality | User interface and interaction quality (if applicable). | 13% |
+| Application and functionality | Clear explanation of purpose, implementation, and impact. A concise README.md paragraph explains the goal, the problem solved, and how the project works. | 7% |
+| AI engineering techniques | Effective use and understanding of frameworks and tools (e.g. LangChain, Claude Code, OpenRouter). | 13% |
+| AI engineering techniques | Best practices applied in AI engineering and application design. | 13% |
+| AI engineering techniques | Effective use of evals for optimising and ensuring the reliability of core AI functionalities. See AI evaluations. | 13% |
+| Security and quality | Awareness of security, privacy, and quality considerations in AI application development. | 13% |
+| Showcase submission (optional) | Upload before the review and include the link in your README.md. See showcase details. | 7% |
 
 ## Capstone Showcase
 

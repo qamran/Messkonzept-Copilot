@@ -89,3 +89,17 @@ def test_item_max_steps_defaults_to_12_and_reads_the_environment(
     monkeypatch.setenv("MKC_ITEM_MAX_STEPS", "0")
     with pytest.raises(ValidationError):
         Settings()
+
+
+def test_turn_inline_max_bytes_defaults_to_16384_and_reads_the_environment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from mkc.harness.checkpoint import INLINE_MAX_BYTES
+
+    monkeypatch.delenv("MKC_TURN_INLINE_MAX_BYTES", raising=False)
+    assert Settings().turn_inline_max_bytes == INLINE_MAX_BYTES == 16384
+    monkeypatch.setenv("MKC_TURN_INLINE_MAX_BYTES", "1024")
+    assert Settings().turn_inline_max_bytes == 1024
+    monkeypatch.setenv("MKC_TURN_INLINE_MAX_BYTES", "0")
+    with pytest.raises(ValidationError):
+        Settings()

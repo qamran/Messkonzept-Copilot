@@ -18,7 +18,7 @@ import time
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from types import MappingProxyType
-from typing import Any, Literal, get_args
+from typing import Any, Literal, Protocol, get_args
 
 from pydantic import BaseModel, ConfigDict, ValidationError, model_validator
 
@@ -62,6 +62,7 @@ class Tool:
     fn: Callable[[Any, ToolEnv], Any]
     side_effect: bool
     deterministic: bool
+    cacheable: bool = False
 
     def to_spec(self) -> ToolSpec:
         """What `ModelClient.chat_with_tools` takes."""
@@ -103,9 +104,18 @@ class ToolTrace:
     error_code: ErrorCode | None
     refused: bool
     latency_ms: int
+    cached: bool = False
 
 
 ToolTracer = Callable[[ToolTrace], None]
+
+
+class ResultCache(Protocol):
+    """What `execute` needs from a cache (`mkc.harness.cache.ToolCache`)."""
+
+    def get(self, tool: str, args: dict[str, Any], document_hash: str) -> Any: ...
+
+    def put(self, tool: str, args: dict[str, Any], document_hash: str, data: Any) -> None: ...
 
 
 class ToolRegistry:
@@ -125,6 +135,8 @@ class ToolRegistry:
             for tool in tools:
                 if tool.name in everything:
                     raise ValueError(f"tool {tool.name!r} is registered twice")
+                if tool.cacheable and not tool.deterministic:
+                    raise ValueError(f"tool {tool.name!r} is cacheable but not deterministic")
                 if ctx == "item" and tool.side_effect:
                     raise ValueError(
                         f"tool {tool.name!r} has a side effect and can't be an item tool"
@@ -140,7 +152,9 @@ class ToolRegistry:
     def for_context(self, ctx: Context) -> tuple[Tool, ...]:
         return self._contexts[ctx]
 
-    def execute(self, call: ToolCall, ctx: Context, env: ToolEnv) -> ToolResult:
+    def execute(
+        self, call: ToolCall, ctx: Context, env: ToolEnv, cache: "ResultCache | None" = None
+    ) -> ToolResult:
         """Run `call` in `ctx` with the harness's `env`, or return the error that says why not.
 
         Nothing the model sends makes this raise. An item-context call whose `env` lacks the
@@ -151,11 +165,46 @@ class ToolRegistry:
                 f"the item context needs item_id, document_hash and concept_key: {env}"
             )
         start = time.perf_counter()
-        result = self._run(call, ctx, env)
+        result, cached = self._cached_run(call, ctx, env, cache)
         code = result.error.code if result.error else None
         latency_ms = round((time.perf_counter() - start) * 1000)
-        self._trace(ToolTrace(call.name, ctx, result.ok, code, code in REFUSALS, latency_ms))
+        trace = ToolTrace(call.name, ctx, result.ok, code, code in REFUSALS, latency_ms, cached)
+        self._trace(trace)
         return result
+
+    def _cached_run(
+        self, call: ToolCall, ctx: Context, env: ToolEnv, cache: "ResultCache | None"
+    ) -> tuple[ToolResult, bool]:
+        """The result and whether it came from `cache`.
+
+        Only an allowed `cacheable` tool with valid arguments and a document is looked up, by
+        its validated arguments; an `ok` result with a JSON form is stored. A cache database
+        error propagates, like every database error in the loop.
+        """
+        tool = self._all.get(call.name)
+        if (
+            cache is None
+            or tool is None
+            or not tool.cacheable
+            or tool not in self._contexts[ctx]
+            or env.document_hash is None
+        ):
+            return self._run(call, ctx, env), False
+        args = _valid_args(tool, call)
+        if args is None:
+            return self._run(call, ctx, env), False
+        key = args.model_dump(mode="json")
+        hit = cache.get(tool.name, key, env.document_hash)
+        if hit is not None:
+            return ToolResult(ok=True, data=hit.data), True
+        result = self._run(call, ctx, env)
+        if result.ok:
+            try:
+                data = result.model_dump(mode="json")["data"]
+            except Exception:
+                return result, False  # not JSON: the loop reports it; nothing is cached
+            cache.put(tool.name, key, env.document_hash, data)
+        return result, False
 
     def _run(self, call: ToolCall, ctx: Context, env: ToolEnv) -> ToolResult:
         tool = self._all.get(call.name)
@@ -187,6 +236,15 @@ class ToolRegistry:
 
 def _fail(code: ErrorCode, message: str) -> ToolResult:
     return ToolResult(ok=False, error=ToolError(code=code, message=message[:_MAX_MESSAGE]))
+
+
+def _valid_args(tool: Tool, call: ToolCall) -> BaseModel | None:
+    if set(call.args) - _accepted_names(tool.args_model):
+        return None
+    try:
+        return tool.args_model.model_validate(call.args)
+    except ValidationError:
+        return None
 
 
 def _accepted_names(model: type[BaseModel]) -> set[str]:

@@ -1,15 +1,15 @@
 # Project status: Messkonzept-Copilot
 
-**Last updated:** 27.11.2026, 09:35
+**Last updated:** 27.11.2026, 11:23
 
 This is the living status document. It is updated whenever a decision is made or work is completed. Older brainstorming material lives in `brainstorming internal/` (gitignored and frozen).
 
 ## Where we are
 
-- **Phase:** implementation, Phase 0 (foundation). The design doc was **approved by the user on 24.11.2026** (after an independent review, verdict "approve with changes", all required changes applied). The backend skeleton (MKC-4) is the first application code; MKC-5 added the database layer; MKC-6 added secret hygiene and CI; MKC-7 added the frontend and the login check; MKC-8 added containers; MKC-9 added the Helm chart and the kind test; MKC-10 added continuous deployment (merged in PR #109; the first `cd.yml` run deployed the merge commit on 26.11.2026). MKC-11 added nightly backups and a proven restore; MKC-12 added the Codeliste research and the LBS reference data (PR #120). Phase 0 is done; Phase 1 started with MKC-13 (provider layer, done) and continues with MKC-14 (tool registry).
+- **Phase:** implementation, Phase 0 (foundation). The design doc was **approved by the user on 24.11.2026** (after an independent review, verdict "approve with changes", all required changes applied). The backend skeleton (MKC-4) is the first application code; MKC-5 added the database layer; MKC-6 added secret hygiene and CI; MKC-7 added the frontend and the login check; MKC-8 added containers; MKC-9 added the Helm chart and the kind test; MKC-10 added continuous deployment (merged in PR #109; the first `cd.yml` run deployed the merge commit on 26.11.2026). MKC-11 added nightly backups and a proven restore; MKC-12 added the Codeliste research and the LBS reference data (PR #120). Phase 0 is done; Phase 1 started with MKC-13 (provider layer), MKC-14 (tool registry) and MKC-15 (item loop), all done, and continues with MKC-16 (checkpoints and resume).
 - **Restart file:** `HANDOFF.md` (repo root) is the agents' running log and next steps, updated with every commit and important ticket change (decision 34). This status doc stays the overview of decisions and documents.
 - **Board:** <https://github.com/users/qamran/projects/1> (public). Tickets MKC-1 to MKC-60 exist as issues #1 to #60 (issue number = key).
-- **Done:** MKC-1 (ticket workflow and repo setup, PR #65), MKC-2 (code-only Turing mirror, README with links, PR #70), MKC-3 (agent instructions: assignment rule PR #67, HANDOFF.md PR #69, AGENTS.md + CLAUDE.md PR #72), MKC-4 (backend skeleton: uv project `backend/`, package `mkc`, FastAPI `/health` and `/api/version`, worker with clean SIGTERM shutdown, ruff and mypy strict, PR #75), MKC-5 (database layer: compose Postgres 17 + pgvector, SQLAlchemy 2, Alembic, `python -m mkc.db.check`, Supabase connection checked; PR #80), MKC-6 (secret hygiene, markdown lint, CI with required checks; PR #86), MKC-7 (frontend skeleton with Clerk; PR #91), MKC-8 (containers, Compose, GHCR image; PR #97), MKC-9 (Helm chart and kind test; PR #103), MKC-10 (continuous deployment; PR #109), MKC-11 (backups and restore drill; PRs #115 and #116), MKC-12 (PR #120), MKC-13 (PR #127), MKC-14 (PR #131). Each after a review-agent PASS; both remotes at the latest merge commit.
+- **Done:** MKC-1 (ticket workflow and repo setup, PR #65), MKC-2 (code-only Turing mirror, README with links, PR #70), MKC-3 (agent instructions: assignment rule PR #67, HANDOFF.md PR #69, AGENTS.md + CLAUDE.md PR #72), MKC-4 (backend skeleton: uv project `backend/`, package `mkc`, FastAPI `/health` and `/api/version`, worker with clean SIGTERM shutdown, ruff and mypy strict, PR #75), MKC-5 (database layer: compose Postgres 17 + pgvector, SQLAlchemy 2, Alembic, `python -m mkc.db.check`, Supabase connection checked; PR #80), MKC-6 (secret hygiene, markdown lint, CI with required checks; PR #86), MKC-7 (frontend skeleton with Clerk; PR #91), MKC-8 (containers, Compose, GHCR image; PR #97), MKC-9 (Helm chart and kind test; PR #103), MKC-10 (continuous deployment; PR #109), MKC-11 (backups and restore drill; PRs #115 and #116), MKC-12 (PR #120), MKC-13 (PR #127), MKC-14 (PR #131), MKC-15 (PR #138). Each after a review-agent PASS; both remotes at the latest merge commit.
 - **MKC-5 details** (database layer, PR #80, plan `docs/superpowers/plans/241120262130-mkc-5-database-layer.md`):
   - `docker compose up db` (repo root; the file is `compose.yaml` since MKC-8): Postgres 17 with pgvector (`pgvector/pgvector:pg17`; Supabase hosts Postgres 17) on `127.0.0.1:5433`, dev-only credentials
   - `DATABASE_URL` setting, mapped to the psycopg 3 driver; SQLAlchemy 2; `mkc.db.base.Base`, `mkc.db.session.get_session()`
@@ -61,16 +61,18 @@ This is the living status document. It is updated whenever a decision is made or
   - k3s v1.37.2 with Traefik; cert-manager v1.21.3 with Let's Encrypt staging and prod issuers
   - API host `92-6-240-17.sslip.io`
   - Vercel project `messkonzept-copilot`; GitHub environment `production` with `VERCEL_TOKEN`
-- **Current ticket:** MKC-15 (Item loop, work queue and states, #15), started 26.11.2026. Built on branch `mkc-15-item-loop`: `mkc.harness.states` (edge table, `transition`), `ToolEnv` in `mkc.harness.tools`, migration 0004 (`run`, `item`, `turn`), `mkc.harness.queue` (`next_item`, `settle_run`), `mkc.harness.loop` (`run_item`, `process_run`); decision 54. No model spend: the tests use a scripted fake model.
+- **Current ticket:** MKC-16 (Turn checkpoints, resume, tool cache, idempotency, #16), started 27.11.2026. Built on the branch: `mkc.harness.checkpoint` (`save_turn`, `load_resume_context`), `mkc.harness.blobs` (migration 0005, `blob`), `mkc.harness.cache` (migration 0006, `tool_cache`), `mkc.harness.drafts` (migration 0007, `draft`), `process_run` resumes `running` items; decision 56. No model spend.
+- **MKC-15 done** (PR #138 merged as `ff76b94` on 27.11.2026, review PASS, deployed the same day). Built: `mkc.harness.states` (edge table, `transition`), `ToolEnv`, migration 0004 (`run`, `item`, `turn`), `mkc.harness.queue` (`next_item`, `settle_run`), `mkc.harness.loop` (`run_item`, `process_run`); decision 54. No model spend.
 - **MKC-14 done** (PR #131 merged as `1a42369` on 26.11.2026, review PASS, deployed the same day). Built: `mkc.harness.tools` (`Tool`, `ToolResult`, `ToolError`, `ToolTrace`, `ToolRegistry`) and `mkc.harness.registry.default_registry()` (the six item tools and four run-level operations of design 8.1, as `not_implemented` placeholders until their tickets); decision 53 (what `side_effect` means; `save_draft` is an item tool, harness code enqueues the approval), confirmed by the user on 27.11.2026; AGENTS.md points to it.
 - **MKC-13 done** (PR #127 merged as `ab62236` on 26.11.2026, review PASS, deployed the same day). Built: `mkc.models` (`ModelClient` with `chat`, `chat_with_tools`, `vision`, `chat_structured`; role mapping and prices in `models.yaml`; record/replay; provider factory with OpenRouter zero-data-retention routing); decision 52.
 - **Live contract tests (MKC-13.6), 26.11.2026 15:58–16:00:** `cd backend && uv run --env-file .env pytest -m live tests/models/test_contract_live.py -v -s`: **12 passed**. Tool-call round-trip, structured output and vision (not a criterion; a 64×64 red PNG) for OpenRouter (`google/gemini-3.5-flash-lite`, zero-data-retention routing), Gemini (`gemini-3.5-flash-lite`, free tier), Anthropic (`claude-haiku-5-5`) and the Meta API (`muse-spark-1.3` on `api.meta.ai/v1`). The first runs (15:39–15:46) had no Meta key; Meta said "white" for a 16×16 image and "red" at 64×64, so the test image is 64 px. **Spend for the ticket:** under €0.02 by the price table (all runs plus two Meta probe calls; Anthropic prices are an OpenRouter stand-in, Gemini counted as free tier).
-- **Next:** MKC-15 (item loop), then MKC-16 (checkpoints and resume).
+- **Next:** MKC-16 (checkpoints and resume), then MKC-17.
 
 ## Key documents
 
 | Document | Path |
 |---|---|
+| Capstone grading criteria (shares, new evals criterion, evidence per criterion) | `docs/271120261003-eval-criteria-capstone.md` |
 | Design doc | `docs/superpowers/specs/241120261330-messkonzept-copilot-design.md` |
 | Architecture Decision Record (ADR) 001: custom harness on LangChain plumbing | `docs/adr/241120261430-adr-001-harness.md` |
 | ADR 002: Vercel frontend, k3s backend (+ worker, CD hardening) | `docs/adr/241120261430-adr-002-hosting.md` |
@@ -84,7 +86,7 @@ This is the living status document. It is updated whenever a decision is made or
 | README (intro + links for both repos) | `README.md` |
 | Official brief | `AE.CAP_afa.md` |
 
-## Decisions so far (summary; the full log of 54 decisions is in design doc section 18)
+## Decisions so far (summary; the full log of 56 decisions is in design doc section 18)
 
 - **Idea:** Messkonzept-Copilot. It extracts operator Messkonzept PDFs into structured, LBS-keyed records with human approval, and gives household site advice with citations.
 - **Primary user:** MSB, VNB and energy-IT staff working across grid areas; installers are secondary; plus a public read-only demo.
@@ -93,13 +95,14 @@ This is the living status document. It is updated whenever a decision is made or
   - custom loop and control; LangChain only for model and tool plumbing; no LangGraph
   - run-level operations are code, never model tools; a side-effect tool can't be registered in the item context (decision 53)
   - one transition function for every run and item state; tools get the item's ids from the harness, not the model (decision 54)
-  - checkpoints at turn boundaries
+  - checkpoints at turn boundaries; an interrupted item resumes from its last complete turn; large results as blob refs; a tool cache keyed by code version; `save_draft` idempotent by a key from the harness (decision 56)
   - a single-replica worker with a Postgres lease
 - **Core also includes (ADR 004):**
   - RAG over a narrow corpus: EnWG §14a, MsbG, BK6-22-300, BK8-22/010-A, operator texts
   - a decision layer (Jev via OpenRouter after a spike; LLM fallback by default)
+- **New grading criterion (27.11.2026, decision 55):** Turing College added "effective use of evals" (13 % of the score; evals are now required; the other weights dropped, see `docs/271120261003-eval-criteria-capstone.md`). The plan adds E9 (agent trajectory), per-case regression in the runner and CI gate, and the improvement log `eval/iterations.md`.
 - **Evaluation:**
-  - E1–E8
+  - E1–E9 (E9 agent trajectory, decision 55)
   - independent gold: a different drafting model, blind subsets, a dev/test split
   - E4 with a no-fault arm and replayed fault runs
   - a CI eval gate
