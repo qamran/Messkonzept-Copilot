@@ -14,6 +14,9 @@ env:
   MKC_CORS_ORIGINS: https://messkonzept-copilot.vercel.app
   # ... and the Vercel previews of this project and team, for CORS and azp (decision 45).
   MKC_CORS_ORIGIN_REGEX: '^https://messkonzept-copilot-[a-z0-9-]+-qamran\.vercel\.app$'
+  # Langfuse traces from production carry this environment (MKC-19). The keys are in
+  # mkc-secrets; without them the worker traces to run_log only.
+  MKC_LANGFUSE_ENVIRONMENT: production
 
 ingress:
   enabled: true
