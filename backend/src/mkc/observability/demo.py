@@ -7,7 +7,17 @@ state and its trace id. Needs `MKC_MODEL_MODE=live` (it spends a few cents at mo
 `DATABASE_URL` that is not on this machine.
 """
 
-from sqlalchemy.orm import Session
+import sys
+
+from sqlalchemy import create_engine
+from sqlalchemy.engine import make_url
+from sqlalchemy.orm import Session, sessionmaker
+
+from mkc.config import Settings
+from mkc.db.models import Item, Run
+from mkc.harness.states import ItemState, RunState
+
+LOCAL_HOSTS = {"127.0.0.1", "localhost", "::1"}
 
 TASK = {
     "operator": "Stadtwerke Musterstadt",
@@ -19,10 +29,45 @@ TASK = {
 
 def make_demo_run(session: Session) -> int:
     """A `running` run with one `queued` synthetic item. The caller commits."""
-    return 0
+    run = Run(state=RunState.RUNNING.value)
+    session.add(run)
+    session.flush()
+    session.add(
+        Item(
+            run_id=run.id,
+            concept_key=TASK["concept_key"],
+            document_hash="sha256:demo",
+            task=dict(TASK),
+            state=ItemState.QUEUED.value,
+        )
+    )
+    session.flush()
+    return run.id
 
 
 def main() -> int:
+    settings = Settings()
+    if settings.model_mode != "live":
+        print("the demo needs MKC_MODEL_MODE=live (it makes real model calls)", file=sys.stderr)
+        return 2
+    if make_url(settings.database_url).host not in LOCAL_HOSTS:
+        print("the demo writes a run: point DATABASE_URL at a local database", file=sys.stderr)
+        return 2
+    from mkc.worker.main import build_executor  # the worker's own wiring
+
+    engine = create_engine(settings.database_url)
+    sessions = sessionmaker(bind=engine)
+    with sessions() as session:
+        run_id = make_demo_run(session)
+        session.commit()
+    executor = build_executor(settings, sessions)
+    with executor:
+        executor.run_once()
+    with sessions() as session:
+        run = session.get_one(Run, run_id)
+        print(f"run {run_id}: {run.state} {run.stop_reason or ''}".rstrip())
+        print(f"trace id: {run.trace_id}")
+    engine.dispose()
     return 0
 
 
