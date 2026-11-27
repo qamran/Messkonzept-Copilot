@@ -1,6 +1,6 @@
 # Lane A: Extraction
 
-**Last updated:** 27.11.2026, 23:49
+**Last updated:** 27.11.2026, 23:51
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -15,7 +15,10 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 
 ## In progress
 
-- `MKC-22` (`#22`, `In progress`, assigned to `qamran`): the test agent's red acceptance tests are pushed, in red commits `60c1f2e` to `c72296d` (`git diff c72296d -- backend/tests` shows any later change to them). The development agent builds against them.
+- `MKC-22` (`#22`, `In progress`, assigned to `qamran`): built by the development agent against the test agent's red tests (red commits `60c1f2e` to `c72296d`; `git diff c72296d -- backend/tests` shows only added files, none of the red files changed). Code and docs are done; the branch waits for the test agent's mutation pass, then the PR.
+- Built: `mkc/extraction/text.py`, `tables.py`, `naive.py`, `cleantext.py`; the item tools in `registry.py` (`TextArgs`) and `DocumentOps.extract_text` / `extract_tables`; fetch hardening in `fetch.py`; `is_valid_code` (`mkc/reference/lbs.py`) and `ToolRegistry.execute` (`mkc/harness/tools.py`). Decisions 76 (text fields), 77 (tables, baseline), 78 (fetch hardening) in design section 18; decision 62 (5) notes the hop rules; status doc, backlog "As built" and runbook "The allow-list" updated. No new dependency, no migration, no `config.py` change.
+- The development agent's own tests (added files, for the PR body): `test_text_rules.py`, `test_table_rules.py`, `test_extract_args.py`, `test_fetch_limits.py`.
+- Coordinator's answers (27.11.2026): assumptions 1, 3, 5 and 6 confirmed; 2 decided by the development agent (decision 76 (2): kept as printed); 4 checked by the live run (passed); 7 goes to MKC-23 (wiring `DocumentOps` through `runner.py` and the executor).
 - Red run at `c72296d`: `uv run pytest tests/extraction -q`: `32 failed, 81 passed, 1 skipped, 4 deselected in 6.31s`; full suite `uv run pytest -q`: `43 failed, 947 passed, 2 skipped, 18 deselected, 4 warnings in 105.80s (0:01:45)`, all 43 failures this ticket's red tests. `ruff check .`: "All checks passed!"; `ruff format --check .`: "217 files already formatted".
 - Commits over 200 lines (for the PR body): `60c1f2e` (347 insertions, 84 deletions: the synthetic documents and the lane file rewrite) and `b989630` (211 insertions).
 - Sub-issues (all `In progress`, assigned to `qamran`, linked to #22): #208 `MKC-22.1` text fields, #209 `MKC-22.2` table rows and the naive baseline, #210 `MKC-22.3` the cached item tools, #211 `MKC-22.4` fetch hardening (PR #197 findings 1 to 4 and 7), #212 `MKC-22.5` reference and tool-registry hardening, #213 `MKC-22.6` docs and the live check.
@@ -61,11 +64,14 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 
 ## Next steps
 
-1. Development agent: sub-issues (MKC-22.x, one for fetch hardening), then build MKC-22 test-first against the pinned interfaces.
-2. Development agent: the first live run (`uv run pytest -m live tests/extraction/test_live_extract.py`) with the coordinator's go.
-3. Test agent: mutation pass on the development agent's code.
+1. Test agent: mutation pass on the development agent's code (`text.py`, `tables.py`, `naive.py`, `cleantext.py`, the item tools, the fetch hardening, `is_valid_code`, `execute`); the development agent closes the survivors, then opens the PR.
+2. MKC-23 (lane A's next ticket): pass `documents=DocumentOps(...)` from `execute_run` (`mkc/harness/runner.py`) and the worker executor, so real runs get the real `extract_text` and `extract_tables` (the coordinator grants `runner.py` then); tell the model `page` and `bbox` in the item's task or prompt.
+3. MKC-28: `validate_draft` must flag a stated code that fails the check digit or is not in the Codeliste (extraction keeps it as printed, decision 76 (2)).
+4. Coordinator: `MKC_TEST_IMAGE` in CI's `image` job, so `test_image_operators.py` runs (decision 78 (6)).
 
 ## Recent log
+
+- **27.11.2026 23:51** Development agent: docs: decisions 76 to 78 in design section 18, decision 62 (5) notes the hop rules, status doc line, backlog "As built", runbook "The allow-list". Full suite at `a4dc979` (`uv run pytest -q`): `1009 passed, 2 skipped, 18 deselected, 4 warnings in 103.00s (0:01:42)`. Fetch disclosed: the Berlin PDF was downloaded once with `curl` at 23:35 (sha256 `4e12c90f…29a18`) into a scratch folder outside the repo to read the real table grids and concept pages; deleted at 23:51. No model calls.
 
 - **27.11.2026 23:49** Development agent: fetch hardening (PR #197 findings 1 to 4): a redirect to a URL with userinfo is refused before it is requested; the client's jar refuses every cookie; `is_allowed_url` allows only the default port and is False for a malformed one; `http_get` streams and raises `DownloadTooLarge` past `MAX_DOWNLOAD_BYTES` (50 MiB), `content-length` only as an early exit. `pytest tests/extraction`: `132 passed, 1 skipped, 4 deselected`. My `test_fetch_limits.py` (malformed `content-length`) was written with the code; against a plain `int()` it gives `2 failed, 1 passed`.
 
