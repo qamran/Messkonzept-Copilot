@@ -166,6 +166,23 @@ class Settings(BaseSettings):
     """The operator allow-list. Empty = `backend/data/operators.yaml` next to the source; the
     image sets `/app/data/operators.yaml`."""
 
+    storage_s3_endpoint: str = ""
+    """Supabase Storage's S3 endpoint, `https://<project ref>.storage.supabase.co/storage/v1/s3`.
+    All five storage settings set = PDFs and large turn results go to Storage; none set =
+    a local run (PDFs in `backend/.cache/blobs`, turn results in the `blob` table)."""
+
+    storage_s3_region: str = ""
+    """The project's Storage region (`eu-west-1`)."""
+
+    storage_bucket: str = ""
+    """The private bucket (`mkc-storage`)."""
+
+    storage_access_key_id: str = ""
+    """The S3 access key id (key `mkc-backend`)."""
+
+    storage_secret_access_key: SecretStr = SecretStr("")
+    """The S3 secret access key. A secret: never logged."""
+
     @model_validator(mode="after")
     def _lease_outlives_renewals(self) -> "Settings":
         """A lease must survive two missed renewals, or a slow database loses it."""
