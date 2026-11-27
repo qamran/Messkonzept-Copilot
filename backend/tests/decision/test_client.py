@@ -166,6 +166,28 @@ def test_an_answer_of_the_wrong_type_is_a_decision_error() -> None:
         _decide(body, _spike_questions())
 
 
+def test_a_choice_answer_to_a_noul_question_is_a_decision_error() -> None:
+    t = _types()
+    body = _spike_answers()
+    body["answers"]["has_pv"] = choice("household", {"household": 1.0}, 1.0)
+    with pytest.raises(t.DecisionError, match="has_pv"):
+        _decide(body, _spike_questions())
+
+
+def test_a_choice_question_is_sent_with_its_instructions_and_label_texts() -> None:
+    _, model = _decide(_spike_answers(), _spike_questions())
+    sent = model.seen[0][1]["scope"]
+    assert sent.instructions == "Which customer segment is this site?"
+    assert sent.criteria["household"] == "A private household."
+    assert sent.criteria["medium_voltage"] == "A site on medium voltage."
+
+
+def test_a_two_label_choice_question_is_accepted() -> None:
+    t = _types()
+    question = t.ChoiceQuestion(instructions="Which one?", criteria={"a": "A.", "b": "B."})
+    assert set(question.criteria) == {"a", "b"}
+
+
 def test_a_choice_outside_the_criteria_is_a_decision_error() -> None:
     t = _types()
     body = _spike_answers()
