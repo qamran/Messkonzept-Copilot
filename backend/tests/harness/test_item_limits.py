@@ -183,3 +183,18 @@ def test_a_first_claim_is_not_a_resume(engine: Engine) -> None:
     run_id, (item_id,) = make_run(engine, "queued")
     resume(engine, run_id, fake(error=RuntimeError("x")), [])
     assert item_row(engine, item_id).attempts_without_progress == 0
+
+
+def test_deploys_never_accumulate_resume_attempts(engine: Engine) -> None:
+    """A deploy is SIGTERM after a stored turn, then a resume. With a cap of 1, five deploys in
+    a row never fail the item: each resume counts 1 and the next stored turn sets it to 0."""
+    run_id, (item_id,) = start(engine)
+    for _ in range(5):
+        with Session(engine) as session:
+            process_run(run_id, session=session, client=client_for(fake(ai(tool_calls=[READ]))),
+                        registry=Tools().registry(),
+                        limits=Limits(max_resumes_item=1, max_steps_item=20),
+                        should_stop=_after(1))  # fmt: skip
+        assert item_row(engine, item_id).state == "running"
+    resume(engine, run_id, fake(ai(tool_calls=[SAVE])), [])
+    assert item_row(engine, item_id).state == "draft_saved"
