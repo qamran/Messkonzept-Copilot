@@ -1,6 +1,6 @@
 # Lane B: Advisor
 
-**Last updated:** 27.11.2026, 21:18
+**Last updated:** 27.11.2026, 21:23
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md`. Times are local time from git and GitHub, never estimated.
 
@@ -116,11 +116,13 @@ With the two new tests: `uv run pytest tests/advisor -q` gives `54 passed in 10.
 ## Next steps
 
 1. Done: the test agent's mutation pass (above).
-2. Development agent, on the coordinator's word: open the PR (`Closes #36`; disclose `frontend/src/test/setup.ts` and the test agent's ruff isort block), move #36, #176, #177, #178, #180 and #183 to `Testing`.
-3. Then MKC-37 waits on lane A's MKC-30.
+2. Development agent (the coordinator's word came after the mutation pass): open the PR from this commit (`Closes #36`), move #36, #176, #177, #178, #180 and #183 to `Testing`. The PR number goes into the next lane commit.
+3. Review agent: starts when `gh pr checks` is green (the coordinator starts it).
+4. Then MKC-37 waits on lane A's MKC-30.
 
 ## Recent log
 
+- **27.11.2026 21:23** Development agent: pulled the test agent's `ac30db9` and `f75c9fa`; on `f75c9fa` `bash scripts/pre_pr.sh` exits 0 (`716 passed, 1 skipped, 12 deselected in 128.09s (0:02:08)`, `pre-PR gate: all steps passed`) and CI's frontend commands exit 0 (`Test Files  10 passed (10)`, `Tests  54 passed (54)`). Opening the PR; tickets to `Testing`.
 - **27.11.2026 21:18** Test agent: mutation pass on `37151fe`. Backend `tried 40, killed 37, survived 3`; frontend `tried 30, killed 27, survived 3`. `ac30db9` adds two acceptance tests that kill survivors 1 and 2; survivors 3 to 6 are listed above.
 - **27.11.2026 21:00** Development agent: more frontend cases for the mutation pass (generation-meter wording, "Other consumer", the button disabled while extracting, a second extraction clears the questions); the card's `key` was redundant (the page unmounts the card on a new extraction) and is gone. `npx vitest run` gives `Test Files  10 passed (10)`, `Tests  53 passed (53)`.
 - **27.11.2026 20:54** Development agent: `bash scripts/pre_pr.sh` on `d16ca1a`: exit 0, `715 passed, 1 skipped, 12 deselected in 129.53s`, `pre-PR gate: all steps passed`; CI frontend commands (`npm ci`, lint, typecheck, `npm test`: `Tests  49 passed (49)`, build) pass. No test agent test changed. Branch pushed; PR waits for the mutation pass.
