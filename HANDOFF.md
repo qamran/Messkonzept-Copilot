@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 18:38
+**Last updated:** 27.11.2026, 18:41
 
 This file is how agents resume work after a session restart.
 
@@ -193,6 +193,7 @@ This file is how agents resume work after a session restart.
 
 ## Recent log
 
+- **27.11.2026 18:41** Fix-round checks at `5bea12e`, with CI's exact `backend` steps: Windows `uv sync --locked` ok, `ruff check .` all passed, `ruff format --check .` 131 files formatted, `mypy` no issues in 48 files, `pytest -q` 627 passed, 1 skipped. Linux container with the whole repo (`git archive HEAD`, Compose db): `pytest -q -rs` 628 passed, none skipped, exit 0 (18:41:10); a first Linux run with only `backend/` archived failed 2 tests on the missing root `.env.example` (an artefact of that run). Docker Desktop stopped and WSL shut down (18:41:21). Pushing; the re-review starts only after `gh pr checks 167` is green.
 - **27.11.2026 18:38** Review findings 7 and 9: runbook resume wording for baseline (open items run again; ended items keep their state, a `draft_saved` baseline item has no `draft` row), backlog notes (MKC-32 open points, MKC-23 note), status doc (PR #167 state, Next, `Last updated`), HANDOFF "In progress" and the wrong figures of 17:51, 17:52 and 18:01 corrected. Remaining findings listed under Next steps. Process change after the user's question: run CI's exact commands, copy numbers from output, times from `date`/git, review only after green checks.
 - **27.11.2026 18:37** Review finding 2: the 429, malformed-reply and tool-timeout tests now run in both modes (`tests/harness/test_faults.py` 13 passed). Mutation check: with baseline's `max_reprompts` forced to 0 in `run_item`, `test_malformed_reply_gets_the_reprompt[baseline]` fails (1 failed, 12 passed); mutant reverted, 13 passed.
 - **27.11.2026 18:34** PR #167 review FAIL (Fable, comment 18:33:08; reviewed at `f9640fd`): one blocker (CI `backend` red at `ruff format --check .`, run 46040951730; mypy and pytest skipped after it), nine non-blocking findings. #20 and #162 to #166 back to `In progress` (by 18:34:07). `ruff format .` reformats `0011_run_mode.py`; `ruff format --check .` now says 131 files formatted.
