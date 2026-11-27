@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 19:38
+**Last updated:** 27.11.2026, 19:39
 
 This file is how agents resume work after a session restart.
 
@@ -207,6 +207,7 @@ From MKC-168 (decision 61), tickets run in parallel lanes. Each lane keeps its o
 
 ## Recent log
 
+- **27.11.2026 19:39** MKC-168.1: the CRLF case of `test_commit_report.py` never reached the script (`git commit -m` strips carriage returns); it now commits with `--cleanup=verbatim` and asserts the raw message holds a carriage return. 8 passed.
 - **27.11.2026 19:38** MKC-168.3: pre-PR advisor check (about 19:33): two lanes cut from the same `main` both write revision `0012`; Alembic only warns ("Revision 0011 is present more than once") and lists the id twice. Added `duplicate_revisions` with `test_revision_ids_are_unique` (real folder) and `test_a_second_revision_with_the_heads_id_is_caught` (copy); mutation (`> 2` for `> 1`): 1 failed, 3 passed; restored: 4 passed.
 - **27.11.2026 19:30** MKC-168.1 fix: the first real gate run (19:27:45) exited 0, but its pytest step showed 647 passed, 12 skipped: the 11 gate tests skipped themselves, since under Git Bash `git` is `mingw64/bin/git.exe` and the bash lookup only tried `cmd/`. New test `test_git_bash_is_found_from_either_git`: with the old lookup 1 failed, 1 passed; with the new one (up to three parents) 2 passed. A second gate run (19:30:14) failed on `ruff format --check` (two blank lines missing in the test): the gate caught it before a commit; its pytest step had 660 passed, 1 skipped (the Windows SIGTERM test).
 - **27.11.2026 19:25** MKC-168: the plan's setup checklist ticked, with an "As built" note. Docker Desktop started for the real gate run.

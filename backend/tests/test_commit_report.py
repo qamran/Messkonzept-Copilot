@@ -32,11 +32,11 @@ def repo(tmp_path: Path) -> Path:
     return tmp_path
 
 
-def _commit(repo: Path, message: str, lines: int = 1) -> None:
+def _commit(repo: Path, message: str, lines: int = 1, *flags: str) -> None:
     path = repo / f"f{len(list(repo.glob('f*.txt')))}.txt"
     path.write_text("".join(f"{i}\n" for i in range(lines)), encoding="utf-8")
     _git(repo, "add", ".")
-    _git(repo, "commit", "-q", "-m", message)
+    _git(repo, "commit", "-q", *flags, "-m", message)
 
 
 def _report(repo: Path) -> tuple[int, str]:
@@ -48,7 +48,12 @@ def _report(repo: Path) -> tuple[int, str]:
 
 def test_good_commits_pass(repo: Path) -> None:
     _commit(repo, f"MKC-168: add a\n\nBody.\n\n{GOOD_REFS}\n\nCo-Authored-By: X <x@example.com>")
-    _commit(repo, f"MKC-168.1: add b\r\n\r\n{GOOD_REFS}\r\n")
+    # verbatim: without it git strips the carriage returns before the script sees them
+    _commit(repo, f"MKC-168.1: add b\r\n\r\n{GOOD_REFS}\r\n", 1, "--cleanup=verbatim")
+    raw = subprocess.run(
+        ["git", "show", "-s", "--format=%B", "HEAD"], cwd=repo, capture_output=True
+    )
+    assert b"\r" in raw.stdout
     code, out = _report(repo)
     assert code == 0, out
     assert "2 commits" in out
