@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 22:44
+**Last updated:** 27.11.2026, 23:01
 
 This file is how agents resume work after a session restart.
 
@@ -23,7 +23,7 @@ This file is how agents resume work after a session restart.
 - **Remotes:**
   - `origin` = qamran/Messkonzept-Copilot (home, public)
   - `turing` = TuringCollegeSubmissions/qshahz-AE.CAP.AFA.1.1 (code-only mirror, no issues; ADR 005 option (c), decision 35)
-  - Both at `2a841a2` (merge of PR #197).
+  - Both at `d7fad1e` (merge of PR #199).
 - **`main` is protected:** PRs only, enforced for admins. Required checks: the `ci` jobs `backend`, `frontend`, `gitleaks`, `dependency-scan` and `docs` (since 25.11.2026 09:50, MKC-6.5) `image` (since 13:52, MKC-8) and `kind` (since 15:42, MKC-9); the branch must be up to date with `main`. `publish` is not required (skipped on PRs).
 - **Agent rules:** `AGENTS.md` (CLAUDE.md imports it). The development agent continues without asking and stops only for genuine decisions (decision 36).
 - **Done:**
@@ -73,9 +73,9 @@ Shared-code rules for wave 1 beyond AGENTS.md (the coordinator's, in each lane b
 
 ## In progress
 
-- **MKC-175** (#175), Wave 1 coordinator log: created 20:08:41, `In progress`, assigned to `qamran`; branch `mkc-175-wave-1-coordinator`, `main` merged in after the last wave 1 merge. It carries this file's entries, the AGENTS.md fixes (PR #174 findings 1, 6, 9; `EmbeddingClient` in the model rule), decisions 67, 70 and 73 marked "not used" and the status doc's wave 1 lines. Next: its PR, review, merge, deploy.
+- **MKC-175** (#175, created 20:08:24 per GitHub), Wave 1 coordinator log: done (PR #199, merged as `d7fad1e`, deployed). This closeout branch `mkc-175-wave-1-closeout` holds the post-merge log; the next coordinator PR (wave 2's coordinator issue) carries it to `main`.
 - **Wave 1 done (27.11.2026):** MKC-46 (PR #195, `085323a`), MKC-36 (PR #196, `046f61e`), MKC-21 (PR #197, `2a841a2`), MKC-49 (PR #198, `6681d48`), each review PASS, merged and deployed (log below). Every lane: red acceptance tests by the test agent, the development agent, a mutation pass, `pre_pr.sh`, PR, review after green checks.
-- **Next: wave 2** (after the MKC-175 PR merges): MKC-22 (lane A), MKC-27 (lane A2; MKC-21 is merged), MKC-50 (lane D). Lane B pauses until MKC-30 (MKC-37), lane C until MKC-26 (MKC-47). Assign decision blocks from 76 (lane A2 has 74–75). Worktrees: remove the four wave 1 worktrees (`git worktree remove`) and cut new ones from `main`. Recommended: start wave 2 in a fresh session (this one's context is large).
+- **Next: wave 2:** MKC-22 (lane A), MKC-27 (lane A2; MKC-21 is merged), MKC-50 (lane D). Lane B pauses until MKC-30 (MKC-37), lane C until MKC-26 (MKC-47). Assign decision blocks from 76 (lane A2 has 74–75). The four wave 1 worktrees are removed (23:01, all clean and pushed); cut new ones from `main` in `<lanes>`. Open wave 2's coordinator issue and cut its branch from this closeout branch. Recommended: start wave 2 in a fresh session (this one's context is large).
 - Process rules after the MKC-20 FAIL round: run CI's exact commands (now `bash scripts/pre_pr.sh`) before any claim; copy numbers from output; times from `date`, git or GitHub; start the review only after `gh pr checks` is green.
 
 ## Next steps
@@ -224,6 +224,8 @@ Shared-code rules for wave 1 beyond AGENTS.md (the coordinator's, in each lane b
 - **The user's PC:** it went down without a clean shutdown on 23.11 and 26.11.2026 (cause not found; graphics-driver hang reports on both days; a memory test is not done yet). Commit and push often. Two files exist only on the PC: the VM's admin SSH key and `backend/.env` (runbook "Only on the PC"); the user was advised to copy them into a password manager.
 
 ## Recent log
+
+- **27.11.2026 23:01** PR #199 (MKC-175, coordinator) review PASS (Fable, comment 22:54:48; 9 non-blocking findings: (1) the remotes line was stale, fixed here; (2) #175 was created 20:08:24 per GitHub, not 20:08:41, fixed here; (3) the status doc header time 22:45 is not a git time; (4) PR #174's body showed the PC's folder path: edited to `<repo>` by the coordinator at 22:56:07; (5) AGENTS.md does not say how the coordinator's lane-branch edits fit "no two agents write the same worktree at the same time" (in wave 1 the coordinator edited a lane worktree only after its agents had finished); (6) the backlog (line 38) and `handoff/lane-d.md` still have the old model rule without `EmbeddingClient`, and the plan's section 2 may still say "rebase"; (7) a stray `**` in the status doc's MKC-46 line; (8) the status doc's lane D section is stale and its block table lists "76–" before "74–75"; (9) the backlog lane table needed no change in wave 1), merged as `d7fad1e` (22:54:59). #175 `Done` (22:55:42). `main` pushed to `turing` (22:55:45); `origin/main` = `turing/main` = `d7fad1e`. `cd` run 46073341792: `image` 22:55:05 to 22:58:41; `backend` approved at 22:58:56, ran 22:58:57 to 22:59:49; `frontend` approved at 23:00:06, ran 23:00:08 to 23:00:48; run exit 0. Checked: `/api/version` commit `d7fad1e...`, `/health` 200 (23:00:56). Docker Desktop stopped and WSL shut down (22:47:46, after the coordinator gate). Wave 1 worktrees removed. Findings 3 and 5 to 9 go to the wave 2 coordinator PR.
 
 - **27.11.2026 22:44** PR #198 (MKC-49, lane D) review PASS (Fable, comment 22:36:01; it re-checked the coordinator's merge commit `691d130` and the migration re-chain; findings under Next steps item 0), merged as `6681d48` (22:36:04). #179, #181, #182, #184, #185, #186 closed by the coordinator; #49 and the sub-issues set `Done` (22:37:36). `main` pushed to `turing` (22:37:39); `origin/main` = `turing/main` = `6681d48`. `cd` run 46071365597 (migration 0012 -> 0013 by the hook Job): `image` 22:36:09 to 22:40:44; `backend` approved at 22:41:00, ran 22:41:02 to 22:41:57; `frontend` approved at 22:42:10, ran 22:42:12 to 22:42:54; run exit 0. Checked: `/api/version` commit `6681d48...`, `/health` 200 (22:43:03). Wave 1 is done: decisions 67, 70 and 73 marked "not used"; `main` merged into this branch.
 
