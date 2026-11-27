@@ -1,6 +1,6 @@
 # Lane D: RAG
 
-**Last updated:** 27.11.2026, 23:42
+**Last updated:** 27.11.2026, 23:45
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -31,7 +31,7 @@ The tests import these; module paths and names are fixed, internals are free.
     - `ValueError` for `k < 1`, `k > MAX_K` or a blank query, before the embedder is called
     - the query is embedded once with `embedder.embed_query(query)`, the raw query; `embed` is never called by the retriever
   - `RetrievalTrace` (dataclass): at least `latency_ms: int` (the whole call, embedding included), `k`, `query_chars`, `returned`, `keyword_hits`, `vector_hits`, `error: str | None` (`"<Class>: …"`), `scope: TraceScope | None`. **No query text** (no field named `query` or `text`, no string field holds the query). One trace per `retrieve` call, also when it fails (then `returned == 0` and the error is raised again). A hook that raises is logged and skipped; the next hook still gets the trace.
-- `mkc.rag.embeddings.ProviderEmbedder.embed_query(query: str) -> list[float]`: sends one text that starts with `Instruct: `, contains `\nQuery:` and ends with the query (Qwen3-Embedding's query format, decision 71); adds tokens and cost like `embed`. `embed` still sends passages exactly as stored.
+- `mkc.rag.embeddings.ProviderEmbedder.embed_query(query: str) -> list[float]`: sends one text that starts with `Instruct:` and a space, contains `\nQuery:` and ends with the query (Qwen3-Embedding's query format, decision 71); adds tokens and cost like `embed`. `embed` still sends passages exactly as stored.
 - `mkc.models.client` (lane D's block at the end)
   - `EmbedTrace` (dataclass): `model_id`, `mode`, `texts: int` (how many), `input_tokens`, `cost_eur`, `latency_ms: int`, `error: str | None` (starts with the error's class name), `scope: TraceScope | None`. No text of the input anywhere in it.
   - `EmbeddingClient(..., tracers: Sequence[Callable[[EmbedTrace], None]] = ())` and `EmbeddingClient.from_settings(..., tracers=...)`, kept as `_tracers` (a list). `embed(texts, *, scope=None)`: **one trace per `embed()` call** (not per batch), with the reply's tokens, cost and latency; on a provider error one trace with `error` set, then the error is raised. A hook that raises never breaks the call.
@@ -78,6 +78,7 @@ The tests import these; module paths and names are fixed, internals are free.
 
 ## Recent log
 
+- **27.11.2026 23:45** Development agent: `bash scripts/pre_pr.sh` exit 1 at `0514854` (23:45): every step green (`994 passed, 1 skipped, 17 deselected, 4 warnings in 105.78s (0:01:45)`) except markdownlint: `handoff/lane-d.md:34:123 MD038/no-space-in-code` (the code span `Instruct: ` in the pinned interfaces). Reworded to `Instruct:` and a space.
 - **27.11.2026 23:42** Development agent: docs: decisions 79–81 in the design doc's decision log, ADR 004 amendment "the query side", the backlog's MKC-50 "As built" note, the status doc's lane D section (MKC-50 and its live spend); this file's state, assumptions 3 and 6 (the coordinator's decisions) and next steps. Every `scripts/check_*.py` exits 0.
 - **27.11.2026 23:41** Development agent: live test `tests/rag/test_retriever_live.py` (`@pytest.mark.live`; the real EnWG § 14a page and the synthetic `musterg` into the test database, then two query embeddings). Run 1, 23:39:38–23:40:26: `1 passed, 4 warnings in 45.24s` (its printed cost was cut off by my `tail`; the same texts as run 2). Run 2, 23:40:30–23:41:08: `load: tokens 1859, cost 0.00001700 EUR; total with 2 queries: tokens 1949, cost 0.00001782 EUR`; the question "Darf der Netzbetreiber meine Wärmepumpe bei drohender Überlastung drosseln?" → `['§ 14a Abs. 1', '§ 14a Abs. 3', '§ 14a Abs. 2']`, latency 677 ms; "§ 14a" → `['§ 14a Abs. 2', '§ 14a Abs. 1', '§ 14a Abs. 4']`; `1 passed in 36.18s`. MKC-50 live spend: two runs of about EUR 0.0000178 each.
 - **27.11.2026 23:38** Development agent: MKC-50.3, the additive `mkc/observability/` change the coordinator granted: `TraceRecord` kind `retrieval`, `Tracer.span_retrieval` (through `_record`, so the no-trace-id rule holds; nothing without a scope), a `retriever` branch in `LangfuseSink.send` (other branches unchanged), `LANGFUSE_TYPES["retrieval"] = "RETRIEVER"` in the demo. No migration (`run_log.kind` is `String(16)`). `uv run pytest tests/observability tests/rag/test_retrieval_trace.py -q`: `37 passed in 3.72s`.
