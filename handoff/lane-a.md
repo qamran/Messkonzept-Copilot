@@ -72,6 +72,8 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 
 ## Recent log
 
+- **28.11.2026 00:30** Test agent: `test_table_grid_rules.py` (16 tests) and `test_naive_line_rules.py` (3 tests) kill the tables.py, cleantext.py and naive.py survivors B4 to B12, B16, B19 to B22, C3, C6, C7, C12, N2 to N5, N8, N10.
+
 - **28.11.2026 00:30** Test agent (MKC-22 mutation pass): `test_text_layout_rules.py` (11 tests) kills text.py survivors T2, T4, T5, T8, T12, T14 to T17, T28, T29: pitch, indent, title stops, the list after `Anwendung:`, the 14th digit, a NaN bbox and a page past the end as `ValueError`.
 
 - **28.11.2026 00:04** Development agent: `bash scripts/pre_pr.sh` at `af95d27`: exit 0, "pre-PR gate: all steps passed"; pytest `1011 passed, 2 skipped, 18 deselected, 4 warnings in 103.05s (0:01:43)`; commits over 200 lines `60c1f2e` (431), `b989630` (211), `fcd70e0` (239). Acceptance at `af95d27`: `uv run pytest tests/extraction -q`: `134 passed, 1 skipped, 4 deselected in 5.81s` (red at `c72296d`: `32 failed, 81 passed, 1 skipped, 4 deselected`); `test_tools_hardening.py test_lbs_digits.py`: `12 passed in 0.07s`. `git diff c72296d -- backend/tests`: 5 files, 276 insertions, all added files. Branch pushed; waiting for the mutation pass. This commit changes only this file.
