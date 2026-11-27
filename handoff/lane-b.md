@@ -1,6 +1,6 @@
 # Lane B: Advisor
 
-**Last updated:** 27.11.2026, 20:42
+**Last updated:** 27.11.2026, 20:44
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md`. Times are local time from git and GitHub, never estimated.
 
@@ -19,6 +19,7 @@ Sub-issues (all assigned to `qamran`, on the board, linked to #36): `MKC-36.1` (
 
 - `MKC-36.1` (#176): built `mkc/advisor/facts.py`; `test_facts.py` and `test_facts_mapping.py` green (`22 passed`). Own tests in `test_facts_mapping.py` (prompt wrapping, note order).
 - `MKC-36.2` (#177): built `mkc/advisor/questions.py`; `test_questions.py` and `test_questions_text.py` green (`17 passed`). Own tests in `backend/tests/advisor/test_questions_text.py` (texts, options, order).
+- `MKC-36.3` (#178): In progress. Own red tests in `backend/tests/advisor/test_api_errors.py` (model error as 503, the real `get_model_client`, text at the limit); `tests/advisor/conftest.py` re-exports the fixtures of `test_api.py`.
 
 ### Red tests (test agent)
 
@@ -97,6 +98,7 @@ Frontend:
 
 ## Recent log
 
+- **27.11.2026 20:44** Development agent: red test `test_api_errors.py` (`No module named 'mkc.advisor.api'`).
 - **27.11.2026 20:42** Development agent: `mkc/advisor/questions.py` (`required_questions`); `tests/advisor/test_questions.py tests/advisor/test_questions_text.py` give `17 passed`.
 - **27.11.2026 20:42** Development agent: red test `test_questions_text.py` (`1 error in 0.55s`, missing `mkc.advisor.questions`).
 - **27.11.2026 20:41** Development agent: `mkc/advisor/facts.py` (SiteFacts, FactsExtraction, extract_facts); `tests/advisor/test_facts.py tests/advisor/test_facts_mapping.py` give `22 passed`.
