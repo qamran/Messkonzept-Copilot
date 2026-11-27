@@ -1,6 +1,6 @@
 # Lane C: Decision layer
 
-**Last updated:** 27.11.2026, 20:28
+**Last updated:** 27.11.2026, 20:38
 
 Only lane C's agents write this file; the coordinator keeps `HANDOFF.md`. Times are local time (CET) from git and GitHub, never estimated.
 
@@ -32,9 +32,9 @@ Only lane C's agents write this file; the coordinator keeps `HANDOFF.md`. Times 
 
 ### Red tests (test agent, phase 1)
 
-- `tests/decision/test_client.py` (14), `test_settings.py` (7), `test_providers.py` (5): red.
-- `tests/decision/test_guards.py` (14): green today; it keeps `langchain_typesafe` and `httpx2` imports inside `providers.py`.
-- `tests/decision/test_jev_live.py` (1, `@pytest.mark.live`): deselected by default; not run by the test agent.
+- Red: `tests/decision/test_client.py` ("14 failed"), `test_settings.py` ("7 failed"), `test_providers.py` ("5 failed").
+- `tests/decision/test_guards.py` ("14 passed"): green today; it keeps `langchain_typesafe` and `httpx2` imports inside `providers.py`.
+- `tests/decision/test_jev_live.py` ("1 deselected", `@pytest.mark.live`): deselected by default; not run by the test agent.
 - `tests/decision/fakes.py`: `FakeDecisionModel`, a `BaseDecisionModel` that replays a canned `ClassifierResponse` (the offline transport).
 
 ### Notes for the development agent
@@ -42,7 +42,6 @@ Only lane C's agents write this file; the coordinator keeps `HANDOFF.md`. Times 
 - Add `langchain-typesafe==0.1.0` (pinned with `==`; `test_repo_langchain_dependencies_are_pinned`) and say so in the PR; the coordinator runs `uv lock`. Do **not** add the `experimental` extra: it pulls in `langchain`, which the lock guard forbids.
 - `langchain-typesafe` 0.1.0 re-exports its types from `langchain_core.decisions` (in `langchain-core==1.8.5`), so `mkc/decision/` imports only `langchain_core.decisions`.
 - `TypeSafeClassifier` POSTs to `{base_url}/v1/systemone` with `Authorization: Bearer <key>`; it accepts a `client: httpx2.Client` for tests.
-- In `test_jev_live.py`, ruff sorted `mkc.models.providers` into its own import group while `mkc.decision` did not exist; once the package exists, `uv run ruff check --fix tests/decision/test_jev_live.py` merges it (an import-order change only).
 - The live run needs the coordinator's go (budget); record the spend and the result in ADR 004 and the status doc.
 
 ### Open questions (test agent's assumptions)
@@ -60,4 +59,5 @@ Only lane C's agents write this file; the coordinator keeps `HANDOFF.md`. Times 
 
 ## Recent log
 
-- **27.11.2026 20:28** Test agent: red commits `1ed966f` (settings, provider factory, this file), `81fc41c` (`DecisionClient`, 229 lines: one test file and its fake), and the guard and live tests in the commit that adds this line. Red acceptance tests and the pinned interface. `uv run pytest tests/decision tests/models/test_guards.py -q`: "26 failed, 69 passed, 1 deselected"; `uv run pytest tests/decision -q`: "26 failed, 14 passed, 1 deselected". Reasons: `ModuleNotFoundError: No module named 'mkc.decision'`, `ImportError: cannot import name 'build_decision_model'`, and `Settings` without `decision_backend`/`decision_model`.
+- **27.11.2026 20:38** Test agent: checked the fake end to end (a scratch script: the canned body validates; `.nouls`, `.choices`, `.model` and `seen` as the tests expect). Split the live test's imports so ruff stays green once `mkc.decision` exists. Whole backend suite `uv run pytest -q`: "26 failed, 676 passed, 1 skipped, 13 deselected" (the 26 are this lane's red tests); `uv run mypy`: "Success: no issues found in 48 source files"; every `scripts/check_*.py` exits 0.
+- **27.11.2026 20:29** Test agent: red commits `1ed966f` (settings, provider factory, this file), `81fc41c` (`DecisionClient`, 229 lines: one test file and its fake), `485c89a` (guard and live tests). Red acceptance tests and the pinned interface. `uv run pytest tests/decision tests/models/test_guards.py -q`: "26 failed, 69 passed, 1 deselected"; `uv run pytest tests/decision -q`: "26 failed, 14 passed, 1 deselected". Reasons: `ModuleNotFoundError: No module named 'mkc.decision'`, `ImportError: cannot import name 'build_decision_model'`, and `Settings` without `decision_backend`/`decision_model`.

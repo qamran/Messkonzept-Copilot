@@ -29,8 +29,6 @@ def test_three_nouls_and_one_choice_round_trip_through_jev_on_openrouter() -> No
     from mkc.decision.client import DecisionClient
     from mkc.decision.types import ChoiceAnswer, ChoiceQuestion, NoulAnswer, NoulQuestion
 
-    from mkc.models.providers import build_decision_model
-
     labels = {
         "household": "A private household on low voltage.",
         "commercial": "A business on low voltage.",
@@ -42,6 +40,8 @@ def test_three_nouls_and_one_choice_round_trip_through_jev_on_openrouter() -> No
         "has_wallbox": NoulQuestion(instructions="Does the site have a wallbox?"),
         "scope": ChoiceQuestion(instructions="Which segment is this site?", criteria=labels),
     }
+    from mkc.models.providers import build_decision_model  # the factory, after the questions
+
     client = DecisionClient(build_decision_model(settings))
     decisions = client.decide(STATE, questions)
 
