@@ -9,9 +9,10 @@ Pinned interface (module `mkc.extraction.segment`):
 It reads the PDF from Storage by the document's hash and picks the segmenter by
 `doc.operator_id` (Berlin here; SachsenNetze comes in MKC-27, lane A2).
 
-Assumption (lane file): a Berlin concept page starts with the heading `Messkonzept <n>`; the
-cover, contents and appendix pages are not concepts, and a body line that cites another
-concept is not a heading. The live test checks this against the real catalogue.
+Layout (the real catalogue, September 2026; was `Messkonzept <n>` before the live run): a
+Berlin concept page opens with `<n> <title>` on the first line of the main column, next to a
+sidebar; the cover, contents and appendix pages are not concepts, and a body line that cites
+another concept is not a heading. The live test checks this against the real catalogue.
 """
 
 from typing import Any

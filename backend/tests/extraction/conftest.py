@@ -105,25 +105,36 @@ def rows(engine: Engine, sql: str) -> list[Any]:
 
 
 def berlin_pages(concepts: Sequence[str]) -> list[list[str]]:
-    """A Berlin-style catalogue: a cover, a contents page, one page per concept (heading
-    `Messkonzept <n>` as the page's first line), then an appendix page. One concept body
-    cites another concept number, which must not become a region of its own."""
+    """A Berlin-style catalogue in the real layout (Stromnetz Berlin, September 2026): a cover,
+    a contents page, one page per concept, then an appendix page. A concept page opens with
+    `<number> <title>` on the first line of the main column; a sidebar on the right repeats
+    `Messkonzepte` (level with the heading) and `Seite/Umfang n/N`. One concept body cites
+    another concept, and the appendix has table rows that start with concept numbers; neither
+    may become a region of its own."""
+    total = len(concepts) + 3
     pages: list[list[str]] = [
         ["Netz Musterstadt GmbH", "Messkonzepte fuer Kundenanlagen", "Stand 01.2026"],
         ["Inhaltsverzeichnis", *(f"{n}  Konzept ........ {i + 3}" for i, n in enumerate(concepts))],
     ]
     for i, n in enumerate(concepts):
-        body = [f"Messkonzept {n}", "Z1 Zweirichtungszaehler am Netzanschluss"]
+        body = [f"{n} Ueberschusseinspeisung", "Anwendung:", "Z1 Zweirichtungszaehler"]
         if i > 0:
             body.append(f"Wie Messkonzept {concepts[0]}, zusaetzlich Erzeugungsanlage G")
+        body += [Side("Messkonzepte"), Side("Seite/Umfang"), Side(f"{i + 3}/{total}")]
         pages.append(body)
-    pages.append(["Anhang: Legende", "Z = Zaehler, G = Erzeugungsanlage"])
+    rows = [f"{n} 2RZ 60 A 2RZ 100 A" for n in concepts]
+    pages.append(["Anhang: Legende", "Z = Zaehler, G = Erzeugungsanlage", *rows])
     return pages
+
+
+class Side(str):
+    """A line for the sidebar at x = 461 pt, in 8 pt type (see `make_pdf`)."""
 
 
 def make_pdf(pages: Sequence[Sequence[str]], size: tuple[float, float] = (595.0, 842.0)) -> bytes:
     """A small valid PDF with one text line per entry, Helvetica, ASCII only. Built by hand so
-    the tests need no PDF library and no PDF file is ever committed."""
+    the tests need no PDF library and no PDF file is ever committed. Lines go down the main
+    column from x = 72 pt in 14 pt type; `Side` lines go down a sidebar from x = 461 pt."""
     w, h = size
     objs: list[bytes] = [
         b"<< /Type /Catalog /Pages 2 0 R >>",
@@ -140,10 +151,14 @@ def make_pdf(pages: Sequence[Sequence[str]], size: tuple[float, float] = (595.0,
                 f" /Resources << /Font << /F1 3 0 R >> >> /Contents {5 + 2 * i} 0 R >>"
             ).encode()
         )
-        ops = ["BT", "/F1 14 Tf", "18 TL", f"72 {h - 72:g} Td"]
+        ops, rows = ["BT"], {False: 0, True: 0}
         for line in lines:
+            side = isinstance(line, Side)
+            x, size, step = (461, 8, 10) if side else (72, 14, 18)
             esc = line.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
-            ops.append(f"({esc}) Tj T*")
+            y = h - 72 - step * rows[side]
+            rows[side] += 1
+            ops.append(f"/F1 {size} Tf 1 0 0 1 {x} {y:g} Tm ({esc}) Tj")
         ops.append("ET")
         stream = "\n".join(ops).encode("latin-1")
         objs.append(b"<< /Length %d >>\nstream\n" % len(stream) + stream + b"\nendstream")
