@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 09:59
+**Last updated:** 27.11.2026, 10:03
 
 This file is how agents resume work after a session restart.
 
@@ -150,6 +150,7 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **27.11.2026 10:03** New doc `docs/271120261003-eval-criteria-capstone.md`: the brief's grading criteria with shares, an estimate of the shares with the new evals criterion (about 13 %; the official table is not published yet), and where the project shows each criterion.
 - **27.11.2026 09:59** Turing College added a capstone criterion: "effective use of evals" (about 13 %). The user chose to fill the gaps in the plan (decision 55): E9 agent trajectory, per-case regression in the runner and CI gate, the improvement log `eval/iterations.md`. Design 11.4–11.6 and section 18, backlog MKC-31, MKC-35 and MKC-42, status doc updated; comments on #31, #35 and #42.
 - **27.11.2026 09:49–09:57** PR #138 review PASS (Fable, comment 09:49; 11 non-blocking findings, see Next steps), merged as `ff76b94` (09:49:34); #15 closed, #132–#137 closed, all `Done`. `main` pushed to `turing`; `origin/main` = `turing/main` = `ff76b94`. `cd` run 45968683193 green: `image` 09:49:39–09:54:45; `backend` approved by the development agent (decision 51) at 09:55:04, ran 09:55:07–09:56:08 (migration 0004 by the hook Job); `frontend` approved at 09:56:31, ran 09:56:34–09:57:08. Checked afterwards: `/api/version` = `ff76b94…`, `/health` 200, `/api/admin/backup-status` without a token 401, the site 200. MKC-16 (#16) assigned to `qamran` and set to `In progress` (09:57, from `Backlog`; no ticket was `Ready`); branch `mkc-16-checkpoints` from `ff76b94`.
 - **27.11.2026 09:36–09:43** MKC-15: docs `57828eb` (09:36; #137 `In progress`); pre-PR review by a fresh agent: no Critical, Important 1 and 2 fixed in `d2f883d` (09:41); branch pushed, PR #138 opened 09:42:35; #15 and #132–#137 `Testing` (09:43). Full suite 365 passed, 1 skipped. Docker Desktop shut down afterwards.

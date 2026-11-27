@@ -72,6 +72,7 @@ This is the living status document. It is updated whenever a decision is made or
 
 | Document | Path |
 |---|---|
+| Capstone grading criteria (shares, new evals criterion, evidence per criterion) | `docs/271120261003-eval-criteria-capstone.md` |
 | Design doc | `docs/superpowers/specs/241120261330-messkonzept-copilot-design.md` |
 | Architecture Decision Record (ADR) 001: custom harness on LangChain plumbing | `docs/adr/241120261430-adr-001-harness.md` |
 | ADR 002: Vercel frontend, k3s backend (+ worker, CD hardening) | `docs/adr/241120261430-adr-002-hosting.md` |
