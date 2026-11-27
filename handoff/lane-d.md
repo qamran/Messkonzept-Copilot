@@ -1,6 +1,6 @@
 # Lane D: RAG
 
-**Last updated:** 27.11.2026, 21:04
+**Last updated:** 27.11.2026, 21:06
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -75,6 +75,7 @@ The tests import these; module paths and names are fixed, internals are free.
 
 ## Recent log
 
+- **27.11.2026 21:06** Development agent: status doc section "Lane D: RAG corpus (MKC-49)". Live end-to-end run 21:04:30–21:05:46 into a throwaway database (created and dropped by the script): `mkc corpus load --source enwg-14a --source msbg` exit 0, `enwg-14a: 4 chunks`, `msbg: 220 chunks`, `embeddings: 51934 tokens, 0.000475 EUR`; every vector 1024 dims; `plainto_tsquery('german', 'steuerbare Verbrauchseinrichtung')` finds `§ 14a Abs. 1` to `Abs. 4` first. Live spend of this lane so far (python sum of the logged costs): EUR `0.000479`, plus the first live-test run whose cost was not printed.
 - **27.11.2026 21:04** Development agent: `mkc corpus load` (`mkc.rag.cli`: `--sources`, `--source`, `--cache-dir`; mounted at the end of `mkc/cli.py`) and the runbook section "RAG corpus (MKC-49)".
 - **27.11.2026 21:03** Development agent: `mkc.rag.fetch` (https only, same-host redirects, 20 MB cap; gesetze-im-internet.de HTML to one line per heading and Absatz; PDFs refused until MKC-21's PDF library); `uv run pytest tests/rag/test_fetch_unit.py -q`: `13 passed`. Offline check on the real pages fetched at 20:39 (file times) into the session scratch folder (not the repo): EnWG § 14a gives 4 chunks, the MsbG 220 chunks (largest 7836 characters).
 - **27.11.2026 21:00** Development agent: `#185` closed; red unit tests for the HTTP fetcher and `mkc corpus load` (`uv run pytest tests/rag/test_fetch_unit.py tests/rag/test_cli_unit.py -q`: `11 failed, 1 passed, 4 errors in 1.23s`).
