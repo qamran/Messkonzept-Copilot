@@ -1,6 +1,6 @@
-# HANDOFF
+﻿# HANDOFF
 
-**Last updated:** 27.11.2026, 20:09
+**Last updated:** 27.11.2026, 20:20
 
 This file is how agents resume work after a session restart.
 
@@ -61,16 +61,21 @@ From MKC-168 (decision 61), tickets run in parallel lanes. Each lane keeps its o
 
 | Lane | Tickets | File | State |
 |---|---|---|---|
-| A. Extraction | MKC-21 → 22 → 23 → 25 → 26 → 28 → 29 → 30 | `handoff/lane-a.md` | not started (wave 1) |
+| A. Extraction | MKC-21 → 22 → 23 → 25 → 26 → 28 → 29 → 30 | `handoff/lane-a.md` | MKC-21: test agent writing red tests |
 | A2. SachsenNetze and gold | MKC-27 (after MKC-21) → 24 (after MKC-23) | `handoff/lane-a2.md` | waits on MKC-21 |
-| B. Advisor | MKC-36 → (37 after MKC-30) → 38 | `handoff/lane-b.md` | not started (wave 1) |
-| C. Decision layer | MKC-46 → (47 after MKC-36, MKC-26) → (48 after MKC-31) | `handoff/lane-c.md` | not started (wave 1) |
-| D. RAG | MKC-49 → 50 → (51 after MKC-38) | `handoff/lane-d.md` | not started (wave 1) |
+| B. Advisor | MKC-36 → (37 after MKC-30) → 38 | `handoff/lane-b.md` | MKC-36: test agent writing red tests |
+| C. Decision layer | MKC-46 → (47 after MKC-36, MKC-26) → (48 after MKC-31) | `handoff/lane-c.md` | MKC-46: test agent writing red tests |
+| D. RAG | MKC-49 → 50 → (51 after MKC-38) | `handoff/lane-d.md` | MKC-49: test agent writing red tests |
+
+Worktrees (outside the repo folder, cut from `origin/main` `dcd2852`): `<lanes>/lane-a` on `mkc-21-fetch-segment`, `lane-b` on `mkc-36-site-facts`, `lane-c` on `mkc-46-decision-spike`, `lane-d` on `mkc-49-corpus-loader`, where `<lanes>` is the folder `mkc-lanes` next to the repo folder. Each has a copy of the gitignored `backend/.env`.
+
+Shared-code rules for wave 1 beyond AGENTS.md (the coordinator's, in each lane brief): new tables go at the end of `mkc/db/models.py` in a block commented with the ticket; a CLI sub-app is appended in `mkc/cli.py`; lane B adds one router line to `mkc/api/app.py`; in `mkc/models/` lane C may append one function to `providers.py`, lane D may add embedding support at the end of `client.py`, `providers.py` and `models.yaml`, anything else goes through the coordinator. Lane B treats `operator_id` as opaque (lane A owns the `operator` table). Live-call budget: lane C up to €0.50 for the spike, lanes B and D up to €0.50 each for recordings, lane A no model calls.
 
 ## In progress
 
 - **MKC-175** (#175), Wave 1 coordinator log: created 20:08:41, `In progress`, assigned to `qamran`; branch `mkc-175-wave-1-coordinator` from `dcd2852`. It carries this file's entries and the coordinator's rule fixes to `main` (AGENTS.md "Parallel lanes": one coordinator PR, opened between lane merges).
-- **Next: start wave 1** (decision 61; plan `docs/superpowers/plans/271120261901-parallel-lanes.md`; lanes in the backlog section "Parallel lanes and waves"): MKC-21 (lane A), MKC-36 (lane B), MKC-46 (lane C), MKC-49 (lane D). Per lane: set the ticket `Ready` → `In progress` and assign `qamran`; a worktree on `mkc-<n>-<slug>` from `main`; `handoff/lane-<x>.md` from the template; the test agent writes the red acceptance tests first, then the development agent builds, then the test agent's mutation pass; `scripts/pre_pr.sh` before the PR; the review agent after green checks. Decision numbers: status doc "Decision numbers per lane". MKC-21's Storage bucket `mkc-storage` and its key exist (user, 27.11.2026). Docker: the coordinator starts it once for the wave and shuts it down (and WSL) at the end.
+- **Wave 1 started (27.11.2026 20:18):** #21, #36, #46, #49 set `Ready` then `In progress` and assigned to `qamran` (20:18:24 to 20:18:42); four worktrees and branches pushed; Docker started, Compose db up (20:19:20); four test agents writing red acceptance tests. Next: each lane's development agent after its red commit, then the test agent's mutation pass, `pre_pr.sh`, PR, review after green checks.
+- **Wave 1 plan** (decision 61; plan `docs/superpowers/plans/271120261901-parallel-lanes.md`; lanes in the backlog section "Parallel lanes and waves"): MKC-21 (lane A), MKC-36 (lane B), MKC-46 (lane C), MKC-49 (lane D). Per lane: set the ticket `Ready` → `In progress` and assign `qamran`; a worktree on `mkc-<n>-<slug>` from `main`; `handoff/lane-<x>.md` from the template; the test agent writes the red acceptance tests first, then the development agent builds, then the test agent's mutation pass; `scripts/pre_pr.sh` before the PR; the review agent after green checks. Decision numbers: status doc "Decision numbers per lane". MKC-21's Storage bucket `mkc-storage` and its key exist (user, 27.11.2026). Docker: the coordinator starts it once for the wave and shuts it down (and WSL) at the end.
 - Process rules after the MKC-20 FAIL round: run CI's exact commands (now `bash scripts/pre_pr.sh`) before any claim; copy numbers from output; times from `date`, git or GitHub; start the review only after `gh pr checks` is green.
 
 ## Next steps
@@ -213,6 +218,7 @@ From MKC-168 (decision 61), tickets run in parallel lanes. Each lane keeps its o
 
 ## Recent log
 
+- **27.11.2026 20:21** Wave 1 started: #21, #36, #46, #49 `Ready` → `In progress`, assigned to `qamran` (20:18:24 to 20:18:42). Worktrees `lane-a` to `lane-d` from `origin/main` `dcd2852`, branches `mkc-21-fetch-segment`, `mkc-36-site-facts`, `mkc-46-decision-spike`, `mkc-49-corpus-loader` pushed. Docker Desktop started; Compose db started (20:19:20). Four test agents started on the red acceptance tests.
 - **27.11.2026 20:09** MKC-175 (#175) created (20:08:41), `In progress`, branch `mkc-175-wave-1-coordinator`. PR #174 review findings 1, 6 and 9 fixed in AGENTS.md (lock after an update from `main`; `<repo>` for the folder path in pasted gate output; lane A2 owns only its own files; the coordinator's lane-branch edits named) and the status doc (block 74–75 for lane A2, wave 2).
 - **27.11.2026 20:09** PR #174 review PASS (Fable, comment 20:01:32; 11 non-blocking findings, under Next steps), merged as `dcd2852` (20:01:46); #168 to #173 closed (20:01:48 to 20:01:57) and set `Done` (by 20:03:03). `main` pushed to `turing` (20:02:35); `origin/main` = `turing/main` = `dcd2852`. `cd` run 46053744212: `image` 20:01:52 to 20:05:57; `backend` approved by the coordinator (decision 51) at 20:06:14, ran 20:06:15 to 20:06:55; `frontend` approved at 20:07:17, ran 20:07:19 to 20:07:56; run exit 0. Checked: `/api/version` commit `dcd2852...`, `/health` 200 (20:08:04).
 - **27.11.2026 20:09** MKC-168 CI on PR #174 green (`gh pr checks` done 19:45:52); the `backend` job ran 663 passed, none skipped (the gate tests ran on Linux). Review agent (Fable) started after that. PR #174 opened 19:43:02 (GitHub `createdAt`); #168 to #173 set `Testing` by 19:43:40. Gate at `b82a4c5` exit 0 (19:42:19): 662 passed, 1 skipped (Windows SIGTERM test).
