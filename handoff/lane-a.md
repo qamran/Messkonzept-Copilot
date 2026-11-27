@@ -1,6 +1,6 @@
 # Lane A: Extraction
 
-**Last updated:** 27.11.2026, 21:13
+**Last updated:** 27.11.2026, 21:19
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -67,6 +67,8 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 5. Decisions taken for the test agent's open assumptions: 1 confirmed; 2 (a return to an older hash) is a new edition (decision 62); 3 replaced by the real layout (decision 64); 4 confirmed.
 
 ## Recent log
+
+- **27.11.2026 21:19** Development agent: red test: a drawing that starts in the main column but reaches past 75 % (page 27, to 461 pt) must stay whole in the region; with the old rule `test_segment_rules.py`: 1 failed, 13 passed.
 
 - **27.11.2026 21:13** Development agent: `bash scripts/pre_pr.sh` at `89ec4d1`: exit 0, `741 passed, 1 skipped, 14 deselected in 143.46s`, "pre-PR gate: all steps passed"; commits over 200 lines: `419f6fc` (209), `e8ff7a8` (269). Every commit's `Refs:` line reads `qamran/`. Branch pushed; no PR yet (the coordinator runs the mutation pass first).
 

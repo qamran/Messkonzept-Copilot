@@ -77,3 +77,30 @@ def test_segment_document_refuses_an_operator_without_a_segmenter() -> None:
     )  # fmt: skip
     with pytest.raises(NoSegmenter):
         segment_document(doc, store=store)
+
+
+class _Page:
+    """A pdfplumber-like page: words and one drawing that reaches past the column edge."""
+
+    def __init__(self) -> None:
+        self.width, self.height = 595.0, 842.0
+        self.lines: list[dict[str, float]] = []
+        self.curves: list[dict[str, float]] = []
+        self.images: list[dict[str, float]] = []
+        self.rects = [{"x0": 403.0, "x1": 461.0, "top": 440.0, "bottom": 470.0}]  # page 27
+
+    def extract_words(self) -> list[dict[str, object]]:
+        word = {"top": 123.6, "bottom": 137.6}
+        return [
+            {**word, "x0": 56.6, "x1": 72.2, "text": "6.3"},
+            {**word, "x0": 99.3, "x1": 240.0, "text": "Gemeinschaftliche"},
+            {**word, "x0": 460.8, "x1": 535.6, "text": "Messkonzepte"},
+        ]
+
+
+def test_a_drawing_that_starts_in_the_column_is_kept_whole() -> None:
+    from mkc.extraction.segment import _berlin_page
+
+    region = _berlin_page(27, _Page())
+    assert region is not None
+    assert region.bbox == (56.6, 123.6, 461.0, 470.0)
