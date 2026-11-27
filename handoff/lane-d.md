@@ -1,6 +1,6 @@
 # Lane D: RAG
 
-**Last updated:** 27.11.2026, 23:41
+**Last updated:** 27.11.2026, 23:42
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -11,9 +11,9 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 
 ## In progress
 
-- `MKC-50` (`#50`), Hybrid retriever: the test agent's red acceptance tests are in `backend/tests/rag/` (see the log for the commits). Next: the development agent builds against them.
-- The coordinator assigned a sub-issue "MKC-49 review findings" (wave 1 review of PR #198, findings 1 to 5 and the open points) to MKC-50. The development agent creates it on the board with the other sub-issues.
-- Migration: MKC-49's is `0013_corpus.py` (`down_revision = "0012"`; the coordinator re-chained it at the merge). A new migration in MKC-50, if any, uses `down_revision = "0013"`.
+- `MKC-50` (`#50`), Hybrid retriever: built; every red test is green; sub-issues MKC-50.1 to 50.5 (`#203`–`#207`, In progress), with MKC-50.4 (`#206`) the MKC-49 review findings. Next: `bash scripts/pre_pr.sh`, push, report to the coordinator; then the test agent's mutation pass, then the PR.
+- Decisions written: 79 (the retriever), 80 (the retrieval and embedding traces), 81 (the corpus files); ADR 004 amendment "the query side".
+- Migration: MKC-49's is `0013_corpus.py` (`down_revision = "0012"`; the coordinator re-chained it at the merge). MKC-50 adds none.
 
 ### Pinned interfaces (MKC-50)
 
@@ -54,10 +54,11 @@ The tests import these; module paths and names are fixed, internals are free.
 
 1. **Untrusted mark:** a `<retrieved_passage>` wrapper around escaped JSON, as `mkc/harness/prompts.py` does for tool results; the JSON holds `source_ref` too, because it is read from the document.
 2. **Query instruction:** lives in the embedder (`embed_query`), as MKC-49 put any passage prefix in the embedder; `retrieve` passes the raw query.
-3. **Trace at hook level:** `RetrievalTrace` and `EmbedTrace` are hooks like `CallTrace`. How they reach `run_log` and Langfuse is open: `TraceRecord.kind` is a closed `Literal`, `run_log.run_id` is not nullable, and `Tracer` only takes new code at a module's end. A retrieval with no run (MKC-51's "ask why") has no `run_log` row to join. Needs a coordinator decision.
+3. **Trace at hook level:** `RetrievalTrace` and `EmbedTrace` are hooks like `CallTrace`. How they reach `run_log` and Langfuse is open: `TraceRecord.kind` is a closed `Literal`, `run_log.run_id` is not nullable, and `Tracer` only takes new code at a module's end. A retrieval with no run (MKC-51's "ask why") has no `run_log` row to join. **Coordinator's decision (built, decision 80):** a new kind `retrieval` and `Tracer.span_retrieval`; outside a run a log line only; no migration.
 4. **Score:** the RRF score itself (not normalised); ties to the lower chunk id.
 5. **An official-only cache inside the repo is refused** (review finding 5): one simple rule, nothing needs a cache in the repo, and only `.cache/` is git-ignored.
-6. **The image default path:** `DEFAULT_SOURCES_PATH` uses `parents[3]` of the installed package, which does not exist in the image. The tests pin only the shipped file; making `mkc corpus load` find it without `--sources` needs an `ENV` line or a setting (not granted). Needs a coordinator decision.
+6. **The image default path:** `DEFAULT_SOURCES_PATH` uses `parents[3]` of the installed package, which does not exist in the image. The tests pin only the shipped file; making `mkc corpus load` find it without `--sources` needs an `ENV` line or a setting (not granted). **Coordinator's decision (built, decision 81):** `MKC_CORPUS_SOURCES_FILE`; without it the source-tree file, else `/app/data/corpus_sources.yaml` (the code falls back to the image path, so the Dockerfile has only the granted `COPY` line, no `ENV` line).
+7. **All confirmed by the coordinator:** 1, 2, 4 and 5 as written.
 
 ### Not covered by red tests
 
@@ -70,12 +71,14 @@ The tests import these; module paths and names are fixed, internals are free.
 
 ## Next steps
 
-1. The development agent: create the sub-issues (incl. "MKC-49 review findings"), build `mkc.rag.retriever`, `embed_query`, the `EmbeddingClient` hooks and the findings, make the red tests green, then `bash scripts/pre_pr.sh` and the PR.
-2. The test agent: mutation pass on the development agent's code.
-3. Open for the coordinator: assumptions 3 and 6 above.
+1. The development agent: `bash scripts/pre_pr.sh`, push, report to the coordinator (no PR yet).
+2. The test agent: mutation pass on the development agent's code in this worktree; the development agent closes the survivors.
+3. The PR (`Closes #50`), with the changed MKC-49 test (`test_an_official_only_cache_inside_the_repo_is_refused_too`) and the 282-line red commit `29ca7cd` disclosed.
+4. Open for the coordinator: `EmbedTrace` has no `run_log` bridge yet, so a query embedding's spend inside a run is not in `run_log` (only in `ProviderEmbedder`'s totals); the top docstring of `mkc/models/client.py` still calls `ModelClient` "the one way to call a model" (outside lane D's block).
 
 ## Recent log
 
+- **27.11.2026 23:42** Development agent: docs: decisions 79–81 in the design doc's decision log, ADR 004 amendment "the query side", the backlog's MKC-50 "As built" note, the status doc's lane D section (MKC-50 and its live spend); this file's state, assumptions 3 and 6 (the coordinator's decisions) and next steps. Every `scripts/check_*.py` exits 0.
 - **27.11.2026 23:41** Development agent: live test `tests/rag/test_retriever_live.py` (`@pytest.mark.live`; the real EnWG § 14a page and the synthetic `musterg` into the test database, then two query embeddings). Run 1, 23:39:38–23:40:26: `1 passed, 4 warnings in 45.24s` (its printed cost was cut off by my `tail`; the same texts as run 2). Run 2, 23:40:30–23:41:08: `load: tokens 1859, cost 0.00001700 EUR; total with 2 queries: tokens 1949, cost 0.00001782 EUR`; the question "Darf der Netzbetreiber meine Wärmepumpe bei drohender Überlastung drosseln?" → `['§ 14a Abs. 1', '§ 14a Abs. 3', '§ 14a Abs. 2']`, latency 677 ms; "§ 14a" → `['§ 14a Abs. 2', '§ 14a Abs. 1', '§ 14a Abs. 4']`; `1 passed in 36.18s`. MKC-50 live spend: two runs of about EUR 0.0000178 each.
 - **27.11.2026 23:38** Development agent: MKC-50.3, the additive `mkc/observability/` change the coordinator granted: `TraceRecord` kind `retrieval`, `Tracer.span_retrieval` (through `_record`, so the no-trace-id rule holds; nothing without a scope), a `retriever` branch in `LangfuseSink.send` (other branches unchanged), `LANGFUSE_TYPES["retrieval"] = "RETRIEVER"` in the demo. No migration (`run_log.kind` is `String(16)`). `uv run pytest tests/observability tests/rag/test_retrieval_trace.py -q`: `37 passed in 3.72s`.
 - **27.11.2026 23:37** Development agent: `mkc.rag.retriever`: `rrf_merge` (`RRF_K = 60`, ties to the lower id), `RetrievedChunk.as_prompt_data()`, `RetrievalTrace`, `retrieve` (`MAX_K = 20`, `CANDIDATES = 50`; keyword: `plainto_tsquery('german')` with its terms ORed, `ts_rank`, then id; vector: cosine `<=>`, then id; one log line per call with counts and the error class). `uv run pytest tests/rag/test_retriever.py tests/rag/test_retriever_unit.py -q`: `27 passed in 2.33s`; `tests/rag/test_retrieval_trace.py`: 5 of 9 green, the 4 bridge tests wait on MKC-50.3.

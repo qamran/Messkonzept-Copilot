@@ -195,7 +195,7 @@ User choices:
 - one restore drill
 - cut features moved to the deferred list
 
-## Lane D: RAG corpus (MKC-49)
+## Lane D: RAG corpus (MKC-49) and retriever (MKC-50)
 
 - **State (27.11.2026):** built on `mkc-49-corpus-loader`; the test agent's mutation pass killed 95 of 98 mutants, and the 3 survivors now have tests; the PR is next. Sub-issues MKC-49.1 to 49.6 (`#179`, `#181`, `#182`, `#184`, `#185`, `#186`).
 - **Built:**
@@ -207,3 +207,8 @@ User choices:
 - **Chunk size (decision 72):** one chunk per law Absatz, never split; other texts by numbered sections, split at blank lines over 4,000 characters.
 - **Not yet:** PDF sources (the two BNetzA decisions, Anlage 1 and the operator catalogue): `pdfplumber` is on `main` since MKC-21, but the corpus fetcher does not read PDFs yet (a later lane D ticket); the two laws load today.
 - **LLM spend (MKC-49):** about €0.0005 in total: embedding probes and the live test (under €0.00001 together) and one live load of EnWG § 14a and the MsbG into a throwaway database (51,934 tokens, €0.000475). Each call is logged in `handoff/lane-d.md`.
+- **MKC-50 (27.11.2026):** built on `mkc-50-hybrid-retriever`; sub-issues MKC-50.1 to 50.5 (`#203`–`#207`).
+  - `mkc.rag.retriever`: `retrieve(query, k)` with reciprocal rank fusion of a German full-text ranking (terms ORed) and a cosine vector ranking; `RetrievedChunk.as_prompt_data()` marks retrieved text as untrusted data (decision 79)
+  - latency per query: `RetrievalTrace`; with a run scope a `run_log` row of kind `retrieval` and a Langfuse `retriever` observation, otherwise a log line (decision 80); `EmbeddingClient` trace hooks (`EmbedTrace`)
+  - MKC-49 review findings: https-only tests, the `§` heading rule, any cache inside the repo refused, the image ships `corpus_sources.yaml` and `MKC_CORPUS_SOURCES_FILE` (decision 81)
+- **LLM spend (MKC-50):** two live runs of `tests/rag/test_retriever_live.py` (EnWG § 14a and the synthetic law loaded, two query embeddings): EUR 0.0000178 for the run whose cost was printed, the other run the same texts. Logged in `handoff/lane-d.md`.

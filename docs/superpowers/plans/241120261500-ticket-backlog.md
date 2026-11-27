@@ -864,6 +864,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - `test_retrieved_text_marked_untrusted`
 - **Success criteria:**
   - [ ] Latency per query logged in the trace
+- **As built (decisions 79 to 81):** `retrieve(query, k=5, *, session, embedder, tracers=(), scope=None)` in `mkc.rag.retriever`; the embedder needs `embed_query` (the query instruction lives there). The keyword side ORs the query's terms. Latency: one `RetrievalTrace` per call; `Tracer.span_retrieval` writes it to `run_log` (kind `retrieval`) and Langfuse (`retriever`) when the call has a run scope, otherwise only a log line. `EmbeddingClient` has trace hooks (`EmbedTrace`). For MKC-51: build prompts from `RetrievedChunk.as_prompt_data()` only, and decide how "ask why" retrievals (no run) are traced. The MKC-49 review findings 1 to 5 and `MKC_CORPUS_SOURCES_FILE` are in this ticket too.
 
 ### MKC-51: Legal reasons and "ask why"
 
