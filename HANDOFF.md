@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 12:23
+**Last updated:** 27.11.2026, 12:33
 
 This file is how agents resume work after a session restart.
 
@@ -54,8 +54,9 @@ This file is how agents resume work after a session restart.
 
 - **MKC-17** (#17), Run executor (worker with lease). Status `In progress`, assigned to `qamran` (27.11.2026 11:37:38). Branch `mkc-17-run-executor` from `266c37d`. The first commit holds only the close-out of MKC-16.
   - Plan: `docs/superpowers/plans/271120261154-mkc-17-run-executor.md` (decision 57: lease on the run row with the database clock, fencing before every commit, heartbeat thread for the file and the lease, stop between turns, `waiting_for_database` written on the first successful probe after an outage).
-  - Sub-issues: MKC-17.1 #146 `In progress`; MKC-17.2 #147, MKC-17.3 #148, MKC-17.4 #149 `Ready`.
-  - Next: docs for the two threads, HANDOFF fixes, Linux SIGTERM test, then the PR.
+  - Sub-issues: MKC-17.1 #146, MKC-17.2 #147 (12:04:48), MKC-17.3 #148 (12:06:00) and MKC-17.4 #149 (12:11:11) `In progress` (board times from the status changes).
+  - Known slip: the plan commit `cad7334` (11:57:20) says `Last updated` 11:58, ahead of its commit.
+  - Next: Linux run of the worker tests, then the PR.
 
 ## Next steps
 
@@ -94,7 +95,7 @@ This file is how agents resume work after a session restart.
 4. MKC-13, non-blocking findings of the PR #127 review (comment 26.11.2026 15:19Z), for MKC-17/MKC-18 or a hardening ticket:
    - 1: another module could import `mkc.models.providers.build_chat_model` and skip `ModelClient`; add a guard that only `client.py` imports `providers`
    - 2: Gemini, Anthropic and Meta have no request-count test (only `max_retries == 0`); the reviewer measured one request each against a local server
-   - 3: the OpenRouter timeout is per phase, not wall clock; the harness needs its own deadline (MKC-17)
+   - 3 (moved to MKC-18 by decision 57, backlog note): the OpenRouter timeout is per phase, not wall clock; the harness needs its own deadline
    - 4: replay traces carry the recorded cost; a spend tracer must skip `mode == "replay"`
    - 5: Anthropic, Meta and Gemini prices are stand-ins (`models.yaml`); fix before evaluation spend is recorded on those routes
    - 6, 7: disclosed in the PR: four commits over 200 lines, four without a HANDOFF change; some red tests failed on `ImportError` or a hang
@@ -134,7 +135,7 @@ This file is how agents resume work after a session restart.
    - N8: `cd.yml` lines 38, 39 and 83 lost their `\` line breaks (the commands still work)
    - N9: the `main` check in `mkc-deploy` calls GitHub's API without a token (rate limit, outage refuse a valid deploy); `behind` also accepts an old merged branch commit that has no image (the deploy then fails and Helm rolls back)
 9. Non-blocking follow-ups from the PR #103 review (for later tickets):
-   - N1 (MKC-17/MKC-20): the heartbeat is only touched between polls; with max age 30 s and liveness 3 × 30 s, a turn of up to 240 s would get a healthy worker restarted. Beat during a turn or raise the max age (noted in ADR 002 and decision 42).
+   - N1 (**done in MKC-17**: a thread of its own touches the file): the heartbeat is only touched between polls; with max age 30 s and liveness 3 × 30 s, a turn of up to 240 s would get a healthy worker restarted. Beat during a turn or raise the max age (noted in ADR 002 and decision 42).
    - N2: `/tmp` is an `emptyDir` and survives a container restart, so an old heartbeat can make a restarted worker look Ready for up to 30 s; remove the file on start or add a `startupProbe`.
    - N3: the smoke test does not prove the heartbeat is refreshed; only the unit test does.
    - N5 follow-up: no kept test renders an all-digit tag; a `helm template --set image.tag=1234567` line in the `kind` job would cover it.
@@ -161,6 +162,8 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+
+- **27.11.2026 12:33** MKC-17 docs: decision 57, design 8.4, the plan and ADR 002 name the two threads and "no error ends the worker"; HANDOFF: sub-issue board times, the `Last updated` slip of `cad7334`, MKC-13 finding 3 moved to MKC-18, PR #103 N1 done.
 
 - **27.11.2026 12:23** MKC-17 hardening green: the heartbeat file and the lease renewal have their own threads (`mkc-heartbeat`, `mkc-lease`); a database error on release goes to the outage handling; any other error from `process_run` is logged, the lease released and the worker pauses `MKC_WORKER_DB_BACKOFF_MAX_SECONDS`. The red test of the unexpected error expected the item `running`; it stays `queued` (the client fails before a claim), assertion corrected. Full suite 441 passed, 1 skipped; ruff and mypy strict clean.
 
