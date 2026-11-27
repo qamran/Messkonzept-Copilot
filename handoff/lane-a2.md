@@ -1,6 +1,6 @@
 # Lane A2: SachsenNetze and gold
 
-**Last updated:** 27.11.2026, 23:25
+**Last updated:** 27.11.2026, 23:19
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -62,7 +62,8 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 
 ## Recent log
 
-- **27.11.2026 23:25** Development agent: `mkc/extraction/sachsen.py` (half page split, heading `Messkonzept <n>:` on the half's first line, placeholder by its `Nr. (tbd)` title, footer band at 0.91 of the height) and `SEGMENTERS["sachsennetze"]`. `tests/extraction`: `1 failed, 87 passed, 3 deselected` (only the plan doc test is left). Live run (coordinator's go, no model call): `1 passed in 1.48s`, 11 regions on pages 3 to 8.
-- **27.11.2026 23:21** Development agent: own red tests `test_sachsen_layout.py` (5 tests, the real page furniture: background, divider, frames, rule, logo; heading form; placeholder by title; any page width), red: `5 failed`.
+- **27.11.2026 23:19** Development agent: plan doc `docs/superpowers/plans/271120262318-mkc-27-sachsen-segmentation.md` (half page, with the reasons). The two log lines below had times written by hand; corrected to the commit times from git (23:15 and 23:18).
+- **27.11.2026 23:18** Development agent: `mkc/extraction/sachsen.py` (half page split, heading `Messkonzept <n>:` on the half's first line, placeholder by its `Nr. (tbd)` title, footer band at 0.91 of the height) and `SEGMENTERS["sachsennetze"]`. `tests/extraction`: `1 failed, 87 passed, 3 deselected` (only the plan doc test is left). Live run (coordinator's go, no model call): `1 passed in 1.48s`, 11 regions on pages 3 to 8.
+- **27.11.2026 23:15** Development agent: own red tests `test_sachsen_layout.py` (5 tests, the real page furniture: background, divider, frames, rule, logo; heading form; placeholder by title; any page width), red: `5 failed`.
 - **27.11.2026 23:15** Development agent: sub-issues `#201` and `#202` created; the coordinator-granted edits in lane A's files (the test's operator id and the `NoSegmenter` docstring) done.
 - **27.11.2026 23:10** Test agent: red tests for MKC-27 written; real PDF studied (9 landscape pages, 12 halves, 11 concepts plus one `Nr. (tbd)` placeholder).
