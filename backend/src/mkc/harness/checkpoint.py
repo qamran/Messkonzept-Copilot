@@ -10,6 +10,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
+from mkc.db.models import Turn
 from mkc.models.types import Message
 
 
@@ -25,5 +26,23 @@ class TurnRecord:
 
 
 def save_turn(session: Session, turn: TurnRecord) -> None:
-    """Add the turn's row to `session` without committing; the caller commits."""
-    raise NotImplementedError
+    """Add the turn's row to `session` without committing; the caller commits.
+
+    Raises `ValueError` unless the results answer the calls one to one, in call order.
+    """
+    call_ids = [call.id for call in turn.assistant.tool_calls]
+    result_ids = [result["tool_call_id"] for result in turn.results]
+    if call_ids != result_ids or len(set(call_ids)) != len(call_ids):
+        raise ValueError(f"tool calls and results must pair: {call_ids} vs {result_ids}")
+    session.add(
+        Turn(
+            item_id=turn.item_id,
+            number=turn.number,
+            assistant=turn.assistant.model_dump(mode="json"),
+            tool_results=[
+                {key: value for key, value in result.items() if key != "content"}
+                for result in turn.results
+            ],
+            cost_eur=turn.cost_eur,
+        )
+    )

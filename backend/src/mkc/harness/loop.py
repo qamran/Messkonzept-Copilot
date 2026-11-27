@@ -13,13 +13,15 @@ never stops the next item (extraction never waits for approvals).
 
 import json
 import re
+from collections import Counter
 from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any
 
 from sqlalchemy.orm import Session
 
-from mkc.db.models import Item, Turn
+from mkc.db.models import Item
+from mkc.harness.checkpoint import TurnRecord, save_turn
 from mkc.harness.queue import next_item, settle_run
 from mkc.harness.states import ItemState, transition
 from mkc.harness.tools import ToolEnv, ToolRegistry
@@ -109,13 +111,14 @@ def run_item(
         try:
             results, saved = _run_calls(registry, calls, env)
         except _ToolErrorEscaped as escaped:
-            turn = _turn(item_id, step, assistant, escaped.results, step_cost)
+            answered = _answer_the_rest(calls, escaped)
+            turn = _turn(item_id, step, assistant, answered, step_cost)
             reason = f"tool_error: {type(escaped.error).__name__}"
             return _finish(session, item_id, turn, ItemState.FAILED, reason, step, cost)
         turn = _turn(item_id, step, assistant, results, step_cost)
         if saved:
             return _finish(session, item_id, turn, ItemState.DRAFT_SAVED, None, step, cost)
-        session.add(turn)
+        save_turn(session, turn)
         session.commit()
         messages.append(assistant)
         messages += [
@@ -165,11 +168,38 @@ def _json(value: Any) -> str:
 
 
 def _with_ids(calls: list[ToolCall], step: int) -> tuple[ToolCall, ...]:
-    """A provider may return an empty call id; a tool message can't answer one."""
-    return tuple(
-        call if call.id else call.model_copy(update={"id": f"call-{step}-{index}"})
-        for index, call in enumerate(calls)
-    )
+    """Every call gets an id no other call of the turn has: a tool message answers one id.
+
+    An empty id becomes `call-<step>-<index>`; an id used twice becomes `<id>-<index>`.
+    """
+    seen = Counter(call.id for call in calls)
+
+    def fixed(index: int, call: ToolCall) -> ToolCall:
+        if not call.id:
+            return call.model_copy(update={"id": f"call-{step}-{index}"})
+        if seen[call.id] > 1:
+            return call.model_copy(update={"id": f"{call.id}-{index}"})
+        return call
+
+    return tuple(fixed(index, call) for index, call in enumerate(calls))
+
+
+NOT_RUN = "not run: an earlier call in this turn failed"
+
+
+def _answer_the_rest(
+    calls: tuple[ToolCall, ...], escaped: "_ToolErrorEscaped"
+) -> list[dict[str, Any]]:
+    """A stored turn pairs every call with a result, so a turn cut short by an escaped
+    error answers the failing call and every call after it with an error."""
+    error = escaped.error
+    answered = list(escaped.results)
+    for index, call in enumerate(calls[len(answered) :]):
+        message = f"{type(error).__name__}: {error}"[:1000] if index == 0 else NOT_RUN
+        payload = {"ok": False, "data": None,
+                   "error": {"code": "tool_failed", "message": message}}  # fmt: skip
+        answered.append({"tool_call_id": call.id, "name": call.name, "result": payload})
+    return answered
 
 
 def _run_calls(
@@ -198,20 +228,14 @@ def _turn(
     assistant: Message,
     results: list[dict[str, Any]],
     cost: Decimal,
-) -> Turn:
-    return Turn(
-        item_id=item_id,
-        number=number,
-        assistant=assistant.model_dump(mode="json"),
-        tool_results=[{k: v for k, v in r.items() if k != "content"} for r in results],
-        cost_eur=cost,
-    )
+) -> TurnRecord:
+    return TurnRecord(item_id, number, assistant, results, cost)
 
 
 def _finish(
     session: Session,
     item_id: int,
-    turn: Turn | None,
+    turn: TurnRecord | None,
     state: ItemState,
     reason: str | None,
     steps: int,
@@ -220,7 +244,7 @@ def _finish(
     """Store the last turn (if any) and the item's end state in one commit."""
     item = session.get_one(Item, item_id)
     if turn is not None:
-        session.add(turn)
+        save_turn(session, turn)
     item.state = transition(ItemState(item.state), state).value
     item.failure_reason = reason
     session.commit()
