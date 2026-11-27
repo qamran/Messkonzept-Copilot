@@ -1,6 +1,6 @@
 # Project status: Messkonzept-Copilot
 
-**Last updated:** 27.11.2026, 10:12
+**Last updated:** 27.11.2026, 10:46
 
 This is the living status document. It is updated whenever a decision is made or work is completed. Older brainstorming material lives in `brainstorming internal/` (gitignored and frozen).
 
@@ -61,7 +61,7 @@ This is the living status document. It is updated whenever a decision is made or
   - k3s v1.37.2 with Traefik; cert-manager v1.21.3 with Let's Encrypt staging and prod issuers
   - API host `92-6-240-17.sslip.io`
   - Vercel project `messkonzept-copilot`; GitHub environment `production` with `VERCEL_TOKEN`
-- **Current ticket:** MKC-16 (Turn checkpoints, resume, tool cache, idempotency, #16), started 27.11.2026.
+- **Current ticket:** MKC-16 (Turn checkpoints, resume, tool cache, idempotency, #16), started 27.11.2026. Built on the branch: `mkc.harness.checkpoint` (`save_turn`, `load_resume_context`), `mkc.harness.blobs` (migration 0005, `blob`), `mkc.harness.cache` (migration 0006, `tool_cache`), `mkc.harness.drafts` (migration 0007, `draft`), `process_run` resumes `running` items; decision 56. No model spend.
 - **MKC-15 done** (PR #138 merged as `ff76b94` on 27.11.2026, review PASS, deployed the same day). Built: `mkc.harness.states` (edge table, `transition`), `ToolEnv`, migration 0004 (`run`, `item`, `turn`), `mkc.harness.queue` (`next_item`, `settle_run`), `mkc.harness.loop` (`run_item`, `process_run`); decision 54. No model spend.
 - **MKC-14 done** (PR #131 merged as `1a42369` on 26.11.2026, review PASS, deployed the same day). Built: `mkc.harness.tools` (`Tool`, `ToolResult`, `ToolError`, `ToolTrace`, `ToolRegistry`) and `mkc.harness.registry.default_registry()` (the six item tools and four run-level operations of design 8.1, as `not_implemented` placeholders until their tickets); decision 53 (what `side_effect` means; `save_draft` is an item tool, harness code enqueues the approval), confirmed by the user on 27.11.2026; AGENTS.md points to it.
 - **MKC-13 done** (PR #127 merged as `ab62236` on 26.11.2026, review PASS, deployed the same day). Built: `mkc.models` (`ModelClient` with `chat`, `chat_with_tools`, `vision`, `chat_structured`; role mapping and prices in `models.yaml`; record/replay; provider factory with OpenRouter zero-data-retention routing); decision 52.
@@ -86,7 +86,7 @@ This is the living status document. It is updated whenever a decision is made or
 | README (intro + links for both repos) | `README.md` |
 | Official brief | `AE.CAP_afa.md` |
 
-## Decisions so far (summary; the full log of 55 decisions is in design doc section 18)
+## Decisions so far (summary; the full log of 56 decisions is in design doc section 18)
 
 - **Idea:** Messkonzept-Copilot. It extracts operator Messkonzept PDFs into structured, LBS-keyed records with human approval, and gives household site advice with citations.
 - **Primary user:** MSB, VNB and energy-IT staff working across grid areas; installers are secondary; plus a public read-only demo.
@@ -95,7 +95,7 @@ This is the living status document. It is updated whenever a decision is made or
   - custom loop and control; LangChain only for model and tool plumbing; no LangGraph
   - run-level operations are code, never model tools; a side-effect tool can't be registered in the item context (decision 53)
   - one transition function for every run and item state; tools get the item's ids from the harness, not the model (decision 54)
-  - checkpoints at turn boundaries
+  - checkpoints at turn boundaries; an interrupted item resumes from its last complete turn; large results as blob refs; a tool cache keyed by code version; `save_draft` idempotent by a key from the harness (decision 56)
   - a single-replica worker with a Postgres lease
 - **Core also includes (ADR 004):**
   - RAG over a narrow corpus: EnWG §14a, MsbG, BK6-22-300, BK8-22/010-A, operator texts

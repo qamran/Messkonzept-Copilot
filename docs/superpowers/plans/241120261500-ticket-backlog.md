@@ -431,6 +431,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
 - **Success criteria:**
   - [ ] PDFs cached only in Storage and gitignored locally
   - [ ] Records from two editions never mixed (test)
+- **Note (decision 56):** add a Supabase Storage `BlobStore` and make it the default for turn results; `blob:sha256:` refs written to the `blob` table must stay readable.
 
 ### MKC-22: Text and table extraction
 
@@ -565,6 +566,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
 - **Success criteria:**
   - [ ] The run reaches `done` only when every item is committed, rejected or failed
   - [ ] Berlin fully extracted and approved once, end to end (counts in the status doc)
+- **Note (decision 56):** the commit key is `mkc.harness.drafts.record_key` (document hash, concept key). `messkonzept` must have a unique constraint on it, and a test must show that a double commit leaves one record.
 
 ---
 
@@ -587,6 +589,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] `eval/iterations.md` started: each change made because of an eval result, with metrics before and after and the cases that changed (decision 55)
   - [ ] Reports include model ids, prompt versions, spend in EUR and set sizes
   - [ ] Results summarised in the status doc
+- **Note (decision 56):** run the items with `code_version` = the git `HEAD` commit, never `dev`, so the tool cache never serves a result from before a fix.
 
 ### MKC-32: E4, harness vs baseline
 
