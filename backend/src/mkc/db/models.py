@@ -214,6 +214,46 @@ class RunLog(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
+# --- MKC-21: operators and their fetched documents (decisions 62 and 63) ---
+
+
+class Operator(Base):
+    """One grid operator from `backend/data/operators.yaml`, upserted on every fetch.
+
+    `edition` is the number of the operator's latest `source_document` (0 before a fetch).
+    """
+
+    __tablename__ = "operator"
+
+    id: Mapped[str] = mapped_column(Text, primary_key=True)
+    name: Mapped[str] = mapped_column(Text)
+    voltage_level: Mapped[str] = mapped_column(Text)
+    url: Mapped[str] = mapped_column(Text)
+    edition: Mapped[int] = mapped_column(Integer, server_default="0")
+    created_at: Mapped[datetime] = _created()
+    updated_at: Mapped[datetime] = _updated()
+
+
+class SourceDocument(Base):
+    """One edition of an operator's catalogue. The PDF itself is only in Storage, under the
+    ref `blob:sha256:<sha256>`; Postgres keeps no bytes. A different hash than the latest
+    edition's is a new edition, never an overwrite (decision 62)."""
+
+    __tablename__ = "source_document"
+    __table_args__ = (
+        UniqueConstraint("operator_id", "edition", name="uq_source_document_edition"),
+        Index("ix_source_document_sha256", "sha256"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
+    operator_id: Mapped[str] = mapped_column(Text, ForeignKey("operator.id"))
+    edition: Mapped[int] = mapped_column(Integer)
+    url: Mapped[str] = mapped_column(Text)
+    sha256: Mapped[str] = mapped_column(String(64))
+    page_count: Mapped[int] = mapped_column(Integer)
+    fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
 # --- MKC-49: the RAG corpus (lane D) ------------------------------------------------------
 # Imported here, not at the top, so this block stays self-contained for parallel lanes.
 

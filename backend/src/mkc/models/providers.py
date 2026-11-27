@@ -6,18 +6,22 @@ so faults such as a 429 stay visible to it (E4).
 """
 
 from collections.abc import Sequence
+from typing import cast
 
 import anthropic
 import httpx
+import httpx2
 import openai
 import openrouter
 from langchain_anthropic import ChatAnthropic
+from langchain_core.decisions import BaseDecisionModel, Question, State
 from langchain_core.language_models import BaseChatModel
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai import ChatOpenAI
 from langchain_openrouter import ChatOpenRouter
+from langchain_typesafe import TypeSafeClassifier
 from openrouter.utils import BackoffStrategy, RetryConfig
-from pydantic import SecretStr
+from pydantic import JsonValue, SecretStr
 
 from mkc.config import Settings
 from mkc.models.client import ChatModelFactory, EmbedCall, EmbedFactory
@@ -157,6 +161,41 @@ def _retry_after(error: Exception) -> float | None:
     except ValueError:
         return None
     return seconds if seconds is not None and seconds >= 0 else None
+
+
+# MKC-46 (lane C): the decision model.
+
+OPENROUTER_SYSTEM_ONE_BASE = "https://openrouter.ai/api"
+"""`TypeSafeClassifier` posts to `{base_url}/v1/systemone`. OpenRouter serves that path for the
+TypeSafe SDKs ("System One" in its API spec) next to its Decisions route, so the stock client
+works with our key (the MKC-46 spike, 27.11.2026)."""
+
+
+class _OpenRouterDecisionModel(TypeSafeClassifier):
+    """`TypeSafeClassifier` plus our zero-data-retention routing in every request body, which
+    OpenRouter honours on `/v1/systemone` (MKC-46 spike). `langchain-typesafe` is pinned, and
+    the request tests catch a change to the overridden `_payload`."""
+
+    def _payload(self, state: State, questions: dict[str, Question]) -> dict[str, JsonValue]:
+        payload = super()._payload(state, questions)
+        payload["provider"] = cast(dict[str, JsonValue], dict(OPENROUTER_ROUTING))
+        return payload
+
+
+def build_decision_model(
+    settings: Settings, *, http_client: httpx2.Client | None = None
+) -> BaseDecisionModel:
+    """The decision model `settings.decision_model` on OpenRouter, with our OpenRouter key
+    (never `TYPESAFE_API_KEY` or `TYPESAFE_BASE_URL`). `http_client` is a test seam (a mock
+    transport); production leaves it None."""
+    key = _key("openrouter", settings)
+    return _OpenRouterDecisionModel(
+        model=settings.decision_model,
+        api_key=key,
+        base_url=OPENROUTER_SYSTEM_ONE_BASE,
+        timeout=settings.turn_timeout_seconds,
+        client=http_client,
+    )
 
 
 # --- Embeddings (MKC-49) ------------------------------------------------------------------

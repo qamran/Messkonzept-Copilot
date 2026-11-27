@@ -1,6 +1,6 @@
 """The corpus embedding model and the embedder that calls it (MKC-49.3, ADR 004, decision 71).
 
-`EMBEDDING` is the one place that names the model and its dimension; migration 0012 bakes
+`EMBEDDING` is the one place that names the model and its dimension; migration 0013 bakes
 the dimension into `chunk.embedding`, so changing either means a new migration and a reload.
 The price lives in `mkc/models/models.yaml`. Every call goes through
 `mkc.models.client.EmbeddingClient` (AGENTS.md model rules); this module imports no

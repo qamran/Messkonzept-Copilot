@@ -1,8 +1,9 @@
 """The run CLI: `mkc run start|resume|status|inspect` (MKC-20.4, feature 26, decision 60).
 
-- `start` creates a run (`running`, in its mode) and its `queued` items from a synthetic
-  items file (until MKC-21 fetches and segments real documents). The worker picks it up;
-  with `--inline` the CLI claims that run with a lease and processes it here.
+- `start` creates a run (`running`, in its mode) and its `queued` items: with `--operator`,
+  from the operator's catalogue (fetched and segmented by the run-level operations, one item
+  per concept region, MKC-21); with `--items`, from a synthetic items file. The worker picks
+  it up; with `--inline` the CLI claims that run with a lease and processes it here.
 - `resume` brings a `stopped` run back to `running` (stop reason and wall clock cleared;
   steps and cost keep counting from the stored turns).
 - `status` and `inspect` read the run, its items, turns and `run_log`.
@@ -28,11 +29,17 @@ from sqlalchemy.orm import Session, sessionmaker
 from mkc.config import Settings, get_settings
 from mkc.db.models import Item, Run, RunLog, Turn
 from mkc.db.session import get_engine
+from mkc.extraction.operations import DocumentOps
+from mkc.extraction.storage import LOCAL_CACHE_DIR
 from mkc.harness.faults import FaultInjector, InjectedKill, load_fault_plans
 from mkc.harness.limits import run_usage
 from mkc.harness.mode import HarnessMode
+from mkc.harness.registry import default_registry
 from mkc.harness.states import ItemState, RunState, transition
+from mkc.harness.storage import FileBlobStore, storage_from_settings
+from mkc.harness.tools import ToolEnv
 from mkc.models.client import ModelClient
+from mkc.models.types import ToolCall
 from mkc.worker.executor import default_owner
 from mkc.worker.lease import release_lease
 from mkc.worker.main import build_executor
@@ -49,6 +56,13 @@ def make_client(settings: Settings, tracers: Sequence[Any]) -> ModelClient:
     return ModelClient.from_settings(settings, tracers=tracers)
 
 
+def make_documents(settings: Settings, sessions: sessionmaker[Session]) -> DocumentOps:
+    """The run-level document operations: PDFs go to Supabase Storage when it is configured,
+    else to the gitignored local cache (tests replace this with fakes)."""
+    store = storage_from_settings(settings) or FileBlobStore(LOCAL_CACHE_DIR)
+    return DocumentOps(sessions, store)
+
+
 class ItemSpec(BaseModel):
     """One line of the items file: what an item is told and keyed by."""
 
@@ -61,7 +75,10 @@ class ItemSpec(BaseModel):
 
 _ITEMS = TypeAdapter(list[ItemSpec])
 
-ItemsOpt = Annotated[Path, typer.Option("--items", help="YAML list of items.")]
+ItemsOpt = Annotated[Path | None, typer.Option("--items", help="YAML list of items.")]
+OperatorOpt = Annotated[
+    str | None, typer.Option("--operator", help="Fetch and segment this operator's catalogue.")
+]
 ModeOpt = Annotated[HarnessMode | None, typer.Option(help="Default: MKC_HARNESS_MODE.")]
 InlineOpt = Annotated[bool, typer.Option("--inline", help="Process the run here.")]
 FaultsOpt = Annotated[Path | None, typer.Option("--faults", help="YAML fault plans (E4).")]
@@ -125,21 +142,27 @@ def _process(settings: Settings, run_id: int, faults: FaultInjector | None) -> N
 
 @run_app.command()
 def start(
-    items: ItemsOpt,
+    items: ItemsOpt = None,
+    operator: OperatorOpt = None,
     mode: ModeOpt = None,
     inline: InlineOpt = False,
     faults: FaultsOpt = None,
     plan: PlanOpt = None,
 ) -> None:
-    """Create a run with one queued item per entry of the items file."""
+    """Create a run with one queued item per concept of --operator or per --items entry."""
+    if (items is None) == (operator is None):
+        raise _fail("give exactly one of --operator and --items", 2)
     settings = get_settings()
-    specs = _read_items(items)
+    specs = _read_items(items) if items is not None else []
     injector = _injector(faults, plan)
     mode = mode or settings.harness_mode
-    with _sessions().begin() as session:
+    sessions = _sessions()
+    with sessions.begin() as session:  # nothing is visible to a worker before the commit
         run = Run(state=RunState.RUNNING.value, mode=mode.value)
         session.add(run)
         session.flush()
+        if operator is not None:
+            specs = _operator_items(settings, sessions, operator, run.id)
         session.add_all(
             Item(run_id=run.id, concept_key=s.concept_key, document_hash=s.document_hash,
                  task=s.task, state=ItemState.QUEUED.value)
@@ -149,6 +172,37 @@ def start(
     typer.echo(f"run {run_id} created (mode {mode.value}): {len(specs)} items")
     if inline:
         _process(settings, run_id, injector)
+
+
+def _operator_items(
+    settings: Settings, sessions: sessionmaker[Session], operator: str, run_id: int
+) -> list[ItemSpec]:
+    """Fetch and segment through the run-level operations; one item per concept region. A
+    failed operation exits 1, and the caller's transaction (the new run) rolls back."""
+    registry = default_registry(documents=make_documents(settings, sessions))
+    env = ToolEnv(run_id=run_id)
+
+    def run_operation(name: str, **args: Any) -> Any:
+        result = registry.execute(ToolCall(id=name, name=name, args=args), "run", env)
+        if result.error is not None:
+            raise _fail(f"{name}: {result.error.code}: {result.error.message}", 1)
+        return result.data
+
+    doc = run_operation("fetch_document", operator_id=operator)
+    found = run_operation("segment_document", document_hash=doc["sha256"])
+    new = ", a new edition" if doc["new_edition"] else ""
+    typer.echo(
+        f"{operator}: edition {doc['edition']}{new}, sha256 {doc['sha256']}, "
+        f"{doc['page_count']} pages, {len(found['regions'])} concepts"
+    )
+    return [
+        ItemSpec(
+            concept_key=region["number_hint"] or f"page-{region['page']}",
+            document_hash=doc["sha256"],
+            task={"operator_id": operator, "edition": doc["edition"], **region},
+        )
+        for region in found["regions"]
+    ]
 
 
 @run_app.command()
