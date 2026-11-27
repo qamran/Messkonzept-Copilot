@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 21:52
+**Last updated:** 27.11.2026, 22:01
 
 This file is how agents resume work after a session restart.
 
@@ -23,7 +23,7 @@ This file is how agents resume work after a session restart.
 - **Remotes:**
   - `origin` = qamran/Messkonzept-Copilot (home, public)
   - `turing` = TuringCollegeSubmissions/qshahz-AE.CAP.AFA.1.1 (code-only mirror, no issues; ADR 005 option (c), decision 35)
-  - Both at `085323a` (merge of PR #195).
+  - Both at `046f61e` (merge of PR #196).
 - **`main` is protected:** PRs only, enforced for admins. Required checks: the `ci` jobs `backend`, `frontend`, `gitleaks`, `dependency-scan` and `docs` (since 25.11.2026 09:50, MKC-6.5) `image` (since 13:52, MKC-8) and `kind` (since 15:42, MKC-9); the branch must be up to date with `main`. `publish` is not required (skipped on PRs).
 - **Agent rules:** `AGENTS.md` (CLAUDE.md imports it). The development agent continues without asking and stops only for genuine decisions (decision 36).
 - **Done:**
@@ -63,7 +63,7 @@ From MKC-168 (decision 61), tickets run in parallel lanes. Each lane keeps its o
 |---|---|---|---|
 | A. Extraction | MKC-21 → 22 → 23 → 25 → 26 → 28 → 29 → 30 | `handoff/lane-a.md` | MKC-21: development agent building (red `c9202aa`) |
 | A2. SachsenNetze and gold | MKC-27 (after MKC-21) → 24 (after MKC-23) | `handoff/lane-a2.md` | waits on MKC-21 |
-| B. Advisor | MKC-36 → (37 after MKC-30) → 38 | `handoff/lane-b.md` | MKC-36: development agent building (red `4be85d4`) |
+| B. Advisor | MKC-36 → (37 after MKC-30) → 38 | `handoff/lane-b.md` | MKC-36 done (PR #196, `046f61e`); paused: MKC-37 waits on MKC-30 |
 | C. Decision layer | MKC-46 → (47 after MKC-36, MKC-26) → (48 after MKC-31) | `handoff/lane-c.md` | MKC-46 done (PR #195, `085323a`); next MKC-47 waits on MKC-36 and MKC-26 |
 | D. RAG | MKC-49 → 50 → (51 after MKC-38) | `handoff/lane-d.md` | MKC-49: development agent building (red `f515d26`) |
 
@@ -217,6 +217,8 @@ Shared-code rules for wave 1 beyond AGENTS.md (the coordinator's, in each lane b
 - **The user's PC:** it went down without a clean shutdown on 23.11 and 26.11.2026 (cause not found; graphics-driver hang reports on both days; a memory test is not done yet). Commit and push often. Two files exist only on the PC: the VM's admin SSH key and `backend/.env` (runbook "Only on the PC"); the user was advised to copy them into a password manager.
 
 ## Recent log
+
+- **27.11.2026 22:01** PR #196 (MKC-36, lane B) review PASS (Fable, comment 21:52:44; it re-checked the coordinator's merge commit `6cba706`; 8 non-blocking findings: (1) keep live mode off for the API pod until the advisor route has cost tracing and a per-user limit; (2) a provider 400/403 becomes a 500, not a 503, and its raw text reaches the server log; (3) the role `facts` is not pinned; (4) the card cannot edit every asked fact, for MKC-37; (5) one lane-b log time matches neither git nor GitHub; (6) lane-b "In progress" stale; (7) the coordinator's go for lane B's three live calls (€0.013138) is confirmed here: the wave-1 brief gave lanes B and D up to €0.50 each; (8) the sub-issues did not close with the PR), merged as `046f61e` (21:52:48). #176, #177, #178, #180, #183 closed by the coordinator; #36 and the five sub-issues set `Done` (21:54:09). `main` pushed to `turing` (21:54:14); `origin/main` = `turing/main` = `046f61e`. `cd` run 46066593310: `image` 21:52:55 to 21:58:33; `backend` approved at 21:58:41, ran 21:58:43 to 21:59:40; `frontend` approved at 21:59:47, ran 21:59:49 to 22:00:32; run exit 0. Checked: `/api/version` commit `046f61e...`, `/health` 200, `POST /api/advisor/facts` without a token 401 (22:00:41). PR #197 (MKC-21, opened 21:54:19) updated from `main` by the coordinator (`eea5597`, 21:56:14): conflicts in `.env.example`, `config.py` and the decision log, both lanes' blocks kept; `uv.lock` regenerated with `uv lock` from `main`'s lock; `pre_pr.sh` exit 0 (854 passed, 1 skipped, 15 deselected). PR #198 (MKC-49, opened 21:55:20) held until #197 merges (both add migration `0012`; the coordinator re-chains #198).
 
 - **27.11.2026 21:52** PR #195 (MKC-46, lane C) review PASS (Fable, comment 21:43:52; 5 non-blocking findings: ZDR sent but not proven enforced, so Jev gets only public or synthetic input until MKC-47 settles it; override of the library's private `_payload`; backlog MKC-47 still lists `noul/choice/score`; the one-sided Noul criterion and the timeout untested; lane file not yet showing the PR), merged as `085323a` (21:43:56). #46, #192–#194 closed and set `Done` (21:45:20). `main` pushed to `turing` (21:44:59); `origin/main` = `turing/main` = `085323a`. `cd` run 46065615040: `image` 21:44:02 to 21:49:37; `backend` approved by the coordinator at 21:50:04, ran 21:50:06 to 21:50:58; `frontend` approved at 21:51:26, ran 21:51:28 to 21:52:06; run exit 0. Checked: `/api/version` commit `085323a...`, `/health` 200 (21:52:14). PR #196 updated from `main` by the coordinator (`6cba706`, 21:45:53): text conflicts in the status doc and the decision log, both sides kept; its reviewer told to re-check the merge commit. Lane A (MKC-21) closing mutation gaps 3, 7, 13–20 before its PR; lane D (MKC-49) mutation pass 98 tried, 95 killed; its development agent closes the lettered-Absatz and chunk-cap gaps and writes the embedding research note before its PR.
 
