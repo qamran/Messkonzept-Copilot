@@ -31,6 +31,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 
 from mkc.config import Settings
+from mkc.harness.limits import Limits
 from mkc.harness.loop import SETUP_ERRORS, process_run
 from mkc.harness.registry import default_registry
 from mkc.harness.tools import ToolRegistry
@@ -166,7 +167,7 @@ class Executor:
                     session=session,
                     client=self._client_factory(),
                     registry=self._registry,
-                    max_steps=settings.item_max_steps,
+                    limits=Limits.from_settings(settings),
                     inline_max_bytes=settings.turn_inline_max_bytes,
                     code_version=settings.commit,
                     should_stop=lambda: self._stop.is_set() or held.lost.is_set(),

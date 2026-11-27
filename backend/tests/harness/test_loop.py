@@ -10,6 +10,7 @@ from sqlalchemy import Engine
 from sqlalchemy.orm import Session
 
 from mkc.db.models import Turn
+from mkc.harness.limits import Limits
 from mkc.harness.loop import TOOL_RESULT_CLOSE, ItemOutcome, process_run, run_item
 from mkc.harness.queue import next_item
 from mkc.harness.states import ItemState
@@ -125,7 +126,7 @@ def run(engine: Engine, item_id: int, model: FakeChatModel, tools: Tools, **kw: 
             session=session,
             client=client_for(model),
             registry=tools.registry(),
-            max_steps=kw.get("max_steps", 5),
+            limits=Limits(max_steps_item=kw.get("max_steps", 5)),
         )
 
 
@@ -316,7 +317,7 @@ def test_queue_continues_while_drafts_pending(engine: Engine) -> None:
     with Session(engine) as session:
         outcomes = process_run(
             run_id, session=session, client=client_for(model), registry=tools.registry(),
-            max_steps=5,
+            limits=Limits(max_steps_item=5),
         )  # fmt: skip
     assert [(o.item_id, o.state) for o in outcomes] == [
         (ids[0], ItemState.DRAFT_SAVED),
@@ -332,7 +333,7 @@ def test_a_failed_item_does_not_stop_the_queue(engine: Engine) -> None:
     with Session(engine) as session:
         outcomes = process_run(
             run_id, session=session, client=client_for(model), registry=Tools().registry(),
-            max_steps=5,
+            limits=Limits(max_steps_item=5),
         )  # fmt: skip
     assert [o.state for o in outcomes] == [ItemState.FAILED, ItemState.DRAFT_SAVED]
     assert states(engine, run_id) == ("awaiting_approval", ["failed", "draft_saved"])
@@ -343,7 +344,7 @@ def test_a_run_whose_items_all_fail_is_done(engine: Engine) -> None:
     with Session(engine) as session:
         process_run(
             run_id, session=session, client=client_for(fake(ai("no"))),
-            registry=Tools().registry(), max_steps=5,
+            registry=Tools().registry(), limits=Limits(max_steps_item=5),
         )  # fmt: skip
     assert states(engine, run_id) == ("done", ["failed"])
 
@@ -359,7 +360,7 @@ def test_setup_errors_propagate_and_the_run_is_not_settled(
     with Session(engine) as session, pytest.raises(type(error)):
         process_run(
             run_id, session=session, client=client_for(fake(error=error)),
-            registry=Tools().registry(), max_steps=5,
+            registry=Tools().registry(), limits=Limits(max_steps_item=5),
         )  # fmt: skip
     # not `done`: the second item was never tried, and the first is left for resume (MKC-16)
     assert states(engine, run_id) == ("running", ["running", "queued"])

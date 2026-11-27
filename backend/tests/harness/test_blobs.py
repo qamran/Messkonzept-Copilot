@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from mkc.harness.blobs import DbBlobStore
 from mkc.harness.checkpoint import TurnRecord, save_turn, stored_result
+from mkc.harness.limits import Limits
 from mkc.harness.loop import run_item
 from mkc.models.types import Message, ToolCall
 from tests.harness.test_loop import READ, SAVE, Tools, client_for, start, turns
@@ -88,7 +89,7 @@ def test_the_loop_stores_large_tool_output_as_a_ref(engine: Engine) -> None:
     model = fake(ai(tool_calls=[READ]), ai(tool_calls=[SAVE]))
     with Session(engine) as session:
         run_item(item_id, session=session, client=client_for(model),
-                 registry=Tools(text="Seite " * 400).registry(), max_steps=3,
+                 registry=Tools(text="Seite " * 400).registry(), limits=Limits(max_steps_item=3),
                  inline_max_bytes=1000)  # fmt: skip
     first, second = turns(engine, item_id)
     assert "result_ref" in first.tool_results[0]

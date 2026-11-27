@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from mkc.db.models import Run
 from mkc.harness.cache import ToolCache
+from mkc.harness.limits import Limits
 from mkc.harness.loop import process_run
 from mkc.harness.registry import default_registry
 from mkc.harness.tools import Tool, ToolEnv, ToolRegistry, ToolTrace
@@ -187,9 +188,15 @@ def test_process_run_passes_the_code_version_and_the_inline_limit(engine: Engine
     model = fake(ai(tool_calls=[read(1)]), ai(tool_calls=[SAVE]),
                  ai(tool_calls=[read(1)]), ai(tool_calls=[SAVE]))  # fmt: skip
     with Session(engine) as session:
-        process_run(run_id, session=session, client=client_for(model),
-                    registry=tools.registry(), max_steps=5, code_version=version(),
-                    inline_max_bytes=10)  # fmt: skip
+        process_run(
+            run_id,
+            session=session,
+            client=client_for(model),
+            registry=tools.registry(),
+            limits=Limits(max_steps_item=5),
+            code_version=version(),
+            inline_max_bytes=10,
+        )
     assert tools.pages == [1]  # the second item's read of page 1 hit the cache
     with Session(engine) as session:
         from mkc.db.models import Turn

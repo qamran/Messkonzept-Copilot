@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 
 from mkc.db.models import Item, Turn
 from mkc.harness.checkpoint import load_resume_context
+from mkc.harness.limits import Limits
 from mkc.harness.loop import ItemOutcome, process_run, run_item
 from mkc.harness.states import ItemState
 from mkc.harness.tools import ToolEnv, ToolRegistry
@@ -63,8 +64,14 @@ def crashing(*replies: AIMessage, at: int) -> CrashingModel:
 def go(engine: Engine, item_id: int, model: FakeChatModel, tools: Tools, **kw: Any) -> ItemOutcome:
     with Session(engine) as session:
         steps = kw.pop("max_steps", 6)
-        return run_item(item_id, session=session, client=client_for(model),
-                        registry=tools.registry(), max_steps=steps, **kw)  # fmt: skip
+        return run_item(
+            item_id,
+            session=session,
+            client=client_for(model),
+            registry=tools.registry(),
+            limits=Limits(max_steps_item=steps),
+            **kw,
+        )
 
 
 def crash_after(engine: Engine, k: int, tools: Tools | None = None, **kw: Any) -> int:
@@ -181,7 +188,7 @@ def test_process_run_resumes_a_running_item_before_claiming_queued_ones(engine: 
     with Session(engine) as session:
         outcomes = process_run(run_id, session=session, client=client_for(
             fake(ai(tool_calls=[SAVE]), ai(tool_calls=[SAVE]))), registry=tools.registry(),
-            max_steps=5)  # fmt: skip
+            limits=Limits(max_steps_item=5))  # fmt: skip
     assert [o.item_id for o in outcomes] == [ids[1], ids[0]]
     assert states(engine, run_id) == ("awaiting_approval", ["draft_saved", "draft_saved"])
 
@@ -249,7 +256,12 @@ def test_a_stopped_run_does_not_resume_its_running_item(engine: Engine) -> None:
     run_id, _ = make_run(engine, "running", run_state="stopped")
     model = fake(ai(tool_calls=[SAVE]))
     with Session(engine) as session:
-        outcomes = process_run(run_id, session=session, client=client_for(model),
-                               registry=Tools().registry(), max_steps=5)  # fmt: skip
+        outcomes = process_run(
+            run_id,
+            session=session,
+            client=client_for(model),
+            registry=Tools().registry(),
+            limits=Limits(max_steps_item=5),
+        )
     assert outcomes == [] and model.seen == []
     assert states(engine, run_id) == ("stopped", ["running"])

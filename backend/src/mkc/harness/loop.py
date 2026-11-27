@@ -28,6 +28,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from mkc.db.models import Item
 from mkc.harness.cache import ToolCache
 from mkc.harness.checkpoint import INLINE_MAX_BYTES, TurnRecord, load_resume_context, save_turn
+from mkc.harness.limits import Limits, StopReason
 from mkc.harness.prompts import SYSTEM_PROMPT, TOOL_RESULT_CLOSE, task_message, wrap_tool_result
 from mkc.harness.queue import next_item, resumable_item, settle_run
 from mkc.harness.states import ItemState, transition
@@ -86,7 +87,7 @@ def run_item(
     session: Session,
     client: ModelClient,
     registry: ToolRegistry,
-    max_steps: int,
+    limits: Limits,
     inline_max_bytes: int = INLINE_MAX_BYTES,
     code_version: str | None = None,
     should_stop: Callable[[], bool] = _never,
@@ -111,7 +112,7 @@ def run_item(
     session.commit()  # no transaction stays open across a model call
 
     cost = context.cost_eur
-    for step in range(context.next_number, max_steps + 1):
+    for step in range(context.next_number, limits.max_steps_item + 1):
         try:
             reply = client.chat_with_tools(ROLE, messages, specs)
         except SETUP_ERRORS:
@@ -191,8 +192,8 @@ def run_item(
         item_id,
         None,
         ItemState.FAILED,
-        "step_limit",
-        max_steps,
+        StopReason.STEP_LIMIT.value,
+        limits.max_steps_item,
         cost,
         inline_max_bytes,
         fence,
@@ -205,7 +206,7 @@ def process_run(
     session: Session,
     client: ModelClient,
     registry: ToolRegistry,
-    max_steps: int,
+    limits: Limits,
     inline_max_bytes: int = INLINE_MAX_BYTES,
     code_version: str | None = None,
     should_stop: Callable[[], bool] = _never,
@@ -233,7 +234,7 @@ def process_run(
                 session=session,
                 client=client,
                 registry=registry,
-                max_steps=max_steps,
+                limits=limits,
                 inline_max_bytes=inline_max_bytes,
                 code_version=code_version,
                 should_stop=should_stop,
