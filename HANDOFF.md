@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 12:02
+**Last updated:** 27.11.2026, 12:04
 
 This file is how agents resume work after a session restart.
 
@@ -55,7 +55,7 @@ This file is how agents resume work after a session restart.
 - **MKC-17** (#17), Run executor (worker with lease). Status `In progress`, assigned to `qamran` (27.11.2026 11:37:38). Branch `mkc-17-run-executor` from `266c37d`. The first commit holds only the close-out of MKC-16.
   - Plan: `docs/superpowers/plans/271120261154-mkc-17-run-executor.md` (decision 57: lease on the run row with the database clock, fencing before every commit, heartbeat thread for the file and the lease, stop between turns, `waiting_for_database` written on the first successful probe after an outage).
   - Sub-issues: MKC-17.1 #146 `In progress`; MKC-17.2 #147, MKC-17.3 #148, MKC-17.4 #149 `Ready`.
-  - Next: MKC-17.2 green: `should_stop` and `fence` in the loop, `Executor`, lease settings.
+  - Next: MKC-17.2: commit the `Executor` (green), then MKC-17.3 red.
 
 ## Next steps
 
@@ -161,6 +161,8 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+
+- **27.11.2026 12:04** MKC-17.2: lease settings `MKC_WORKER_LEASE_SECONDS` (120) and `MKC_WORKER_LEASE_RENEW_SECONDS` (20; three renewals must fit into a lease); `process_run` and `run_item` take `should_stop` (checked after each committed turn and before each claim; the item stays `running`, reason `interrupted`, the run is not settled) and `fence` (before every commit). Lint fixes in the red tests (`Field` for the hooks, a raw `match`).
 
 - **27.11.2026 12:02** MKC-17.2 red: `tests/worker/test_executor.py` (`test_sigterm_finishes_turn_then_releases_lease`, idle `run_once`, heartbeat and lease fresh during a 1.5 s model call, a lost lease stores no turn) and the lease timing settings in `tests/test_config.py`; `Executor` is a stub. The tests fail on the missing settings.
 

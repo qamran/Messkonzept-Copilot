@@ -115,5 +115,5 @@ def test_lease_timings_default_and_read_the_environment(monkeypatch: pytest.Monk
 
 @pytest.mark.parametrize(("lease", "renew"), [(60, 21), (60, 0), (0, 0)])
 def test_three_renewals_must_fit_into_one_lease(lease: float, renew: float) -> None:
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError, match=r"three renewals|greater than 0"):
         Settings(worker_lease_seconds=lease, worker_lease_renew_seconds=renew)

@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from langchain_core.messages import AIMessage, BaseMessage
+from pydantic import Field
 from sqlalchemy import Engine, func, select, update
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -21,7 +22,7 @@ from tests.models.fakes import FakeChatModel, ai
 class HookModel(FakeChatModel):
     """Runs `hooks[n]` at the start of model call n (1-based), then replies as scripted."""
 
-    hooks: dict[int, Callable[[], None]] = {}
+    hooks: dict[int, Callable[[], None]] = Field(default_factory=dict)
 
     def _generate(self, messages: list[BaseMessage], *args: Any, **kwargs: Any) -> Any:
         hook = self.hooks.get(len(self.seen) + 1)
@@ -44,9 +45,7 @@ def settings(**overrides: Any) -> Settings:
     return Settings(**{**values, **overrides})
 
 
-def executor(
-    engine: Engine, model: FakeChatModel, owner: str, **overrides: Any
-) -> Executor:
+def executor(engine: Engine, model: FakeChatModel, owner: str, **overrides: Any) -> Executor:
     return Executor(
         settings(**overrides),
         sessions=sessionmaker(bind=engine),

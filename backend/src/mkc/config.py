@@ -3,7 +3,7 @@
 import re
 from typing import Annotated, Literal
 
-from pydantic import AliasChoices, Field, SecretStr, field_validator
+from pydantic import AliasChoices, Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 _PSYCOPG_SCHEME = "postgresql+psycopg://"
@@ -31,6 +31,13 @@ class Settings(BaseSettings):
 
     worker_heartbeat_max_age_seconds: float = 30.0
     """`mkc-worker-health` fails when the heartbeat is older than this."""
+
+    worker_lease_seconds: float = Field(default=120.0, gt=0)
+    """How long a claimed run stays leased without a renewal (MKC-17, decision 57). A crashed
+    worker's run is taken over after at most this long."""
+
+    worker_lease_renew_seconds: float = Field(default=20.0, gt=0)
+    """How often the heartbeat thread renews the lease; three renewals must fit into a lease."""
 
     database_url: str = Field(
         default=f"{_PSYCOPG_SCHEME}mkc:mkc@127.0.0.1:5433/mkc",
@@ -93,6 +100,16 @@ class Settings(BaseSettings):
 
     meta_api_key: SecretStr = SecretStr("")
     """Meta API key (api.meta.ai, Muse models). A secret."""
+
+    @model_validator(mode="after")
+    def _lease_outlives_renewals(self) -> "Settings":
+        """A lease must survive two missed renewals, or a slow database loses it."""
+        if self.worker_lease_renew_seconds * 3 > self.worker_lease_seconds:
+            raise ValueError(
+                "three renewals must fit into one lease: MKC_WORKER_LEASE_RENEW_SECONDS * 3 "
+                "> MKC_WORKER_LEASE_SECONDS"
+            )
+        return self
 
     @field_validator("clerk_authorized_parties", "cors_origins", mode="before")
     @classmethod
