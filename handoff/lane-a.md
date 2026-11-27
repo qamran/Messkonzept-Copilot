@@ -1,6 +1,6 @@
 # Lane A: Extraction
 
-**Last updated:** 27.11.2026, 23:20
+**Last updated:** 27.11.2026, 23:22
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -25,6 +25,8 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 3. Test agent: mutation pass on the development agent's code.
 
 ## Recent log
+
+- **27.11.2026 23:22** Test agent: red tests for the fetch hardening sub-issue (`test_fetch_hardening.py`): `11 failed, 3 passed, 1 skipped in 0.87s` with `test_image_operators.py`. Red: userinfo in a redirect, the hop cookie, four port cases, the download limit (`MAX_DOWNLOAD_BYTES`, `DownloadTooLarge`, `max_bytes`). Green pins: userinfo on a listed host (two cases) and `:443`. Skipped: the image test, which runs only with `MKC_TEST_IMAGE` set.
 
 - **27.11.2026 23:20** Test agent: red tests `test_extract_tools.py` (the item tools through `default_registry(documents=...)`, JSON results, the tool cache, no NUL in a result): `7 failed in 1.52s` (`unexpected arguments: bbox`, `not_implemented`). `layout_pdf(nul_for=...)` maps one glyph to U+0000 through `/ToUnicode`; pdfplumber then reads `'PV-Anlagen \x00'`.
 
