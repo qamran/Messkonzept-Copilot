@@ -74,16 +74,19 @@ class LbsSource:
 def check_digit(payload: str) -> int:
     """Lok- und Waggon-Kennzeichnungsverfahren: odd positions (from the left, starting at 1)
     count once, even positions twice; the check digit tops the sum up to a multiple of 10."""
-    if not payload.isdigit():
-        raise ValueError(f"not digits: {payload!r}")
+    if not (payload.isascii() and payload.isdigit()):
+        raise ValueError(f"not ASCII digits: {payload!r}")
     odd = sum(int(d) for d in payload[0::2])
     even = sum(int(d) for d in payload[1::2])
     return (10 - (odd + 2 * even) % 10) % 10
 
 
 def is_valid_code(code: str) -> bool:
-    """13 digits, and the last one is the check digit of the first 12."""
-    return len(code) == 13 and code.isdigit() and check_digit(code[:12]) == int(code[12])
+    """13 ASCII digits, and the last one is the check digit of the first 12. Other Unicode
+    digits (`²`, full-width, Arabic-Indic) are no code: False, never an exception."""
+    if len(code) != 13 or not (code.isascii() and code.isdigit()):
+        return False
+    return check_digit(code[:12]) == int(code[12])
 
 
 def _read(path: Path) -> dict[str, Any]:

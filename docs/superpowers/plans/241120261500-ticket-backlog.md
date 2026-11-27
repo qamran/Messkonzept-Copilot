@@ -474,6 +474,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] A naive pdftotext baseline function is kept for the E1 comparison
   - [ ] Both tools are deterministic and cached
 - **Note (MKC-16 pre-PR review):** Postgres JSONB rejects `\u0000`, and PDF text can hold NUL characters. Strip them from tool output before it reaches `turn`, `tool_cache` or `blob` JSON, or the item stays `running` and crashes on every resume.
+- **As built (lane A, 27.11.2026):** sub-issues MKC-22.1 to 22.6 (#208–#213). `mkc.extraction.text` (`extract_text`, `TextFields`, `StatedLbs`), `mkc.extraction.tables` (`extract_tables`, `table_rows`, `Row`), `mkc.extraction.naive` (`naive_text`, `naive_tables`, the E1 baseline), `mkc.extraction.cleantext` (control characters, NUL included, removed from every string); both item tools real through `default_registry(documents=DocumentOps(...))` and cached by the tool cache; fetch hardening (PR #197 findings 1 to 4 and 7), `is_valid_code` (MKC-12 finding 11), `ToolRegistry.execute` (MKC-14 finding 2); decisions 76 to 78. Real runs still build the registry without `documents` (`mkc/harness/runner.py`): wiring it is MKC-23.
 
 ### MKC-23: Render, draft assembly, save_draft
 

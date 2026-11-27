@@ -16,6 +16,7 @@ import io
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
+from http.cookiejar import DefaultCookiePolicy
 from urllib.parse import urlsplit
 
 import httpx
@@ -31,12 +32,18 @@ from mkc.extraction.operators import OperatorConfig, load_operators
 from mkc.harness.blobs import PREFIX, BlobStore
 
 MAX_REDIRECTS = 5
+# The Storage bucket's file size limit (decision 63): a larger PDF could not be stored.
+MAX_DOWNLOAD_BYTES = 50 * 1024 * 1024
 TIMEOUT_SECONDS = 60.0
 USER_AGENT = "mkc-fetch/1 (Messkonzept-Copilot)"
 
 
 class DisallowedUrl(ValueError):
     """The URL (or a redirect) is not https or not on the operator's allow-list."""
+
+
+class DownloadTooLarge(ValueError):
+    """The response body is over `MAX_DOWNLOAD_BYTES`; nothing is stored."""
 
 
 class NotAPdf(ValueError):
@@ -75,37 +82,68 @@ Getter = Callable[[str], FetchResponse]
 
 
 def is_allowed_url(url: str, allowed_hosts: tuple[str, ...]) -> bool:
-    """https, no userinfo, and a host equal (case-insensitive) to one on the list."""
+    """https, no userinfo, the default port (none or 443), and a host equal
+    (case-insensitive) to one on the list. A malformed URL or port is False, never an error."""
     try:
         parts = urlsplit(url)
         host = parts.hostname
+        port = parts.port
     except ValueError:
         return False
-    if parts.scheme != "https" or "@" in parts.netloc or not host:
+    if parts.scheme != "https" or _has_userinfo(url) or not host or port not in (None, 443):
         return False
     return host.lower() in {h.lower() for h in allowed_hosts}
 
 
-def http_get(url: str, *, transport: httpx.BaseTransport | None = None) -> FetchResponse:
-    """GET `url`, following at most five redirects, each to an https URL only. The caller
-    checks the final URL against its allow-list. Raises on an HTTP error status."""
+def http_get(
+    url: str,
+    *,
+    transport: httpx.BaseTransport | None = None,
+    max_bytes: int = MAX_DOWNLOAD_BYTES,
+) -> FetchResponse:
+    """GET `url`, following at most five redirects, each to an https URL without userinfo
+    (refused before it is requested). The caller checks the final URL against its
+    allow-list. No cookie is kept between hops. The body is read as a stream and refused
+    with `DownloadTooLarge` once it passes `max_bytes`, whatever `content-length` says.
+    Raises on an HTTP error status."""
     with httpx.Client(
         transport=transport,
         timeout=TIMEOUT_SECONDS,
         follow_redirects=False,
         headers={"user-agent": USER_AGENT},
     ) as client:
+        # A jar that refuses every cookie: no hop's cookie reaches a later hop. (The client
+        # copies a jar it is given, policy lost, so the policy goes on its own jar.)
+        client.cookies.jar.set_policy(DefaultCookiePolicy(allowed_domains=[]))
         current = url
         for _ in range(MAX_REDIRECTS + 1):
-            response = client.get(current)
-            if not response.is_redirect:
-                response.raise_for_status()
-                return FetchResponse(url=current, content=response.content)
-            target = str(response.url.join(response.headers["location"]))
+            with client.stream("GET", current) as response:
+                if not response.is_redirect:
+                    response.raise_for_status()
+                    return FetchResponse(url=current, content=_read(response, max_bytes))
+                target = str(response.url.join(response.headers["location"]))
             if urlsplit(target).scheme != "https":
                 raise DisallowedUrl(f"redirect from {current} to a non-https URL")
+            if _has_userinfo(target):
+                raise DisallowedUrl(f"redirect from {current} to a URL with userinfo")
             current = target
     raise DisallowedUrl(f"more than {MAX_REDIRECTS} redirects from {url}")
+
+
+def _has_userinfo(url: str) -> bool:
+    return "@" in urlsplit(url).netloc
+
+
+def _read(response: httpx.Response, max_bytes: int) -> bytes:
+    declared = response.headers.get("content-length", "")
+    if declared.isascii() and declared.isdigit() and int(declared) > max_bytes:
+        raise DownloadTooLarge(f"content-length {declared} is over {max_bytes} bytes")
+    body = bytearray()
+    for chunk in response.iter_bytes():
+        body += chunk
+        if len(body) > max_bytes:
+            raise DownloadTooLarge(f"the body is over {max_bytes} bytes")
+    return bytes(body)
 
 
 def page_count(content: bytes) -> int:
