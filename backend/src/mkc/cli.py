@@ -254,3 +254,9 @@ def _item_turns(session: Session, run_id: int, item_id: int) -> None:
 def _ok(entry: dict[str, Any]) -> bool:
     """A stored result is inline (`result`) or a blob ref (`result_ref`); both carry `ok`."""
     return bool((entry.get("result") or entry.get("result_ref") or {}).get("ok"))
+
+
+# --- MKC-49: `mkc corpus` (lane D) --------------------------------------------------------
+from mkc.rag.cli import corpus_app  # noqa: E402  (kept with its mount for parallel lanes)
+
+app.add_typer(corpus_app, name="corpus")
