@@ -1,6 +1,6 @@
 # Lane A: Extraction
 
-**Last updated:** 28.11.2026, 00:31
+**Last updated:** 28.11.2026, 00:32
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -63,14 +63,41 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 - Passing `documents` from `execute_run` (`mkc/harness/runner.py`) and the worker executor, so real runs get the real tools (assumption 7).
 - The `uv lock` and `pyproject.toml` stay unchanged unless the development agent adds a dependency (pdfplumber is already there).
 
+### Mutation pass (MKC-22; test agent, 28.11.2026, head `f0bf9e8`)
+
+- Method: one hand-written mutant at a time (exact string replacement, CRLF-aware, checked as applied and restored byte for byte), `__pycache__` cleared, then `uv run pytest tests/extraction tests/harness/test_tools.py tests/harness/test_tools_hardening.py tests/harness/test_registry.py tests/reference -q -x`, non-live. No mutant was committed; no production code changed.
+- Unmodified base run: `196 passed, 1 skipped, 4 deselected in 6.21s`.
+- First run: 119 mutants tried, 65 killed, 54 survived, 0 not applied.
+- New acceptance tests (commits `3696aa4`, `989c8cf`, `f50c927`, `140a3fd`, `a49faf2`; 35 tests) were green on the real code and then killed 39 of the 54 survivors (re-run of the 54: 39 killed, 15 survived). With them: **119 tried, 104 killed, 15 survived**. Base run with the new tests: `231 passed, 1 skipped, 4 deselected in 6.51s`.
+- Killed by the new tests: text.py pitch, indent, title stops at `Anwendung:` and at another type size, only the list after `Anwendung:`, the 14th digit, NaN bbox and page past the end as `ValueError`; tables.py `nicht visualisiert` in any case, empty tokens, `all` vs `any`, `2a`, years, the exact `Code der LBS` header, a missing header, 12-digit codes, non-concept rows after the first, an empty grid row, the in-cell hyphen join, `Messkonzept` in a meter table's first column, `nicht visualisiert` in a meter table; cleantext.py white space, the capital after a hyphen, `sowie`, `ß`; naive.py lookbehind, `nicht visualisiert`, text before a code, the label, one meter cell, NUL in `naive_text`; `page` ge=1; the `content-length` check and the default `max_bytes`; the LBS code length and `check_digit`'s ASCII rule.
+- Survivors (15), file:line, what the mutant changed (NE = near-equivalent):
+  1. `extraction/text.py:172` footnote continuation does not stop at the next `*n)` line. NE: the joined text is split again at the marker (`_MARKER_INSIDE`).
+  2. `extraction/text.py:150` bullet continuation does not stop at the next bullet. NE: a bullet at the same x fails the indent rule anyway; only a nested, indented bullet would differ.
+  3. `extraction/text.py:184` `_follows` with `0 <=` instead of `0 <`. NE: pdfplumber puts words at one top into one line.
+  4. `extraction/text.py:202` the "bbox does not overlap the page" check off. NE: pdfplumber's `crop` refuses such a bbox itself (`test_a_bbox_off_the_page_is_tool_failed` still passes, with another message).
+  5. `extraction/text.py:97` lines with empty text kept. NE: only a line of control characters is empty after `clean`.
+  6. `extraction/text.py:191` the line text not cleaned. NE: every field goes through `clean` or `join_lines` later; only a control character before a bullet sign or `LBS` would differ.
+  7. `extraction/text.py:189` a line's size is the smallest char size, not the largest. NE: synthetic lines have one size each.
+  8. `extraction/text.py:42` `^` dropped from `_LBS`. Equivalent: `re.match` anchors at the start anyway.
+  9. `extraction/cleantext.py:15` `_SPLIT_WORD` without the lowercase letter before the hyphen (`-$`). NE: differs only for a digit or capital before the hyphen with a lowercase line after (`Z2-` / `zähler`).
+  10. `extraction/tables.py:111` code spaces removed with `replace(" ", "")` instead of `\s`. Equivalent: `cell_text` has already joined the lines with single spaces.
+  11. `extraction/tables.py:114` the label is the last cell, not the cell right of the code. Equivalent for the three-column Berlin LBS table.
+  12. `extraction/tables.py:122` `kVA` looked for in the first column too. NE: a first column never says `kVA`.
+  13. `extraction/naive.py:42` a heading line also read as a row. NE: only a heading that starts with a concept number would become a row.
+  14. `extraction/operations.py:87` the `document_hash is None` check off. NE: `execute` refuses an item call without a document hash before any tool runs.
+  15. `extraction/operations.py:80` `model_dump()` instead of `model_dump(mode="json")`. Equivalent for these models (strings, lists, None only).
+- Not mutated: `segment.py` (MKC-21), the live tests.
+
 ## Next steps
 
-1. Test agent: mutation pass on the development agent's code (`text.py`, `tables.py`, `naive.py`, `cleantext.py`, the item tools, the fetch hardening, `is_valid_code`, `execute`); the development agent closes the survivors, then opens the PR.
+1. Done: the test agent's mutation pass (section above); its 15 survivors are equivalent or near-equivalent, none needs a fix. Next: the development agent runs `scripts/pre_pr.sh` again with the new tests, then opens the PR.
 2. MKC-23 (lane A's next ticket): pass `documents=DocumentOps(...)` from `execute_run` (`mkc/harness/runner.py`) and the worker executor, so real runs get the real `extract_text` and `extract_tables` (the coordinator grants `runner.py` then); tell the model `page` and `bbox` in the item's task or prompt.
 3. MKC-28: `validate_draft` must flag a stated code that fails the check digit or is not in the Codeliste (extraction keeps it as printed, decision 76 (2)).
 4. Coordinator: `MKC_TEST_IMAGE` in CI's `image` job, so `test_image_operators.py` runs (decision 78 (6)).
 
 ## Recent log
+
+- **28.11.2026 00:32** Test agent: the "Mutation pass (MKC-22)" section itself (the commit before, `e499198`, carried only its log line because an edit had failed).
 
 - **28.11.2026 00:31** Test agent: mutation pass on `f0bf9e8`: 119 tried, 104 killed, 15 survived (first run 65 killed, 54 survived; 35 new tests in five commits killed 39 of them). The 15 survivors are equivalent or near-equivalent (section "Mutation pass (MKC-22)"). With the new tests: `231 passed, 1 skipped, 4 deselected in 6.51s`; `ruff check .`: "All checks passed!"; `ruff format --check .`: "230 files already formatted".
 
