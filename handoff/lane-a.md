@@ -1,6 +1,6 @@
 # Lane A: Extraction
 
-**Last updated:** 27.11.2026, 20:33
+**Last updated:** 27.11.2026, 20:42
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -11,7 +11,14 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 
 ## In progress
 
-- `MKC-21` (`#21`): the test agent's red acceptance tests are in `backend/tests/extraction/`, in red commits `b18f652` to `c9202aa` (`git diff c9202aa` shows any later change to them). The development agent starts next.
+- `MKC-21` (`#21`): the test agent's red acceptance tests are in `backend/tests/extraction/`, in red commits `b18f652` to `c9202aa` (`git diff c9202aa` shows any later change to them). The development agent is building it.
+- Sub-issues (all assigned to `qamran`, on the board, linked to #21):
+  - `MKC-21.1` (#187): `operator` and `source_document` tables, `operators.yaml`, the YAML in the image
+  - `MKC-21.2` (#188): `fetch_document` with the allow-list and editions
+  - `MKC-21.3` (#189): Berlin segmentation
+  - `MKC-21.4` (#190): Supabase Storage `BlobStore`
+  - `MKC-21.5` (#191): run operations, `mkc run start --operator`, live run, docs
+- Real Berlin layout (studied 27.11.2026 on the September 2026 edition): a concept page opens with `<number> <title>` (`1 Volleinspeisung`, `4.1 Überschusseinspeisung …`) on the first line of the main column, not `Messkonzept <n>`. A sidebar at x ≈ 461 pt repeats `Messkonzepte`, `Seite/Umfang`, `n/33`. Pages 4, 5 and 7 are tables whose rows start with concept numbers. The synthetic PDF in `conftest.py` changes to this layout (reason in the PR).
 
 ### Pinned interfaces (the development agent follows these)
 
@@ -57,6 +64,8 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 2. Test agent: run the mutation pass on the development agent's code.
 
 ## Recent log
+
+- **27.11.2026 20:42** Development agent: sub-issues #187 to #191 created and linked; red unit tests for where `load_operators` finds the YAML and for the image shipping it (`test_operators_file.py`: 6 failed).
 
 - **27.11.2026 20:33** Test agent: commit `c9202aa`. The Storage-only test now also checks that `LOCAL_CACHE_DIR` is unchanged, and the `OPERATORS_YAML` path pin is dropped. Full suite (`uv run pytest -q`): `28 failed, 662 passed, 1 skipped, 13 deselected in 178.42s`; the 28 failures are the extraction tests.
 
