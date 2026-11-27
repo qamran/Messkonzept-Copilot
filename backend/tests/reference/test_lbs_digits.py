@@ -23,3 +23,16 @@ def test_is_valid_code_refuses_non_ascii_digits(code: str) -> None:
 
 def test_is_valid_code_still_accepts_a_valid_code() -> None:
     assert is_valid_code("9992000000133") is True
+
+
+def test_is_valid_code_needs_exactly_13_digits() -> None:
+    # Mutation pass (test agent): a valid code with one more digit is no code.
+    assert is_valid_code("99920000001330") is False
+    assert is_valid_code("999200000013") is False
+
+
+def test_check_digit_refuses_non_ascii_digits() -> None:
+    from mkc.reference.lbs import check_digit
+
+    with pytest.raises(ValueError):
+        check_digit(chr(0xFF19) * 3 + chr(0xFF12) + "00000013")
