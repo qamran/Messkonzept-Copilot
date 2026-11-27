@@ -47,6 +47,23 @@ describe('FactsCard details (MKC-36.4)', () => {
     expect(screen.getByText('Further households: 1')).toBeInTheDocument()
   })
 
+  it('names a site without its own generation meter and other consumers', () => {
+    const facts: SiteFacts = {
+      ...EMPTY,
+      pv: { kwp: 4, feed_in: 'full', generation_metered: false },
+      sve: [{ type: 'other', modul14a: 2 }],
+    }
+    render(<FactsCard facts={facts} onConfirm={vi.fn()} />)
+    expect(screen.getByText('PV: 4 kWp, full feed-in, no own generation meter')).toBeInTheDocument()
+    expect(screen.getByText('Other consumer: §14a Modul 2')).toBeInTheDocument()
+  })
+
+  it('marks an unstated generation meter', () => {
+    const facts: SiteFacts = { ...EMPTY, pv: { kwp: 4, feed_in: 'full', generation_metered: null } }
+    render(<FactsCard facts={facts} onConfirm={vi.fn()} />)
+    expect(screen.getByText('PV: 4 kWp, full feed-in, generation meter not stated')).toBeInTheDocument()
+  })
+
   it('shows no edit fields for parts the site does not have', async () => {
     const onConfirm = vi.fn()
     render(<FactsCard facts={EMPTY} onConfirm={onConfirm} />)

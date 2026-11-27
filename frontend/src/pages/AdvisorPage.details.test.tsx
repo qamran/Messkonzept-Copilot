@@ -68,6 +68,29 @@ describe('AdvisorPage details (MKC-36.4)', () => {
     expect(await screen.findByText(/500/)).toBeInTheDocument()
   })
 
+  it('disables the button while the extraction runs', async () => {
+    vi.mocked(apiFetch).mockReturnValue(new Promise(() => {}))
+    await extract()
+    expect(screen.getByRole('button', { name: /extract facts/i })).toBeDisabled()
+  })
+
+  it('clears the questions and shows the new facts on a second extraction', async () => {
+    const second: SiteFacts = { ...FACTS, pv: { kwp: 7, feed_in: 'full', generation_metered: false } }
+    vi.mocked(apiFetch)
+      .mockResolvedValueOnce(Response.json(FACTS))
+      .mockResolvedValueOnce(Response.json([]))
+      .mockResolvedValueOnce(Response.json(second))
+    await extract()
+    await userEvent.click(await screen.findByRole('button', { name: /confirm/i }))
+    await screen.findByText(/no further questions/i)
+
+    await userEvent.click(screen.getByRole('button', { name: /extract facts/i }))
+
+    expect(await screen.findByText(/7 kWp/)).toBeInTheDocument()
+    expect(screen.queryByText(/10 kWp/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/no further questions/i)).not.toBeInTheDocument()
+  })
+
   it('shows an out-of-scope note and asks nothing', async () => {
     const outOfScope: SiteFacts = {
       ...FACTS,

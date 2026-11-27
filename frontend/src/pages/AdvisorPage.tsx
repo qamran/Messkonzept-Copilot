@@ -21,7 +21,6 @@ export function AdvisorPage({ operators }: { operators: Operator[] }) {
   const [text, setText] = useState('')
   const [operator, setOperator] = useState(operators[0]?.id ?? '')
   const [facts, setFacts] = useState<SiteFacts | null>(null)
-  const [extraction, setExtraction] = useState(0)
   const [questions, setQuestions] = useState<Question[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -30,11 +29,11 @@ export function AdvisorPage({ operators }: { operators: Operator[] }) {
     event.preventDefault()
     setBusy(true)
     setError(null)
+    // Unmounts the card, so a new extraction starts a fresh draft.
     setFacts(null)
     setQuestions(null)
     try {
       setFacts(await extractFacts(text, operator))
-      setExtraction((n) => n + 1)
     } catch (caught) {
       setError(message(caught))
     } finally {
@@ -95,7 +94,7 @@ export function AdvisorPage({ operators }: { operators: Operator[] }) {
           {error}
         </p>
       )}
-      {facts !== null && <FactsCard key={extraction} facts={facts} onConfirm={onConfirm} />}
+      {facts !== null && <FactsCard facts={facts} onConfirm={onConfirm} />}
       {questions !== null &&
         (questions.length === 0 ? (
           <p>No further questions: the facts are complete.</p>
