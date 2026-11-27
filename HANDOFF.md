@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 22:40
+**Last updated:** 27.11.2026, 22:44
 
 This file is how agents resume work after a session restart.
 
@@ -224,6 +224,8 @@ Shared-code rules for wave 1 beyond AGENTS.md (the coordinator's, in each lane b
 - **The user's PC:** it went down without a clean shutdown on 23.11 and 26.11.2026 (cause not found; graphics-driver hang reports on both days; a memory test is not done yet). Commit and push often. Two files exist only on the PC: the VM's admin SSH key and `backend/.env` (runbook "Only on the PC"); the user was advised to copy them into a password manager.
 
 ## Recent log
+
+- **27.11.2026 22:44** PR #198 (MKC-49, lane D) review PASS (Fable, comment 22:36:01; it re-checked the coordinator's merge commit `691d130` and the migration re-chain; findings under Next steps item 0), merged as `6681d48` (22:36:04). #179, #181, #182, #184, #185, #186 closed by the coordinator; #49 and the sub-issues set `Done` (22:37:36). `main` pushed to `turing` (22:37:39); `origin/main` = `turing/main` = `6681d48`. `cd` run 46071365597 (migration 0012 -> 0013 by the hook Job): `image` 22:36:09 to 22:40:44; `backend` approved at 22:41:00, ran 22:41:02 to 22:41:57; `frontend` approved at 22:42:10, ran 22:42:12 to 22:42:54; run exit 0. Checked: `/api/version` commit `6681d48...`, `/health` 200 (22:43:03). Wave 1 is done: decisions 67, 70 and 73 marked "not used"; `main` merged into this branch.
 
 - **27.11.2026 22:24** PR #197 (MKC-21, lane A) review PASS (Fable, comment 22:14:15; it re-checked the coordinator's merge commit `eea5597`; 7 non-blocking findings: (1) redirect hops can get `authorization: Basic` from userinfo in a `Location` and cookies set by a hop; fix the wording of decision 62 and the runbook, or refuse userinfo in redirect targets and drop the cookie jar; (2) survivor 1's acceptance is too narrow: the `@` check is what refuses a final URL with userinfo; pin it; (3) the port is not part of the allow-list match; (4) no download size limit in `http_get`; (5) lane-a "In progress" stale; (6) the five `MKC_STORAGE_*` values must be in `mkc-secrets` before the first `mkc run start --operator` in the image; (7) the Dockerfile test reads text only), merged as `2a841a2` (22:14:26). #187–#191 closed by the coordinator; #21 and the sub-issues set `Done` (22:15:50). `main` pushed to `turing` (22:15:56); `origin/main` = `turing/main` = `2a841a2`. `cd` run 46068988817 (migration 0011 -> 0012 by the hook Job): `image` 22:14:32 to 22:21:36; `backend` approved at 22:21:47, ran 22:21:49 to 22:22:42; `frontend` approved at 22:22:56, ran 22:22:58 to 22:23:38; run exit 0. Checked: `/api/version` commit `2a841a2...`, `/health` 200 (22:23:43). PR #198 (MKC-49) updated from `main` by the coordinator (`691d130`, 22:17:08): conflicts in `models.py`, `providers.py`, ADR 004 and the decision log, both lanes' blocks kept (`main`'s first); migration `0012_corpus` re-chained to `0013_corpus` (`down_revision` `0012`), status doc and runbook follow; `pre_pr.sh` exit 0 (938 passed, 1 skipped, 16 deselected); pushed 22:20:02. Lane A2 (MKC-27) may now start (its dependency MKC-21 is merged).
 
