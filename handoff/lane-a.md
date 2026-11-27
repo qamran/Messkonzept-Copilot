@@ -1,6 +1,6 @@
 # Lane A: Extraction
 
-**Last updated:** 27.11.2026, 21:01
+**Last updated:** 27.11.2026, 21:04
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -64,6 +64,8 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 2. Test agent: run the mutation pass on the development agent's code.
 
 ## Recent log
+
+- **27.11.2026 21:04** Development agent: `DocumentOps` makes `fetch_document` and `segment_document` real in `default_registry(documents=...)` (placeholders without it, so `test_placeholders_return_not_implemented` is unchanged); `document_by_hash`; `mkc run start --operator <id>` fetches and segments inside the run's transaction and queues one item per concept (concept key = the number). `pytest tests/extraction tests/harness/test_registry.py tests/harness/test_tools.py tests/test_cli.py`: passed.
 
 - **27.11.2026 21:01** Development agent: red tests for the run operations in the registry (`DocumentOps`), `document_by_hash` and `mkc run start --operator` (`test_run_operations.py`: 6 failed, 2 errors).
 

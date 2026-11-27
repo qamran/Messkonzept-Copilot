@@ -191,3 +191,15 @@ def _value(row: SourceDocumentRow, *, new_edition: bool) -> SourceDocument:
         edition=row.edition,
         new_edition=new_edition,
     )
+
+
+def document_by_hash(session: Session, sha256: str) -> SourceDocument | None:
+    """The newest edition with this hash (decision 64): a document hash is the sha256 of the
+    PDF, and a return to older bytes is a later edition with the same hash and bytes."""
+    row = session.scalars(
+        select(SourceDocumentRow)
+        .where(SourceDocumentRow.sha256 == sha256)
+        .order_by(SourceDocumentRow.fetched_at.desc(), SourceDocumentRow.id.desc())
+        .limit(1)
+    ).first()
+    return None if row is None else _value(row, new_edition=False)

@@ -5,9 +5,10 @@ are registered here only so they get the same validation and tracing.
 
 The argument models and functions are placeholders. The owning tickets replace them:
 `extract_text`, `extract_tables` (MKC-22); `render_region`, `save_draft`, `enqueue_approval`
-(MKC-23); `read_diagram` (MKC-26); `validate_draft` (MKC-28); `fetch_document`,
-`segment_document` (MKC-21); `commit_record` (MKC-29). Until then every placeholder returns
-the structured error `not_implemented`; none fakes success.
+(MKC-23); `read_diagram` (MKC-26); `validate_draft` (MKC-28); `commit_record` (MKC-29). Until
+then every placeholder returns the structured error `not_implemented`; none fakes success.
+`fetch_document` and `segment_document` are built (MKC-21): they are real when
+`default_registry` gets a `DocumentOps`, and stay placeholders without one.
 
 `save_draft` writes only its own item's draft, idempotently by (document hash, concept
 number), so it has no side effect (decision 53). Harness code runs `enqueue_approval` on its
@@ -20,6 +21,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session, sessionmaker
 
+from mkc.extraction.operations import DocumentOps
 from mkc.harness.baseline import RunMemory, make_memory_save_draft
 from mkc.harness.drafts import make_save_draft
 from mkc.harness.tools import Tool, ToolEnv, ToolRegistry, ToolTracer
@@ -102,11 +104,14 @@ def default_registry(
     *,
     sessions: sessionmaker[Session] | None = None,
     approvals: RunMemory | None = None,
+    documents: DocumentOps | None = None,
 ) -> ToolRegistry:
     """The registry of design 8.1. With `sessions`, `save_draft` is the real one (MKC-16.5);
     tools reach the database through a factory like this, never through `ToolEnv`. With
     `approvals` (baseline, durable approvals off), `save_draft` appends to that memory
-    instead, with no key (MKC-20, decision 60); the tool and its spec stay the same."""
+    instead, with no key (MKC-20, decision 60); the tool and its spec stay the same. With
+    `documents`, `fetch_document` and `segment_document` are the real run-level operations
+    (MKC-21, decision 64)."""
     item = ITEM_TOOLS
     save = None
     if approvals is not None:
@@ -115,4 +120,8 @@ def default_registry(
         save = make_save_draft(sessions)
     if save is not None:
         item = tuple(replace(t, fn=save) if t.name == "save_draft" else t for t in ITEM_TOOLS)
-    return ToolRegistry(item=item, run=RUN_OPERATIONS, tracers=tracers)
+    run = RUN_OPERATIONS
+    if documents is not None:
+        real = {"fetch_document": documents.fetch, "segment_document": documents.segment}
+        run = tuple(replace(t, fn=real[t.name]) if t.name in real else t for t in run)
+    return ToolRegistry(item=item, run=run, tracers=tracers)
