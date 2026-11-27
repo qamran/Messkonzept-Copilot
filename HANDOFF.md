@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 16:48
+**Last updated:** 27.11.2026, 16:51
 
 This file is how agents resume work after a session restart.
 
@@ -183,6 +183,8 @@ This file is how agents resume work after a session restart.
 - **The user's PC:** it went down without a clean shutdown on 23.11 and 26.11.2026 (cause not found; graphics-driver hang reports on both days; a memory test is not done yet). Commit and push often. Two files exist only on the PC: the VM's admin SSH key and `backend/.env` (runbook "Only on the PC"); the user was advised to copy them into a password manager.
 
 ## Recent log
+
+- **27.11.2026 16:49-16:51** MKC-19 pre-PR checks at `0fefb33`: Windows `uv run pytest -q` 568 passed, 1 skipped; Linux container (`git archive HEAD` into `ghcr.io/astral-sh/uv:python3.12-bookworm`, Compose db) `tests/worker tests/harness tests/observability tests/db` 303 passed (16:51:44); ruff, format, mypy (43 files), all check scripts, markdownlint clean. Plan checkboxes ticked with an "As built" note.
 
 - **27.11.2026 15:14-15:36** MKC-19 work: #157 `In progress` 15:14:17, #158 15:18:44, #159 15:27:50, #160 15:32:24 (local clock after each board edit). One `Refs:` trailer said `qamra/` again (`8fade68`); fixed by a message-only `git rebase --exec` before any push, so every hash after `9c1691c` changed. Full backend suite on Windows: 564 passed, 1 skipped (15:35). `dd91a4b` (red tests for the tracer's records plus the skeleton) is 263 lines. Langfuse keys not yet in `backend/.env`.
 
