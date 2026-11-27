@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 19:30
+**Last updated:** 27.11.2026, 19:38
 
 This file is how agents resume work after a session restart.
 
@@ -207,6 +207,7 @@ From MKC-168 (decision 61), tickets run in parallel lanes. Each lane keeps its o
 
 ## Recent log
 
+- **27.11.2026 19:38** MKC-168.3: pre-PR advisor check (about 19:33): two lanes cut from the same `main` both write revision `0012`; Alembic only warns ("Revision 0011 is present more than once") and lists the id twice. Added `duplicate_revisions` with `test_revision_ids_are_unique` (real folder) and `test_a_second_revision_with_the_heads_id_is_caught` (copy); mutation (`> 2` for `> 1`): 1 failed, 3 passed; restored: 4 passed.
 - **27.11.2026 19:30** MKC-168.1 fix: the first real gate run (19:27:45) exited 0, but its pytest step showed 647 passed, 12 skipped: the 11 gate tests skipped themselves, since under Git Bash `git` is `mingw64/bin/git.exe` and the bash lookup only tried `cmd/`. New test `test_git_bash_is_found_from_either_git`: with the old lookup 1 failed, 1 passed; with the new one (up to three parents) 2 passed. A second gate run (19:30:14) failed on `ruff format --check` (two blank lines missing in the test): the gate caught it before a commit; its pytest step had 660 passed, 1 skipped (the Windows SIGTERM test).
 - **27.11.2026 19:25** MKC-168: the plan's setup checklist ticked, with an "As built" note. Docker Desktop started for the real gate run.
 - **27.11.2026 19:24** MKC-168.5 green: backlog section "Parallel lanes and waves" (five lanes, owners, waits; wave 1 MKC-21, MKC-36, MKC-46, MKC-49; later waves), status doc (current ticket, restart files, 61 decisions, workflow summary, table "Decision numbers per lane": 61 coordinator, 62–64 A, 65–67 B, 68–70 C, 71–73 D). `check_lanes.py` exit 0; a mutation run (a lane renamed, MKC-46 dropped from wave 1, block 68–70 changed) gave 3 problems, after the wave check was narrowed to the ticket list (the first version missed the dropped MKC-46). markdownlint 0 errors.
