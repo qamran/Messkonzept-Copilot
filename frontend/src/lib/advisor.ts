@@ -2,6 +2,9 @@ import { apiFetch } from '@/lib/api'
 
 // MKC-36: the advisor API's JSON (backend `mkc.advisor.facts` and `mkc.advisor.questions`).
 
+/** The longest site description the backend takes (`MAX_TEXT_CHARS`). */
+export const MAX_TEXT_CHARS = 2000
+
 export type FactKey =
   | 'pv.kwp'
   | 'pv.feed_in'
