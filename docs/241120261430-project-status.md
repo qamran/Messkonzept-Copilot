@@ -192,12 +192,13 @@ User choices:
 
 ## Lane D: RAG corpus (MKC-49)
 
-- **State (27.11.2026):** built on `mkc-49-corpus-loader`, before the test agent's mutation pass and the PR. Sub-issues MKC-49.1 to 49.6 (`#179`, `#181`, `#182`, `#184`, `#185`, `#186`).
+- **State (27.11.2026):** built on `mkc-49-corpus-loader`; the test agent's mutation pass killed 95 of 98 mutants, and the 3 survivors now have tests; the PR is next. Sub-issues MKC-49.1 to 49.6 (`#179`, `#181`, `#182`, `#184`, `#185`, `#186`).
 - **Built:**
   - `backend/data/corpus_sources.yaml`: six sources (EnWG § 14a, MsbG, BK6-22-300, its Anlage 1, BK8-22/010-A, the Stromnetz Berlin catalogue), a licence class each, no text
   - `mkc.rag`: `sources`, `chunking` (one chunk per Absatz with a reference like `§ 14a Abs. 1`; numbered sections for other texts), `embeddings`, `loader` (licence guard for a cache inside the repo), `fetch` (gesetze-im-internet.de pages), `cli` (`mkc corpus load`)
   - migration 0012: `corpus_document`, `chunk` with `embedding vector(1024)` and a generated German `tsv` with a GIN index
   - `EmbeddingClient` at the end of `mkc/models/client.py`, the OpenRouter embedding call at the end of `providers.py`
-- **Embedding model (decision 71, to be confirmed by the user):** `qwen/qwen3-embedding-8b`, 1024 dimensions, $0.01 per million tokens, through OpenRouter with zero data retention (ADR 004 amendment).
+- **Embedding model (decision 71, confirmed by the user on 27.11.2026):** `qwen/qwen3-embedding-8b`, 1024 dimensions, $0.01 per million tokens, through OpenRouter with zero data retention (ADR 004 amendment). Research note: `docs/271120262150-embedding-model-research.md`.
+- **Chunk size (decision 72):** one chunk per law Absatz, never split; other texts by numbered sections, split at blank lines over 4,000 characters.
 - **Not yet:** PDF sources (the two BNetzA decisions, Anlage 1 and the operator catalogue) wait on the PDF library of MKC-21; the two laws load today.
 - **LLM spend (MKC-49):** about €0.0005 in total: embedding probes and the live test (under €0.00001 together) and one live load of EnWG § 14a and the MsbG into a throwaway database (51,934 tokens, €0.000475). Each call is logged in `handoff/lane-d.md`.

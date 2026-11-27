@@ -52,7 +52,7 @@ An independent review of the design found that both were added late without budg
 
 ## Amendment (27.11.2026, MKC-49): the embedding model
 
-Decision 71, by the development agent of lane D; **to be confirmed by the user.**
+Decision 71, by the development agent of lane D; **confirmed by the user on 27.11.2026** (with the research note `docs/271120262150-embedding-model-research.md`, which gives the requirements, the probes and the sources in full).
 
 - **Model:** `qwen/qwen3-embedding-8b` (Qwen3-Embedding-8B, Apache 2.0) through OpenRouter, with the zero-data-retention routing every chat call uses.
 - **Dimension:** 1024. The model gives up to 4096 and cuts its vectors to any size from 32 (Matryoshka); OpenRouter passes `dimensions=1024` on. 1024 stays under pgvector's 2000-dimension limit for an index on a `vector` column, so MKC-50 can add one.
@@ -83,4 +83,6 @@ Alternatives rejected:
 
 German legal quality was not measured; the only quality source is the model card's multilingual rank of June 2025.
 
-Sources: the [Qwen3-Embedding-8B model card](https://huggingface.co/Qwen/Qwen3-Embedding-8B); OpenRouter's `GET /api/v1/embeddings/models` and `GET /api/v1/endpoints/zdr` (27.11.2026); the live probes logged in `handoff/lane-d.md`.
+Chunk size (decision 72): one chunk per law Absatz, never split; the 4,000-character cap applies only to other texts, split at blank lines.
+
+Sources: the research note above; the [Qwen3-Embedding-8B model card](https://huggingface.co/Qwen/Qwen3-Embedding-8B); OpenRouter's `GET /api/v1/embeddings/models` and `GET /api/v1/endpoints/zdr` (27.11.2026); the live probes logged in `handoff/lane-d.md`.

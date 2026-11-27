@@ -1,6 +1,6 @@
 # Lane D: RAG
 
-**Last updated:** 27.11.2026, 21:50
+**Last updated:** 27.11.2026, 21:51
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -73,15 +73,16 @@ The tests import these; module paths and names are fixed, internals are free.
 1. Done 21:47: the test agent's mutation pass (see the log). The development agent decides on the 3 survivors and the leftover-folder finding before the PR.
 2. Then the development agent opens the PR (on the coordinator's word), discloses the commits over 200 lines and the new code in `mkc/models/` and `mkc/db/models.py`, and moves `#49` to Testing.
 3. Open for the coordinator:
-   - decision 71 (the embedding model) needs the user's confirmation; the OpenRouter workspace guardrail drove it (observed on the local key; the production key's workspace was not checked)
+   - decision 71 confirmed by the user on 27.11.2026, with the research note `docs/271120262150-embedding-model-research.md`; the production key's guardrail was not checked
    - 4 of 6 sources are PDFs and refused until MKC-21's PDF library is in; the BK8-22/010-A file is an encrypted PDF (`/Encrypt` in its header) served from an `.html` URL; the `sections` chunker has only run on synthetic text
    - one operator text only (Stromnetz Berlin); no SachsenNetze URL was found in the repo
-   - `EmbeddingClient` is a sibling of `ModelClient` (AGENTS.md names only `ModelClient` and `DecisionClient`), has no tracers, and is live-only while the default mode is `replay`: MKC-50's query embeddings need a decision on tracing and on tests and evals
+   - `EmbeddingClient` beside `ModelClient` is allowed by the user (the coordinator updates AGENTS.md); it has no tracers, and is live-only while the default mode is `replay`: MKC-50's query embeddings need a decision on tracing and on tests and evals
    - edits not at a file's end: the import lines of `providers.py`, the price line in `models.yaml`; the ORM block imports at the bottom with `noqa: E402` and registers `vector` in the PostgreSQL dialect's `ischema_names`
    - the backend image does not copy `backend/data/` (as for the LBS file), so `mkc corpus load` in the container needs `--sources`
 
 ## Recent log
 
+- **27.11.2026 21:51** Development agent: research note `docs/271120262150-embedding-model-research.md`, linked from ADR 004, decision 71 and the status doc; decision 71 marked confirmed by the user on 27.11.2026; decision 72 (chunk size) added.
 - **27.11.2026 21:50** Development agent: the 3 survivors and the leftover-folder finding. New tests: a lettered Absatz `(2a)` gets `§ 14a Abs. 2a`; the section cap is 4000 characters; a long law Absatz stays whole (decision 72); `REPO_ROOT` is the repo root; the CLI cache test cleans up in `finally`. `uv run pytest tests/rag -q`: `84 passed, 1 deselected, 4 warnings in 9.66s`. Each survivor re-applied by hand and restored: `(\d+)` → `1 failed, 12 passed`; `MAX_CHUNK_CHARS = 40` → `1 failed, 13 passed`; `parents[5]` → `1 failed, 69 passed` (all with `-x`).
 - **27.11.2026 21:47** Test agent: mutation pass on `d4de5fd`. One mutant at a time, each restored before the next; none committed. Each ran `uv run pytest tests/rag tests/models -q -x` (baseline `235 passed, 13 deselected, 4 warnings in 21.83s`). Scope: `mkc/rag/` (sources, chunking, embeddings, loader, fetch, cli), the embedding code in `mkc/models/client.py` and `providers.py`, the MKC-49 block of `mkc/db/models.py`, and migration `0012_corpus.py`. Result: **98 tried, 95 killed, 3 survived** (all 98 applied; 0 not applied). Survivors:
   1. `backend/src/mkc/rag/chunking.py:31` `_ABSATZ` `(\d+[a-z]?)` → `(\d+)`. A lettered Absatz such as `(2a)` no longer opens its own chunk: it is merged into the Absatz before it and gets that Absatz's `source_ref`. No test has a lettered Absatz. Real laws have them, so a unit test with `(1a)` would kill it.
