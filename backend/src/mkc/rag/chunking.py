@@ -1,7 +1,9 @@
 """Chunking per paragraph with a source reference on every chunk (MKC-49.2, feature 70).
 
 - `law` layout (laws as `mkc corpus load` gets them from gesetze-im-internet.de): a line
-  that starts with `§` opens a paragraph; inside it, a line that starts with `(1)`, `(2)`, …
+  that starts with `§` opens a paragraph when it comes first or after a blank line (the
+  fetcher puts one before every heading); right after a body line it is body text. Blank
+  lines never split an Absatz. Inside a paragraph, a line that starts with `(1)`, `(2)`, …
   opens an Absatz. Each Absatz is one chunk, with the paragraph's heading line first, so a
   chunk read alone still says where it is from. The reference reads `§ 14a Abs. 1`.
 - `sections` layout (BNetzA decisions, operator texts): a short line that starts with a
@@ -82,10 +84,16 @@ def _law_blocks(lines: list[str]) -> list[_Block]:
     heading: str | None = None
     paragraph_ref = ""
     current: _Block | None = None
+    after_blank = True
     for line in lines:
         if not line:
+            after_blank = True
             continue
-        paragraph = _PARAGRAPH.match(line)
+        # A `§` line is a heading only before any paragraph or after a blank line (the
+        # fetcher's layout); right after a line of an open paragraph it is body text, as in
+        # "§ 2 Satz 1 gilt entsprechend." (MKC-49 review finding 2).
+        paragraph = _PARAGRAPH.match(line) if current is None or after_blank else None
+        after_blank = False
         if paragraph:
             heading = line
             paragraph_ref = _law_ref(paragraph)
