@@ -1,6 +1,6 @@
 # Lane A: Extraction
 
-**Last updated:** 27.11.2026, 20:27
+**Last updated:** 27.11.2026, 20:33
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -11,15 +11,14 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 
 ## In progress
 
-- `MKC-21` (`#21`): the test agent's red acceptance tests are written (`backend/tests/extraction/`). The development agent starts next.
+- `MKC-21` (`#21`): the test agent's red acceptance tests are in `backend/tests/extraction/`, in red commits `b18f652` to `c9202aa` (`git diff c9202aa` shows any later change to them). The development agent starts next.
 
 ### Pinned interfaces (the development agent follows these)
 
 - `mkc/extraction/__init__.py`: the package.
 - `mkc/extraction/operators.py`:
-  - `OPERATORS_YAML`: path of `backend/data/operators.yaml`.
   - `OperatorConfig(id, name, voltage_level, url, allowed_hosts: tuple[str, ...])`, built by keyword.
-  - `load_operators(path=OPERATORS_YAML) -> dict[str, OperatorConfig]`.
+  - `load_operators() -> dict[str, OperatorConfig]`: reads the content of `backend/data/operators.yaml`. The Dockerfile copies only `src`, `alembic.ini` and `migrations`, so the worker image also needs the YAML (as `lbs_structures.yaml` will).
 - `backend/data/operators.yaml`: a top-level `operators:` list; each entry has `id`, `name`, `voltage_level`, `url` (https), `allowed_hosts`. Ids: `stromnetz-berlin` (as in `test_registry.py`) and `sachsennetze`.
 - `mkc/extraction/fetch.py`:
   - `FetchResponse(url, content)`: `url` is the final URL after redirects.
@@ -59,4 +58,6 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 
 ## Recent log
 
-- **27.11.2026 20:27** Test agent: red acceptance tests in `backend/tests/extraction/`. `uv run pytest tests/extraction -q`: `28 failed, 1 deselected` (22 × `No module named 'mkc.extraction'`, 2 × missing `operators.yaml`, 4 × missing tables). `ruff check` and `ruff format --check` pass.
+- **27.11.2026 20:33** Test agent: commit `c9202aa`. The Storage-only test now also checks that `LOCAL_CACHE_DIR` is unchanged, and the `OPERATORS_YAML` path pin is dropped. Full suite (`uv run pytest -q`): `28 failed, 662 passed, 1 skipped, 13 deselected in 178.42s`; the 28 failures are the extraction tests.
+
+- **27.11.2026 20:28** Test agent: red acceptance tests in `backend/tests/extraction/`. `uv run pytest tests/extraction -q`: `28 failed, 1 deselected` (22 × `No module named 'mkc.extraction'`, 2 × missing `operators.yaml`, 4 × missing tables). `ruff check` and `ruff format --check` pass.
