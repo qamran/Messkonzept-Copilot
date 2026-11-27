@@ -72,6 +72,26 @@ describe('AdvisorPage (MKC-36)', () => {
     expect(JSON.parse(String(init?.body))).toEqual(FACTS)
   })
 
+  it('asks the questions for the edited facts, not the extracted ones', async () => {
+    vi.mocked(apiFetch)
+      .mockResolvedValueOnce(Response.json(FACTS))
+      .mockResolvedValueOnce(Response.json([]))
+    render(<AdvisorPage operators={OPERATORS} />)
+
+    await describeSite('EFH mit PV, Speicher und Wärmepumpe')
+    await userEvent.click(await screen.findByRole('button', { name: /edit/i }))
+    await userEvent.selectOptions(screen.getByLabelText(/Battery inverter/i), 'separate')
+    await userEvent.click(screen.getByRole('button', { name: /confirm/i }))
+
+    await vi.waitFor(() => expect(apiFetch).toHaveBeenCalledTimes(2))
+    const [path, init] = vi.mocked(apiFetch).mock.calls[1]
+    expect(path).toBe('/api/advisor/questions')
+    expect(JSON.parse(String(init?.body))).toEqual({
+      ...FACTS,
+      battery: { present: true, inverter: 'separate' },
+    })
+  })
+
   it('does not send an empty description', async () => {
     render(<AdvisorPage operators={OPERATORS} />)
     await userEvent.type(screen.getByLabelText(/site description/i), '   ')

@@ -99,3 +99,17 @@ def test_out_of_scope_site_gets_no_questions() -> None:
     note = ScopeNote(reason="commercial", message="Not covered; clarify with the operator.")
     facts = SiteFacts(operator_id="stromnetz-berlin", unknown=["pv.feed_in"], out_of_scope=[note])
     assert required_questions(facts) == []
+
+
+def test_out_of_scope_gaps_are_never_asked() -> None:
+    # Gaps that would be asked for a household site; out of scope, nothing is asked.
+    note = ScopeNote(reason="modul3", message="Not covered; clarify with the operator.")
+    facts = _facts(
+        pv=Pv(kwp=10.0, feed_in=None, generation_metered=None),
+        battery=Battery(present=True, inverter=None),
+        sve=[Sve(type="heat_pump", modul14a=None)],
+        extra_households=None,
+        unknown=["pv.generation_metered", "extra_households"],
+        out_of_scope=[note],
+    )
+    assert required_questions(facts) == []
