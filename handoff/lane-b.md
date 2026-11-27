@@ -1,6 +1,6 @@
 # Lane B: Advisor
 
-**Last updated:** 27.11.2026, 20:45
+**Last updated:** 27.11.2026, 20:46
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md`. Times are local time from git and GitHub, never estimated.
 
@@ -20,7 +20,7 @@ Sub-issues (all assigned to `qamran`, on the board, linked to #36): `MKC-36.1` (
 - `MKC-36.1` (#176): built `mkc/advisor/facts.py`; `test_facts.py` and `test_facts_mapping.py` green (`22 passed`). Own tests in `test_facts_mapping.py` (prompt wrapping, note order).
 - `MKC-36.2` (#177): built `mkc/advisor/questions.py`; `test_questions.py` and `test_questions_text.py` green (`17 passed`). Own tests in `backend/tests/advisor/test_questions_text.py` (texts, options, order).
 - `MKC-36.3` (#178): built `mkc/advisor/api.py` and the `include_router` line in `mkc/api/app.py`; `uv run pytest tests/advisor -q` gives `53 passed`. Own tests in `test_api_errors.py`; `conftest.py` re-exports the fixtures of `test_api.py`.
-- `MKC-36.4` (#180): In progress. Own red tests in `frontend/src/components/advisor/FactsCard.details.test.tsx` and `frontend/src/pages/AdvisorPage.details.test.tsx`.
+- `MKC-36.4` (#180): In progress. Built `frontend/src/lib/advisor.ts` (`src/lib/advisor.test.ts`: `Tests  3 passed (3)`). Own red tests in `frontend/src/components/advisor/FactsCard.details.test.tsx` and `frontend/src/pages/AdvisorPage.details.test.tsx`.
 
 ### Red tests (test agent)
 
@@ -99,6 +99,7 @@ Frontend:
 
 ## Recent log
 
+- **27.11.2026 20:46** Development agent: `frontend/src/lib/advisor.ts` (types, `extractFacts`, `requiredQuestions`); `npx vitest run src/lib/advisor.test.ts` gives `Tests  3 passed (3)`.
 - **27.11.2026 20:45** Development agent: red frontend tests `FactsCard.details.test.tsx`, `AdvisorPage.details.test.tsx` (`Test Files  2 failed (2)`, missing modules).
 - **27.11.2026 20:44** Development agent: `mkc/advisor/api.py` (`POST /api/advisor/facts`, `POST /api/advisor/questions`, `get_model_client`); `uv run pytest tests/advisor -q` gives `53 passed in 12.44s`.
 - **27.11.2026 20:44** Development agent: red test `test_api_errors.py` (`No module named 'mkc.advisor.api'`).
