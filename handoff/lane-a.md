@@ -1,6 +1,6 @@
 # Lane A: Extraction
 
-**Last updated:** 28.11.2026, 00:00
+**Last updated:** 28.11.2026, 00:01
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -17,10 +17,11 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 
 - `MKC-22` (`#22`, `In progress`, assigned to `qamran`): built by the development agent against the test agent's red tests (red commits `60c1f2e` to `c72296d`; `git diff c72296d -- backend/tests` shows only added files, none of the red files changed). Code and docs are done; the branch waits for the test agent's mutation pass, then the PR.
 - Built: `mkc/extraction/text.py`, `tables.py`, `naive.py`, `cleantext.py`; the item tools in `registry.py` (`TextArgs`) and `DocumentOps.extract_text` / `extract_tables`; fetch hardening in `fetch.py`; `is_valid_code` (`mkc/reference/lbs.py`) and `ToolRegistry.execute` (`mkc/harness/tools.py`). Decisions 76 (text fields), 77 (tables, baseline), 78 (fetch hardening) in design section 18; decision 62 (5) notes the hop rules; status doc, backlog "As built" and runbook "The allow-list" updated. No new dependency, no migration, no `config.py` change.
-- The development agent's own tests (added files, for the PR body): `test_text_rules.py`, `test_table_rules.py`, `test_extract_args.py`, `test_fetch_limits.py`.
+- The development agent's own tests (added files, for the PR body): `test_text_rules.py`, `test_table_rules.py`, `test_naive_rules.py`, `test_extract_args.py`, `test_fetch_limits.py`.
 - Coordinator's answers (27.11.2026): assumptions 1, 3, 5 and 6 confirmed; 2 decided by the development agent (decision 76 (2): kept as printed); 4 checked by the live run (passed); 7 goes to MKC-23 (wiring `DocumentOps` through `runner.py` and the executor).
 - Red run at `c72296d`: `uv run pytest tests/extraction -q`: `32 failed, 81 passed, 1 skipped, 4 deselected in 6.31s`; full suite `uv run pytest -q`: `43 failed, 947 passed, 2 skipped, 18 deselected, 4 warnings in 105.80s (0:01:45)`, all 43 failures this ticket's red tests. `ruff check .`: "All checks passed!"; `ruff format --check .`: "217 files already formatted".
-- Commits over 200 lines (for the PR body): `60c1f2e` (347 insertions, 84 deletions: the synthetic documents and the lane file rewrite) and `b989630` (211 insertions).
+- Commits over 200 lines (for the PR body): `60c1f2e` (347 insertions, 84 deletions: the synthetic documents and the lane file rewrite), `b989630` (211 insertions) and `fcd70e0` (239 lines: `text.py` and `cleantext.py` in one commit).
+- Commits without a body (pushed, not rewritten): `96675e0`, `334a483`.
 - Sub-issues (all `In progress`, assigned to `qamran`, linked to #22): #208 `MKC-22.1` text fields, #209 `MKC-22.2` table rows and the naive baseline, #210 `MKC-22.3` the cached item tools, #211 `MKC-22.4` fetch hardening (PR #197 findings 1 to 4 and 7), #212 `MKC-22.5` reference and tool-registry hardening, #213 `MKC-22.6` docs and the live check.
 
 ### Pinned interfaces (MKC-22; the tests import these)
@@ -70,6 +71,8 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 4. Coordinator: `MKC_TEST_IMAGE` in CI's `image` job, so `test_image_operators.py` runs (decision 78 (6)).
 
 ## Recent log
+
+- **28.11.2026 00:01** Development agent: the naive baseline resets its meter heading on each page; `join_lines` keeps the hyphen of a suspended compound (`Bezugs-` / `und`); decision 77 (4) and (7) say so. `pytest tests/extraction`: `134 passed, 1 skipped, 4 deselected in 6.30s`.
 
 - **28.11.2026 00:00** Development agent: live run again at `334a483`, after the fetch hardening (23:57:24 to 23:57:35, 27.11.2026): `uv run pytest -m live tests/extraction/test_live_extract.py`: `2 passed in 9.08s`. Red tests: the naive meter heading must end with its page (`test_naive_rules.py`) and a suspended hyphen (`Bezugs-` / `und`) keeps its hyphen (`test_table_rules.py`): `2 failed, 3 passed in 0.37s`.
 

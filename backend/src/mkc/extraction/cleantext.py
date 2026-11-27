@@ -13,6 +13,8 @@ _CONTROL = re.compile(r"[\x00-\x08\x0b-\x1f\x7f]")
 _SPACE = re.compile(r"\s+")
 # A line that ends in a hyphen after a lowercase letter: a word split over two lines.
 _SPLIT_WORD = re.compile(r"[a-zäöüß]-$")
+# A suspended compound goes on with a conjunction: `Bezugs-` / `und Einspeisemessung`.
+_SUSPENDED = re.compile(r"(?:und|oder|bzw\.|sowie)\b")
 
 
 def clean(text: str) -> str:
@@ -22,14 +24,17 @@ def clean(text: str) -> str:
 
 def join_lines(lines: Iterable[str]) -> str:
     """Wrapped lines as one text, joined with one space. A word split with a hyphen
-    (`Abgren-` / `zungsmessung`) is joined without it; `PV-` / `Anlagen` keeps it."""
+    (`Abgren-` / `zungsmessung`) is joined without it; `PV-` / `Anlagen` and a suspended
+    compound (`Bezugs-` / `und Einspeisemessung`) keep it."""
     out = ""
     for raw in lines:
         line = clean(raw)
         if not line:
             continue
-        if out and _SPLIT_WORD.search(out) and line[0].islower():
+        if not out:
+            out = line
+        elif _SPLIT_WORD.search(out) and line[0].islower() and not _SUSPENDED.match(line):
             out = out[:-1] + line
         else:
-            out = f"{out} {line}" if out else line
+            out = f"{out} {line}"
     return out

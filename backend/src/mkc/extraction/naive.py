@@ -5,9 +5,9 @@ Pure Python (pdfplumber's text, which pdfminer lays out line by line), so no sys
 is needed. `naive_tables` is an ordinary line parser, not rigged to fail: a line with an LBS
 code is a row when the text before the code is only concept numbers or `nicht
 visualisiert`; a meter-tech row is a line that starts with a concept number below a heading
-naming a meter (`(Z2)`). Where a ruled table centres a short cell in a tall row, the code
-meets only the middle line of its concept cell, and the baseline pairs it wrongly: the
-failure `extract_tables` exists to avoid.
+naming a meter (`(Z2)`) on the same page. Where a ruled table centres a short cell in a
+tall row, the code meets only the middle line of its concept cell, and the baseline pairs it
+wrongly: the failure `extract_tables` exists to avoid.
 """
 
 import io
@@ -32,8 +32,8 @@ def naive_text(pdf: bytes) -> str:
 def naive_tables(pdf: bytes, kind: Kind) -> list[Row]:
     """The rows of `naive_text`, line by line, in the shape `extract_tables` gives."""
     rows: list[Row] = []
-    heading: str | None = None
     for number, page in enumerate(naive_text(pdf).split("\f"), 1):
+        heading: str | None = None  # names the meter of its own page's table only
         for line in page.splitlines():
             if kind == "lbs":
                 row = _lbs_row(line, number)
