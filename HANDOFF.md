@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 14:54
+**Last updated:** 27.11.2026, 15:10
 
 This file is how agents resume work after a session restart.
 
@@ -54,8 +54,11 @@ This file is how agents resume work after a session restart.
 
 ## In progress
 
-- **MKC-19** (#19), Tracing (Langfuse + run log). Status `In progress`, assigned to `qamran` (27.11.2026 14:53:34). Branch `mkc-19-tracing` from `16beb56`. The first commit holds only the close-out of MKC-18.
-  - Next: read the ticket, write the plan and the sub-issues. Fold in the MKC-18 findings tagged MKC-19 below (wire `StopEvent` tracers in the worker; a failed call's cost) and the backlog notes on MKC-19.
+- **MKC-19** (#19), Tracing (Langfuse + run log). Status `In progress`, assigned to `qamran` (27.11.2026 14:53:34). Branch `mkc-19-tracing` from `16beb56`.
+  - Plan: `docs/superpowers/plans/271120261507-mkc-19-tracing.md` (decision 59).
+  - Sub-issues: MKC-19.1 #156 (`In progress`), MKC-19.2 #157, MKC-19.3 #158, MKC-19.4 #159, MKC-19.5 #160 (`Ready`).
+  - Waiting on the user (not blocking 19.1 to 19.4): Langfuse API keys in `backend/.env` (`MKC_LANGFUSE_PUBLIC_KEY`, `MKC_LANGFUSE_SECRET_KEY`, `MKC_LANGFUSE_BASE_URL`) for the real run of 19.5.
+  - Next: MKC-19.1 (finding 18#1), red test first.
 
 ## Next steps
 
@@ -176,10 +179,12 @@ This file is how agents resume work after a session restart.
 - **Docker Desktop** must be running for the local DB tests (`docker compose up -d db`), kind and the Compose smoke test. Start it only when needed and shut it down afterwards (stop the containers, quit Docker Desktop, `wsl --shutdown`): the user asked that `vmmemWSL` not keep running. CI uses its own Postgres service.
 - Later setup tasks (design doc section 13): provider API keys with caps. Done on 25.11.2026: Supabase project, Oracle VM with k3s, API host, Vercel project, GitHub `production` environment with `VERCEL_TOKEN`.
 - **Deploys:** since decision 51 the development agent approves both `production` gates (`backend`, then `frontend`) itself after a PASS merge with green CI (runbook "Deploy and rollback"); the user no longer has to click.
-- **Waiting now:** nothing.
+- **Waiting now:** Langfuse API keys for MKC-19.5 (Langfuse project → Settings → API Keys), in `backend/.env` as `MKC_LANGFUSE_PUBLIC_KEY`, `MKC_LANGFUSE_SECRET_KEY` and `MKC_LANGFUSE_BASE_URL` (the region host). Asked on 27.11.2026, 15:10.
 - **The user's PC:** it went down without a clean shutdown on 23.11 and 26.11.2026 (cause not found; graphics-driver hang reports on both days; a memory test is not done yet). Commit and push often. Two files exist only on the PC: the VM's admin SSH key and `backend/.env` (runbook "Only on the PC"); the user was advised to copy them into a password manager.
 
 ## Recent log
+
+- **27.11.2026 15:07-15:10** MKC-19: plan written (decision 59); sub-issues MKC-19.1 #156 to MKC-19.5 #160 created 15:08:53-15:09:36 (GitHub `createdAt`), assigned to `qamran`, linked to #19 and put on the board (#156 `In progress`, the rest `Ready`, set by 15:10:13). Langfuse keys asked of the user for the real run.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
