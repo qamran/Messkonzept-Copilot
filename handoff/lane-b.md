@@ -18,7 +18,7 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md`. Tim
 Sub-issues (all assigned to `qamran`, on the board, linked to #36): `MKC-36.1` (#176) SiteFacts model and extraction, `MKC-36.2` (#177) follow-up questions, `MKC-36.3` (#178) API routes, `MKC-36.4` (#180) facts card and advisor page, `MKC-36.5` (#183) docs.
 
 - `MKC-36.1` (#176): built `mkc/advisor/facts.py`; `test_facts.py` and `test_facts_mapping.py` green (`22 passed`). Own tests in `test_facts_mapping.py` (prompt wrapping, note order).
-- `MKC-36.2` (#177): In progress. Own red tests in `backend/tests/advisor/test_questions_text.py` (texts, options, order).
+- `MKC-36.2` (#177): built `mkc/advisor/questions.py`; `test_questions.py` and `test_questions_text.py` green (`17 passed`). Own tests in `backend/tests/advisor/test_questions_text.py` (texts, options, order).
 
 ### Red tests (test agent)
 
@@ -97,6 +97,7 @@ Frontend:
 
 ## Recent log
 
+- **27.11.2026 20:42** Development agent: `mkc/advisor/questions.py` (`required_questions`); `tests/advisor/test_questions.py tests/advisor/test_questions_text.py` give `17 passed`.
 - **27.11.2026 20:42** Development agent: red test `test_questions_text.py` (`1 error in 0.55s`, missing `mkc.advisor.questions`).
 - **27.11.2026 20:41** Development agent: `mkc/advisor/facts.py` (SiteFacts, FactsExtraction, extract_facts); `tests/advisor/test_facts.py tests/advisor/test_facts_mapping.py` give `22 passed`.
 - **27.11.2026 20:40** Development agent: sub-issues #176, #177, #178, #180, #183 created; red test `test_facts_mapping.py` (`1 error in 0.35s`, missing `mkc.advisor.facts`).
