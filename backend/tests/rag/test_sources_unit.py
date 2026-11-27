@@ -37,7 +37,7 @@ def test_a_good_file_loads(tmp_path: Path) -> None:
         ("url: https://", "url: http://"),  # https only
         ("licence: official", "licence: restricted"),  # a law is official
         ("source_type: law", "source_type: blog"),  # unknown type
-        ("    version: \"2026\"\n", ""),  # a field missing
+        ('    version: "2026"\n', ""),  # a field missing
         ("licence: official", "licence: official\n    text: Der Wortlaut"),  # never the text
         ("id: musterg", "id: Muster G"),  # ids are slugs
     ],
