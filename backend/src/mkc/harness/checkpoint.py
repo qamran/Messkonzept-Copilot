@@ -5,7 +5,7 @@ a complete turn: every call paired with its result, in call order.
 """
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from decimal import Decimal
 from typing import Any
 
@@ -14,7 +14,13 @@ from sqlalchemy.orm import Session
 
 from mkc.db.models import Item, Turn
 from mkc.harness.blobs import BlobStore, DbBlobStore
-from mkc.harness.prompts import SYSTEM_PROMPT, earlier_turns, task_message, wrap_tool_result
+from mkc.harness.prompts import (
+    REPROMPT,
+    SYSTEM_PROMPT,
+    earlier_turns,
+    task_message,
+    wrap_tool_result,
+)
 from mkc.models.types import Message
 
 INLINE_MAX_BYTES = 16384
@@ -40,6 +46,10 @@ class ResumeContext:
     next_number: int
     steps_done: int
     cost_eur: Decimal
+    no_call_turns: int = 0
+    """Stored turns without a tool call: re-prompts already used (MKC-18)."""
+    tool_failures: dict[str, int] = field(default_factory=dict)
+    """Results with `ok: false` per tool name, over every stored turn (MKC-18)."""
 
 
 def load_resume_context(
@@ -69,8 +79,16 @@ def load_resume_context(
         )
         for entry in last.tool_results
     ]
+    if not last.assistant["tool_calls"]:  # the re-prompt was sent after it (MKC-18)
+        messages.append(Message(role="user", content=REPROMPT))
     cost = sum((row.cost_eur for row in rows), Decimal(0))
-    return ResumeContext(messages, last.number + 1, last.number, cost)
+    no_calls = sum(1 for row in rows if not row.assistant["tool_calls"])
+    failures: dict[str, int] = {}
+    for row in rows:
+        for entry in row.tool_results:
+            if not (entry.get("result") or entry["result_ref"])["ok"]:
+                failures[entry["name"]] = failures.get(entry["name"], 0) + 1
+    return ResumeContext(messages, last.number + 1, last.number, cost, no_calls, failures)
 
 
 def stored_result(entry: dict[str, Any], blobs: BlobStore) -> dict[str, Any]:

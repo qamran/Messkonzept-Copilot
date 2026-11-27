@@ -173,7 +173,7 @@ def test_a_resume_counts_an_attempt(engine: Engine) -> None:
 
 def test_a_stored_turn_resets_the_attempts(engine: Engine) -> None:
     run_id, (item_id,) = start(engine)
-    set_attempts(engine, item_id, 3)
+    set_attempts(engine, item_id, 2)  # the resume makes it 3: still allowed
     resume(engine, run_id, fake(ai(tool_calls=[READ]), ai(tool_calls=[SAVE])), [])
     row = item_row(engine, item_id)
     assert (row.state, row.attempts_without_progress) == ("draft_saved", 0)

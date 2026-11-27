@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 13:38
+**Last updated:** 27.11.2026, 13:41
 
 This file is how agents resume work after a session restart.
 
@@ -56,7 +56,7 @@ This file is how agents resume work after a session restart.
 - **MKC-18** (#18), Limits and retries. Status `In progress`, assigned to `qamran` (27.11.2026 12:59:40). Branch `mkc-18-limits-retries` from `0f9a413`. The first commit holds only the close-out of MKC-17.
   - Plan: `docs/superpowers/plans/271120261324-mkc-18-limits-retries.md` (decision 58: stop reasons, the stop trace, run usage from the database, retries and turn deadline, re-prompt, tool-retry and resume caps, defaults with reasons). It folds in MKC-13 finding 3, MKC-15 findings 6 and 9, MKC-16 finding 2, MKC-17 findings 1, 6, 7 and 8.
   - Sub-issues: MKC-18.1 #151 (`In progress`), MKC-18.2 #152, MKC-18.3 #153, MKC-18.4 #154 (`Ready`); all assigned to `qamran`, linked to #18, on the board.
-  - MKC-18.2 (#152, `In progress` 13:35:56): red tests for every item limit committed, resume cap included (`item.attempts_without_progress` up on a resume, reset by a stored turn, over 3 fails with `resume_limit`); next the code.
+  - MKC-18.2 (#152, `In progress` 13:35:56): `load_resume_context` counts used re-prompts and tool failures and re-adds the re-prompt; the loop part follows in the next commit.
 
 ## Next steps
 
