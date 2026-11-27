@@ -2,6 +2,10 @@
 fake, a fake HTTP getter and a synthetic PDF builder. No test touches the network or a real
 PDF; `mkc.extraction` is imported inside the tests, so a missing module fails each test, not
 the collection.
+
+MKC-22 adds `layout_pdf` (text at given positions, ruled boxes, cp1252 so `Ü`, `§` and `•`
+work) and `ruled_table` (a ruled table whose shorter cells are centred in their row, as in
+the Berlin catalogue; the centring is what shifts rows under naive line-by-line text).
 """
 
 import hashlib
@@ -52,6 +56,7 @@ class MemoryStore:
     def __init__(self) -> None:
         self.data: dict[str, bytes] = {}
         self.puts = 0
+        self.gets = 0  # MKC-22: a tool-cache hit must not read the PDF again
 
     def put(self, data: bytes) -> str:
         self.puts += 1
@@ -60,6 +65,7 @@ class MemoryStore:
         return ref
 
     def get(self, ref: str) -> bytes:
+        self.gets += 1
         return self.data[ref]
 
 
@@ -161,6 +167,102 @@ def make_pdf(pages: Sequence[Sequence[str]], size: tuple[float, float] = (595.0,
             ops.append(f"/F1 {size} Tf 1 0 0 1 {x} {y:g} Tm ({esc}) Tj")
         ops.append("ET")
         stream = "\n".join(ops).encode("latin-1")
+        objs.append(b"<< /Length %d >>\nstream\n" % len(stream) + stream + b"\nendstream")
+    out = bytearray(b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n")
+    offsets = []
+    for num, body in enumerate(objs, start=1):
+        offsets.append(len(out))
+        out += b"%d 0 obj\n" % num + body + b"\nendobj\n"
+    xref = len(out)
+    out += b"xref\n0 %d\n0000000000 65535 f \n" % (len(objs) + 1)
+    for off in offsets:
+        out += b"%010d 00000 n \n" % off
+    out += b"trailer\n<< /Size %d /Root 1 0 R >>\nstartxref\n%d\n%%%%EOF\n" % (len(objs) + 1, xref)
+    return bytes(out)
+
+
+@dataclass(frozen=True)
+class Text:
+    """One text line for `layout_pdf`: `x` and `top` in PDF points from the top left."""
+
+    x: float
+    top: float
+    text: str
+    size: float = 9.0
+
+
+@dataclass(frozen=True)
+class Box:
+    """A stroked rectangle (a table rule) for `layout_pdf`, from the top left."""
+
+    x0: float
+    top: float
+    x1: float
+    bottom: float
+
+
+A4 = (595.0, 842.0)
+
+
+def layout_pdf(pages: Sequence[Sequence[Text | Box]], size: tuple[float, float] = A4) -> bytes:
+    """A small valid PDF with text and rules at given positions (Helvetica, WinAnsi/cp1252).
+    Built by hand, like `make_pdf`, so no PDF file is ever committed."""
+    h = size[1]
+    streams = []
+    for items in pages:
+        ops = ["0.5 w"]
+        for item in items:
+            if isinstance(item, Box):
+                bw, bh = item.x1 - item.x0, item.bottom - item.top
+                ops.append(f"{item.x0:g} {h - item.bottom:g} {bw:g} {bh:g} re S")
+            else:
+                esc = item.text.replace("\\", r"\\").replace("(", r"\(").replace(")", r"\)")
+                y = h - item.top - item.size
+                ops.append(f"BT /F1 {item.size:g} Tf 1 0 0 1 {item.x:g} {y:g} Tm ({esc}) Tj ET")
+        streams.append("\n".join(ops).encode("cp1252"))
+    return _assemble(streams, size)
+
+
+LINE = 11.0  # line pitch inside a table cell
+PAD = 4.0  # cell padding above and below
+
+
+def ruled_table(
+    x0: float, top: float, widths: Sequence[float], rows: Sequence[Sequence[Sequence[str]]]
+) -> tuple[list[Text | Box], float]:
+    """A ruled table: each row is a list of cells, each cell a list of lines. A row is as
+    tall as its longest cell; shorter cells are centred vertically, so their lines sit
+    between the longer cell's lines. Returns the items and the table's bottom."""
+    items: list[Text | Box] = []
+    y = top
+    for row in rows:
+        height = max(len(cell) for cell in row) * LINE + 2 * PAD
+        x = x0
+        for width, cell in zip(widths, row, strict=True):
+            items.append(Box(x, y, x + width, y + height))
+            first = y + (height - len(cell) * LINE) / 2
+            items += [Text(x + 3, first + i * LINE, line) for i, line in enumerate(cell)]
+            x += width
+        y += height
+    return items, y
+
+
+def _assemble(streams: Sequence[bytes], size: tuple[float, float]) -> bytes:
+    w, h = size
+    n = len(streams)
+    objs: list[bytes] = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        (f"<< /Type /Pages /Kids [{' '.join(f'{4 + 2 * i} 0 R' for i in range(n))}] /Count {n} >>")
+        .encode(),
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+    ]  # fmt: skip
+    for i, stream in enumerate(streams):
+        objs.append(
+            (
+                f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {w:g} {h:g}]"
+                f" /Resources << /Font << /F1 3 0 R >> >> /Contents {5 + 2 * i} 0 R >>"
+            ).encode()
+        )
         objs.append(b"<< /Length %d >>\nstream\n" % len(stream) + stream + b"\nendstream")
     out = bytearray(b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n")
     offsets = []
