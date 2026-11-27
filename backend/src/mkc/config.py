@@ -160,6 +160,29 @@ class Settings(BaseSettings):
     langfuse_timeout_seconds: int = Field(default=5, ge=1, le=60)
     """Timeout of one export to Langfuse; bounds `flush` after a run and on shutdown."""
 
+    # --- MKC-21: operators and Supabase Storage (decision 63) ---
+
+    operators_file: str = ""
+    """The operator allow-list. Empty = `backend/data/operators.yaml` next to the source; the
+    image sets `/app/data/operators.yaml`."""
+
+    storage_s3_endpoint: str = ""
+    """Supabase Storage's S3 endpoint, `https://<project ref>.storage.supabase.co/storage/v1/s3`.
+    All five storage settings set = PDFs and large turn results go to Storage; none set =
+    a local run (PDFs in `backend/.cache/blobs`, turn results in the `blob` table)."""
+
+    storage_s3_region: str = ""
+    """The project's Storage region (`eu-west-1`)."""
+
+    storage_bucket: str = ""
+    """The private bucket (`mkc-storage`)."""
+
+    storage_access_key_id: str = ""
+    """The S3 access key id (key `mkc-backend`)."""
+
+    storage_secret_access_key: SecretStr = SecretStr("")
+    """The S3 secret access key. A secret: never logged."""
+
     # MKC-46 (lane C, decision layer): the decision backend and the Jev model on OpenRouter.
     decision_backend: Literal["llm", "jev"] = "llm"
     """Where yes/no and choice decisions come from: `llm` (default), structured output from a

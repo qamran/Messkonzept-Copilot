@@ -457,6 +457,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] PDFs cached only in Storage and gitignored locally
   - [ ] Records from two editions never mixed (test)
 - **Note (decision 56):** add a Supabase Storage `BlobStore` and make it the default for turn results; `blob:sha256:` refs written to the `blob` table must stay readable.
+- **As built (decisions 62 to 64):** `fetch_document(operator_id, *, sessions, store, get, operators)` and `segment_document(doc, *, store)` as pinned by the test agent; `ConceptRegion.bbox` is `(x0, top, x1, bottom)`, origin top left. The Berlin heading is `<n> <title>`, not `Messkonzept <n>`; the live count is 26. Run-level operations through `default_registry(documents=DocumentOps(...))`; `mkc run start --operator` replaces the synthetic items file for real runs. Storage is the default for large turn results when its five settings are set (`blob` table as fallback). Production needs the `MKC_STORAGE_*` values in `mkc-secrets`.
 
 ### MKC-22: Text and table extraction
 
