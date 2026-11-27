@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 15:34
+**Last updated:** 27.11.2026, 15:36
 
 This file is how agents resume work after a session restart.
 
@@ -183,6 +183,8 @@ This file is how agents resume work after a session restart.
 - **The user's PC:** it went down without a clean shutdown on 23.11 and 26.11.2026 (cause not found; graphics-driver hang reports on both days; a memory test is not done yet). Commit and push often. Two files exist only on the PC: the VM's admin SSH key and `backend/.env` (runbook "Only on the PC"); the user was advised to copy them into a password manager.
 
 ## Recent log
+
+- **27.11.2026 15:14-15:36** MKC-19 work: #157 `In progress` 15:14:17, #158 15:18:44, #159 15:27:50, #160 15:32:24 (local clock after each board edit). One `Refs:` trailer said `qamra/` again (`8fade68`); fixed by a message-only `git rebase --exec` before any push, so every hash after `9c1691c` changed. Full backend suite on Windows: 564 passed, 1 skipped (15:35). `dd91a4b` (red tests for the tracer's records plus the skeleton) is 263 lines. Langfuse keys not yet in `backend/.env`.
 
 - **27.11.2026 15:07-15:10** MKC-19: plan written (decision 59); sub-issues MKC-19.1 #156 to MKC-19.5 #160 created 15:08:53-15:09:36 (GitHub `createdAt`), assigned to `qamran`, linked to #19 and put on the board (#156 `In progress`, the rest `Ready`, set by 15:10:13). Langfuse keys asked of the user for the real run.
 
