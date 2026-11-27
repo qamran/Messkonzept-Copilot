@@ -8,6 +8,9 @@ back to the model; nothing raises out of `execute`.
 `side_effect` (decision 53): the tool reaches outside its own item (network, catalogue,
 approval queue, or state a re-run with the same arguments cannot overwrite by key). Such a
 tool can never be registered in the item context.
+
+`ToolEnv` (decision 54): the harness's ids for the call. Tools key their work by these, never
+by model arguments.
 """
 
 import logging
@@ -36,13 +39,27 @@ _MAX_MESSAGE = 1000
 
 
 @dataclass(frozen=True)
+class ToolEnv:
+    """The harness's ids for the call (decision 54). The model never sets these.
+
+    Item tools get all four. Run-level operations get `run_id` and whatever else exists at
+    that point (`fetch_document` runs before there is a document or an item).
+    """
+
+    run_id: int
+    item_id: int | None = None
+    document_hash: str | None = None
+    concept_key: str | None = None
+
+
+@dataclass(frozen=True)
 class Tool:
     """A tool: its arguments are validated against `args_model` before `fn` is called."""
 
     name: str
     description: str
     args_model: type[BaseModel]
-    fn: Callable[[Any], Any]
+    fn: Callable[[Any, ToolEnv], Any]
     side_effect: bool
     deterministic: bool
 
@@ -123,16 +140,24 @@ class ToolRegistry:
     def for_context(self, ctx: Context) -> tuple[Tool, ...]:
         return self._contexts[ctx]
 
-    def execute(self, call: ToolCall, ctx: Context) -> ToolResult:
-        """Run `call` in `ctx`, or return the structured error that says why not."""
+    def execute(self, call: ToolCall, ctx: Context, env: ToolEnv) -> ToolResult:
+        """Run `call` in `ctx` with the harness's `env`, or return the error that says why not.
+
+        Nothing the model sends makes this raise. An item-context call whose `env` lacks the
+        item's ids is a harness bug and raises `ValueError` before any tool runs.
+        """
+        if ctx == "item" and None in (env.item_id, env.document_hash, env.concept_key):
+            raise ValueError(
+                f"the item context needs item_id, document_hash and concept_key: {env}"
+            )
         start = time.perf_counter()
-        result = self._run(call, ctx)
+        result = self._run(call, ctx, env)
         code = result.error.code if result.error else None
         latency_ms = round((time.perf_counter() - start) * 1000)
         self._trace(ToolTrace(call.name, ctx, result.ok, code, code in REFUSALS, latency_ms))
         return result
 
-    def _run(self, call: ToolCall, ctx: Context) -> ToolResult:
+    def _run(self, call: ToolCall, ctx: Context, env: ToolEnv) -> ToolResult:
         tool = self._all.get(call.name)
         if tool is None:
             return _fail("unknown_tool", f"no tool named {call.name!r}")
@@ -146,7 +171,7 @@ class ToolRegistry:
         except ValidationError as error:
             return _fail("invalid_args", _validation_message(error))
         try:
-            return ToolResult(ok=True, data=tool.fn(args))
+            return ToolResult(ok=True, data=tool.fn(args, env))
         except NotImplementedError as error:
             return _fail("not_implemented", f"tool {call.name!r} is not built yet: {error}")
         except Exception as error:

@@ -5,7 +5,7 @@ from typing import Any
 import pytest
 from pydantic import BaseModel, Field, ValidationError
 
-from mkc.harness.tools import Tool, ToolError, ToolRegistry, ToolResult, ToolTrace
+from mkc.harness.tools import Tool, ToolEnv, ToolError, ToolRegistry, ToolResult, ToolTrace
 from mkc.models.types import ToolCall, ToolSpec
 
 
@@ -17,15 +17,21 @@ class UrlArgs(BaseModel):
     operator_id: str
 
 
+ENV = ToolEnv(run_id=7, item_id=42, document_hash="sha256:abc", concept_key="MK-3")
+"""The harness's ids for the item; the model never supplies them (decision 54)."""
+
+
 class Spy:
-    """A tool function that records its calls."""
+    """A tool function that records its calls and the environment it got."""
 
     def __init__(self, result: Any = "done") -> None:
         self.calls: list[BaseModel] = []
+        self.envs: list[ToolEnv] = []
         self.result = result
 
-    def __call__(self, args: BaseModel) -> Any:
+    def __call__(self, args: BaseModel, env: ToolEnv) -> Any:
         self.calls.append(args)
+        self.envs.append(env)
         return self.result
 
 
@@ -58,13 +64,32 @@ def call(name: str, **args: Any) -> ToolCall:
 
 def test_valid_call_runs_the_tool_with_validated_args() -> None:
     spy = Spy(result={"text": "Messkonzept 1"})
-    result = make_registry(item_fn=spy).execute(call("extract_text", page="3"), "item")
+    result = make_registry(item_fn=spy).execute(call("extract_text", page="3"), "item", ENV)
     assert result == ToolResult(ok=True, data={"text": "Messkonzept 1"})
     assert spy.calls == [PageArgs(page=3)]
 
 
+def test_tool_gets_the_harness_environment() -> None:
+    spy = Spy()
+    make_registry(item_fn=spy).execute(call("extract_text", page=1), "item", ENV)
+    assert spy.envs == [ENV]
+
+
+def test_run_operations_get_an_environment_without_item_ids() -> None:
+    spy = Spy()
+    env = ToolEnv(run_id=7)
+    make_registry(run_fn=spy).execute(call("fetch_document", operator_id="x"), "run", env)
+    assert spy.envs == [env]
+    assert (env.item_id, env.document_hash, env.concept_key) == (None, None, None)
+
+
+def test_tool_env_is_immutable() -> None:
+    with pytest.raises(AttributeError):
+        ENV.item_id = 1  # type: ignore[misc]
+
+
 def test_unknown_tool_returns_structured_error() -> None:
-    result = make_registry().execute(call("delete_catalogue", confirm=True), "item")
+    result = make_registry().execute(call("delete_catalogue", confirm=True), "item", ENV)
     assert not result.ok
     assert result.error is not None
     assert result.error.code == "unknown_tool"
@@ -75,7 +100,7 @@ def test_run_level_tool_requested_in_item_context_is_refused_and_not_executed() 
     spy = Spy()
     registry = make_registry(run_fn=spy)
     # plausible arguments: they would validate, so only the context check can stop the call
-    result = registry.execute(call("fetch_document", operator_id="stromnetz-berlin"), "item")
+    result = registry.execute(call("fetch_document", operator_id="stromnetz-berlin"), "item", ENV)
     assert not result.ok
     assert result.error is not None
     assert result.error.code == "tool_not_allowed"
@@ -84,14 +109,14 @@ def test_run_level_tool_requested_in_item_context_is_refused_and_not_executed() 
 
 def test_run_level_tool_runs_in_run_context() -> None:
     spy = Spy()
-    result = make_registry(run_fn=spy).execute(call("fetch_document", operator_id="x"), "run")
+    result = make_registry(run_fn=spy).execute(call("fetch_document", operator_id="x"), "run", ENV)
     assert result.ok
     assert len(spy.calls) == 1
 
 
 def test_invalid_args_return_validation_error() -> None:
     spy = Spy()
-    result = make_registry(item_fn=spy).execute(call("extract_text", page=0), "item")
+    result = make_registry(item_fn=spy).execute(call("extract_text", page=0), "item", ENV)
     assert not result.ok
     assert result.error is not None
     assert result.error.code == "invalid_args"
@@ -100,28 +125,28 @@ def test_invalid_args_return_validation_error() -> None:
 
 
 def test_unexpected_args_are_invalid() -> None:
-    result = make_registry().execute(call("extract_text", page=1, url="http://x"), "item")
+    result = make_registry().execute(call("extract_text", page=1, url="http://x"), "item", ENV)
     assert result.error is not None
     assert result.error.code == "invalid_args"
 
 
 def test_tool_exception_becomes_structured_error() -> None:
-    def boom(args: BaseModel) -> Any:
+    def boom(args: BaseModel, env: ToolEnv) -> Any:
         raise RuntimeError("pdf is broken")
 
     registry = make_registry(item_fn=boom)  # type: ignore[arg-type]
-    result = registry.execute(call("extract_text", page=1), "item")
+    result = registry.execute(call("extract_text", page=1), "item", ENV)
     assert result.error is not None
     assert result.error.code == "tool_failed"
     assert "pdf is broken" in result.error.message
 
 
 def test_not_implemented_tool_returns_not_implemented() -> None:
-    def todo(args: BaseModel) -> Any:
+    def todo(args: BaseModel, env: ToolEnv) -> Any:
         raise NotImplementedError("comes in MKC-22")
 
     registry = make_registry(item_fn=todo)  # type: ignore[arg-type]
-    result = registry.execute(call("extract_text", page=1), "item")
+    result = registry.execute(call("extract_text", page=1), "item", ENV)
     assert result.error is not None
     assert result.error.code == "not_implemented"
 
@@ -129,10 +154,10 @@ def test_not_implemented_tool_returns_not_implemented() -> None:
 def test_refusals_are_counted_in_the_trace() -> None:
     traces: list[ToolTrace] = []
     registry = make_registry(traces=traces)
-    registry.execute(call("nope"), "item")
-    registry.execute(call("fetch_document", operator_id="x"), "item")
-    registry.execute(call("extract_text", page=0), "item")
-    registry.execute(call("extract_text", page=1), "item")
+    registry.execute(call("nope"), "item", ENV)
+    registry.execute(call("fetch_document", operator_id="x"), "item", ENV)
+    registry.execute(call("extract_text", page=0), "item", ENV)
+    registry.execute(call("extract_text", page=1), "item", ENV)
     assert [t.error_code for t in traces] == [
         "unknown_tool",
         "tool_not_allowed",
@@ -150,7 +175,7 @@ def test_failing_tracer_does_not_break_the_call() -> None:
 
     tool = Tool("extract_text", "Text.", PageArgs, Spy(), side_effect=False, deterministic=True)
     registry = ToolRegistry(item=[tool], run=[], tracers=[bad])
-    assert registry.execute(call("extract_text", page=1), "item").ok
+    assert registry.execute(call("extract_text", page=1), "item", ENV).ok
 
 
 def test_side_effect_tool_cannot_be_registered_in_item_context() -> None:
@@ -195,3 +220,18 @@ def test_to_spec_matches_model_client_tool_spec() -> None:
     tool = make_registry().for_context("item")[0]
     spec = ToolSpec(name="extract_text", description="Text of one page.", args=PageArgs)
     assert tool.to_spec() == spec
+
+
+@pytest.mark.parametrize(
+    "env",
+    [
+        ToolEnv(run_id=7),
+        ToolEnv(run_id=7, item_id=42, document_hash="h"),
+        ToolEnv(run_id=7, item_id=42, concept_key="MK-3"),
+    ],
+)
+def test_item_call_without_the_item_ids_is_a_harness_error(env: ToolEnv) -> None:
+    spy = Spy()
+    with pytest.raises(ValueError, match="item context needs"):
+        make_registry(item_fn=spy).execute(call("extract_text", page=1), "item", env)
+    assert spy.calls == []

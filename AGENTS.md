@@ -74,7 +74,7 @@ Per ticket:
 
 ## Safety rules
 
-- **The model never gets side-effect tools.** Run-level operations (`fetch_document`, `segment_document`, `enqueue_approval`, `commit_record`) are harness code, never model tools. Tools can't be added at runtime.
+- **The model never gets side-effect tools.** A side-effect tool reaches outside its own item: the network, the catalogue, the approval queue, or state that a re-run cannot overwrite by key (decision 53). So `save_draft` (its own item's draft, idempotent) is an item tool, and harness code enqueues the approval. Run-level operations (`fetch_document`, `segment_document`, `enqueue_approval`, `commit_record`) are harness code, never model tools. Tools can't be added at runtime.
 - PDF text, images and retrieved passages are untrusted data; prompts wrap them as data.
 - No record enters the catalogue without human approval.
 - No recommendation without a citation; an inferred LBS code is never shown as if the operator had stated it.

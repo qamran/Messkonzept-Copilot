@@ -18,7 +18,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from mkc.harness.tools import Tool, ToolRegistry, ToolTracer
+from mkc.harness.tools import Tool, ToolEnv, ToolRegistry, ToolTracer
 
 
 class _Args(BaseModel):
@@ -60,7 +60,7 @@ class DraftIdArgs(_Args):
 
 
 def _placeholder(ticket: str) -> Any:
-    def not_built(args: BaseModel) -> Any:
+    def not_built(args: BaseModel, env: ToolEnv) -> Any:
         raise NotImplementedError(f"comes in {ticket}")
 
     return not_built

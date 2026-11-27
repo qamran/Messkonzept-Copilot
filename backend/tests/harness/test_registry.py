@@ -5,6 +5,7 @@ from typing import Any
 import pytest
 
 from mkc.harness.registry import ITEM_TOOLS, RUN_OPERATIONS, default_registry
+from mkc.harness.tools import ToolEnv
 from mkc.models.types import ToolCall
 
 ITEM = {
@@ -16,6 +17,7 @@ ITEM = {
     "save_draft",
 }
 RUN = {"fetch_document", "segment_document", "enqueue_approval", "commit_record"}
+ENV = ToolEnv(run_id=1, item_id=2, document_hash="h", concept_key="MK-1")
 
 VALID_ARGS: dict[str, dict[str, Any]] = {
     "extract_text": {"page": 1},
@@ -61,7 +63,7 @@ def test_side_effect_flags() -> None:
 def test_run_level_operations_are_refused_in_item_context() -> None:
     registry = default_registry()
     for op in sorted(RUN):
-        result = registry.execute(ToolCall(id="c", name=op, args=VALID_ARGS[op]), "item")
+        result = registry.execute(ToolCall(id="c", name=op, args=VALID_ARGS[op]), "item", ENV)
         assert result.error is not None
         assert result.error.code == "tool_not_allowed"
 
@@ -69,7 +71,9 @@ def test_run_level_operations_are_refused_in_item_context() -> None:
 @pytest.mark.parametrize("name", sorted(ITEM | RUN))
 def test_placeholders_return_not_implemented(name: str) -> None:
     ctx = "item" if name in ITEM else "run"
-    result = default_registry().execute(ToolCall(id="c", name=name, args=VALID_ARGS[name]), ctx)
+    result = default_registry().execute(
+        ToolCall(id="c", name=name, args=VALID_ARGS[name]), ctx, ENV
+    )
     assert result.error is not None
     assert result.error.code == "not_implemented"
 

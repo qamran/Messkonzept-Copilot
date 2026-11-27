@@ -3,6 +3,7 @@
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
 from mkc.config import Settings
 
@@ -76,3 +77,15 @@ def test_origin_lists_are_comma_separated(monkeypatch: pytest.MonkeyPatch) -> No
 def test_clerk_issuer_trailing_slash_removed(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("MKC_CLERK_ISSUER", "https://x.clerk.accounts.dev/")
     assert Settings().clerk_issuer == "https://x.clerk.accounts.dev"
+
+
+def test_item_max_steps_defaults_to_12_and_reads_the_environment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("MKC_ITEM_MAX_STEPS", raising=False)
+    assert Settings().item_max_steps == 12
+    monkeypatch.setenv("MKC_ITEM_MAX_STEPS", "5")
+    assert Settings().item_max_steps == 5
+    monkeypatch.setenv("MKC_ITEM_MAX_STEPS", "0")
+    with pytest.raises(ValidationError):
+        Settings()

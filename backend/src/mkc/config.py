@@ -74,6 +74,10 @@ class Settings(BaseSettings):
     model_replay_dir: str = ""
     """Directory of recorded replies; required in `record` and `replay` mode."""
 
+    item_max_steps: int = Field(default=12, ge=1)
+    """Model calls one item may make before it fails with `step_limit` (MKC-15; MKC-18
+    replaces it with the run limits)."""
+
     openrouter_api_key: SecretStr = SecretStr("")
     """OpenRouter key (default route, zero data retention). A secret: never logged."""
 
