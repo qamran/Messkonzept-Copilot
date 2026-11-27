@@ -1,6 +1,6 @@
 # Lane C: Decision layer
 
-**Last updated:** 27.11.2026, 20:50
+**Last updated:** 27.11.2026, 21:13
 
 Only lane C's agents write this file; the coordinator keeps `HANDOFF.md`. Times are local time (CET) from git and GitHub, never estimated.
 
@@ -54,6 +54,29 @@ Six live calls. Printed costs: 0.000011886, 0.000011886, 0.000017934 USD; three 
 - `tests/decision/test_jev_live.py` ("1 deselected", `@pytest.mark.live`): deselected by default; not run by the test agent.
 - `tests/decision/fakes.py`: `FakeDecisionModel`, a `BaseDecisionModel` that replays a canned `ClassifierResponse` (the offline transport).
 
+### Mutation pass (test agent, phase 2, head `f6216cb`)
+
+One mutant at a time, each run against `uv run pytest tests/decision tests/models -q -x`, the file restored after each; no mutant was committed. Totals copied from the two scripts' output: "mutants tried: 33, killed: 22, survived: 11" (`types.py`, `client.py`, `config.py`, and two `providers.py` mutants) and "mutants tried: 7, killed: 6, survived: 1" (the other `providers.py` mutants): 40 tried, 28 killed, 12 survived.
+
+Survivors (line numbers at `f6216cb`):
+
+| # | File:line | Mutant | Verdict |
+|---|---|---|---|
+| 1 | `src/mkc/decision/types.py:20` | `NoulQuestion.instructions` without `min_length=1` | expected by the dev agent; an empty question is a caller bug |
+| 2 | `src/mkc/decision/types.py:30` | `ChoiceQuestion.instructions` without `min_length=1` | expected, as 1 |
+| 3 | `src/mkc/decision/types.py:36` | two-label check `< 2` → `<= 2` (a two-label choice refused) | **killed now** by `test_a_two_label_choice_question_is_accepted` (`8beb8c8`) |
+| 4 | `src/mkc/decision/types.py:46` | `NoulAnswer.probability` without `ge`/`le` | expected; `langchain_core` already bounds `noul` to 0..1 |
+| 5 | `src/mkc/decision/types.py:57` | `ChoiceAnswer.confidence` without `ge`/`le` | expected, as 4 |
+| 6 | `src/mkc/decision/types.py:12` | `extra="forbid"` → `"ignore"` | accepted: callers build the types with keywords only |
+| 7 | `src/mkc/decision/client.py:58` | criteria only when `yes and no` (a one-sided criterion dropped) | expected by the dev agent (one-sided criterion) |
+| 8 | `src/mkc/decision/client.py:58` | one-sided criterion sent as `None` instead of `""` | expected by the dev agent |
+| 9 | `src/mkc/decision/client.py:56` | Choice label texts sent as `""` | **killed now** by `test_a_choice_question_is_sent_with_its_instructions_and_label_texts` (`8beb8c8`) |
+| 10 | `src/mkc/decision/client.py:56` | Choice instructions changed | **killed now** by the same test |
+| 11 | `src/mkc/decision/client.py:87` | noul type check removed (a choice answer to a noul question gave `AttributeError`, not `DecisionError`) | **killed now** by `test_a_choice_answer_to_a_noul_question_is_a_decision_error` (`8beb8c8`) |
+| 12 | `src/mkc/models/providers.py:195` | `timeout=settings.turn_timeout_seconds` removed | expected by the dev agent (TypeSafe's 30 s default would apply) |
+
+The re-check of survivors 3, 9, 10 and 11 against `8beb8c8` printed "killed" for each. The three new tests pass on the dev agent's code unchanged: `uv run pytest tests/decision tests/models -q`: "202 passed, 13 deselected". Eight survivors remain (1, 2, 4–8, 12), each expected or accepted above; no production fix is asked for.
+
 ### Notes for the development agent
 
 - Add `langchain-typesafe==0.1.0` (pinned with `==`; `test_repo_langchain_dependencies_are_pinned`) and say so in the PR; the coordinator runs `uv lock`. Do **not** add the `experimental` extra: it pulls in `langchain`, which the lock guard forbids.
@@ -72,10 +95,11 @@ Six live calls. Printed costs: 0.000011886, 0.000011886, 0.000017934 USD; three 
 ## Next steps
 
 1. Development agent: `bash scripts/pre_pr.sh`, push the branch, report to the coordinator (no PR yet).
-2. Test agent: mutation pass on the development agent's code, then report the surviving mutants.
+2. Test agent: mutation pass done (see "Mutation pass"). Next: the PR and the review agent.
 
 ## Recent log
 
+- **27.11.2026 21:13** Test agent: mutation pass on `f6216cb`: 40 mutants, 28 killed, 12 survived (see "Mutation pass"). Four survivors showed gaps in the parse criterion; three acceptance tests in `8beb8c8` kill them. `uv run pytest tests/decision tests/models -q`: "202 passed, 13 deselected".
 - **27.11.2026 20:50** Development agent: live spike passed (see "Live calls"); the result in ADR 004 (amendment), the status doc (MKC-46 line, open item ticked), decisions 68 and 69 in the design doc; the backlog's MKC-47 interface line now says `mkc.decision.client.DecisionClient`. Decision 70 is not used yet (kept for MKC-47 or MKC-48).
 - **27.11.2026 20:47** Development agent (`7f54dff`): `mkc/decision/` (`types.py`, `client.py`): `DecisionClient.decide` sends one `invoke` with `Noul`/`Choice`, checks 1 to 32 questions, and converts the reply into our frozen types; a missing, wrong-type or out-of-criteria answer is a `DecisionError`. `uv run pytest -q tests/decision`: "44 passed, 1 deselected"; `uv run mypy`: "Success: no issues found in 51 source files".
 - **27.11.2026 20:46** Development agent (`aea6b8e`): red request tests `tests/decision/test_provider_requests.py` (`7175301`, red on `ImportError`), then `build_decision_model` at the end of `providers.py`: a `TypeSafeClassifier` subclass that adds `OPENROUTER_ROUTING` as `provider` to every body, base URL `https://openrouter.ai/api`. `uv run pytest -q tests/decision/test_providers.py tests/decision/test_provider_requests.py`: "9 passed"; `uv run mypy`: "Success: no issues found in 48 source files".
