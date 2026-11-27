@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 22:24
+**Last updated:** 27.11.2026, 22:40
 
 This file is how agents resume work after a session restart.
 
@@ -62,10 +62,10 @@ From MKC-168 (decision 61), tickets run in parallel lanes. Each lane keeps its o
 | Lane | Tickets | File | State |
 |---|---|---|---|
 | A. Extraction | MKC-21 → 22 → 23 → 25 → 26 → 28 → 29 → 30 | `handoff/lane-a.md` | MKC-21 done (PR #197, `2a841a2`); next MKC-22 |
-| A2. SachsenNetze and gold | MKC-27 (after MKC-21) → 24 (after MKC-23) | `handoff/lane-a2.md` | waits on MKC-21 |
+| A2. SachsenNetze and gold | MKC-27 (after MKC-21) → 24 (after MKC-23) | `handoff/lane-a2.md` | MKC-27 can start (wave 2) |
 | B. Advisor | MKC-36 → (37 after MKC-30) → 38 | `handoff/lane-b.md` | MKC-36 done (PR #196, `046f61e`); paused: MKC-37 waits on MKC-30 |
 | C. Decision layer | MKC-46 → (47 after MKC-36, MKC-26) → (48 after MKC-31) | `handoff/lane-c.md` | MKC-46 done (PR #195, `085323a`); next MKC-47 waits on MKC-36 and MKC-26 |
-| D. RAG | MKC-49 → 50 → (51 after MKC-38) | `handoff/lane-d.md` | MKC-49: development agent building (red `f515d26`) |
+| D. RAG | MKC-49 → 50 → (51 after MKC-38) | `handoff/lane-d.md` | MKC-49 done (PR #198, `6681d48`); next MKC-50 |
 
 Worktrees (outside the repo folder, cut from `origin/main` `dcd2852`): `<lanes>/lane-a` on `mkc-21-fetch-segment`, `lane-b` on `mkc-36-site-facts`, `lane-c` on `mkc-46-decision-spike`, `lane-d` on `mkc-49-corpus-loader`, where `<lanes>` is the folder `mkc-lanes` next to the repo folder. Each has a copy of the gitignored `backend/.env`.
 
@@ -73,12 +73,19 @@ Shared-code rules for wave 1 beyond AGENTS.md (the coordinator's, in each lane b
 
 ## In progress
 
-- **MKC-175** (#175), Wave 1 coordinator log: created 20:08:41, `In progress`, assigned to `qamran`; branch `mkc-175-wave-1-coordinator` from `dcd2852`. It carries this file's entries and the coordinator's rule fixes to `main` (AGENTS.md "Parallel lanes": one coordinator PR, opened between lane merges).
-- **Wave 1 started (27.11.2026 20:18):** #21, #36, #46, #49 set `Ready` then `In progress` and assigned to `qamran` (20:18:24 to 20:18:42); four worktrees and branches pushed; Docker started, Compose db up (20:19:20); four test agents writing red acceptance tests. Next: each lane's development agent after its red commit, then the test agent's mutation pass, `pre_pr.sh`, PR, review after green checks.
-- **Wave 1 plan** (decision 61; plan `docs/superpowers/plans/271120261901-parallel-lanes.md`; lanes in the backlog section "Parallel lanes and waves"): MKC-21 (lane A), MKC-36 (lane B), MKC-46 (lane C), MKC-49 (lane D). Per lane: set the ticket `Ready` → `In progress` and assign `qamran`; a worktree on `mkc-<n>-<slug>` from `main`; `handoff/lane-<x>.md` from the template; the test agent writes the red acceptance tests first, then the development agent builds, then the test agent's mutation pass; `scripts/pre_pr.sh` before the PR; the review agent after green checks. Decision numbers: status doc "Decision numbers per lane". MKC-21's Storage bucket `mkc-storage` and its key exist (user, 27.11.2026). Docker: the coordinator starts it once for the wave and shuts it down (and WSL) at the end.
+- **MKC-175** (#175), Wave 1 coordinator log: created 20:08:41, `In progress`, assigned to `qamran`; branch `mkc-175-wave-1-coordinator`, `main` merged in after the last wave 1 merge. It carries this file's entries, the AGENTS.md fixes (PR #174 findings 1, 6, 9; `EmbeddingClient` in the model rule), decisions 67, 70 and 73 marked "not used" and the status doc's wave 1 lines. Next: its PR, review, merge, deploy.
+- **Wave 1 done (27.11.2026):** MKC-46 (PR #195, `085323a`), MKC-36 (PR #196, `046f61e`), MKC-21 (PR #197, `2a841a2`), MKC-49 (PR #198, `6681d48`), each review PASS, merged and deployed (log below). Every lane: red acceptance tests by the test agent, the development agent, a mutation pass, `pre_pr.sh`, PR, review after green checks.
+- **Next: wave 2** (after the MKC-175 PR merges): MKC-22 (lane A), MKC-27 (lane A2; MKC-21 is merged), MKC-50 (lane D). Lane B pauses until MKC-30 (MKC-37), lane C until MKC-26 (MKC-47). Assign decision blocks from 76 (lane A2 has 74–75). Worktrees: remove the four wave 1 worktrees (`git worktree remove`) and cut new ones from `main`. Recommended: start wave 2 in a fresh session (this one's context is large).
 - Process rules after the MKC-20 FAIL round: run CI's exact commands (now `bash scripts/pre_pr.sh`) before any claim; copy numbers from output; times from `date`, git or GitHub; start the review only after `gh pr checks` is green.
 
 ## Next steps
+
+0. Wave 1 review findings (all non-blocking), for the tickets named:
+   - **Production setup before use:** the five `MKC_STORAGE_*` values into `mkc-secrets` before the first `mkc run start --operator` in production (MKC-21 finding 6); keep the API pod's model mode off until the advisor route has cost tracing and a per-user limit (MKC-36 finding 1).
+   - **MKC-21 → lane A (MKC-22 or a hardening ticket):** redirect hops can get `authorization: Basic` from userinfo in a `Location` and cookies set by a hop (fix decision 62's wording, or refuse userinfo in redirect targets and drop the cookie jar); pin the `@` check (survivor 1); the port is not part of the allow-list match; no download size limit in `http_get`; the Dockerfile test reads text only (call `load_operators()` in the image smoke); lane-a "In progress" stale.
+   - **MKC-36 → lane B (MKC-37):** a provider 400/403 becomes a 500 and its text reaches the log; the role `facts` is not pinned; the card cannot edit every asked fact; the questions take no answer; no nav link to `/advisor`; lane-b log time 20:40 matches neither git nor GitHub.
+   - **MKC-46 → lane C (MKC-47):** ZDR is sent but not proven enforced on `/v1/systemone` (Jev only public or synthetic input until settled); override of the private `_payload`; backlog MKC-47 still lists `noul/choice/score`; the one-sided Noul criterion and the timeout untested; refusal answers, the dropped Noul `confidence` and `classify_error` gaps (ADR 004).
+   - **MKC-49 → lane D (MKC-50):** no test fails for the fetcher's https-only check; a body line starting with `§ <n>` opens a new paragraph in the `law` layout (wrong `source_ref`); no test for the dropped blank lines in the `law` layout; an official-only cache inside the repo is allowed; stale wording (lane-d migration 0012, PR #198 body, `DEFAULT_SOURCES_PATH` docstring, `EMBED_BATCH_SIZE`, "PDF library comes with MKC-21"); 4 of 6 sources are PDFs and can now use `pdfplumber`; the image does not copy `corpus_sources.yaml`; `EmbeddingClient` has no tracers and is live only; the production key's guardrail unchecked.
 
 1. MKC-168 is done (PR #174). Non-blocking findings of the PR #174 review (comment 27.11.2026 20:01:32), for MKC-175 unless named:
    - 1 (**done in MKC-175**: AGENTS.md `uv lock` "after an update from `main`"), 6 (**done in MKC-175**: AGENTS.md: replace the PC's folder path by `<repo>` in pasted gate output; PR #174's body still shows it), 9 (**done in MKC-175**: lane A2 owns only its own files in lane A's package; A2 decision block 74–75; the coordinator's lane-branch edits named; MKC-21's bucket exists)
