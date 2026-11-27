@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 09:28
+**Last updated:** 27.11.2026, 09:31
 
 This file is how agents resume work after a session restart.
 
@@ -52,12 +52,12 @@ This file is how agents resume work after a session restart.
 
 - **MKC-15** (#15), Item loop, work queue and states. Status `In progress`, assigned to `qamran` (26.11.2026 23:25). Branch `mkc-15-item-loop` from `1a42369`. The first commit holds only the close-out of MKC-14.
   - Plan: `docs/superpowers/plans/271120260903-mkc-15-item-loop.md` (decision 54: the state edge table and `ToolEnv`; Docker needed for the DB tests).
-  - Sub-issues (assigned to `qamran`, linked to #15, on the board): MKC-15.1 #132 states, MKC-15.2 #133 `ToolEnv`, MKC-15.3 #134 tables (code done, `In progress` until the PR), MKC-15.4 #135 queue (`In progress`), MKC-15.5 #136 item loop, MKC-15.6 #137 docs (`Ready`).
+  - Sub-issues (assigned to `qamran`, linked to #15, on the board): MKC-15.1 #132 states, MKC-15.2 #133 `ToolEnv`, MKC-15.3 #134 tables (code done), MKC-15.4 #135 queue (code done), MKC-15.5 #136 item loop (`In progress`), MKC-15.6 #137 docs (`Ready`). Sub-issues stay `In progress` until the PR moves them to `Testing`.
   - Uses MKC-14: `default_registry().for_context("item")` gives the model's tools (`Tool.to_spec()` → `ModelClient.chat_with_tools`); `ToolRegistry.execute(call, "item", env)` turns every model tool call into a `ToolResult`.
 
 ## Next steps
 
-1. MKC-15: see "In progress". MKC-15.1 done (`mkc.harness.states`, 17 tests green). MKC-15.2 done (#133, `execute(call, ctx, env)`, `fn(args, env)`). MKC-15.3 done (#134, migration 0004, ORM `Run`, `Item`, `Turn`). MKC-15.4 done (#135, `mkc.harness.queue`: `next_item`, `settle_run`; the DB fixtures moved to `tests/conftest.py`). Next: MKC-15.5 item loop. Docker Desktop is running for the DB tests; shut it down when done.
+1. MKC-15: see "In progress". MKC-15.1 done (`mkc.harness.states`, 17 tests green). MKC-15.2 done (#133, `execute(call, ctx, env)`, `fn(args, env)`). MKC-15.3 done (#134, migration 0004, ORM `Run`, `Item`, `Turn`). MKC-15.4 done (#135, `mkc.harness.queue`: `next_item`, `settle_run`; the DB fixtures moved to `tests/conftest.py`). MKC-15.5 (#136 `In progress` since 09:31): red loop tests (18 fail on the stubs), the env check in `execute` (3 fail) and an AST guard that state writes go through `transition` (passes on the current code; its bad samples prove it can fail); next: `mkc.harness.loop`. Docker Desktop is running for the DB tests; shut it down when done.
 2. MKC-14, non-blocking findings of the PR #131 review (comment 26.11.2026 23:17:35), for the tickets named:
    - 2 (before MKC-22, 23, 28 add real argument models): `execute` can still raise: a bad `ctx` (`KeyError`), a tool exception whose `__str__` fails, an argument validator that raises `TypeError`/`AttributeError`/`KeyError` (only `ValidationError` is caught)
    - 3: the side-effect check is truthiness (`side_effect=None`/`0` passes at runtime; mypy catches it)

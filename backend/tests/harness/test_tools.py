@@ -220,3 +220,18 @@ def test_to_spec_matches_model_client_tool_spec() -> None:
     tool = make_registry().for_context("item")[0]
     spec = ToolSpec(name="extract_text", description="Text of one page.", args=PageArgs)
     assert tool.to_spec() == spec
+
+
+@pytest.mark.parametrize(
+    "env",
+    [
+        ToolEnv(run_id=7),
+        ToolEnv(run_id=7, item_id=42, document_hash="h"),
+        ToolEnv(run_id=7, item_id=42, concept_key="MK-3"),
+    ],
+)
+def test_item_call_without_the_item_ids_is_a_harness_error(env: ToolEnv) -> None:
+    spy = Spy()
+    with pytest.raises(ValueError, match="item context needs"):
+        make_registry(item_fn=spy).execute(call("extract_text", page=1), "item", env)
+    assert spy.calls == []
