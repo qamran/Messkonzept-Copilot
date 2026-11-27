@@ -1,6 +1,6 @@
 # Lane A: Extraction
 
-**Last updated:** 27.11.2026, 23:23
+**Last updated:** 27.11.2026, 23:24
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -15,16 +15,55 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 
 ## In progress
 
-- `MKC-22` (`#22`, `In progress`, assigned to `qamran`): the test agent is writing the red acceptance tests in `backend/tests/extraction/` (and two in `tests/harness/`, `tests/reference/`). The development agent starts once they are pushed.
+- `MKC-22` (`#22`, `In progress`, assigned to `qamran`): the test agent's red acceptance tests are pushed, in red commits `60c1f2e` to `86c4df2` (`git diff 86c4df2 -- backend/tests` shows any later change to them). The development agent builds against them.
+- Red run at `86c4df2`: `uv run pytest tests/extraction -q`: `31 failed, 80 passed, 1 skipped, 4 deselected in 7.00s`; `tests/harness/test_tools_hardening.py` and `tests/reference/test_lbs_digits.py`: 11 failed, 1 passed. `ruff check .`: "All checks passed!"; `ruff format --check .`: "217 files already formatted".
 - Sub-issues: none yet; the development agent creates them, among them "fetch hardening" (the wave 1 review findings 1 to 4 and 7 on PR #197).
+
+### Pinned interfaces (MKC-22; the tests import these)
+
+- `mkc/extraction/text.py`:
+  - `extract_text(pdf: bytes, region: ConceptRegion) -> TextFields`. Only words inside `region.bbox` count (`(x0, top, x1, bottom)`, top-left origin, as `segment_document` gives it).
+  - `TextFields` (frozen Pydantic): `title: str` (heading without its number; a wrapped title joined with one space), `applications: list[str]` (the `Anwendung:` bullets without the bullet sign; `LBS` bullets are not applications), `footnotes: list[str]` (one per `*n)`, starting with the marker; continuation lines joined with one space), `stated_lbs: list[StatedLbs]`.
+  - `StatedLbs` (frozen Pydantic): `code: str` (13 digits, spaces removed), `condition: str | None` (the text in brackets after the code).
+- `mkc/extraction/tables.py`:
+  - `extract_tables(pdf: bytes, kind: Literal["meter_tech", "lbs"]) -> list[Row]`.
+  - `Row` (frozen Pydantic): `kind`, `page: int` (1-based), `concepts: list[str]` (as printed, in order; `[]` for `nicht visualisiert`), `code: str | None` (`lbs`: 13 digits; `meter_tech`: None), `label: str` (`lbs`: the Bezeichnung; `meter_tech`: the table's heading, for example `Erzeugungsmessung (Z2)`), `cells: list[str]` (`meter_tech`: one per power band; `lbs`: `[]`).
+  - Wrapped cell text is joined with one space; header rows are not rows; a table over a page break is one list in page order; other ruled tables and unruled lines give nothing; a document without the table gives `[]`.
+- `mkc/extraction/naive.py` (the E1 baseline, pure Python, no system binary):
+  - `naive_text(pdf: bytes) -> str`: pdftotext-style, every page's text in reading order, pages separated by `"\f"` (one fewer than the pages).
+  - `naive_tables(pdf: bytes, kind) -> list[Row]`: the same row shape, read line by line from `naive_text`, no cell grid. It must get the wrapped row of `9992000000133` wrong on the synthetic table.
+- `mkc/harness/registry.py`: `default_registry(documents=DocumentOps(sessions, store))` makes `extract_text` and `extract_tables` real (without `documents` they stay placeholders). They read the PDF from `documents.store` at `blob:sha256:<env.document_hash>`. Arguments: `extract_text` takes `page` (>= 1) and an optional `bbox` (4 numbers; omitted means the whole page), so `{"page": 1}` stays valid; `extract_tables` takes `kind`. Results are plain JSON: `TextFields.model_dump(mode="json")` and a list of `Row.model_dump(mode="json")`. A page past the end gives `tool_failed`. No result holds a NUL character.
+- `mkc/extraction/fetch.py` (fetch hardening): `MAX_DOWNLOAD_BYTES = 50 * 1024 * 1024`; `DownloadTooLarge(ValueError)`; `http_get(url, *, transport=None, max_bytes=MAX_DOWNLOAD_BYTES)` streams the body and stops at the limit (also without `content-length`); a redirect target with userinfo raises `DisallowedUrl` before it is requested; no cookie jar across hops; `is_allowed_url` refuses a port other than the default (`:443` or none) and a malformed port, returning False.
+- `mkc/reference/lbs.py`: `is_valid_code` returns False for non-ASCII digits (`²`, full-width, Arabic-Indic).
+- `mkc/harness/tools.py`: `ToolRegistry.execute` returns `invalid_args` when an argument validator raises `TypeError`, `AttributeError` or `KeyError` (with or without a cache), and `tool_failed` when a tool's exception has a failing `__str__` (the message names the exception type).
+- Test helpers: `tests/extraction/synthetic.py` (the synthetic documents and expected values), `layout_pdf(..., nul_for=...)`, `ruled_table`, `Text`, `Box` in `conftest.py`, `MemoryStore.gets`.
+
+### Assumptions (for the coordinator to confirm)
+
+1. `extract_text` and `extract_tables` take the PDF bytes; the item tools read them from the blob store by the item's document hash, so the model never names a document.
+2. `stated_lbs` holds only codes printed in an `LBS` bullet. What happens to a printed code that fails the check digit (drop it or keep it with a flag) is left to the development agent as a decision (76–78); no test pins it.
+3. The meter-tech `label` is the table's heading as printed. The real Z1 heading wraps with a hyphen (`Abgren-` / `zungsmessung (Z3)`); only `(Z2)` in the Z2 label is pinned live.
+4. The live expected codes are pinned, not `None`: read by hand on 27.11.2026 from the September 2026 edition (sha256 `4e12c90f…29a18`), table rows (pages 6 and 7) and concept pages 14, 20 and 32 agree. On a new edition the live test skips with the new hash.
+5. The image test (`test_image_operators.py`) is a pin, not a red test: it runs only when `MKC_TEST_IMAGE` names a built image and is skipped otherwise (also in CI's `backend` job). Wiring it into CI's `image` job is the coordinator's call.
+
+### Not covered by red tests (the development agent's items)
+
+- The E1 comparison itself (MKC-31 onward); MKC-22 only keeps the baseline.
+- Hyphenated line ends in titles and labels, and the real `∆t 15` subscripts in meter cells: only the synthetic forms are pinned.
+- A printed code with a wrong check digit, and conditions over two lines.
+- Adding the tools to the item prompt or task (the model learns `page` and `bbox` from the item's task, MKC-21 decision 64 (5)).
+- Wiring `MKC_TEST_IMAGE` into CI (coordinator).
+- The `uv lock` and `pyproject.toml` stay unchanged unless the development agent adds a dependency (pdfplumber is already there).
 
 ## Next steps
 
-1. Test agent: finish and push the red tests; pin the interfaces below.
-2. Development agent: sub-issues, then build MKC-22 test-first against the pinned interfaces.
+1. Development agent: sub-issues (MKC-22.x, one for fetch hardening), then build MKC-22 test-first against the pinned interfaces.
+2. Development agent: the first live run (`uv run pytest -m live tests/extraction/test_live_extract.py`) with the coordinator's go.
 3. Test agent: mutation pass on the development agent's code.
 
 ## Recent log
+
+- **27.11.2026 23:24** Test agent: pinned interfaces, assumptions and the items left to the development agent written above. Fetches disclosed: the Berlin PDF once with `curl` (sha256 `4e12c90f…29a18`, the same edition) into a scratch folder outside the repo to read the LBS table, the meter-tech tables and concept pages 14, 20 and 32; the folder is deleted. No model calls.
 
 - **27.11.2026 23:23** Test agent: red tests outside lane A's package, allowed by the coordinator: `tests/harness/test_tools_hardening.py` (MKC-14 finding 2: a validator raising `TypeError`, `AttributeError`, `KeyError`; an exception whose `__str__` fails) and `tests/reference/test_lbs_digits.py` (MKC-12 finding 11: `²`, full-width and Arabic-Indic digits): `11 failed, 1 passed in 0.34s`. The live test `test_live_extract.py` pins the Berlin codes read by hand (3, 4.4, 11.1) and the Z2 row of concept 3; not run (it would only fail on the missing modules after two fetches).
 
