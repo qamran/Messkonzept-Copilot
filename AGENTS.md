@@ -95,7 +95,7 @@ Full rules: decision 61, ADR 005 (amendment of 27.11.2026) and the plan `docs/su
 
 ## Model rules
 
-- Every model call goes through `ModelClient` (or `DecisionClient` for decisions). No direct provider SDK calls elsewhere.
+- Every model call goes through `ModelClient` (or `DecisionClient` for decisions, `EmbeddingClient` for embeddings; both live in or build on `mkc/models/`). No direct provider SDK calls elsewhere.
 - OpenRouter is the default route, with zero-data-retention routing. The Gemini free tier is used only for public or synthetic input.
 - LangChain is used only for model and tool plumbing (chat models, tool schemas, structured output). The loop and all control logic are our own. No LangGraph in the build (only in optional MKC-55), no Streamlit.
 - Budgets: LLM spend €20–30 in total; the user's verification time 10–12 h in total. Every evaluation ticket records its spend in the status doc.

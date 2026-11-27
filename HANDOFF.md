@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 20:39
+**Last updated:** 27.11.2026, 21:38
 
 This file is how agents resume work after a session restart.
 
@@ -217,6 +217,8 @@ Shared-code rules for wave 1 beyond AGENTS.md (the coordinator's, in each lane b
 - **The user's PC:** it went down without a clean shutdown on 23.11 and 26.11.2026 (cause not found; graphics-driver hang reports on both days; a memory test is not done yet). Commit and push often. Two files exist only on the PC: the VM's admin SSH key and `backend/.env` (runbook "Only on the PC"); the user was advised to copy them into a password manager.
 
 ## Recent log
+
+- **27.11.2026 21:38** The user decided: (1) MKC-49's embedding model `qwen/qwen3-embedding-8b` (1024 dimensions, OpenRouter with zero data retention) is confirmed, but the research behind it must be written up and kept in the project; lane D does it before its PR. (2) `EmbeddingClient` is allowed beside `ModelClient`: the AGENTS.md model rule now names it (this branch). PR #195 (MKC-46, opened 21:20:26) and PR #196 (MKC-36, opened 21:27:25) are green in CI; one review agent (Fable) each started. Lane A's (MKC-21) and lane D's (MKC-49) mutation passes running. Follow-ups for later tickets: production needs the five `MKC_STORAGE_*` values in `mkc-secrets` before MKC-21's deploy uses Storage; the advisor route answers 503 in production until `MKC_MODEL_MODE` and a key reach the API pod, and it has no per-user cost limit (MKC-36 known limits).
 
 - **27.11.2026 20:39** Wave 1 red tests done, all four development agents started. Red baselines for the review's diff check (the last red-test commit per lane): lane A `c9202aa` (extraction tests: 28 failed, 1 deselected), lane B `4be85d4` (backend: 3 collection errors, `No module named 'mkc.advisor'`; 3 vitest files fail to resolve), lane C `dd184a2` (`tests/decision`: 26 failed, 14 passed, 1 deselected; `81fc41c` is 229 lines), lane D `f515d26` (`tests/rag`: 10 failed, 7 errors). Counts as the test agents reported them from pytest/vitest. Coordinator choices: lane B's `[tool.ruff.lint.isort]` block in `backend/pyproject.toml` stays (other lanes told not to copy it); lane B's assumptions accepted (out of scope = 200 with notes; `POST /api/advisor/questions`); lane A has the go for one live Berlin fetch into `mkc-storage`; lane C fixes the backlog's MKC-47 interface line; lane D proposes the embedding model, marked "to be confirmed by the user".
 - **27.11.2026 20:21** Wave 1 started: #21, #36, #46, #49 `Ready` → `In progress`, assigned to `qamran` (20:18:24 to 20:18:42). Worktrees `lane-a` to `lane-d` from `origin/main` `dcd2852`, branches `mkc-21-fetch-segment`, `mkc-36-site-facts`, `mkc-46-decision-spike`, `mkc-49-corpus-loader` pushed. Docker Desktop started; Compose db started (20:19:20). Four test agents started on the red acceptance tests.
