@@ -7,7 +7,7 @@ The price lives in `mkc/models/models.yaml`. Every call goes through
 provider package, so `mkc.db.models` can read `EMBEDDING.dim` cheaply.
 
 Qwen3-Embedding wants an instruction on queries and none on documents, so corpus chunks are
-embedded exactly as stored; the query side (MKC-50) adds the instruction.
+embedded exactly as stored; `embed_query` (MKC-50) adds the instruction.
 """
 
 from collections.abc import Sequence
@@ -36,6 +36,24 @@ class Embedder(Protocol):
     def embed(self, texts: Sequence[str]) -> list[list[float]]: ...
 
 
+class QueryEmbedder(Protocol):
+    """What `mkc.rag.retriever.retrieve` needs: one query to its vector (MKC-50)."""
+
+    def embed_query(self, query: str) -> list[float]: ...
+
+
+QUERY_INSTRUCTION = (
+    "Given a question about German metering law or a grid operator's metering concepts, "
+    "retrieve the passages that answer it"
+)
+"""The task line of Qwen3-Embedding's query format (the model card: one English sentence)."""
+
+
+def query_text(query: str) -> str:
+    """Qwen3-Embedding's query format, `Instruct: <task>` newline `Query:<query>` (decision 71)."""
+    return f"Instruct: {QUERY_INSTRUCTION}\nQuery:{query}"
+
+
 class ProviderEmbedder:
     """An `Embedder` over `EmbeddingClient`; it adds up tokens and cost for the caller."""
 
@@ -56,7 +74,13 @@ class ProviderEmbedder:
         return cls(client)
 
     def embed(self, texts: Sequence[str]) -> list[list[float]]:
+        """Passages, exactly as stored (no instruction)."""
         reply = self.client.embed(texts)
         self.input_tokens += reply.input_tokens
         self.cost_eur += reply.cost_eur
         return reply.vectors
+
+    def embed_query(self, query: str) -> list[float]:
+        """A search query, with the model's query instruction (`query_text`)."""
+        (vector,) = self.embed([query_text(query)])
+        return vector
