@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 12:35
+**Last updated:** 27.11.2026, 13:00
 
 This file is how agents resume work after a session restart.
 
@@ -23,7 +23,7 @@ This file is how agents resume work after a session restart.
 - **Remotes:**
   - `origin` = qamran/Messkonzept-Copilot (home, public)
   - `turing` = TuringCollegeSubmissions/qshahz-AE.CAP.AFA.1.1 (code-only mirror, no issues; ADR 005 option (c), decision 35)
-  - Both at `266c37d` (merge of PR #145).
+  - Both at `0f9a413` (merge of PR #150).
 - **`main` is protected:** PRs only, enforced for admins. Required checks: the `ci` jobs `backend`, `frontend`, `gitleaks`, `dependency-scan` and `docs` (since 25.11.2026 09:50, MKC-6.5) `image` (since 13:52, MKC-8) and `kind` (since 15:42, MKC-9); the branch must be up to date with `main`. `publish` is not required (skipped on PRs).
 - **Agent rules:** `AGENTS.md` (CLAUDE.md imports it). The development agent continues without asking and stops only for genuine decisions (decision 36).
 - **Done:**
@@ -43,6 +43,7 @@ This file is how agents resume work after a session restart.
   - MKC-14: tool registry `mkc.harness.tools` (`Tool`, `ToolResult`, `ToolError`, `ToolTrace`, immutable `ToolRegistry` with per-context allow-lists and structured errors; refusals counted in the trace) and `mkc.harness.registry.default_registry()` (the six item tools and four run-level operations of design 8.1 as `not_implemented` placeholders); decision 53 on `side_effect` (PR #131)
   - MKC-15: item loop, work queue and states: `mkc.harness.states` (edge table, one `transition` function, AST guard test), `ToolEnv` (the harness's ids for every tool call), migration 0004 (`run`, `item`, `turn`), `mkc.harness.queue` (`next_item` with `FOR UPDATE OF item SKIP LOCKED`, `settle_run`), `mkc.harness.loop` (`run_item`, `process_run`), `MKC_ITEM_MAX_STEPS`; decision 54 (PR #138)
   - MKC-16: checkpoints and resume: `mkc.harness.checkpoint` (`save_turn`: complete turns only; `load_resume_context`: task + `<earlier_turns>` summary + last turn), `mkc.harness.blobs` (table `blob`, migration 0005; refs for results over `MKC_TURN_INLINE_MAX_BYTES`), `mkc.harness.cache` (table `tool_cache`, migration 0006; key with the code version), `mkc.harness.drafts` (table `draft`, migration 0007; `record_key`), `process_run` resumes `running` items; `scripts/check_text_files.py`; decision 56 (PR #145)
+  - MKC-17: run executor: migration 0008 (`run.lease_owner`, `run.lease_expires_at`), run state `waiting_for_database`, `mkc.worker.lease` (`claim_run`, `renew_lease`, `release_lease`, `fence`, `mark_waiting`), `mkc.worker.executor.Executor` (heartbeat-file and lease threads, `graceful_shutdown`, outage probe with backoff), `process_run(should_stop, fence)`, the worker runs the executor; runbook "Worker lease and outages"; decision 57 (PR #150)
 - **Server (set up 25.11.2026, decisions 43 and 44):** Oracle VM `mkc-k3s`, `ubuntu@92.6.240.17`, admin login with the user's key `~/.ssh/oracle_mkc`; k3s v1.37.2 with Traefik; cert-manager v1.21.3 with ClusterIssuers `letsencrypt-staging` and `letsencrypt-prod`; API host `92-6-240-17.sslip.io`; 6443 closed from outside. Vercel project `messkonzept-copilot` (scope `qamran`); GitHub environment `production` (reviewer `qamran`, `main` only, secret `VERCEL_TOKEN`). Every step: `docs/251120261645-runbook.md`.
 - **Backups (since 26.11.2026):** bucket `mkc-backups` (eu-frankfurt-1), objects `nightly/mkc-<UTC time>.sql.gz`, deleted after 14 days by the rule `delete-after-14-days`; the upload link (`mkc-backup-upload`, write only, expires 26.11.2027) is `MKC_BACKUP_UPLOAD_URL` in `mkc-secrets` on the VM and nowhere else. Where every outside setting and secret lives: runbook section of that name. A copy with the PC's full paths is in the gitignored `internal/` folder (`261120261226-settings-and-secrets-inventory.md`; local only, not backed up).
 - **How to run the frontend:** `frontend/.env.local` holds `VITE_CLERK_PUBLISHABLE_KEY` and `VITE_API_URL=http://127.0.0.1:8000` (gitignored). Run the API with `cd backend && uv run --env-file .env uvicorn mkc.api.app:create_app --factory --port 8000` (`backend/.env` has `MKC_CLERK_ISSUER`), then `cd frontend && npm run dev` (`localhost:5173`). Test sign-ins: the user's Google account (admin); a `+clerk_test@example.com` user (code `424242`) and a second Gmail account (both no role).
@@ -52,16 +53,23 @@ This file is how agents resume work after a session restart.
 
 ## In progress
 
-- **MKC-17** (#17), Run executor (worker with lease). Status `In progress`, assigned to `qamran` (27.11.2026 11:37:38). Branch `mkc-17-run-executor` from `266c37d`. The first commit holds only the close-out of MKC-16.
-  - Plan: `docs/superpowers/plans/271120261154-mkc-17-run-executor.md` (decision 57: lease on the run row with the database clock, fencing before every commit, heartbeat thread for the file and the lease, stop between turns, `waiting_for_database` written on the first successful probe after an outage).
-  - Sub-issues: MKC-17.1 #146, MKC-17.2 #147 (12:04:48), MKC-17.3 #148 (12:06:00) and MKC-17.4 #149 (12:11:11) `In progress` (board times from the status changes).
-  - Known slip: the plan commit `cad7334` (11:57:20) says `Last updated` 11:58, ahead of its commit.
-  - PR #150 open (12:35); #17 and #146 to #149 `Testing` (12:35:40-12:35:48).
-  - Next: review agent (Fable) on PR #150; on PASS and green CI: merge commit, push `main` to `turing`, approve the `cd` gates, check the worker pod's log and restarts (first deploy where it queries the database every second).
+- **MKC-18** (#18), Limits and retries. Status `In progress`, assigned to `qamran` (27.11.2026 12:59:40). Branch `mkc-18-limits-retries` from `0f9a413`. The first commit holds only the close-out of MKC-17.
+  - Next: read the ticket, write the plan and the sub-issues. Fold in the MKC-17 items tagged MKC-18 below and the backlog notes on MKC-18.
 
 ## Next steps
 
-1. MKC-17: see "In progress".
+1. MKC-18: see "In progress".
+   - MKC-17, non-blocking findings of the PR #150 review (comment 27.11.2026 12:51:52), for the tickets named:
+     - 1 (MKC-18): `waiting_for_database` is not a durable trace: it is written after the outage and overwritten by the next claim a moment later; production has no state history (the test uses a test-only trigger); design 8.4 and the PR body overstate it. Fix the wording or add a history row or timestamp
+     - 2 (**before MKC-23/29**): tool writes are not fenced: `save_draft` and the tool cache commit in their own transactions, so a worker that lost its lease can still replace a draft body in its turn in flight; `save_draft` must refuse an item that is no longer `running`, or check the lease
+     - 3, 4: test gaps (surviving mutations): fence without the expiry clause, no fence in `_finish`, no fence at the item claim, no `should_stop` at the top of the `process_run` loop, `held.lost` dropped from `should_stop`; no test with two items; the turn count in `test_two_workers_only_one_claims` cannot fail
+     - 5: `settle_run` commits without `fence`; `settle_run` on a `waiting_for_database` run with no busy item raises `InvalidTransition` (mind it when the API settles runs)
+     - 6 (MKC-18): "no error ends the worker" has holes: `_renew` catches only `SQLAlchemyError` (another error ends the lease thread silently, every run then loses its lease after 120 s with a green probe), `_touch_loop` only `OSError`, the claim in `run_once` only `SQLAlchemyError`
+     - 7 (MKC-18): a hung model call holds the run forever (threads keep the lease and probe fresh); the docs should say so until the turn deadline exists; a run that always fails setup is claimed again every 30 s and blocks later runs
+     - 8: stale "heartbeat thread renews the lease" wording in `config.py` line 40, the `main.py` docstring, the runbook row for `MKC_WORKER_LEASE_RENEW_SECONDS`, the section comment in `executor.py`
+     - 9: #149 said "without a database (kind and Compose smoke)"; both smokes run Postgres; the closed-port worker tests and the Linux SIGTERM test prove the no-database part
+     - 10: process: `c2ec3e8` 201 lines; #147 went `In progress` (12:04:48) after its green commit (12:04:37)
+     - 11: `mark_waiting` does not release the lease; a SIGTERM right after it leaves the run leased for up to 120 s
    - MKC-16, non-blocking findings of the PR #145 re-review (comment 27.11.2026 11:30:07), for the tickets named:
      - 1: decision 56 was taken by the development agent; the user has since made the Storage bucket `mkc-storage` and its key for MKC-21 (27.11.2026; the clock times were not recorded); the Postgres table `blob` stays until MKC-21
      - 2 (MKC-18): a `ValueError` from `save_turn` or `record_key` in the loop leaves the item `running`, with no cap on resumes
@@ -119,7 +127,7 @@ This file is how agents resume work after a session restart.
      - 14: the note's claims on the 2022 draft and Mitteilungen 56 and 58 were not checked by the reviewer
 6. MKC-11, checks that are still to come:
    - the deploy of `33a3a65` is done and checked (`cd` run 45821615993, see the log); nothing is open there
-   - 27.11.2026: the 03:30 run must have made a second object under `nightly/` and a second `ok` row in `backup_runs` (read-only: `cd backend && uv run --env-file .env python -m mkc.db.check` shows the connection works; the row itself with a `select` on `backup_runs`; or the user calls `/api/admin/backup-status` as admin)
+   - 27.11.2026: the 03:30 Job `mkc-backup-29929110` shows `Complete` (1/1, 8 s) in k3s (seen 12:57); the second object under `nightly/` and the `ok` row in `backup_runs` are not checked yet (a `select` on `backup_runs`, or `/api/admin/backup-status` as admin)
    - from 11.12.2026: the object `nightly/mkc-20261126T115613Z.sql.gz` must be gone from the bucket (the user looks in the console). That proves the lifecycle rule and its policy `objectstorage-lifecycle` work; the policy itself was never shown in a screenshot
    - decided by the user (26.11.2026): AGENTS.md stays as it is (development agent Opus 5.5, review agent Fable). The session of 26.11.2026 from 12:00 ran on Fable 5.2 as an exception, so the commits of PR #116 and this one carry the trailer `Co-Authored-By: Claude Fable 5.2`; the reviews were done by separate Fable agents that wrote none of the content
 7. Non-blocking follow-ups from the PR #115 and PR #116 reviews (for a later docs or hardening ticket; none has a ticket yet):
@@ -163,6 +171,8 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+
+- **27.11.2026 13:00** PR #150 review PASS (Fable, comment 12:51:52; 11 non-blocking findings, see Next steps), merged as `0f9a413` (12:51:55); #17 and #146 to #149 closed (12:51:57) and `Done` (12:59:12-12:59:26). `main` pushed to `turing` (12:52:31); `origin/main` = `turing/main` = `0f9a413`. `cd` run 45993933759 green: `image` 12:52:02 to 12:56:06; `backend` approved by the development agent (decision 51) at 12:56:39, ran 12:56:40 to 12:57:29 (migration 0007 -> 0008 by the hook Job); `frontend` approved at 12:58:08, ran 12:58:09 to 12:58:49. Checked afterwards: `/api/version` = `0f9a413...`, `/health` 200, `/api/admin/backup-status` without a token 401, the site 200; worker pod `mkc-worker-864bcc48f4-2lnp7` Running, 0 restarts after 105 s, log `worker started as ...` with no database error. MKC-18 (#18) assigned to `qamran` and set to `In progress` (12:59:40); branch `mkc-18-limits-retries` from `0f9a413`.
 
 - **27.11.2026 12:35** MKC-17: worker tests in Linux (`git archive HEAD` in `ghcr.io/astral-sh/uv:python3.12-bookworm` against the Compose db): 30 passed, including the real-SIGTERM process test. Branch pushed, PR #150 opened (12:35); #17 and #146 to #149 set to `Testing` (12:35:40-12:35:48).
 
