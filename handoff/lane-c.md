@@ -1,6 +1,6 @@
 # Lane C: Decision layer
 
-**Last updated:** 27.11.2026, 20:37
+**Last updated:** 27.11.2026, 20:43
 
 Only lane C's agents write this file; the coordinator keeps `HANDOFF.md`. Times are local time (CET) from git and GitHub, never estimated.
 
@@ -11,7 +11,20 @@ Only lane C's agents write this file; the coordinator keeps `HANDOFF.md`. Times 
 
 ## In progress
 
-- `MKC-46` (`#46`), decision-layer spike: the test agent's red acceptance tests are committed in `backend/tests/decision/` (see "Recent log" for the commit). The development agent builds next.
+- `MKC-46` (`#46`), decision-layer spike: the test agent's red acceptance tests are committed in `backend/tests/decision/` (last red commit `dd184a2`). The development agent is building.
+  - Sub-issues: `MKC-46.1` (`#192`, settings, dependency, provider factory with ZDR routing; In progress), `MKC-46.2` (`#193`, `DecisionClient`; Ready), `MKC-46.3` (`#194`, live spike and docs; Ready).
+  - Spike finding so far: `POST https://openrouter.ai/api/v1/systemone` (TypeSafe SDK path, documented in OpenRouter's OpenAPI spec as "System One", "Compatible with the TypeSafe SDKs") answers 200 for `~typesafe/jev-latest`, resolved to `typesafe/jev-1.14-20261014`. So the base URL is `https://openrouter.ai/api`.
+
+### Live calls (MKC-46; the coordinator's go: up to €0.50)
+
+Costs are copied from OpenRouter's `usage.cost` (USD) in each response.
+
+| Time (CET) | Call | Model (response) | Result | Cost |
+|---|---|---|---|---|
+| 27.11.2026 20:40:47 | raw probe, `POST /api/v1/systemone`, one Noul | `typesafe/jev-1.14-20261014` | 200 | 0.000011886 |
+| 27.11.2026 20:40:58 | raw probe, same with `provider: {zdr: true, data_collection: deny}` | `typesafe/jev-1.14-20261014` | 200 | 0.000011886 |
+| 27.11.2026 20:40:58 | raw probe, `provider.only: [nonexistent-provider]` | none | 404 "No allowed providers are available" | none printed |
+| 27.11.2026 20:42:12 | raw probe, same 404 again to print the routing funnel | none | 404, `failed_routing_step: "Filter by Allowed Providers"` | none printed |
 
 ### Pinned interface (the test agent's tests hold the development agent to it)
 
@@ -60,5 +73,6 @@ Only lane C's agents write this file; the coordinator keeps `HANDOFF.md`. Times 
 
 ## Recent log
 
+- **27.11.2026 20:43** Development agent: sub-issues `#192`–`#194` created, assigned to `qamran`, on the board and linked to `#46`. Added `langchain-typesafe==0.1.0` (`uv add`; lock adds only `langchain-typesafe`, deps `httpx2`, `langchain-core`) and the MKC-46 settings block. `uv run pytest -q tests/decision/test_settings.py`: "7 passed".
 - **27.11.2026 20:37** Test agent (`dd184a2`): checked the fake end to end (a scratch script: the canned body validates; `.nouls`, `.choices`, `.model` and `seen` as the tests expect). Split the live test's imports so ruff stays green once `mkc.decision` exists. Whole backend suite `uv run pytest -q`: "26 failed, 676 passed, 1 skipped, 13 deselected" (the 26 are this lane's red tests); `uv run mypy`: "Success: no issues found in 48 source files"; every `scripts/check_*.py` exits 0.
 - **27.11.2026 20:29** Test agent: red commits `1ed966f` (settings, provider factory, this file), `81fc41c` (`DecisionClient`, 229 lines: one test file and its fake), `485c89a` (guard and live tests). Red acceptance tests and the pinned interface. `uv run pytest tests/decision tests/models/test_guards.py -q`: "26 failed, 69 passed, 1 deselected"; `uv run pytest tests/decision -q`: "26 failed, 14 passed, 1 deselected". Reasons: `ModuleNotFoundError: No module named 'mkc.decision'`, `ImportError: cannot import name 'build_decision_model'`, and `Settings` without `decision_backend`/`decision_model`.
