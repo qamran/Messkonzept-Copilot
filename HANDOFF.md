@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 16:51
+**Last updated:** 27.11.2026, 16:53
 
 This file is how agents resume work after a session restart.
 
@@ -54,7 +54,7 @@ This file is how agents resume work after a session restart.
 
 ## In progress
 
-- **MKC-19** (#19), Tracing (Langfuse + run log). Status `In progress`, assigned to `qamran` (27.11.2026 14:53:34). Branch `mkc-19-tracing` from `16beb56`.
+- **MKC-19** (#19), Tracing (Langfuse + run log). PR #161 open, status `Testing` (was `In progress`, assigned to `qamran` (27.11.2026 14:53:34). Branch `mkc-19-tracing` from `16beb56`.
   - Plan: `docs/superpowers/plans/271120261507-mkc-19-tracing.md` (decision 59).
   - Sub-issues: MKC-19.1 #156 (`In progress`), MKC-19.2 #157, MKC-19.3 #158, MKC-19.4 #159, MKC-19.5 #160 (`Ready`).
   - Waiting on the user (not blocking 19.1 to 19.4): Langfuse API keys in `backend/.env` (`MKC_LANGFUSE_PUBLIC_KEY`, `MKC_LANGFUSE_SECRET_KEY`, `MKC_LANGFUSE_BASE_URL`) for the real run of 19.5.
@@ -183,6 +183,8 @@ This file is how agents resume work after a session restart.
 - **The user's PC:** it went down without a clean shutdown on 23.11 and 26.11.2026 (cause not found; graphics-driver hang reports on both days; a memory test is not done yet). Commit and push often. Two files exist only on the PC: the VM's admin SSH key and `backend/.env` (runbook "Only on the PC"); the user was advised to copy them into a password manager.
 
 ## Recent log
+
+- **27.11.2026 16:53** MKC-19: PR #161 opened (16:52:39, GitHub `createdAt`); #19 and #156 to #160 set to `Testing` (by 16:53:15). Review agent (Fable) started next.
 
 - **27.11.2026 16:49-16:51** MKC-19 pre-PR checks at `0fefb33`: Windows `uv run pytest -q` 568 passed, 1 skipped; Linux container (`git archive HEAD` into `ghcr.io/astral-sh/uv:python3.12-bookworm`, Compose db) `tests/worker tests/harness tests/observability tests/db` 303 passed (16:51:44); ruff, format, mypy (43 files), all check scripts, markdownlint clean. Plan checkboxes ticked with an "As built" note.
 
