@@ -165,3 +165,39 @@ def test_a_single_paragraph_page_without_a_norm_wrapper() -> None:
 
     text = law_text(SINGLE_PARAGRAPH_HTML.decode())
     assert text == "§ 14a Netzorientierte Steuerung\n(1) Erster.\n(2) Zweiter.\n"
+
+
+# --- MKC-50: MKC-49 review finding 1 (the https-only rule has its own failing test) ------
+
+
+def test_an_http_url_is_refused_before_any_request() -> None:
+    """The fake server would answer 200 with a law page: only the scheme check stops it."""
+    from mkc.rag.fetch import CorpusFetchError
+
+    sent: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        sent.append(str(request.url))
+        return httpx.Response(200, content=LAW_HTML, headers={"content-type": "text/html"})
+
+    with pytest.raises(CorpusFetchError, match="https"):
+        _fetcher(handler)(_source("http://www.gesetze-im-internet.de/musterg/x.html"))
+    assert sent == []
+
+
+def test_a_redirect_to_http_on_the_same_host_is_refused() -> None:
+    from mkc.rag.fetch import CorpusFetchError
+
+    sent: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        sent.append(str(request.url))
+        if request.url.scheme == "https":
+            return httpx.Response(
+                302, headers={"location": "http://www.gesetze-im-internet.de/musterg/x.html"}
+            )
+        return httpx.Response(200, content=LAW_HTML, headers={"content-type": "text/html"})
+
+    with pytest.raises(CorpusFetchError, match="https"):
+        _fetcher(handler)(_source())
+    assert sent == ["https://www.gesetze-im-internet.de/musterg/x.html"], "no http request"
