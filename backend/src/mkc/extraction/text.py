@@ -9,7 +9,9 @@ to bottom, then
 - `stated_lbs`: every `LBS` bullet: 13 ASCII digits (spaces between them allowed) and the
   text in brackets right after them. A code is kept as printed, also with a wrong check
   digit: it is what the operator stated, and `validate_draft` (MKC-28) judges it;
-- `footnotes`: each line that starts with `*n)`, with the lines that go on below it.
+- `footnotes`: each line that starts with `*n)`, with the lines that go on below it; a
+  marker inside that text starts the next footnote (Berlin page 22 prints `*2)` at the end
+  of the line before its text).
 
 A bullet or footnote that wraps goes on in the next line, at a line's pitch (at most 1.6
 times the type size below), indented past the bullet sign or level with the footnote marker.
@@ -35,6 +37,8 @@ _NUMBER = re.compile(r"^\d{1,2}(?:\.\d{1,2})*[a-z]?\s+")
 _APPLICATIONS = re.compile(r"^Anwendung\s*:")
 _BULLET = re.compile(r"^[•▪·]\s*")
 _FOOTNOTE = re.compile(r"^\*\s?\d+\)")
+# A footnote marker inside a footnote's text (printed at the end of the line before).
+_MARKER_INSIDE = re.compile(r"\s(?=\*\s?\d+\))")
 _LBS = re.compile(r"^LBS\s*((?:[0-9]\s*){12}[0-9])(?![0-9])\s*(?:\(([^)]*)\)?)?")
 
 
@@ -171,7 +175,7 @@ def _footnotes(lines: list[_Line]) -> list[str]:
         ):
             parts.append(lines[j].text)
             j += 1
-        out.append(join_lines(parts))
+        out += [clean(x) for x in _MARKER_INSIDE.split(join_lines(parts))]
         i = j
     return out
 
