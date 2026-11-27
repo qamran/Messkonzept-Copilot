@@ -231,12 +231,15 @@ class ToolRegistry:
             args = tool.args_model.model_validate(call.args)
         except ValidationError as error:
             return _fail("invalid_args", _validation_message(error))
+        except _VALIDATOR_BUGS as error:
+            return _fail("invalid_args", f"the arguments broke a validator: {_text(error)}")
         try:
             return ToolResult(ok=True, data=tool.fn(args, env))
         except NotImplementedError as error:
-            return _fail("not_implemented", f"tool {call.name!r} is not built yet: {error}")
+            built = f"tool {call.name!r} is not built yet: {_message(error)}"
+            return _fail("not_implemented", built)
         except Exception as error:
-            return _fail("tool_failed", f"{type(error).__name__}: {error}")
+            return _fail("tool_failed", _text(error))
 
     def _trace(self, trace: ToolTrace) -> None:
         for tracer in self._tracers:
@@ -244,6 +247,23 @@ class ToolRegistry:
                 tracer(trace)
             except Exception:
                 log.exception("tool trace hook failed for %s", trace.tool)
+
+
+# Pydantic turns only `ValueError` and `AssertionError` from a validator into a
+# `ValidationError`; a validator that raises one of these escapes `model_validate`.
+_VALIDATOR_BUGS: tuple[type[Exception], ...] = (TypeError, AttributeError, KeyError)
+
+
+def _message(error: BaseException) -> str:
+    """`str(error)`, also when the exception's `__str__` itself fails."""
+    try:
+        return str(error)
+    except Exception:
+        return "(the message could not be read)"
+
+
+def _text(error: BaseException) -> str:
+    return f"{type(error).__name__}: {_message(error)}"
 
 
 def _fail(code: ErrorCode, message: str) -> ToolResult:
@@ -256,6 +276,8 @@ def _valid_args(tool: Tool, call: ToolCall) -> BaseModel | None:
     try:
         return tool.args_model.model_validate(call.args)
     except ValidationError:
+        return None
+    except _VALIDATOR_BUGS:
         return None
 
 
