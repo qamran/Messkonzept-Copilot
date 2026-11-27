@@ -12,9 +12,10 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from tests.extraction.conftest import MemoryStore
 
-# PLACEHOLDER: set to the number of concepts in the Berlin catalogue after the first verified
-# live run (count checked by hand against the PDF), and note the edition's sha256 in the lane file.
-EXPECTED_BERLIN_CONCEPTS: int | None = None
+# First live run 27.11.2026 20:51 (lane file): 26 regions on pages 8-33 of the September 2026
+# edition (sha256 4e12c90f...29a18), checked by hand against the contents on page 2, which
+# lists the same 26 concepts (1 to 12), one page each.
+EXPECTED_BERLIN_CONCEPTS: int | None = 26
 
 
 @pytest.mark.live
