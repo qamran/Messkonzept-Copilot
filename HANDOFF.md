@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 11:21
+**Last updated:** 27.11.2026, 11:22
 
 This file is how agents resume work after a session restart.
 
@@ -152,6 +152,8 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+
+- **27.11.2026 11:22** MKC-16 review finding 2 fixed: `_with_ids` keeps unique ids and appends `-<n>` when a new id would clash. Full suite 414 passed, 1 skipped; mypy strict clean.
 
 - **27.11.2026 11:21** MKC-16 review findings 2 and 4 to 7: red test `test_renamed_call_ids_never_collide_with_an_existing_id` (ids a, a, a-1 collide today); new tests kill the four surviving mutants (duplicate-id pairing check, summary error code over a ref turn, `Run.state` filter in `resumable_item`, `item_id` in the draft upsert; each checked by hand, source restored). Harness: 1 failed, 160 passed.
 

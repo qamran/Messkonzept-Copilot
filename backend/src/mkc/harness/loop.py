@@ -186,18 +186,24 @@ def process_run(
 def _with_ids(calls: list[ToolCall], step: int) -> tuple[ToolCall, ...]:
     """Every call gets an id no other call of the turn has: a tool message answers one id.
 
-    An empty id becomes `call-<step>-<index>`; an id used twice becomes `<id>-<index>`.
+    An empty id becomes `call-<step>-<index>`; an id used twice becomes `<id>-<index>`. A
+    unique id is kept; a new id that would clash with one in use gets `-<n>` appended.
     """
     seen = Counter(call.id for call in calls)
-
-    def fixed(index: int, call: ToolCall) -> ToolCall:
-        if not call.id:
-            return call.model_copy(update={"id": f"call-{step}-{index}"})
-        if seen[call.id] > 1:
-            return call.model_copy(update={"id": f"{call.id}-{index}"})
-        return call
-
-    return tuple(fixed(index, call) for index, call in enumerate(calls))
+    used = {call.id for call in calls if call.id and seen[call.id] == 1}
+    fixed = []
+    for index, call in enumerate(calls):
+        if call.id and seen[call.id] == 1:
+            fixed.append(call)
+            continue
+        base = f"{call.id}-{index}" if call.id else f"call-{step}-{index}"
+        new_id, n = base, 0
+        while new_id in used:
+            n += 1
+            new_id = f"{base}-{n}"
+        used.add(new_id)
+        fixed.append(call.model_copy(update={"id": new_id}))
+    return tuple(fixed)
 
 
 NOT_RUN = "not run: an earlier call in this turn failed"
