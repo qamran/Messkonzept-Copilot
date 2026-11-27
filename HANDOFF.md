@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 10:12
+**Last updated:** 27.11.2026, 10:26
 
 This file is how agents resume work after a session restart.
 
@@ -51,7 +51,10 @@ This file is how agents resume work after a session restart.
 
 ## In progress
 
-- **MKC-16** (#16), Turn checkpoints, resume, tool cache, idempotency. Status `In progress`, assigned to `qamran` (27.11.2026 09:57). Branch `mkc-16-checkpoints` from `ff76b94`. The first commit holds only the close-out of MKC-15. Next: read the ticket, write the plan and the sub-issues.
+- **MKC-16** (#16), Turn checkpoints, resume, tool cache, idempotency. Status `In progress`, assigned to `qamran` (27.11.2026 09:57). Branch `mkc-16-checkpoints` from `ff76b94`. The first commit holds only the close-out of MKC-15.
+  - Plan: `docs/superpowers/plans/271120261022-mkc-16-checkpoints.md` (decision 56: blob refs in the Postgres table `blob` until MKC-21's Storage, resume keeps the item `running`, cache key with `code_version`, tools reach the DB through a factory, `save_draft` keyed by `ToolEnv`).
+  - Sub-issues: MKC-16.1 #139 (`In progress`), 16.2 #140, 16.3 #141, 16.4 #142, 16.5 #143, 16.6 #144 (`Ready`).
+  - Next: MKC-16.1 red test `tests/harness/test_checkpoint.py`.
 
 ## Next steps
 
@@ -149,6 +152,8 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+
+- **27.11.2026 10:22–10:25** MKC-16: plan written (decision 56); sub-issues MKC-16.1 #139 to MKC-16.6 #144 created 10:24:26–10:25:12, assigned to `qamran`, linked to #16 and put on the board (#139 `In progress`, the rest `Ready`).
 
 - **27.11.2026 10:12** The user pasted the official brief from the Turing College website: weights 20/13/7/13/13/13 (evals, new)/13/7 %; AI evaluations are now required; the AI evaluations topic asks for eval results and how they improved the project. Updated `AE.CAP_afa.md`, `docs/271120261003-eval-criteria-capstone.md` (official table replaces the estimate), decision 55 in the design doc, and the status doc.
 - **27.11.2026 10:03** New doc `docs/271120261003-eval-criteria-capstone.md`: the brief's grading criteria with shares, an estimate of the shares with the new evals criterion (about 13 %; the official table is not published yet), and where the project shows each criterion.
