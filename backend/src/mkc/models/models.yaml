@@ -42,6 +42,9 @@ prices:
     google/gemini-3.5-flash-lite: {input: 0.54, output: 4.5, source: "OpenRouter ZDR list 26.11.2026"}
     meta-llama/llama-4-maverick: {input: 0.35, output: 1.0, source: "OpenRouter ZDR list 26.11.2026"}
     anthropic/claude-haiku-5.5: {input: 0.1, output: 0.5, source: "OpenRouter ZDR list 26.11.2026"}
+    # MKC-49: the corpus embedding model (mkc.rag.embeddings.EMBEDDING; not a role, so the model
+    # and its dimension live there). Embeddings have input tokens only.
+    qwen/qwen3-embedding-8b: {input: 0.01, output: 0, source: "OpenRouter ZDR list 27.11.2026 (Nebius, DeepInfra)"}
   gemini:
     gemini-3.5-flash-lite: {input: 0, output: 0, source: "Gemini API free tier"}
   anthropic:

@@ -1,6 +1,6 @@
 # Lane D: RAG
 
-**Last updated:** 27.11.2026, 20:49
+**Last updated:** 27.11.2026, 20:54
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -75,6 +75,7 @@ The tests import these; module paths and names are fixed, internals are free.
 
 ## Recent log
 
+- **27.11.2026 20:54** Development agent: `EmbeddingClient` (end of `mkc/models/client.py`), `build_embed_call` (end of `mkc/models/providers.py`), the price in `models.yaml`, `mkc.rag.embeddings` (`EMBEDDING` = `qwen/qwen3-embedding-8b`, 1024 dims). `uv run pytest tests/rag/test_embeddings_unit.py tests/rag/test_embedding_model.py tests/models -q`: `170 passed, 12 deselected, 4 warnings in 14.66s`. Live test `tests/rag/test_embeddings_live.py` run twice: 20:52 `1 passed` (cost not printed), 20:53 `tokens 72, cost 0.00000066 EUR`, `1 passed`.
 - **27.11.2026 20:49** Development agent: `#181` closed. Live probes of OpenRouter embeddings (ZDR routing; costs in USD as OpenRouter reported them): 20:46 `baai/bge-m3` refused by the workspace guardrail (`0 endpoints out of 2 requested are available matching your guardrail restrictions`, no charge); 20:46 `qwen/qwen3-embedding-8b` OK, 4096 dims, cost `4e-08`; `mistralai/mistral-embed-2312` OK, 1024 dims, cost `5e-07`; `google/gemini-embedding-001` and `intfloat/multilingual-e5-large` refused by the guardrail; 20:47 Qwen3 with `dimensions=1024` on Nebius and DeepInfra: 4 calls, 1024 dims, normalised, cost `7.7e-07` each; 20:47 cross-provider check, 2 calls, cost `2.7e-07` each, cosine Nebius vs DeepInfra `0.9942`. Red unit tests for the embedding layer (`uv run pytest tests/rag/test_embeddings_unit.py -q`: `13 failed in 21.85s`).
 - **27.11.2026 20:46** Development agent: `mkc.rag.chunking` (`law` layout: one chunk per Absatz, ref `§ 14a Abs. 1`; `sections` layout for decisions and operator texts); `uv run pytest tests/rag/test_chunking_unit.py tests/rag/test_chunking.py -q`: `12 passed in 0.04s`.
 - **27.11.2026 20:44** Development agent: `#179` closed; red unit tests for chunking (`uv run pytest tests/rag/test_chunking_unit.py -q`: `10 failed in 0.26s`).
