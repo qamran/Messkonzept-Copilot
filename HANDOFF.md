@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 19:01
+**Last updated:** 27.11.2026, 19:06
 
 This file is how agents resume work after a session restart.
 
@@ -56,7 +56,11 @@ This file is how agents resume work after a session restart.
 
 ## In progress
 
-- **No ticket in progress.** The user asked (27.11.2026) for a plan to run later tickets with several development and test agents on work that does not intersect, and decided that tickets that can run in parallel are built now regardless of phase (so Phase 7 tickets MKC-46 and MKC-49 join wave 1). The plan is `docs/superpowers/plans/271120261901-parallel-lanes.md` and goes to the user for review first; once approved, a setup ticket (lanes, `handoff/` lane files, `scripts/pre_pr.sh`, single-migration-head test, decision 61, ADR 005, AGENTS.md) comes before wave 1 (MKC-21, MKC-36, MKC-46, MKC-49).
+- **MKC-168** (#168), Parallel lanes: workflow, gate and checks. Status `In progress`, assigned to `qamran` (27.11.2026 19:06:32). Branch `mkc-168-parallel-lanes` from `4dc0302`. Its first two commits are the MKC-20 close-out and the plan (both `Refs: ...#20`).
+  - Plan: `docs/superpowers/plans/271120261901-parallel-lanes.md` (lanes A extraction, A2 SachsenNetze, B advisor, C decision layer, D RAG; a test agent per lane before the dev agent; shared-file rules; `scripts/pre_pr.sh`; merge queue).
+  - **The user's choices (27.11.2026, about 19:05), to go into decision 61:** (1) tickets that can be built by parallel agents are built now, regardless of phase (so MKC-46 and MKC-49 join wave 1); (2) PRs merge as soon as they are ready (green CI and review PASS), not in ticket-number order; cross-lane dependencies of the backlog still hold; (3) Phase 7 code may reach production before the Phase 6 release (no feature flag); the release notes say which parts are Phase 7 and still unused; (4) after the setup ticket, get on with development (wave 1: MKC-21, MKC-36, MKC-46, MKC-49).
+  - **Session restart:** the user asked for a fresh session before the work starts. Next session: read AGENTS.md, this file and the plan, then `gh issue view 168`; write the sub-issues of MKC-168 (decision 61 and docs; `handoff/` lane files and `check_handoff.py`; `scripts/pre_pr.sh`; `test_single_migration_head`; AGENTS.md roles and `check_agents.py`), build it test-first, PR, review, merge; then start wave 1 with the lanes.
+  - Process rules after the MKC-20 FAIL round (the user asked what went wrong): run CI's exact commands (`.github/workflows/ci.yml`) before any claim; copy numbers from output, never add them up or estimate; times from `date` or git; start the review only after `gh pr checks` is green.
 
 ## Next steps
 
@@ -190,6 +194,7 @@ This file is how agents resume work after a session restart.
 
 ## Recent log
 
+- **27.11.2026 19:06** The user chose: merge as ready, Phase 7 code may reach production early, start the setup ticket and then develop; refresh the session first. MKC-168 (#168) created (18:06:24Z = 19:06:24), assigned to `qamran`, `In progress` (19:06:32); local branch renamed `mkc-168-parallel-lanes` and pushed.
 - **27.11.2026 19:01** Parallel-lanes plan written (`docs/superpowers/plans/271120261901-parallel-lanes.md`): lanes A extraction, A2 SachsenNetze, B advisor, C decision layer, D RAG; a test agent per lane before the dev agent; shared-file rules (lane HANDOFF files, migration re-chain with a single-head test, decision-number blocks); `scripts/pre_pr.sh` with CI's exact commands; merge queue; a setup ticket before wave 1. Waiting for the user's review.
 - **27.11.2026 18:46-19:01** PR #167 re-review PASS (Fable, comment 18:52:07; 12 findings: 1, 2, 7, 9 fixed, 3 to 6, 8, 10 open under Next steps, 11 and 12 fixed in this close-out), merged as `4dc0302` (18:52:10); #20 and #162 to #166 closed (18:52:12-18:52:21), `Testing` at 18:45:43 (after the last branch commit) and `Done` by 18:53:24. `main` pushed to `turing` (about 18:52:50); `origin/main` = `turing/main` = `4dc0302`. `cd` run 46045153306 green: `image` 18:52:17 to 18:57:55; `backend` approved by the development agent (decision 51) at 18:58:13, ran 18:58:16 to 18:59:11 (migration 0010 -> 0011 by the hook Job); `frontend` approved at 18:59:27, ran 18:59:28 to 19:00:04. Checked afterwards: `/api/version` = `4dc0302...`, `/health` 200, `/api/admin/backup-status` without a token 401, the site 200; worker pod `mkc-worker-79b69bc5cf-lhwvm` Running, 0 restarts, log `worker started as ...`; Job `mkc-migrate` Complete; `alembic_version` = `0011`, `run.mode` default `'full'` (19:00:38). The user decided that parallel-capable tickets are built now regardless of phase. Findings 11 (stale status lines) and 12 (MKC-23 note under MKC-32) fixed here.
 - **27.11.2026 18:41** Fix-round checks at `5bea12e`, with CI's exact `backend` steps: Windows `uv sync --locked` ok, `ruff check .` all passed, `ruff format --check .` 131 files formatted, `mypy` no issues in 48 files, `pytest -q` 627 passed, 1 skipped. Linux container with the whole repo (`git archive HEAD`, Compose db): `pytest -q -rs` 628 passed, none skipped, exit 0 (18:41:10); a first Linux run with only `backend/` archived failed 2 tests on the missing root `.env.example` (an artefact of that run). Docker Desktop stopped and WSL shut down (18:41:21). Pushing; the re-review starts only after `gh pr checks 167` is green.
