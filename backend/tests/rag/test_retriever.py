@@ -146,6 +146,17 @@ def test_a_decision_number_is_found_by_keyword(
     assert found[0].chunk_id == corpus["Abschnitt 3"]
 
 
+def test_the_keyword_side_uses_the_german_configuration(
+    corpus: dict[str, int], session: Session, dim: int
+) -> None:
+    """ "Wärmepumpen" stems to the lexeme of "Wärmepumpe" only under `german` (`simple` keeps
+    both words apart), so this pins the configuration of `chunk.tsv` on the query side too."""
+    seen: list[Any] = []
+    found = _retrieve(session, "Wärmepumpen", 3, ScriptedEmbedder(dim), tracers=[seen.append])
+    assert found[0].source_ref == "§ 2 Abs. 3"
+    assert seen[0].keyword_hits == 1
+
+
 def test_a_query_without_keyword_hits_uses_the_vector_side(
     corpus: dict[str, int], session: Session, dim: int
 ) -> None:
@@ -237,7 +248,7 @@ def test_latency_per_query_logged_in_the_trace(
 
     seen: list[Any] = []
     scope = TraceScope(run_id=7, item_id=3, step=2)
-    found = _retrieve(session, "§ 14a", 3, ScriptedEmbedder(dim, delay=0.05),
+    found = _retrieve(session, "§ 14a", 3, ScriptedEmbedder(dim, delay=0.07),
                       tracers=[seen.append], scope=scope)  # fmt: skip
     (trace,) = seen
     assert isinstance(trace, RetrievalTrace)

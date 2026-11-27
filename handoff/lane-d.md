@@ -1,13 +1,13 @@
 # Lane D: RAG
 
-**Last updated:** 27.11.2026, 23:19
+**Last updated:** 27.11.2026, 23:23
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
 - **Tickets, in order:** `MKC-49` (merged, PR #198) → `MKC-50` → `MKC-51` (MKC-51 waits on lane B's MKC-38)
 - **Branch and worktree:** `mkc-50-hybrid-retriever` (cut from `main` `d7fad1e`)
 - **Owns:** `backend/src/mkc/rag/`, the corpus loader, the retriever, `backend/tests/rag/`, `backend/data/corpus_sources.yaml`, `EmbeddingClient` at the end of `mkc/models/client.py`
-- **Decision numbers:** 79–81 (wave 2; 71–73 of wave 1: 71 and 72 used, 73 free)
+- **Decision numbers:** 79–81 (wave 2; wave 1's block 71–73 is closed)
 
 ## In progress
 
@@ -26,7 +26,7 @@ The tests import these; module paths and names are fixed, internals are free.
   - The untrusted mark: `PASSAGE_OPEN = "<retrieved_passage>"`, `PASSAGE_CLOSE = "</retrieved_passage>"`, `RetrievedChunk.as_prompt_data() -> str` = open tag + JSON `{"chunk_id", "source_ref", "text"}` + close tag. The JSON has no `<` or `>` (escaped, as in `mkc/harness/prompts.py`) and keeps umlauts and `§` as they are (`ensure_ascii=False`). The open tag has no attributes. A prompt must use this, never `text` directly (MKC-51).
   - `retrieve(query: str, k: int = 5, *, session: Session, embedder, tracers: Sequence[Callable[[RetrievalTrace], None]] = (), scope: TraceScope | None = None) -> list[RetrievedChunk]`
     - at most `k` results, sorted by score (highest first), unique chunk ids; an empty corpus gives `[]`
-    - keyword side: Postgres `german` full-text search on `chunk.tsv`; the query is plain text (`&`, `|`, `!`, `:`, `'`, `<->`, `*` never raise)
+    - keyword side: Postgres `german` full-text search on `chunk.tsv` ("Wärmepumpen" must find "Wärmepumpe"); the query is plain text (`&`, `|`, `!`, `:`, `'`, `<->`, `*` never raise)
     - vector side: the query vector against `chunk.embedding`
     - `ValueError` for `k < 1`, `k > MAX_K` or a blank query, before the embedder is called
     - the query is embedded once with `embedder.embed_query(query)`, the raw query; `embed` is never called by the retriever
@@ -37,7 +37,7 @@ The tests import these; module paths and names are fixed, internals are free.
   - `EmbeddingClient(..., tracers: Sequence[Callable[[EmbedTrace], None]] = ())` and `EmbeddingClient.from_settings(..., tracers=...)`, kept as `_tracers` (a list). `embed(texts, *, scope=None)`: **one trace per `embed()` call** (not per batch), with the reply's tokens, cost and latency; on a provider error one trace with `error` set, then the error is raised. A hook that raises never breaks the call.
 - MKC-49 review findings (tests, not interfaces):
   - fetcher: an `http://` URL is refused before any request; an https → http redirect on the same host is refused before the http request.
-  - `law` layout: a line starting with `§ <n>` opens a paragraph only at the start of the text or after a blank line (the fetcher's layout); elsewhere it is body text of the current Absatz. Proven on plain text and through `law_text(html)`.
+  - `law` layout: a line starting with `§ <n>` directly after a body line of an open paragraph is body text of the current Absatz. A heading comes when no paragraph is open yet (start of the text, after a preamble) or after a blank line (the fetcher's layout). Proven on plain text and through `law_text(html)`; a patch of `_law_blocks` along these lines (applied and restored by the test agent) turns the three tests green and breaks no other test in `tests/rag`.
   - `law` layout: a blank line inside an Absatz does not split it, even past `MAX_CHUNK_CHARS` (decision 72).
   - loader: **any** cache folder inside the repo is refused (`CorpusLicenceError`, before any fetch), official-only sources included. The MKC-49 test `test_an_official_only_cache_inside_the_repo_is_allowed` is replaced by `test_an_official_only_cache_inside_the_repo_is_refused_too` (the test agent's change, reason in its docstring).
   - image: the runtime stage copies `data/corpus_sources.yaml` to `/app/data/corpus_sources.yaml` (one `COPY` line after the `operators.yaml` line; granted by the coordinator).
@@ -63,6 +63,7 @@ The tests import these; module paths and names are fixed, internals are free.
 
 - The exact keyword ranking function (`ts_rank` or other) and the tsquery builder (`plainto_tsquery` or `websearch_to_tsquery`); the tests need only that "§ 14a" and "BK6-22-300" match.
 - The distance operator (cosine, L2 or inner product): the test vectors are unit vectors, so all three agree.
+- A blank line inside a plain-text Absatz followed by a line starting with `§ <n>` stays ambiguous (read as a heading); the fetcher's HTML path never produces it.
 - A live query embedding (`@pytest.mark.live`): optional for the development agent.
 - An index for the vector side (HNSW or IVFFlat): no test; the corpus is small.
 - The injection guard on retrieved text (MKC-46/51) and the prompt layer that uses `as_prompt_data()` (MKC-51).
@@ -75,6 +76,7 @@ The tests import these; module paths and names are fixed, internals are free.
 
 ## Recent log
 
+- **27.11.2026 23:23** Test agent: `test_the_keyword_side_uses_the_german_configuration` ("Wärmepumpen" stems to `warmepump` under `german` only, checked on the test Postgres); the latency test sleeps 70 ms for its 50 ms bound; the finding 2 rule reworded (a heading also comes when no paragraph is open, e.g. after a preamble) and checked satisfiable: `_law_blocks` patched by hand and restored, `uv run pytest tests/rag -q`: `34 failed, 90 passed, 1 deselected, 4 warnings in 10.81s` (the 3 finding-2 tests green, no new failure). Decision block 71–73 marked closed. `uv run pytest tests/rag/test_retriever.py -q`: `18 failed in 2.84s`; `uv run pytest tests/rag -q`: `38 failed, 87 passed, 1 deselected, 4 warnings in 11.10s`.
 - **27.11.2026 23:19** Test agent: tests for the MKC-49 review findings (PR #198). `uv run pytest tests/rag/test_fetch_unit.py tests/rag/test_chunking_unit.py tests/rag/test_loader_unit.py tests/rag/test_image_unit.py -q`: `5 failed, 36 passed in 1.50s`. Red (5): the three `§`-body-line tests (finding 2), `test_an_official_only_cache_inside_the_repo_is_refused_too` (finding 5; replaces the MKC-49 test that allowed it) and `test_the_image_ships_corpus_sources_yaml`. Green today, proven by mutants applied and restored by hand: the https tests (finding 1; scheme check removed: `2 failed, 13 passed`) and the blank-line test (finding 4; law blank lines kept: `4 failed, 13 passed` in `test_chunking_unit.py`, the new blank-line test among them).
 - **27.11.2026 23:19** Test agent: red tests for the `EmbeddingClient` hooks (`EmbedTrace`, one per `embed()` call, also on error, never the texts) and `ProviderEmbedder.embed_query` (Qwen3's `Instruct: …\nQuery:…` format) in `tests/rag/test_embedding_trace_unit.py`; `uv run pytest tests/rag/test_embedding_trace_unit.py -q`: `6 failed, 1 passed in 5.35s` (`test_passages_are_still_embedded_as_stored` is green already: it guards the passage side).
 - **27.11.2026 23:19** Test agent: red tests for `retrieve` on the test database (`tests/rag/test_retriever.py`: `test_paragraph_reference_found_by_keyword`, "BK6-22-300", ordering, `k` bounds, blank query, empty corpus, the RRF score, and `test_latency_per_query_logged_in_the_trace` with `RetrievalTrace`); hand-made unit vectors put both `§ 14a` chunks last on the vector side. `uv run pytest tests/rag/test_retriever.py -q`: `17 failed in 2.57s` (no `mkc.rag.retriever` yet). The commit is over 200 lines (one test module with its corpus fixture).

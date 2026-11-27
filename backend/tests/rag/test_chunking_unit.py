@@ -149,7 +149,9 @@ def test_a_long_law_absatz_stays_whole() -> None:
 
 def test_a_body_line_starting_with_a_paragraph_sign_is_not_a_heading() -> None:
     """Review finding 2: `§ 2 Satz 1 gilt entsprechend.` is the body of § 3, not a new § 2.
-    A heading starts the text or follows a blank line (the fetcher's layout)."""
+    A `§` line directly after a body line of an open paragraph is body text; a heading comes
+    when no paragraph is open yet (start of text, after a preamble) or after a blank line
+    (the fetcher's layout)."""
     from mkc.rag.chunking import chunk_text
 
     text = "§ 3 Verweis\n§ 2 Satz 1 gilt entsprechend.\n"
