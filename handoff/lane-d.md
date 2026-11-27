@@ -11,7 +11,7 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 
 ## In progress
 
-- `MKC-49` (`#49`): built; the six sub-issues are in Testing (they close with the PR's merge); the branch is pushed and waits for the test agent's mutation pass before the PR. The test agent's red acceptance tests are in `backend/tests/rag/`.
+- `MKC-49` (`#49`): built; the six sub-issues are in Testing (they close with the PR's merge); the mutation pass is done; the PR comes next. The test agent's red acceptance tests are in `backend/tests/rag/`.
 - **Red commits:** `97c18ea` to `f515d26` "MKC-49: red test for the corpus tables' downgrade" (the test agent's last commit on this branch; diff the tests against it).
 - **Sub-issues** (all assigned to `qamran`, on the board, linked to `#49`):
   - `MKC-49.1` (`#179`) corpus sources file: built (`4ce0e06`), Testing
@@ -70,8 +70,8 @@ The tests import these; module paths and names are fixed, internals are free.
 
 ## Next steps
 
-1. Done 21:47: the test agent's mutation pass (see the log). The development agent decides on the 3 survivors and the leftover-folder finding before the PR.
-2. Then the development agent opens the PR (on the coordinator's word), discloses the commits over 200 lines and the new code in `mkc/models/` and `mkc/db/models.py`, and moves `#49` to Testing.
+1. Done 21:47: the test agent's mutation pass (98 tried, 95 killed, 3 survived); the 3 survivors have tests since `4db8f62`.
+2. The development agent runs the gate, pushes and opens the PR; `#49` and its sub-issues go to Testing. The coordinator starts the review once `gh pr checks` is green, updates the branch from `main` and re-chains migration `0012` if lane A merges first.
 3. Open for the coordinator:
    - decision 71 confirmed by the user on 27.11.2026, with the research note `docs/271120262150-embedding-model-research.md`; the production key's guardrail was not checked
    - 4 of 6 sources are PDFs and refused until MKC-21's PDF library is in; the BK8-22/010-A file is an encrypted PDF (`/Encrypt` in its header) served from an `.html` URL; the `sections` chunker has only run on synthetic text
