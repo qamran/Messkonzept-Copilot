@@ -683,6 +683,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
 - **Depends on:** MKC-13, MKC-7.
 - **Interfaces:**
   - **Produces:** `POST /api/advisor/facts {text, operator_id} -> SiteFacts`, the `SiteFacts` model (design 7, `modul14a ∈ {1, 2}`), and `required_questions(facts) -> list[Question]`.
+  - **Built (decisions 65 and 66):** also `POST /api/advisor/questions SiteFacts -> list[Question]` for the UI; out of scope is a 200 `SiteFacts` with `out_of_scope` notes and no facts.
 - **Test:**
   - `test_extracts_pv_battery_heatpump_modul2`
   - `test_only_result_changing_unknowns_are_asked`
@@ -817,7 +818,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
 - **Scope:** features 66 and 67.
 - **Depends on:** MKC-46, MKC-36, MKC-26.
 - **Interfaces:**
-  - **Produces:** `mkc.decisions.client.DecisionClient`, with `noul(q, state) -> float`, `choice(q, criteria, state) -> ChoiceAnswer` and `score(q, rubric, state) -> ScoreAnswer`.
+  - **Produces:** `mkc.decision.client.DecisionClient`, with `noul(q, state) -> float`, `choice(q, criteria, state) -> ChoiceAnswer` and `score(q, rubric, state) -> ScoreAnswer`.
   - Backend chosen by `MKC_DECISION_BACKEND=jev|llm`.
 - **Test:**
   - `test_fallback_switch_routes_to_llm`

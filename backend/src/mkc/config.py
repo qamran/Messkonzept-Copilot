@@ -183,6 +183,14 @@ class Settings(BaseSettings):
     storage_secret_access_key: SecretStr = SecretStr("")
     """The S3 secret access key. A secret: never logged."""
 
+    # MKC-46 (lane C, decision layer): the decision backend and the Jev model on OpenRouter.
+    decision_backend: Literal["llm", "jev"] = "llm"
+    """Where yes/no and choice decisions come from: `llm` (default), structured output from a
+    chat model; or `jev`, the decision model on OpenRouter (ADR 004, decision 68)."""
+
+    decision_model: str = "~typesafe/jev-latest"
+    """The decision model on OpenRouter, sent to `/api/v1/systemone` (MKC-46)."""
+
     @model_validator(mode="after")
     def _lease_outlives_renewals(self) -> "Settings":
         """A lease must survive two missed renewals, or a slow database loses it."""

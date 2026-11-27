@@ -12,6 +12,7 @@ dependencies = [
     "langchain-google-genai==4.5.3",
     "langchain-openai==1.8.5",
     "langchain-openrouter==0.3.0",
+    "langchain-typesafe==0.1.0",
     "langfuse==5.2.0",
     "pdfplumber>=0.11",
     "psycopg[binary]>=3.2",
@@ -52,6 +53,10 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
+
+[tool.ruff.lint.isort]
+# MKC-36 (lane B): red tests import modules that do not exist yet; keep them first-party.
+known-first-party = ["mkc", "tests"]
 
 [tool.mypy]
 strict = true
