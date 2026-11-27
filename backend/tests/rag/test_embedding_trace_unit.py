@@ -133,3 +133,40 @@ def test_passages_are_still_embedded_as_stored() -> None:
     client = FakeEmbeddingClient()
     ProviderEmbedder(client, dim=2).embed(["§ 14a Netzorientierte Steuerung"])  # type: ignore[arg-type]
     assert client.sent == [["§ 14a Netzorientierte Steuerung"]]
+
+
+# --- MKC-50 mutation pass (test agent) -----------------------------------------------------
+
+
+def test_the_trace_measures_the_call_on_success_and_on_error() -> None:
+    import time
+
+    class SlowCall(FakeCall):
+        def __call__(self, texts: Sequence[str]) -> tuple[list[list[float]], int]:
+            time.sleep(0.07)
+            return super().__call__(texts)
+
+    def failing(texts: Sequence[str]) -> tuple[list[list[float]], int]:
+        time.sleep(0.07)
+        raise RuntimeError("busy")
+
+    seen: list[Any] = []
+    _client(SlowCall(), tracers=[seen.append]).embed(["a"])
+    client = _client(FakeCall(), tracers=[seen.append])
+    client._factory = lambda *args: failing
+    with pytest.raises(RuntimeError):
+        client.embed(["a"])
+    ok, failed = seen
+    assert ok.latency_ms >= 50 and ok.error is None
+    assert failed.latency_ms >= 50 and failed.error is not None
+
+
+def test_the_query_text_is_qwen3s_format_exactly() -> None:
+    """The model card's format: `Instruct: <task>`, a newline, `Query:` and the query, with no
+    space after the colon (decision 71)."""
+    from mkc.rag.embeddings import QUERY_INSTRUCTION, query_text
+
+    assert QUERY_INSTRUCTION.strip()
+    assert (
+        query_text("Wann gilt § 14a?") == f"Instruct: {QUERY_INSTRUCTION}\nQuery:Wann gilt § 14a?"
+    )
