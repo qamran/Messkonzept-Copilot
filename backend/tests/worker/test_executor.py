@@ -6,9 +6,11 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+import pytest
 from langchain_core.messages import AIMessage, BaseMessage
 from pydantic import Field
 from sqlalchemy import Engine, func, select, update
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session, sessionmaker
 
 from mkc.config import Settings
@@ -135,3 +137,69 @@ def test_a_lost_lease_stores_no_further_turn(engine: Engine) -> None:
     assert turn_numbers(engine, item_id) == []
     assert states(engine, run_id) == ("running", ["running"])
     assert owner_of(engine, run_id) == "w2"  # not released by the loser
+
+
+# --- hardening (pre-PR review): no error may end the worker, and the probe file never waits
+
+
+def test_a_database_error_on_release_does_not_end_the_worker(
+    engine: Engine, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    run_id, (item_id,) = make_run(engine, "queued")
+
+    def broken_release(*args: Any, **kwargs: Any) -> None:
+        raise OperationalError("UPDATE run", {}, Exception("connection reset"))
+
+    monkeypatch.setattr("mkc.worker.executor.release_lease", broken_release)
+    model = HookModel(responses=[ai(tool_calls=[SAVE])])
+    with executor(engine, model, "w1", worker_db_backoff_max_seconds=0.1) as worker:
+        assert worker.run_once() is True  # logged, not raised
+    assert turn_numbers(engine, item_id) == [1]
+    assert owner_of(engine, run_id) == "w1"  # the lease runs out on its own
+
+
+def test_an_unexpected_error_releases_the_lease_and_backs_off(engine: Engine) -> None:
+    run_id, (item_id,) = make_run(engine, "queued")
+
+    def no_client() -> Any:
+        raise RuntimeError("a bug")
+
+    worker = Executor(
+        settings(worker_db_backoff_max_seconds=0.3),
+        sessions=sessionmaker(bind=engine),
+        client_factory=no_client,
+        registry=Tools().registry(),
+        owner="w1",
+    )
+    started = time.monotonic()
+    with worker:
+        assert worker.run_once() is True  # logged, not raised
+    assert time.monotonic() - started >= 0.3  # it does not spin on the same run
+    assert owner_of(engine, run_id) is None
+    assert turn_numbers(engine, item_id) == []
+    assert states(engine, run_id) == ("running", ["running"])
+
+
+def test_a_slow_lease_renewal_does_not_delay_the_heartbeat_file(
+    engine: Engine, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _, (item_id,) = make_run(engine, "queued")
+    heartbeat = tmp_path / "beat"
+    ages: list[float] = []
+
+    def hanging_renewal(*args: Any, **kwargs: Any) -> bool:
+        time.sleep(1.2)  # a database that hangs instead of failing
+        return True
+
+    def slow() -> None:
+        time.sleep(1.0)
+        ages.append(time.time() - heartbeat.stat().st_mtime)
+
+    monkeypatch.setattr("mkc.worker.executor.renew_lease", hanging_renewal)
+    model = HookModel(responses=[ai(tool_calls=[SAVE])], hooks={1: slow})
+    with executor(
+        engine, model, "w1", worker_heartbeat_file=str(heartbeat), worker_lease_renew_seconds=0.1
+    ) as worker:
+        assert worker.run_once() is True
+    assert ages[0] < 0.5
+    assert turn_numbers(engine, item_id) == [1]

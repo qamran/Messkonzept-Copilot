@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 12:14
+**Last updated:** 27.11.2026, 12:19
 
 This file is how agents resume work after a session restart.
 
@@ -55,7 +55,7 @@ This file is how agents resume work after a session restart.
 - **MKC-17** (#17), Run executor (worker with lease). Status `In progress`, assigned to `qamran` (27.11.2026 11:37:38). Branch `mkc-17-run-executor` from `266c37d`. The first commit holds only the close-out of MKC-16.
   - Plan: `docs/superpowers/plans/271120261154-mkc-17-run-executor.md` (decision 57: lease on the run row with the database clock, fencing before every commit, heartbeat thread for the file and the lease, stop between turns, `waiting_for_database` written on the first successful probe after an outage).
   - Sub-issues: MKC-17.1 #146 `In progress`; MKC-17.2 #147, MKC-17.3 #148, MKC-17.4 #149 `Ready`.
-  - Next: open the PR, set #17 and #146 to #149 to `Testing`, start the review agent.
+  - Next: green for the three hardening tests, then the PR.
 
 ## Next steps
 
@@ -161,6 +161,8 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+
+- **27.11.2026 12:19** MKC-17 pre-PR review (advisor): the trailers of `344ac64` and `e2fe839` said `qamra/` and were fixed before the first push (`git filter-branch --msg-filter` over the unpushed commits; dates kept, tree unchanged, new ids `c2ec3e8` and `300ea06`). Red: a database error on release, an unexpected error from `process_run`, and a hanging lease renewal must not end the worker or delay the heartbeat file (3 failed: the error escapes, 0.9 s old file).
 
 - **27.11.2026 12:14** MKC-17.4 docs: runbook section "Worker lease and outages" (timings table, deploy, crash, outage, lease query; `check_runbook.py` passes); design 8.2 (state and two edges), 8.4 "Built in MKC-17" and decision 57; ADR 002 heartbeat note closed; status doc; backlog notes on MKC-17 (as built, `save_draft` database errors stay `tool_failed`) and MKC-18 (setup errors to a run stop, turn deadline); `.env.example` lists the four new settings; plan boxes ticked. Markdown lint (CI version 0.18.1) 0 errors.
 
