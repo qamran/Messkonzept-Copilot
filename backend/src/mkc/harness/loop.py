@@ -39,6 +39,7 @@ from mkc.harness.checkpoint import (
     load_resume_context,
     save_turn,
 )
+from mkc.harness.faults import FaultInjector
 from mkc.harness.limits import (
     Limits,
     RunUsage,
@@ -133,6 +134,7 @@ def run_item(
     sleep: Callable[[float], bool] = _sleep,
     switches: Switches = FULL,
     memory: RunMemory | None = None,
+    faults: FaultInjector | None = None,
 ) -> ItemOutcome:
     """Run the model-driven tool loop for one claimed item: `running` in the database, or,
     with `durable_queue` off, claimed in `memory` (MKC-20, decision 60)."""
@@ -168,9 +170,12 @@ def run_item(
         if hit is not None:
             return ItemOutcome(item_id, ItemState.RUNNING, hit.value, step - 1, cost)
         scope = TraceScope(ctx.run_id, item_id, step)
+        model_call = partial(client.chat_with_tools, ROLE, tuple(messages), specs, scope=scope)
+        if faults is not None:
+            model_call = faults.model(model_call)
         try:
             reply = call_model(
-                partial(client.chat_with_tools, ROLE, tuple(messages), specs, scope=scope),
+                model_call,
                 limits=limits,
                 sleep=sleep,
                 should_stop=should_stop,
@@ -199,7 +204,7 @@ def run_item(
             messages += [assistant, Message(role="user", content=REPROMPT)]
             continue
         try:
-            results, saved = _run_calls(registry, calls, replace(env, step=step), cache)
+            results, saved = _run_calls(registry, calls, replace(env, step=step), cache, faults)
         except _ToolErrorEscaped as escaped:
             answered = _answer_the_rest(calls, escaped)
             turn = _turn(item_id, step, assistant, answered, step_cost)
@@ -238,6 +243,7 @@ def process_run(
     sleep: Callable[[float], bool] = _sleep,
     switches: Switches = FULL,
     memory: RunMemory | None = None,
+    faults: FaultInjector | None = None,
 ) -> list[ItemOutcome]:
     """Claim and run items until the queue is empty, then settle the run.
 
@@ -255,7 +261,7 @@ def process_run(
         "session": session, "client": client, "registry": registry, "limits": limits,
         "inline_max_bytes": inline_max_bytes, "code_version": code_version,
         "should_stop": should_stop, "fence": fence, "tracers": tracers, "sleep": sleep,
-        "switches": switches, "memory": memory,
+        "switches": switches, "memory": memory, "faults": faults,
     }  # fmt: skip
     if queue is not None:
         while not should_stop():
@@ -267,6 +273,8 @@ def process_run(
             item_id = queue.next()
             assert item_id is not None
             outcomes.append(run_item(item_id, **loop_kw))
+            if faults is not None:
+                faults.item_ended(outcomes[-1])
             if outcomes[-1].state is ItemState.RUNNING:
                 return outcomes
         return outcomes
@@ -297,6 +305,8 @@ def process_run(
             outcomes.append(ctx.fail(None, StopReason.RESUME_LIMIT, None, None))
             continue
         outcomes.append(run_item(item_id, **loop_kw))
+        if faults is not None:
+            faults.item_ended(outcomes[-1])
         if outcomes[-1].state is ItemState.RUNNING:
             return outcomes
     settle_run(session, run_id)
@@ -415,13 +425,15 @@ def _run_calls(
     calls: tuple[ToolCall, ...],
     env: ToolEnv,
     cache: ToolCache | None,
+    faults: FaultInjector | None = None,
 ) -> tuple[list[dict[str, Any]], bool]:
     """Run every call of the turn. Returns the results and whether a save succeeded."""
     results: list[dict[str, Any]] = []
     saved = False
     for call in calls:
         try:
-            result = registry.execute(call, "item", env, cache)
+            injected = None if faults is None else faults.tool(call)
+            result = injected or registry.execute(call, "item", env, cache)
             payload = result.model_dump(mode="json")
             content = wrap_tool_result(call.name, payload)
         except SQLAlchemyError:

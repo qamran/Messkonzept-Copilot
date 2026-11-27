@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 17:51
+**Last updated:** 27.11.2026, 17:52
 
 This file is how agents resume work after a session restart.
 
@@ -58,7 +58,7 @@ This file is how agents resume work after a session restart.
 - **MKC-20** (#20), Baseline mode, failure injection and CLI. Status `In progress`, assigned to `qamran` (27.11.2026 17:14:51). Branch `mkc-20-baseline-cli` from `21f5eb8`. The first commit holds only the close-out of MKC-19.
   - Plan: `docs/superpowers/plans/271120261738-mkc-20-baseline-faults-cli.md` (decision 60: baseline is the same loop with five switches off; fault hooks; CLI; MKC-19 findings 1 to 3).
   - Sub-issues: MKC-20.1 #162 (`In progress`), MKC-20.2 #163, MKC-20.3 #164, MKC-20.4 #165, MKC-20.5 #166 (`Ready`).
-  - MKC-20.1 and MKC-20.2 done (baseline green; the executor runs each run in its mode through `execute_run`). Next: MKC-20.3, failure injection.
+  - MKC-20.1 and MKC-20.2 done (baseline green; the executor runs each run in its mode through `execute_run`). MKC-20.3 (#164 `In progress` 17:51:38): red `tests/harness/test_faults.py` with the skeleton `mkc.harness.faults` and the three hooks in the loop. Next: the injector.
 
 ## Next steps
 
@@ -191,6 +191,7 @@ This file is how agents resume work after a session restart.
 
 ## Recent log
 
+- **27.11.2026 17:52** MKC-20.3 red: 10 fault tests fail on assertions (no backoff, no timeout result, no re-prompt, no kill, no plans); the loop passes `faults` to its three hooks (model call, tool call, item end), which do nothing yet. `926bf67` is 221 lines with HANDOFF, not 208 as logged.
 - **27.11.2026 17:51** MKC-20.2 green: the executor runs each run through `execute_run` (registry per run and mode, tool hooks passed on). Full backend suite on Windows: 585 passed, 1 skipped; ruff, mypy clean. `926bf67` has 208 lines (loop and runner in one change).
 - **27.11.2026 17:51** MKC-20.2: the switches in `run_item`/`process_run` (no turn rows, no cache, memory queue, report at the end) and `mkc.harness.runner.execute_run` (reads `run.mode`); `test_baseline.py` 9 passed.
 - **27.11.2026 17:51** MKC-20.2: `RunMemory` (in-memory queue, turns, end states, approvals; `write_report`) and the in-memory `save_draft` in `default_registry(approvals=...)`.
