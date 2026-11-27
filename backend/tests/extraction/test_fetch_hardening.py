@@ -117,11 +117,11 @@ def test_the_download_limit_is_the_buckets() -> None:
 def test_a_body_over_the_limit_is_refused_while_it_streams() -> None:
     from mkc.extraction.fetch import DownloadTooLarge, http_get
 
-    body = Chunks(count=100, size=1000)  # 100 000 bytes, no content-length
+    body = Chunks(count=10_000, size=1000)  # 10 MB, no content-length
     transport = httpx.MockTransport(lambda request: httpx.Response(200, content=iter(body)))
     with pytest.raises(DownloadTooLarge):
         http_get(URL_OK, transport=transport, max_bytes=2500)
-    assert body.read <= 4, "reading stops at the limit, not at the end of the body"
+    assert body.read < body.count, "reading stops near the limit, not at the end"
     assert issubclass(DownloadTooLarge, ValueError)
 
 

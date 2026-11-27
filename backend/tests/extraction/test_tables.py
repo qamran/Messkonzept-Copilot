@@ -74,7 +74,8 @@ def test_naive_baseline_gets_a_row_wrong() -> None:
     naive = naive_tables(lbs_table_pdf(), "lbs")
     truth = {code: concepts for _, concepts, code, _ in LBS_EXPECTED}
     got = {r.code: list(r.concepts) for r in naive}
-    assert got.get("9992000000133") != truth["9992000000133"]
+    assert "9992000000133" in got, "the baseline finds the code, but pairs it wrongly"
+    assert got["9992000000133"] != truth["9992000000133"]
     assert _lbs(naive) != LBS_EXPECTED
 
 

@@ -9,6 +9,7 @@ import io
 
 import pdfplumber
 
+from tests.extraction.conftest import Text, layout_pdf
 from tests.extraction.synthetic import (
     CONCEPT_BBOX,
     concept_page_pdf,
@@ -57,3 +58,9 @@ def test_the_concept_page_has_a_sidebar_level_with_the_main_column() -> None:
     assert "• PV-Anlagen Ausgabe" in full
     assert "Ausgabe" not in cropped and "• PV-Anlagen" in cropped
     assert "Wärmepumpe" in cropped and "§ 14a" in cropped
+
+
+def test_nul_for_makes_pdfplumber_read_a_nul() -> None:
+    pdf = layout_pdf([[Text(72, 72, "PV-Anlagen #", 10)]], nul_for="#")
+    with pdfplumber.open(io.BytesIO(pdf)) as doc:
+        assert doc.pages[0].extract_text() == "PV-Anlagen " + chr(0)

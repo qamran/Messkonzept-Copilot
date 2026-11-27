@@ -30,12 +30,14 @@ from sqlalchemy.orm import Session, sessionmaker
 from mkc.harness.cache import ToolCache
 from mkc.harness.tools import ToolEnv, ToolTrace
 from mkc.models.types import ToolCall
-from tests.extraction.conftest import MemoryStore, Text, layout_pdf
+from tests.extraction.conftest import MemoryStore, Text, layout_pdf, ruled_table
 from tests.extraction.synthetic import (
     APPLICATIONS,
     CONCEPT_BBOX,
     FOOTNOTES,
     LBS_EXPECTED,
+    LBS_HEADER,
+    LBS_WIDTHS,
     STATED,
     TITLE,
     concept_page_pdf,
@@ -159,3 +161,19 @@ def test_no_nul_reaches_a_result_or_the_cache(
     assert "\\u0000" not in json.dumps(result.data)
     assert result.data["applications"][0].startswith("PV-Anlagen")
     assert registry.execute(call, "item", env, cache).data == result.data
+
+
+def test_no_nul_reaches_a_table_row(
+    engine: Engine, sessions: sessionmaker[Session], store: MemoryStore
+) -> None:
+    items, _ = ruled_table(
+        57, 120, LBS_WIDTHS,
+        [LBS_HEADER, [["1 / 1.1"], ["9992 00000 003 4"], ["Erzeugung mit einer Messlokation#"]]],
+    )  # fmt: skip
+    registry, env, _ = _setup(sessions, store, layout_pdf([items], nul_for="#"))
+    cache = ToolCache(sessions, f"test-{uuid.uuid4()}")
+    result = registry.execute(_call("extract_tables", kind="lbs"), "item", env, cache)
+    assert result.ok, result.error
+    assert "\\u0000" not in json.dumps(result.data)
+    assert [r["code"] for r in result.data] == ["9992000000034"]
+    assert result.data[0]["label"].startswith("Erzeugung mit einer Messlokation")
