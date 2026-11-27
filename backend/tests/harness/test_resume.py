@@ -11,14 +11,14 @@ from typing import Any
 import pytest
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage, ToolMessage
 from sqlalchemy import Engine
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.orm import Session
 
-from mkc.db.models import Turn
+from mkc.db.models import Item, Turn
 from mkc.harness.checkpoint import load_resume_context
 from mkc.harness.loop import ItemOutcome, process_run, run_item
 from mkc.harness.states import ItemState
-from mkc.harness.tools import ToolEnv
+from mkc.harness.tools import ToolEnv, ToolRegistry
 from tests.harness.conftest import make_run, states
 from tests.harness.test_loop import (
     SAVE,
@@ -200,6 +200,31 @@ def test_a_second_writer_on_the_same_turn_raises_and_does_not_fail_the_item(
     with pytest.raises(IntegrityError):
         go(engine, item_id, model, Tools())
     with Session(engine) as session:
-        from mkc.db.models import Item
-
         assert session.get_one(Item, item_id).state == "running"
+
+
+class DatabaseDown(Tools):
+    """Every tool call meets a dropped database connection (a cache read, a draft write)."""
+
+    def registry(self) -> ToolRegistry:
+        registry = super().registry()
+
+        class Down:
+            def for_context(self, ctx: Any) -> Any:
+                return registry.for_context(ctx)
+
+            def execute(self, *args: Any) -> Any:
+                raise OperationalError("select 1", {}, Exception("connection lost"))
+
+        return Down()  # type: ignore[return-value]
+
+
+def test_a_database_error_in_a_tool_call_propagates_and_the_item_can_resume(
+    engine: Engine,
+) -> None:
+    _, (item_id,) = start(engine)
+    with pytest.raises(OperationalError):
+        go(engine, item_id, fake(ai(tool_calls=[read(1)])), DatabaseDown())
+    with Session(engine) as session:
+        assert session.get_one(Item, item_id).state == "running"
+    assert go(engine, item_id, fake(ai(tool_calls=[SAVE])), Tools()).state is ItemState.DRAFT_SAVED

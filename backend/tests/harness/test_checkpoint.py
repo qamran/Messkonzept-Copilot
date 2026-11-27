@@ -118,16 +118,22 @@ def test_duplicate_call_ids_are_made_unique(engine: Engine) -> None:
 def test_the_last_turn_and_the_end_state_are_one_commit(engine: Engine) -> None:
     _, (item_id,) = start(engine)
     model = fake(ai(tool_calls=[READ]), ai(tool_calls=[SAVE]))
+    commits: list[tuple[bool, bool]] = []  # per commit: (carries turn 2, carries the end state)
     with Session(engine) as session:
 
         @event.listens_for(session, "before_commit")
         def fail_the_final_commit(s: Session) -> None:
-            if any(isinstance(o, Turn) and o.number == 2 for o in s.new):
+            turn_2 = any(isinstance(o, Turn) and o.number == 2 for o in s.new)
+            end_state = any(isinstance(o, Item) and o.state != "running" for o in s.dirty)
+            commits.append((turn_2, end_state))
+            if turn_2 or end_state:
                 raise RuntimeError("database gone")
 
         with pytest.raises(RuntimeError, match="database gone"):
             run_item(item_id, session=session, client=client_for(model),
                      registry=Tools().registry(), max_steps=3)  # fmt: skip
+    # the one commit that carries either carries both: a split would show (True, False) first
+    assert [c for c in commits if any(c)] == [(True, True)]
     assert [r.number for r in turns(engine, item_id)] == [1]
     with Session(engine) as session:
         assert session.get_one(Item, item_id).state == "running"
