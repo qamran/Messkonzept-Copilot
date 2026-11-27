@@ -1,6 +1,6 @@
 # Lane D: RAG
 
-**Last updated:** 27.11.2026, 21:00
+**Last updated:** 27.11.2026, 21:03
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -75,6 +75,7 @@ The tests import these; module paths and names are fixed, internals are free.
 
 ## Recent log
 
+- **27.11.2026 21:03** Development agent: `mkc.rag.fetch` (https only, same-host redirects, 20 MB cap; gesetze-im-internet.de HTML to one line per heading and Absatz; PDFs refused until MKC-21's PDF library); `uv run pytest tests/rag/test_fetch_unit.py -q`: `13 passed`. Offline check on the real pages fetched at 20:3x into the session scratch folder (not the repo): EnWG § 14a gives 4 chunks, the MsbG 220 chunks (largest 7836 characters).
 - **27.11.2026 21:00** Development agent: `#185` closed; red unit tests for the HTTP fetcher and `mkc corpus load` (`uv run pytest tests/rag/test_fetch_unit.py tests/rag/test_cli_unit.py -q`: `11 failed, 1 passed, 4 errors in 1.23s`).
 - **27.11.2026 20:59** Development agent: `mkc.rag.loader` (`load_corpus`, `check_cache_dir`, `CorpusLicenceError`, `CorpusLoadError`; optional read-through cache keyed by URL and version); `uv run pytest tests/rag -q`: `61 passed, 1 deselected, 4 warnings, 2 errors in 16.64s` (the 2 errors are the CLI tests, next).
 - **27.11.2026 20:58** Development agent: `#184` closed; red unit tests for `load_corpus` (`uv run pytest tests/rag/test_loader_unit.py -q`: `7 failed in 1.67s`).

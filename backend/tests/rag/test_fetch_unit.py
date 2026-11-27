@@ -148,3 +148,20 @@ def test_a_body_over_the_size_limit_is_refused(monkeypatch: pytest.MonkeyPatch) 
 
     with pytest.raises(CorpusFetchError, match="large"):
         _fetcher(handler)(_source())
+
+
+SINGLE_PARAGRAPH_HTML = b"""<html><body><div id="paddingLR12">
+<div class="jnheader"><a name="x"/><a href="index.html">Nichtamtliches Inhaltsverzeichnis</a>
+<h1>Gesetz (EnWG)<br /><span class="jnenbez">&#167; 14a</span>&#160;
+<span class="jnentitel">Netzorientierte Steuerung</span></h1></div>
+<div><div class="jnhtml"><div><div class="jurAbsatz">(1) Erster.</div>
+<div class="jurAbsatz">(2) Zweiter.</div></div></div></div>
+</div></body></html>
+"""
+
+
+def test_a_single_paragraph_page_without_a_norm_wrapper() -> None:
+    from mkc.rag.fetch import law_text
+
+    text = law_text(SINGLE_PARAGRAPH_HTML.decode())
+    assert text == "§ 14a Netzorientierte Steuerung\n(1) Erster.\n(2) Zweiter.\n"
