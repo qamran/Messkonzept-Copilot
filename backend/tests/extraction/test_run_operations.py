@@ -33,7 +33,6 @@ ITEM_ENV = ToolEnv(run_id=1, item_id=2, document_hash="h", concept_key="1")
 
 def _registry(sessions: sessionmaker[Session], store: MemoryStore, *pdfs: bytes) -> Any:
     from mkc.extraction.operations import DocumentOps
-
     from mkc.harness.registry import default_registry
 
     get = FakeGet([(URL_OK, pdf) for pdf in pdfs])
@@ -156,9 +155,8 @@ def test_run_start_needs_exactly_one_source(engine: Engine, cli_docs: MemoryStor
 def test_a_failed_fetch_creates_no_run(
     engine: Engine, sessions: sessionmaker[Session], monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from mkc.extraction.operations import DocumentOps
-
     from mkc.cli import app
+    from mkc.extraction.operations import DocumentOps
 
     runs_before = rows(engine, "select count(*) from run")
     get = FakeGet([("https://evil.example/x.pdf", make_pdf(berlin_pages(["1"])))])
