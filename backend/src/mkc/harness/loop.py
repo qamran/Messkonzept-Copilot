@@ -106,32 +106,49 @@ def run_item(
             raise
         except Exception as error:
             reason = f"model_error: {type(error).__name__}"
-            return _finish(session, item_id, None, ItemState.FAILED, reason, step, cost)
+            return _finish(
+                session, item_id, None, ItemState.FAILED, reason, step, cost, inline_max_bytes
+            )
         step_cost = Decimal(str(reply.usage.cost_eur))
         cost += step_cost
         calls = _with_ids(reply.tool_calls, step)
         assistant = Message(role="assistant", content=reply.text, tool_calls=calls)
         if not calls:
             turn = _turn(item_id, step, assistant, [], step_cost)
-            return _finish(session, item_id, turn, ItemState.FAILED, "no_tool_call", step, cost)
+            return _finish(
+                session,
+                item_id,
+                turn,
+                ItemState.FAILED,
+                "no_tool_call",
+                step,
+                cost,
+                inline_max_bytes,
+            )
         try:
             results, saved = _run_calls(registry, calls, env)
         except _ToolErrorEscaped as escaped:
             answered = _answer_the_rest(calls, escaped)
             turn = _turn(item_id, step, assistant, answered, step_cost)
             reason = f"tool_error: {type(escaped.error).__name__}"
-            return _finish(session, item_id, turn, ItemState.FAILED, reason, step, cost)
+            return _finish(
+                session, item_id, turn, ItemState.FAILED, reason, step, cost, inline_max_bytes
+            )
         turn = _turn(item_id, step, assistant, results, step_cost)
         if saved:
-            return _finish(session, item_id, turn, ItemState.DRAFT_SAVED, None, step, cost)
-        save_turn(session, turn)
+            return _finish(
+                session, item_id, turn, ItemState.DRAFT_SAVED, None, step, cost, inline_max_bytes
+            )
+        save_turn(session, turn, inline_max_bytes=inline_max_bytes)
         session.commit()
         messages.append(assistant)
         messages += [
             Message(role="tool", content=r["content"], tool_call_id=r["tool_call_id"])
             for r in results
         ]
-    return _finish(session, item_id, None, ItemState.FAILED, "step_limit", max_steps, cost)
+    return _finish(
+        session, item_id, None, ItemState.FAILED, "step_limit", max_steps, cost, inline_max_bytes
+    )
 
 
 def process_run(
@@ -246,11 +263,12 @@ def _finish(
     reason: str | None,
     steps: int,
     cost: Decimal,
+    inline_max_bytes: int,
 ) -> ItemOutcome:
     """Store the last turn (if any) and the item's end state in one commit."""
     item = session.get_one(Item, item_id)
     if turn is not None:
-        save_turn(session, turn)
+        save_turn(session, turn, inline_max_bytes=inline_max_bytes)
     item.state = transition(ItemState(item.state), state).value
     item.failure_reason = reason
     session.commit()

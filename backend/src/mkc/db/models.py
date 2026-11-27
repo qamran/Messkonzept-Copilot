@@ -12,6 +12,7 @@ from sqlalchemy import (
     Identity,
     Index,
     Integer,
+    LargeBinary,
     Numeric,
     String,
     Text,
@@ -122,4 +123,15 @@ class Turn(Base):
     assistant: Mapped[dict[str, Any]] = mapped_column(JSONB)
     tool_results: Mapped[list[dict[str, Any]]] = mapped_column(JSONB)
     cost_eur: Mapped[Decimal] = mapped_column(Numeric(12, 6))
+    created_at: Mapped[datetime] = _created()
+
+
+class Blob(Base):
+    """A large tool output, addressed by its sha256 (MKC-16.2, decision 56)."""
+
+    __tablename__ = "blob"
+
+    sha256: Mapped[str] = mapped_column(String(64), primary_key=True)
+    data: Mapped[bytes] = mapped_column(LargeBinary)
+    size: Mapped[int] = mapped_column(Integer)
     created_at: Mapped[datetime] = _created()

@@ -105,7 +105,11 @@ def test_0005_creates_blob_and_downgrades(database_env: URL) -> None:
         try:
             with engine.connect() as conn:
                 insp = inspect(conn)
-                return {c["name"] for c in insp.get_columns("blob")} if insp.has_table("blob") else set()
+                return (
+                    {c["name"] for c in insp.get_columns("blob")}
+                    if insp.has_table("blob")
+                    else set()
+                )
         finally:
             engine.dispose()
 

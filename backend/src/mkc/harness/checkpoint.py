@@ -4,6 +4,7 @@ A turn is one model response plus the results of all its tool calls. `save_turn`
 a complete turn: every call paired with its result, in call order.
 """
 
+import json
 from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any
@@ -11,7 +12,7 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from mkc.db.models import Turn
-from mkc.harness.blobs import BlobStore
+from mkc.harness.blobs import BlobStore, DbBlobStore
 from mkc.models.types import Message
 
 INLINE_MAX_BYTES = 16384
@@ -31,7 +32,11 @@ class TurnRecord:
 
 def stored_result(entry: dict[str, Any], blobs: BlobStore) -> dict[str, Any]:
     """The full tool result of a stored turn entry, inline or from its blob ref."""
-    raise NotImplementedError
+    if "result_ref" in entry:
+        result: dict[str, Any] = json.loads(blobs.get(entry["result_ref"]["ref"]))
+        return result
+    stored: dict[str, Any] = entry["result"]
+    return stored
 
 
 def save_turn(
@@ -43,7 +48,9 @@ def save_turn(
 ) -> None:
     """Add the turn's row to `session` without committing; the caller commits.
 
-    Raises `ValueError` unless the results answer the calls one to one, in call order.
+    Raises `ValueError` unless the results answer the calls one to one, in call order. A
+    result whose JSON is over `inline_max_bytes` goes to `blobs` (default: `DbBlobStore` on
+    the same session, so in the same transaction) and the row keeps `result_ref`.
     """
     call_ids = [call.id for call in turn.assistant.tool_calls]
     result_ids = [result["tool_call_id"] for result in turn.results]
@@ -55,9 +62,19 @@ def save_turn(
             number=turn.number,
             assistant=turn.assistant.model_dump(mode="json"),
             tool_results=[
-                {key: value for key, value in result.items() if key != "content"}
+                _stored(result, blobs or DbBlobStore(session), inline_max_bytes)
                 for result in turn.results
             ],
             cost_eur=turn.cost_eur,
         )
     )
+
+
+def _stored(result: dict[str, Any], blobs: BlobStore, inline_max_bytes: int) -> dict[str, Any]:
+    entry = {key: value for key, value in result.items() if key not in ("content", "result")}
+    data = json.dumps(result["result"], ensure_ascii=False, sort_keys=True).encode()
+    if len(data) > inline_max_bytes:
+        entry["result_ref"] = {"ref": blobs.put(data), "bytes": len(data)}
+    else:
+        entry["result"] = result["result"]
+    return entry
