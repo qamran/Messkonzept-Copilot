@@ -3,35 +3,51 @@
 import logging
 import signal
 import threading
+from collections.abc import Callable
 from types import FrameType
+from typing import Any
 
 from sqlalchemy.orm import Session, sessionmaker
 
 from mkc.config import Settings, get_settings
 from mkc.db.session import get_engine
-from mkc.models.client import ModelClient
+from mkc.models.client import CallTrace, ModelClient
 from mkc.observability.langfuse import LangfuseSink
 from mkc.observability.trace import Tracer
 from mkc.worker.executor import Executor
 
 log = logging.getLogger("mkc.worker")
 
+ModelTracer = Callable[[CallTrace], None]
+
 _STOP_SIGNALS = (signal.SIGTERM, signal.SIGINT)
 
 
 def build_executor(
-    settings: Settings, sessions: sessionmaker[Session], *, sink: LangfuseSink | None = None
+    settings: Settings,
+    sessions: sessionmaker[Session],
+    *,
+    sink: LangfuseSink | None = None,
+    make_client: Callable[[Settings, list[ModelTracer]], ModelClient] | None = None,
+    **executor_kw: Any,
 ) -> Executor:
     """The worker's executor with its tracer (MKC-19): `run_log` always, Langfuse when the
     keys are set (or `sink`, built by the caller). The model client is built only once a run
-    is held."""
+    is held, by `make_client` (default `ModelClient.from_settings`). The CLI passes its own
+    `owner` and `faults` through `executor_kw` (MKC-20)."""
     tracer = Tracer(sessions, sink or LangfuseSink.from_settings(settings))
+    build = make_client or _from_settings
     return Executor(
         settings,
         sessions=sessions,
-        client_factory=lambda: ModelClient.from_settings(settings, tracers=[tracer.span_model]),
+        client_factory=lambda: build(settings, [tracer.span_model]),
         tracer=tracer,
+        **executor_kw,
     )
+
+
+def _from_settings(settings: Settings, tracers: list[ModelTracer]) -> ModelClient:
+    return ModelClient.from_settings(settings, tracers=tracers)
 
 
 def run(stop: threading.Event | None = None) -> None:

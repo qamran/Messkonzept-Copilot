@@ -38,6 +38,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 
 from mkc.config import Settings
+from mkc.harness.faults import FaultInjector
 from mkc.harness.limits import Limits, StopReason, run_usage, stop_run
 from mkc.harness.loop import SETUP_ERRORS
 from mkc.harness.runner import execute_run
@@ -83,9 +84,11 @@ class Executor:
         registry: ToolRegistry | None = None,
         owner: str | None = None,
         tracer: Tracer | None = None,
+        faults: FaultInjector | None = None,
     ) -> None:
         self.settings = settings
         self.tracer = tracer
+        self.faults = faults  # only the CLI and tests pass one (MKC-20, decision 60)
         self.owner = owner or default_owner()
         self._sessions = sessions
         self._client_factory = client_factory
@@ -138,12 +141,13 @@ class Executor:
 
     # --- work -------------------------------------------------------------------------------
 
-    def run_once(self) -> bool:
-        """Claim one run and process it. False when there was no run to claim."""
+    def run_once(self, run_id: int | None = None) -> bool:
+        """Claim one run (`run_id`, or the oldest claimable) and process it. False when there
+        was no run to claim."""
         if self._stop.is_set():
             return False
         try:
-            run_id = self._claim()
+            run_id = self._claim(run_id)
         except SQLAlchemyError as error:
             self._database_error(None, error)
             return False
@@ -166,10 +170,13 @@ class Executor:
                 self.tracer.flush()  # bounded by the export timeout; never raises
         return True
 
-    def _claim(self) -> int | None:
+    def _claim(self, run_id: int | None = None) -> int | None:
         with self._sessions() as session:
             run = claim_run(
-                session, owner=self.owner, lease_seconds=self.settings.worker_lease_seconds
+                session,
+                owner=self.owner,
+                lease_seconds=self.settings.worker_lease_seconds,
+                run_id=run_id,
             )
             run_id = None if run is None else run.id
             session.commit()
@@ -190,6 +197,7 @@ class Executor:
                     client=client,
                     registry=self._registry,
                     tool_tracers=self._tool_hooks,
+                    faults=self.faults,
                     limits=Limits.from_settings(settings),
                     inline_max_bytes=settings.turn_inline_max_bytes,
                     code_version=settings.commit,

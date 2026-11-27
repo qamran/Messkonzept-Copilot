@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 17:57
+**Last updated:** 27.11.2026, 18:01
 
 This file is how agents resume work after a session restart.
 
@@ -191,6 +191,7 @@ This file is how agents resume work after a session restart.
 
 ## Recent log
 
+- **27.11.2026 18:01** MKC-20.4: edge `stopped -> running` (`stopped` left `TERMINAL`; `settle_run` still leaves a stopped run alone), `claim_run(run_id=...)`, `Executor(faults=...)` and `run_once(run_id)`, `build_executor(make_client=..., **executor_kw)`.
 - **27.11.2026 17:57** MKC-20.4 red: 14 CLI tests (Typer runner, test database, fake model through `mkc.cli.make_client`) and the state tests for the resume edge fail on assertions; skeleton `mkc.cli`, `claim_run(run_id=...)` accepted but not used yet; `typer==0.29.3` added (with `uv.lock`).
 - **27.11.2026 17:55** MKC-20.3 green: `FaultInjector` (each fault once per injector), tool error code `timeout`, `backend/data/e4_faults.yaml` (one plan per fault type). Fault tests 10 passed; full backend suite 595 passed, 1 skipped; ruff, mypy clean. The fire-once test passed a dict as a tool call (test bug, fixed).
 - **27.11.2026 17:52** MKC-20.3 red: 10 fault tests fail on assertions (no backoff, no timeout result, no re-prompt, no kill, no plans); the loop passes `faults` to its three hooks (model call, tool call, item end), which do nothing yet. `926bf67` is 221 lines with HANDOFF, not 208 as logged.
