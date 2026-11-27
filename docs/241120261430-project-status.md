@@ -212,3 +212,11 @@ User choices:
   - latency per query: `RetrievalTrace`; with a run scope a `run_log` row of kind `retrieval` and a Langfuse `retriever` observation, otherwise a log line (decision 80); `EmbeddingClient` trace hooks (`EmbedTrace`)
   - MKC-49 review findings: https-only tests, the `§` heading rule, any cache inside the repo refused, the image ships `corpus_sources.yaml` and `MKC_CORPUS_SOURCES_FILE` (decision 81)
 - **LLM spend (MKC-50):** two live runs of `tests/rag/test_retriever_live.py` (EnWG § 14a and the synthetic law loaded, two query embeddings): run 2 cost EUR 0.0000178 (1,949 tokens); run 1's cost was not printed (the same texts). Logged in `handoff/lane-d.md`.
+
+## Lane A2: SachsenNetze segmentation (MKC-27)
+
+- **State (27.11.2026):** built on `mkc-27-sachsen-segment`; the test agent's mutation pass killed 63 of 72 applied mutants; the coordinator accepted the 9 survivors (near-equivalent or not pinned on purpose); PR #214 is open, the ticket is in `Testing`. Sub-issues MKC-27.1 and 27.2 (`#201`, `#202`).
+- **Built:** `mkc/extraction/sachsen.py` (`segment_sachsen`), registered as `SEGMENTERS["sachsennetze"]`, so `mkc run start --operator sachsennetze` queues one item per concept.
+- **Split method (decision 74):** half page, with the reasons in the plan `docs/superpowers/plans/271120262318-mkc-27-sachsen-segmentation.md`.
+- **Catalogue:** "Standard-Messkonzepte in Niederspannung", 09/2025, 9 landscape pages; 12 halves, of which the placeholder `13 / Nr. (tbd)` is not an item. The live run gives 11 regions on pages 3 to 8.
+- **LLM spend (MKC-27):** none (no model call; one public PDF fetch for the study and the live test).

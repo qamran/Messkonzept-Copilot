@@ -13,7 +13,7 @@ operators:
     name: Sachsen Netze GmbH
     voltage_level: NS
     # `Standard-Messkonzepte.pdf`, linked from the download centre (Strom); it answered 200 with
-    # application/pdf on 27.11.2026. Edition and content are not checked yet: MKC-27 (lane A2)
-    # verifies it is the low-voltage catalogue with 11 concepts before segmenting it.
+    # application/pdf on 27.11.2026. Checked by MKC-27 (lane A2): "Standard-Messkonzepte in
+    # Niederspannung", 09/2025 edition, 9 landscape pages, 11 concepts (decision 74).
     url: https://www.sachsen-netze.de/dam/jcr:d69c0bbc-3e02-4c41-8967-7050e6b3e3ad/Standard-Messkonzepte.pdf
     allowed_hosts: [www.sachsen-netze.de]
