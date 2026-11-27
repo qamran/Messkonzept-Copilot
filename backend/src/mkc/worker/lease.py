@@ -21,7 +21,9 @@ def _until(lease_seconds: float) -> object:
     return func.now() + func.make_interval(0, 0, 0, 0, 0, 0, lease_seconds)
 
 
-def claim_run(session: Session, *, owner: str, lease_seconds: float) -> Run | None:
+def claim_run(
+    session: Session, *, owner: str, lease_seconds: float, run_id: int | None = None
+) -> Run | None:
     """Take the oldest `running` or `waiting_for_database` run whose lease is free, expired
     or already `owner`'s, and lease it to `owner` for `lease_seconds`.
 
