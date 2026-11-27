@@ -114,3 +114,14 @@ def test_regions_follow_the_middle_of_any_page_width() -> None:
     left, right = segment_sachsen(pdf)
     assert left.bbox[2] <= width / 2 <= right.bbox[0]
     assert right.bbox[2] <= width
+
+
+def test_the_footer_band_keeps_a_frame_line_a_little_lower_than_page_8s() -> None:
+    from mkc.extraction.sachsen import segment_sachsen
+
+    # Page 8's bottom frame line lies at 485.8 pt; the band (491.4 pt) leaves room below it,
+    # and still ends above the logo (498 pt).
+    low = [Box(3.7, 489.0, 474.3, 489.4), Box(491.3, 489.0, 956.3, 489.4)]
+    page = [*low, *half(LEFT_X, "3-5", "Steuerbare"), *half(RIGHT_X, "3-2", "Getrennte Messung")]
+    for r in segment_sachsen(make_landscape_pdf([page])):
+        assert 489 <= r.bbox[3] < 490
