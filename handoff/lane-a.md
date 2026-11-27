@@ -1,6 +1,6 @@
 # Lane A: Extraction
 
-**Last updated:** 28.11.2026, 00:30
+**Last updated:** 28.11.2026, 00:31
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -71,6 +71,8 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 4. Coordinator: `MKC_TEST_IMAGE` in CI's `image` job, so `test_image_operators.py` runs (decision 78 (6)).
 
 ## Recent log
+
+- **28.11.2026 00:31** Test agent: mutation pass on `f0bf9e8`: 119 tried, 104 killed, 15 survived (first run 65 killed, 54 survived; 35 new tests in five commits killed 39 of them). The 15 survivors are equivalent or near-equivalent (section "Mutation pass (MKC-22)"). With the new tests: `231 passed, 1 skipped, 4 deselected in 6.51s`; `ruff check .`: "All checks passed!"; `ruff format --check .`: "230 files already formatted".
 
 - **28.11.2026 00:30** Test agent: two tests in `test_lbs_digits.py` kill L2 (`check_digit` without `isascii`) and L3 (no length check).
 
