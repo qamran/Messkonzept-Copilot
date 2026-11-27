@@ -10,13 +10,14 @@ from sqlalchemy import Engine
 from sqlalchemy.orm import Session
 
 from mkc.db.models import Turn
+from mkc.harness.limits import Limits
 from mkc.harness.loop import TOOL_RESULT_CLOSE, ItemOutcome, process_run, run_item
 from mkc.harness.queue import next_item
 from mkc.harness.states import ItemState
 from mkc.harness.tools import Tool, ToolEnv, ToolRegistry
 from mkc.models.client import ModelClient
 from mkc.models.config import ModelsConfig
-from mkc.models.types import ROLES, ModelConfigError, Provider, ReplayMiss
+from mkc.models.types import ROLES, Provider
 from tests.harness.conftest import make_run, states
 from tests.models.fakes import FakeChatModel, ai, fake
 
@@ -125,7 +126,7 @@ def run(engine: Engine, item_id: int, model: FakeChatModel, tools: Tools, **kw: 
             session=session,
             client=client_for(model),
             registry=tools.registry(),
-            max_steps=kw.get("max_steps", 5),
+            limits=Limits(max_steps_item=kw.get("max_steps", 5)),
         )
 
 
@@ -246,17 +247,17 @@ def test_a_failed_save_does_not_count_as_saved(engine: Engine) -> None:
     assert (outcome.state, outcome.steps) == (ItemState.DRAFT_SAVED, 2)
 
 
-def test_no_tool_call_fails_the_item(engine: Engine) -> None:
+def test_no_tool_call_twice_fails_the_item(engine: Engine) -> None:
     run_id, (item_id,) = start(engine)
-    outcome = run(engine, item_id, fake(ai("I am done.")), Tools())
-    assert outcome == ItemOutcome(item_id, ItemState.FAILED, "no_tool_call", 1, STEP_COST)
+    outcome = run(engine, item_id, fake(ai("I am done.")), Tools())  # repeats after the re-prompt
+    assert outcome == ItemOutcome(item_id, ItemState.FAILED, "malformed_output", 2, 2 * STEP_COST)
     assert states(engine, run_id) == ("running", ["failed"])
-    (row,) = turns(engine, item_id)  # the step still cost money; it is recorded
-    assert row.tool_results == []
+    rows = turns(engine, item_id)  # the steps still cost money; they are recorded
+    assert [row.tool_results for row in rows] == [[], []]
     with Session(engine) as session:
         from mkc.db.models import Item
 
-        assert session.get_one(Item, item_id).failure_reason == "no_tool_call"
+        assert session.get_one(Item, item_id).failure_reason == "malformed_output"
 
 
 def test_step_limit_fails_the_item(engine: Engine) -> None:
@@ -316,7 +317,7 @@ def test_queue_continues_while_drafts_pending(engine: Engine) -> None:
     with Session(engine) as session:
         outcomes = process_run(
             run_id, session=session, client=client_for(model), registry=tools.registry(),
-            max_steps=5,
+            limits=Limits(max_steps_item=5),
         )  # fmt: skip
     assert [(o.item_id, o.state) for o in outcomes] == [
         (ids[0], ItemState.DRAFT_SAVED),
@@ -328,11 +329,11 @@ def test_queue_continues_while_drafts_pending(engine: Engine) -> None:
 
 def test_a_failed_item_does_not_stop_the_queue(engine: Engine) -> None:
     run_id, _ = make_run(engine, "queued", "queued")
-    model = fake(ai("no tools"), ai(tool_calls=[SAVE]))
+    model = fake(ai("no tools"), ai("no tools"), ai(tool_calls=[SAVE]))
     with Session(engine) as session:
         outcomes = process_run(
             run_id, session=session, client=client_for(model), registry=Tools().registry(),
-            max_steps=5,
+            limits=Limits(max_steps_item=5),
         )  # fmt: skip
     assert [o.state for o in outcomes] == [ItemState.FAILED, ItemState.DRAFT_SAVED]
     assert states(engine, run_id) == ("awaiting_approval", ["failed", "draft_saved"])
@@ -343,23 +344,9 @@ def test_a_run_whose_items_all_fail_is_done(engine: Engine) -> None:
     with Session(engine) as session:
         process_run(
             run_id, session=session, client=client_for(fake(ai("no"))),
-            registry=Tools().registry(), max_steps=5,
+            registry=Tools().registry(), limits=Limits(max_steps_item=5),
         )  # fmt: skip
     assert states(engine, run_id) == ("done", ["failed"])
 
 
-# --- setup errors stop the run instead of failing every item ------------------------------
-
-
-@pytest.mark.parametrize("error", [ModelConfigError("no OPENROUTER_API_KEY"), ReplayMiss("k")])
-def test_setup_errors_propagate_and_the_run_is_not_settled(
-    engine: Engine, error: Exception
-) -> None:
-    run_id, _ = make_run(engine, "queued", "queued")
-    with Session(engine) as session, pytest.raises(type(error)):
-        process_run(
-            run_id, session=session, client=client_for(fake(error=error)),
-            registry=Tools().registry(), max_steps=5,
-        )  # fmt: skip
-    # not `done`: the second item was never tried, and the first is left for resume (MKC-16)
-    assert states(engine, run_id) == ("running", ["running", "queued"])
+# The setup errors moved to `test_model_stops.py` (MKC-18: they stop the run).

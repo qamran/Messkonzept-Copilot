@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from mkc.db.models import Item, Turn
 from mkc.harness.checkpoint import TurnRecord, save_turn
+from mkc.harness.limits import Limits
 from mkc.harness.loop import run_item
 from mkc.harness.tools import ToolRegistry
 from mkc.models.types import Message, ToolCall
@@ -88,8 +89,13 @@ def test_a_tool_error_turn_answers_every_call(engine: Engine) -> None:
     _, (item_id,) = start(engine)
     reply = ai(tool_calls=[READ, call("extract_text", "c5", page=2), call("save_draft", "c6")])
     with Session(engine) as session:
-        outcome = run_item(item_id, session=session, client=client_for(fake(reply)),
-                           registry=Exploding().registry(), max_steps=3)  # fmt: skip
+        outcome = run_item(
+            item_id,
+            session=session,
+            client=client_for(fake(reply)),
+            registry=Exploding().registry(),
+            limits=Limits(max_steps_item=3),
+        )
     assert outcome.reason == "tool_error: KeyError"
     (row,) = turns(engine, item_id)
     assert [r["tool_call_id"] for r in row.tool_results] == ["c1", "c5", "c6"]
@@ -109,7 +115,7 @@ def test_duplicate_call_ids_are_made_unique(engine: Engine) -> None:
     model = fake(ai(tool_calls=twice), ai(tool_calls=[SAVE]))
     with Session(engine) as session:
         run_item(item_id, session=session, client=client_for(model),
-                 registry=Tools().registry(), max_steps=3)  # fmt: skip
+                 registry=Tools().registry(), limits=Limits(max_steps_item=3))  # fmt: skip
     first = turns(engine, item_id)[0]
     assert [c["id"] for c in first.assistant["tool_calls"]] == ["dup-0", "dup-1"]
     assert [r["tool_call_id"] for r in first.tool_results] == ["dup-0", "dup-1"]
@@ -131,7 +137,7 @@ def test_the_last_turn_and_the_end_state_are_one_commit(engine: Engine) -> None:
 
         with pytest.raises(RuntimeError, match="database gone"):
             run_item(item_id, session=session, client=client_for(model),
-                     registry=Tools().registry(), max_steps=3)  # fmt: skip
+                     registry=Tools().registry(), limits=Limits(max_steps_item=3))  # fmt: skip
     # the one commit that carries either carries both: a split would show (True, False) first
     assert [c for c in commits if any(c)] == [(True, True)]
     assert [r.number for r in turns(engine, item_id)] == [1]
@@ -151,8 +157,13 @@ def test_renamed_call_ids_never_collide_with_an_existing_id(engine: Engine) -> N
              call("extract_text", "a-1", page=3)]  # fmt: skip
     model = fake(ai(tool_calls=clash), ai(tool_calls=[SAVE]))
     with Session(engine) as session:
-        outcome = run_item(item_id, session=session, client=client_for(model),
-                           registry=Tools().registry(), max_steps=3)  # fmt: skip
+        outcome = run_item(
+            item_id,
+            session=session,
+            client=client_for(model),
+            registry=Tools().registry(),
+            limits=Limits(max_steps_item=3),
+        )
     assert outcome.state.value == "draft_saved"
     ids = [c["id"] for c in turns(engine, item_id)[0].assistant["tool_calls"]]
     assert len(set(ids)) == 3 and ids[2] == "a-1"  # a unique id is kept as it is

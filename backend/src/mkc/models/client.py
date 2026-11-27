@@ -64,6 +64,9 @@ class CallTrace:
 
 Tracer = Callable[[CallTrace], None]
 
+Classifier = Callable[[Exception], ModelError | None]
+"""Maps a provider error to `TransientModelError` or `ModelAuthError` (None: unchanged)."""
+
 
 def _image_block(image: Image) -> dict[str, Any]:
     data = base64.b64encode(image.data).decode("ascii")
@@ -97,7 +100,10 @@ def tool_schema(spec: ToolSpec) -> dict[str, Any]:
 
 
 class ModelClient:
-    """`chat`, `chat_with_tools`, `vision` and `chat_structured` for a role."""
+    """`chat`, `chat_with_tools`, `vision` and `chat_structured` for a role.
+
+    With `classify` (set by `from_settings`), a provider error leaves as `TransientModelError`
+    or `ModelAuthError` when it is one, with the original as `__cause__` (MKC-18)."""
 
     def __init__(
         self,
@@ -107,6 +113,7 @@ class ModelClient:
         mode: ModelMode = "live",
         store: ReplayStore | None = None,
         tracers: Sequence[Tracer] = (),
+        classify: Classifier | None = None,
     ) -> None:
         if mode != "live" and store is None:
             raise ModelConfigError(f"mode {mode!r} needs a replay store (MKC_MODEL_REPLAY_DIR)")
@@ -115,12 +122,13 @@ class ModelClient:
         self._mode: ModelMode = mode
         self._store = store
         self._tracers = list(tracers)
+        self._classify = classify
 
     @classmethod
     def from_settings(cls, settings: Settings, tracers: Sequence[Tracer] = ()) -> "ModelClient":
         """The client as configured by `MKC_MODEL_MODE`, `MKC_MODELS_FILE` and
         `MKC_MODEL_REPLAY_DIR`. Keys are only checked when a live call builds a model."""
-        from mkc.models.providers import make_factory  # imports the provider packages
+        from mkc.models.providers import classify_error, make_factory  # provider packages
 
         path = Path(settings.models_file) if settings.models_file else DEFAULT_MODELS_FILE
         config = load_models_config(path)
@@ -130,7 +138,12 @@ class ModelClient:
                 raise ModelConfigError(f"mode {settings.model_mode!r} needs MKC_MODEL_REPLAY_DIR")
             store = ReplayStore(Path(settings.model_replay_dir))
         return cls(
-            config, make_factory(settings), mode=settings.model_mode, store=store, tracers=tracers
+            config,
+            make_factory(settings),
+            mode=settings.model_mode,
+            store=store,
+            tracers=tracers,
+            classify=classify_error,
         )
 
     # --- public methods ---------------------------------------------------------------
@@ -216,6 +229,9 @@ class ModelClient:
             self._trace(
                 CallTrace(role, method, self._mode, model_id, latency_ms, None, _err(error))
             )
+            mapped = self._classify(error) if self._classify is not None else None
+            if mapped is not None:
+                raise mapped from error  # transient or auth (MKC-18); the cause is kept
             raise
         self._trace(CallTrace(role, method, self._mode, model_id, latency_ms, reply.usage, None))
         return reply

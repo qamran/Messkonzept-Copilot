@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from mkc.config import Settings
 from mkc.db.models import Run, Turn
+from mkc.models.types import ModelConfigError
 from mkc.worker.executor import Executor
 from tests.harness.conftest import make_run, states
 from tests.harness.test_loop import SAVE, Tools, call, client_for
@@ -203,3 +204,26 @@ def test_a_slow_lease_renewal_does_not_delay_the_heartbeat_file(
         assert worker.run_once() is True
     assert ages[0] < 0.5
     assert turn_numbers(engine, item_id) == [1]
+
+
+# MKC-18.3: a client that can't be built is a setup error; the executor stops the run itself.
+def test_a_client_that_cannot_be_built_stops_the_run(engine: Engine) -> None:
+    run_id, _ = make_run(engine, "queued")
+
+    def broken() -> Any:
+        raise ModelConfigError("mode 'replay' needs MKC_MODEL_REPLAY_DIR")
+
+    worker = Executor(
+        settings(worker_db_backoff_max_seconds=0.1),
+        sessions=sessionmaker(bind=engine),
+        client_factory=broken,
+        registry=Tools().registry(),
+        owner="w1",
+    )
+    with worker:
+        assert worker.run_once() is True
+        assert worker.run_once() is False  # a stopped run is never claimed again
+    assert states(engine, run_id) == ("stopped", ["queued"])
+    with Session(engine) as session:
+        run = session.get_one(Run, run_id)
+        assert (run.stop_reason, run.lease_owner) == ("setup_error", None)

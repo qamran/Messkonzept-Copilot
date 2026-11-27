@@ -1,6 +1,7 @@
 """Settings from environment variables (prefix MKC_)."""
 
 import re
+from decimal import Decimal
 from typing import Annotated, Literal
 
 from pydantic import AliasChoices, Field, SecretStr, field_validator, model_validator
@@ -37,7 +38,7 @@ class Settings(BaseSettings):
     worker's run is taken over after at most this long."""
 
     worker_lease_renew_seconds: float = Field(default=20.0, gt=0)
-    """How often the heartbeat thread renews the lease; three renewals must fit into a lease."""
+    """How often the lease thread renews the lease; three renewals must fit into a lease."""
 
     worker_db_backoff_max_seconds: float = Field(default=30.0, gt=0)
     """While the database is unreachable, the worker probes it after 1, 2, 4 … seconds, at
@@ -90,8 +91,35 @@ class Settings(BaseSettings):
     """Directory of recorded replies; required in `record` and `replay` mode."""
 
     item_max_steps: int = Field(default=12, ge=1)
-    """Model calls one item may make before it fails with `step_limit` (MKC-15; MKC-18
-    replaces it with the run limits)."""
+    """Model calls one item may make before it fails with `step_limit` (MKC-15, decision 58)."""
+
+    run_max_steps: int = Field(default=300, ge=1)
+    """Model calls (stored turns) one run may make before it stops with `run_step_limit`."""
+
+    run_max_wall_seconds: float = Field(default=7200.0, gt=0)
+    """Seconds from the run's start (database clock) until it stops with `wall_time`."""
+
+    run_max_cost_eur: Decimal = Field(default=Decimal("3.00"), gt=0)
+    """EUR one run may spend (sum of its turns) before it stops with `cost_limit`."""
+
+    tool_max_retries: int = Field(default=3, ge=0)
+    """Failed calls of one tool an item may retry; one more fails it with `tool_retries`."""
+
+    model_max_retries: int = Field(default=4, ge=0)
+    """Retries of a model call after a transient error (429, 5xx, timeout); then the run stops
+    with `model_unavailable`."""
+
+    model_backoff_base_seconds: float = Field(default=2.0, gt=0)
+    """First wait before a retry; it doubles per retry (or `Retry-After`, if longer)."""
+
+    model_backoff_max_seconds: float = Field(default=60.0, gt=0)
+    """The longest wait between two attempts of a model call."""
+
+    turn_timeout_seconds: float = Field(default=180.0, gt=0)
+    """Wall-clock deadline of one model call; after it the call counts as a timeout."""
+
+    item_max_resumes: int = Field(default=3, ge=0)
+    """Resumes of an item without a new stored turn; one more fails it with `resume_limit`."""
 
     turn_inline_max_bytes: int = Field(default=16384, ge=1)
     """A tool result whose JSON is larger is stored as a blob ref, not inline in the turn row
@@ -116,6 +144,14 @@ class Settings(BaseSettings):
             raise ValueError(
                 "three renewals must fit into one lease: MKC_WORKER_LEASE_RENEW_SECONDS * 3 "
                 "> MKC_WORKER_LEASE_SECONDS"
+            )
+        return self
+
+    @model_validator(mode="after")
+    def _backoff_cap_covers_the_base(self) -> "Settings":
+        if self.model_backoff_max_seconds < self.model_backoff_base_seconds:
+            raise ValueError(
+                "MKC_MODEL_BACKOFF_MAX_SECONDS must be at least MKC_MODEL_BACKOFF_BASE_SECONDS"
             )
         return self
 

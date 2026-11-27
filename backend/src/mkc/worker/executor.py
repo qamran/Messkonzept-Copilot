@@ -7,6 +7,8 @@
   renewal that finds another owner marks the lease lost; a database error does not.
 - No error ends the worker: a database error goes to the outage handling, any other error is
   logged, the lease released and the worker pauses for `worker_db_backoff_max_seconds`.
+- A model client that can not be built (a setup error) stops the run with `setup_error`
+  (MKC-18); retries of model calls sleep on the stop flag (`wait`), so SIGTERM ends them.
 - `graceful_shutdown` (SIGTERM) lets the current turn finish and commit, then the item stays
   `running`, the lease is released and `run_once` returns. The next worker resumes at once.
 - A lost lease stops the run: `fence` refuses every later commit with `LeaseLost`.
@@ -31,6 +33,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 
 from mkc.config import Settings
+from mkc.harness.limits import Limits, StopReason, run_usage, stop_run
 from mkc.harness.loop import SETUP_ERRORS, process_run
 from mkc.harness.registry import default_registry
 from mkc.harness.tools import ToolRegistry
@@ -134,6 +137,10 @@ class Executor:
         except SQLAlchemyError as error:
             self._database_error(None, error)
             return False
+        except Exception:
+            log.exception("claim failed, backing off")
+            self.wait(self.settings.worker_db_backoff_max_seconds)
+            return False
         if run_id is None:
             return False
         held = _Held(run_id)
@@ -160,25 +167,25 @@ class Executor:
         run_id = held.run_id
         settings = self.settings
         try:
+            client = self._client_factory()
             with self._sessions() as session:
                 process_run(
                     run_id,
                     session=session,
-                    client=self._client_factory(),
+                    client=client,
                     registry=self._registry,
-                    max_steps=settings.item_max_steps,
+                    limits=Limits.from_settings(settings),
                     inline_max_bytes=settings.turn_inline_max_bytes,
                     code_version=settings.commit,
                     should_stop=lambda: self._stop.is_set() or held.lost.is_set(),
                     fence=lambda s: fence(s, run_id, owner=self.owner),
+                    sleep=self.wait,
                 )
         except LeaseLost:
             log.warning("run %s: lease lost, stopping without another write", run_id)
             return
-        except SETUP_ERRORS as error:
-            log.error("run %s: setup error %s, backing off", run_id, type(error).__name__)
-            self._release_or_wait(run_id)
-            self.wait(settings.worker_db_backoff_max_seconds)
+        except SETUP_ERRORS as error:  # only the client build: the loop stops the run itself
+            self._stop_for_setup(run_id, error)
             return
         except SQLAlchemyError as error:
             self._database_error(run_id, error)
@@ -190,6 +197,28 @@ class Executor:
             return
         if self._release_or_wait(run_id):
             log.info("run %s released by %s", run_id, self.owner)
+
+    def _stop_for_setup(self, run_id: int, error: Exception) -> None:
+        """The model client can not be built: stop the run with `setup_error` (MKC-18), so it
+        is not claimed again every few seconds, then release the lease."""
+        log.error("run %s: setup error %s, stopping the run", run_id, type(error).__name__)
+        try:
+            with self._sessions() as session:
+                stop_run(
+                    session,
+                    run_id,
+                    StopReason.SETUP_ERROR,
+                    usage=run_usage(session, run_id),
+                    fence=lambda s: fence(s, run_id, owner=self.owner),
+                    detail=type(error).__name__,
+                )
+        except LeaseLost:
+            log.warning("run %s: lease lost, stopping without another write", run_id)
+            return
+        except SQLAlchemyError as db_error:
+            self._database_error(run_id, db_error)
+            return
+        self._release_or_wait(run_id)
 
     def _release_or_wait(self, run_id: int) -> bool:
         """Release the lease; on a database error, handle it like any other. True if released."""
@@ -253,7 +282,7 @@ class Executor:
                 return True
             delay = min(delay * 2, ceiling)
 
-    # --- heartbeat thread -------------------------------------------------------------------
+    # --- the heartbeat and lease threads -----------------------------------------------------
 
     def _touch_loop(self) -> None:
         while True:
@@ -271,7 +300,7 @@ class Executor:
             return
         try:
             self._heartbeat_file.touch()
-        except OSError as exc:
+        except Exception as exc:  # no error ends this thread (MKC-17 finding 6)
             log.warning("heartbeat %s not written: %s", self._heartbeat_file, exc)
 
     def _renew(self) -> None:
@@ -289,6 +318,9 @@ class Executor:
                 )
         except SQLAlchemyError as error:  # not a lost lease: the database may be back soon
             log.warning("run %s: lease not renewed: %s", held.run_id, type(error).__name__)
+            return
+        except Exception:  # no error ends this thread (MKC-17 finding 6); retried next time
+            log.exception("run %s: lease renewal failed", held.run_id)
             return
         if not ok:
             log.warning("run %s: lease taken over by another worker", held.run_id)
