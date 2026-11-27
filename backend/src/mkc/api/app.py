@@ -9,6 +9,7 @@ from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+from mkc.advisor.api import router as advisor_router
 from mkc.api.auth import (
     KeyResolver,
     TokenVerifier,
@@ -92,4 +93,5 @@ def create_app(
             ) from None
         return summarize(last_run, last_success, settings.backup_stale_hours)
 
+    app.include_router(advisor_router)  # MKC-36
     return app

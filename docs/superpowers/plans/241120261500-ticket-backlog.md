@@ -682,6 +682,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
 - **Depends on:** MKC-13, MKC-7.
 - **Interfaces:**
   - **Produces:** `POST /api/advisor/facts {text, operator_id} -> SiteFacts`, the `SiteFacts` model (design 7, `modul14a ∈ {1, 2}`), and `required_questions(facts) -> list[Question]`.
+  - **Built (decisions 65 and 66):** also `POST /api/advisor/questions SiteFacts -> list[Question]` for the UI; out of scope is a 200 `SiteFacts` with `out_of_scope` notes and no facts.
 - **Test:**
   - `test_extracts_pv_battery_heatpump_modul2`
   - `test_only_result_changing_unknowns_are_asked`
