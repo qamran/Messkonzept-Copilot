@@ -56,8 +56,9 @@ def test_model_call_is_a_generation_in_the_run_s_trace(
     usd = json.loads(found[ATTR + "cost_details"])["total"]
     assert usd == pytest.approx(0.0003 / EUR_PER_USD)  # Langfuse counts USD
     assert found[ATTR + "metadata.item_id"] == "3" and found[ATTR + "metadata.step"] == "2"
-    assert found[ATTR + "metadata.mode"] == "live"
-    assert (span.end_time or 0) - (span.start_time or 0) == 840 * 1_000_000
+    assert json.loads(found[ATTR + "metadata.mode"]) == "live"  # metadata values are JSON
+    duration_ms = ((span.end_time or 0) - (span.start_time or 0)) / 1_000_000
+    assert 840 <= duration_ms < 850  # the call's latency, plus the time to build the span
     assert not any(key.startswith((ATTR + "input", ATTR + "output")) for key in found)
 
 
@@ -66,7 +67,7 @@ def test_replayed_call_sends_no_cost(exported: tuple[LangfuseSink, InMemorySpanE
     sink.send(TraceRecord(**(MODEL.__dict__ | {"mode": "replay"})), TRACE)
     (span,) = spans(sink, exporter)
     assert ATTR + "cost_details" not in attrs(span)
-    assert attrs(span)[ATTR + "metadata.mode"] == "replay"
+    assert json.loads(attrs(span)[ATTR + "metadata.mode"]) == "replay"
 
 
 def test_failed_call_has_level_error(exported: tuple[LangfuseSink, InMemorySpanExporter]) -> None:
