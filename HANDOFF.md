@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 11:24
+**Last updated:** 27.11.2026, 11:38
 
 This file is how agents resume work after a session restart.
 
@@ -23,7 +23,7 @@ This file is how agents resume work after a session restart.
 - **Remotes:**
   - `origin` = qamran/Messkonzept-Copilot (home, public)
   - `turing` = TuringCollegeSubmissions/qshahz-AE.CAP.AFA.1.1 (code-only mirror, no issues; ADR 005 option (c), decision 35)
-  - Both at `ff76b94` (merge of PR #138).
+  - Both at `266c37d` (merge of PR #145).
 - **`main` is protected:** PRs only, enforced for admins. Required checks: the `ci` jobs `backend`, `frontend`, `gitleaks`, `dependency-scan` and `docs` (since 25.11.2026 09:50, MKC-6.5) `image` (since 13:52, MKC-8) and `kind` (since 15:42, MKC-9); the branch must be up to date with `main`. `publish` is not required (skipped on PRs).
 - **Agent rules:** `AGENTS.md` (CLAUDE.md imports it). The development agent continues without asking and stops only for genuine decisions (decision 36).
 - **Done:**
@@ -42,6 +42,7 @@ This file is how agents resume work after a session restart.
   - MKC-13: provider layer `mkc.models`: `ModelClient` (`chat`, `chat_with_tools`, `vision`, `chat_structured`), role mapping and USD prices in the packaged `models.yaml`, EUR cost, traces, record/replay (`MKC_MODEL_MODE`, default `replay`), provider factory (OpenRouter with zero-data-retention routing and no SDK retries; Gemini; Anthropic; Meta API `api.meta.ai/v1` instead of the closed Llama API), ast guard tests, `live` contract tests (12 passed); decisions 51 and 52 (PR #127)
   - MKC-14: tool registry `mkc.harness.tools` (`Tool`, `ToolResult`, `ToolError`, `ToolTrace`, immutable `ToolRegistry` with per-context allow-lists and structured errors; refusals counted in the trace) and `mkc.harness.registry.default_registry()` (the six item tools and four run-level operations of design 8.1 as `not_implemented` placeholders); decision 53 on `side_effect` (PR #131)
   - MKC-15: item loop, work queue and states: `mkc.harness.states` (edge table, one `transition` function, AST guard test), `ToolEnv` (the harness's ids for every tool call), migration 0004 (`run`, `item`, `turn`), `mkc.harness.queue` (`next_item` with `FOR UPDATE OF item SKIP LOCKED`, `settle_run`), `mkc.harness.loop` (`run_item`, `process_run`), `MKC_ITEM_MAX_STEPS`; decision 54 (PR #138)
+  - MKC-16: checkpoints and resume: `mkc.harness.checkpoint` (`save_turn`: complete turns only; `load_resume_context`: task + `<earlier_turns>` summary + last turn), `mkc.harness.blobs` (table `blob`, migration 0005; refs for results over `MKC_TURN_INLINE_MAX_BYTES`), `mkc.harness.cache` (table `tool_cache`, migration 0006; key with the code version), `mkc.harness.drafts` (table `draft`, migration 0007; `record_key`), `process_run` resumes `running` items; `scripts/check_text_files.py`; decision 56 (PR #145)
 - **Server (set up 25.11.2026, decisions 43 and 44):** Oracle VM `mkc-k3s`, `ubuntu@92.6.240.17`, admin login with the user's key `~/.ssh/oracle_mkc`; k3s v1.37.2 with Traefik; cert-manager v1.21.3 with ClusterIssuers `letsencrypt-staging` and `letsencrypt-prod`; API host `92-6-240-17.sslip.io`; 6443 closed from outside. Vercel project `messkonzept-copilot` (scope `qamran`); GitHub environment `production` (reviewer `qamran`, `main` only, secret `VERCEL_TOKEN`). Every step: `docs/251120261645-runbook.md`.
 - **Backups (since 26.11.2026):** bucket `mkc-backups` (eu-frankfurt-1), objects `nightly/mkc-<UTC time>.sql.gz`, deleted after 14 days by the rule `delete-after-14-days`; the upload link (`mkc-backup-upload`, write only, expires 26.11.2027) is `MKC_BACKUP_UPLOAD_URL` in `mkc-secrets` on the VM and nowhere else. Where every outside setting and secret lives: runbook section of that name. A copy with the PC's full paths is in the gitignored `internal/` folder (`261120261226-settings-and-secrets-inventory.md`; local only, not backed up).
 - **How to run the frontend:** `frontend/.env.local` holds `VITE_CLERK_PUBLISHABLE_KEY` and `VITE_API_URL=http://127.0.0.1:8000` (gitignored). Run the API with `cd backend && uv run --env-file .env uvicorn mkc.api.app:create_app --factory --port 8000` (`backend/.env` has `MKC_CLERK_ISSUER`), then `cd frontend && npm run dev` (`localhost:5173`). Test sign-ins: the user's Google account (admin); a `+clerk_test@example.com` user (code `424242`) and a second Gmail account (both no role).
@@ -51,14 +52,20 @@ This file is how agents resume work after a session restart.
 
 ## In progress
 
-- **MKC-16** (#16), Turn checkpoints, resume, tool cache, idempotency. Status `Testing` again (PR #145, re-review), assigned to `qamran` (27.11.2026 09:57). Branch `mkc-16-checkpoints` from `ff76b94`. The first commit holds only the close-out of MKC-15.
-  - Plan: `docs/superpowers/plans/271120261022-mkc-16-checkpoints.md` (decision 56: blob refs in the Postgres table `blob` until MKC-21's Storage, resume keeps the item `running`, cache key with `code_version`, tools reach the DB through a factory, `save_draft` keyed by `ToolEnv`).
-  - Sub-issues: MKC-16.1 #139, 16.2 #140, 16.3 #141, 16.4 #142, 16.5 #143, 16.6 #144; `In progress` after the review FAIL (11:17:50), `Testing` again for the re-review.
-  - MKC-16.1 green: `save_turn` checks the pairing; the loop stores every turn through it; tool-error turns answer every call; duplicate call ids made unique. MKC-16.2 (#140 `In progress` 10:29): green: migration `0005` (table `blob`), `DbBlobStore`, `save_turn` stores results over 16384 bytes as `result_ref`, `stored_result` reads them back. `MKC_TURN_INLINE_MAX_BYTES` in `Settings` and `.env.example`. MKC-16.3 (#141) `In progress` 10:34. MKC-16.3 green: `load_resume_context` (task + `<earlier_turns>` summary in one user message + last turn, blob refs rehydrated), `run_item` continues number, steps and cost, `queue.resumable_item` served first by `process_run`. MKC-16.4 (#142) `In progress` 10:38. MKC-16.4 green: migration `0006` (table `tool_cache`), `ToolCache` (key: tool, code version, sha256 of the validated args, document hash; `ok` results only; each write commits), `Tool.cacheable` on `extract_text`, `extract_tables`, `render_region`, hits traced `cached=True`; `run_item(..., code_version=None)` = cache off. MKC-16.5 (#143) `In progress` 10:41. MKC-16.5 green: migration `0007` (table `draft`, unique `(document_hash, concept_key)`), `record_key(env)`, `make_save_draft(sessions)` (upsert in its own transaction), `default_registry(..., sessions=...)`. MKC-16.6 (#144) `In progress` 10:44. MKC-16.6: decision 56 in the design doc (section 18, 8.2, 8.3), ADR 001, the backlog (notes on MKC-21, MKC-30, MKC-31), the status doc and the plan (rulings). Pre-PR review (fresh agent, finished before 10:50): no Critical; Important 1 (`process_run` drops `code_version` and `inline_max_bytes`) and Minor 1 (`ToolCache` commits the loop's session) fixed; Important 2 deferred to MKC-18 (resume-attempt cap) and MKC-22 (NUL in PDF text). Backlog notes on MKC-18, MKC-22, MKC-23. PR #145 opened 10:59:34; #16 and #139–#144 `Testing` (11:00), criteria ticked. Review (Fable) FAIL at 11:16:41: B1, commit `0c1f966` wrote a raw NUL byte into the backlog, so git stored the whole file as CRLF (1,848 lines). #16 and #139–#144 back to `In progress` (11:17:50). Next: fix B1 and the cheap non-blocking findings (2, 4–10), then a re-review.
+- **MKC-17** (#17), Run executor (worker with lease). Status `In progress`, assigned to `qamran` (27.11.2026 11:37:38). Branch `mkc-17-run-executor` from `266c37d`. The first commit holds only the close-out of MKC-16.
+  - Next: read the ticket, write the plan and the sub-issues. The worker must call `process_run` with `code_version=Settings.commit`, `inline_max_bytes=Settings.turn_inline_max_bytes` and `default_registry(sessions=...)` (backlog note on MKC-17, decision 56).
 
 ## Next steps
 
-1. MKC-16: see "In progress".
+1. MKC-17: see "In progress".
+   - MKC-16, non-blocking findings of the PR #145 re-review (comment 27.11.2026 11:30:07), for the tickets named:
+     - 1: decision 56 was taken by the development agent; the user has since made the Storage bucket `mkc-storage` and its key for MKC-21 (27.11.2026; the clock times were not recorded); the Postgres table `blob` stays until MKC-21
+     - 2 (MKC-18): a `ValueError` from `save_turn` or `record_key` in the loop leaves the item `running`, with no cap on resumes
+     - 3: `_valid_args` repeats the argument check of `_run`; the two can drift apart
+     - 4 (E4/E9): after a resume the model sees earlier turns only as tool, arguments and `ok`; watch for re-reads
+     - 5: the PR body's B1 line shows the token as a control character, and there are four commits over 200 lines (with `b8421b3`, the line-ending restore, 1,856 lines)
+     - 6: `check_text_files.py` picks text files by suffix and a short name list
+     - 7: the HANDOFF entry "11:24-11:24" should have been one time
 2. MKC-15, non-blocking findings of the PR #138 review (comment 27.11.2026 09:49), and the deferred minors of the pre-PR review (listed in the PR body), for the tickets named:
    - 1: process, disclosed: `8fc77aa` 503 lines, `8d380c6` 201; `daeb2ce` has no HANDOFF change; `d2f883d` holds red tests and fix together; the guard test passed on its first run
    - 2: HANDOFF times: `Last updated` of `6853c47` (09:23 vs 09:21:09), `435ab83` (09:01 vs 09:00:21) and `54c8e52` (09:44 vs 09:43:17) were ahead of the commit; #15 `Testing` was 09:42:49, not 09:43; the HANDOFF named head `d2f883d`, the PR head was `54c8e52`
@@ -152,6 +159,8 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+
+- **27.11.2026 11:30-11:38** PR #145 re-review PASS (Fable, comment 11:30:07; 7 non-blocking findings, see Next steps), merged as `266c37d` (11:30:11); #16 and #139 to #144 closed and `Done` (11:31:30). `main` pushed to `turing` (11:30:39); `origin/main` = `turing/main` = `266c37d`. `cd` run 45982634658 green: `image` 11:30:17 to 11:34:25; `backend` approved by the development agent (decision 51) at 11:34:53, ran 11:34:55 to 11:35:56 (migrations 0005 to 0007 by the hook Job); `frontend` approved at 11:36:16, ran 11:36:17 to 11:36:58. Checked afterwards: `/api/version` = `266c37d...`, `/health` 200, `/api/admin/backup-status` without a token 401, the site 200. The user made the Supabase Storage bucket `mkc-storage` (private, 50 MB) and the S3 key `mkc-backend` for MKC-21; the five `MKC_STORAGE_*` values are in `backend/.env` (checked by name, no quotes); the user also removed the quotes from every value there. Runbook inventory updated. MKC-17 (#17) assigned to `qamran` and set to `In progress` (11:37:38); branch `mkc-17-run-executor` from `266c37d`.
 
 - **27.11.2026 11:24-11:24** MKC-16: Docker Desktop shut down (11:24:05); PR #145 body updated with review round 1; #16 and #139 to #144 set to `Testing` again. Next: re-review by the review agent (Fable).
 
