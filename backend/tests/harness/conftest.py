@@ -21,7 +21,7 @@ def engine(database_env: URL) -> Iterator[Engine]:
     command.upgrade(Config(str(ALEMBIC_INI)), "head")
     eng = create_engine(database_env)
     with eng.begin() as conn:
-        conn.execute(text("truncate turn, item, run restart identity cascade"))
+        conn.execute(text("truncate run_log, turn, item, run restart identity cascade"))
     try:
         yield eng
     finally:
