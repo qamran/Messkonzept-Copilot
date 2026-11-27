@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 19:20
+**Last updated:** 27.11.2026, 19:21
 
 This file is how agents resume work after a session restart.
 
@@ -207,6 +207,7 @@ From MKC-168 (decision 61), tickets run in parallel lanes. Each lane keeps its o
 
 ## Recent log
 
+- **27.11.2026 19:21** MKC-168.3: `tests/db/test_migration_heads.py` (`test_single_migration_head` on the real versions folder; `test_a_forked_revision_makes_two_heads` on a temp copy, no database). Red shown with a forked revision `9999fork` (down_revision `0010`) put in the real folder: 2 failed, "two or more migration heads [0011, 9999fork]"; removed: 2 passed. #171 `In progress` (19:21:00).
 - **27.11.2026 19:20** MKC-168.2: the "Recent log" entries of 24.11. to 26.11.2026 (325 lines) moved unchanged to `handoff/271120261920-handoff-log-archive.md` (checked: the moved block is a substring of the old file); this file keeps the entries of 27.11.2026, all sections and the findings under Next steps. markdownlint 0 errors; `check_handoff.py` exit 0.
 - **27.11.2026 19:20** MKC-168.2 green: `check_handoff.py` checks `handoff/TEMPLATE.md` and every `handoff/lane-*.md` (`Last updated`, In progress, Next steps, Recent log) and wants `## Lanes` in this file; the Lanes table added above. `tests/test_check_handoff.py` 9 passed; `check_handoff.py` exit 0; markdownlint 0 errors on both files.
 - **27.11.2026 19:19** MKC-168.2 red: `handoff/TEMPLATE.md` (a lane's `Last updated`, In progress, Next steps, Recent log) and `tests/test_check_handoff.py`: 6 failed on assertions (lane files and the template are not checked; HANDOFF.md has no `## Lanes`), 3 passed. #170 `In progress` (19:18:55). `e51b239` (gate) is 201 lines.
