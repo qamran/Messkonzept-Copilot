@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 17:44
+**Last updated:** 27.11.2026, 17:45
 
 This file is how agents resume work after a session restart.
 
@@ -58,7 +58,7 @@ This file is how agents resume work after a session restart.
 - **MKC-20** (#20), Baseline mode, failure injection and CLI. Status `In progress`, assigned to `qamran` (27.11.2026 17:14:51). Branch `mkc-20-baseline-cli` from `21f5eb8`. The first commit holds only the close-out of MKC-19.
   - Plan: `docs/superpowers/plans/271120261738-mkc-20-baseline-faults-cli.md` (decision 60: baseline is the same loop with five switches off; fault hooks; CLI; MKC-19 findings 1 to 3).
   - Sub-issues: MKC-20.1 #162 (`In progress`), MKC-20.2 #163, MKC-20.3 #164, MKC-20.4 #165, MKC-20.5 #166 (`Ready`).
-  - MKC-20.1: done (config test green). Next: MKC-20.2, baseline in the loop.
+  - MKC-20.1: done (config test green). MKC-20.2 (#163 `In progress` 17:43:47): red tests `tests/harness/test_baseline.py`, `tests/worker/test_executor_mode.py` with skeletons `mkc.harness.baseline`, `mkc.harness.runner`. Next: the switches in the loop.
 
 ## Next steps
 
@@ -191,6 +191,7 @@ This file is how agents resume work after a session restart.
 
 ## Recent log
 
+- **27.11.2026 17:45** MKC-20.2 red: 7 baseline tests fail on assertions (turn rows, draft rows, cache rows, no memory, item left `running`); the full-mode twins pass. `d3d20e0` (17:43:36) said `Last updated` 17:44, ahead of git.
 - **27.11.2026 17:44** MKC-20.1 green: `mkc.harness.mode` (`HarnessMode`, `Switches`, `SWITCHES`), `MKC_HARNESS_MODE` (default `full`), migration 0011 `run.mode` (server default `full`); the `Limits` note that baseline drops the re-prompt is corrected. `test_mode.py` and `tests/db` 28 passed; ruff, mypy clean.
 - **27.11.2026 17:42** MKC-20.1 red (`61d71e2`, 17:42:29): config test (6 failed on assertions and the missing setting) and migration test for `run.mode`. Its `Last updated` said 17:47 and the plan commit `7bcb8be` (17:40:59) said 17:42, both ahead of git (corrected here).
 - **27.11.2026 17:38-17:41** MKC-20: plan written (decision 60, advisor-checked: baseline as switches in the existing loop, not a second loop); sub-issues MKC-20.1 #162 to MKC-20.5 #166 created 17:39:50-17:40:31 (GitHub `createdAt`), assigned to `qamran`, linked to #20 and put on the board (#162 `In progress`, the rest `Ready`, set by 17:40:40).
