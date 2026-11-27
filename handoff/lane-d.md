@@ -1,6 +1,6 @@
 # Lane D: RAG
 
-**Last updated:** 28.11.2026, 00:41
+**Last updated:** 28.11.2026, 00:43
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -95,6 +95,7 @@ The test agent, on `f1e9ee3`. One hand-written mutant at a time, applied exactly
 
 ## Recent log
 
+- **28.11.2026 00:43** Development agent: `bash scripts/pre_pr.sh` exit 1 at `0b92b87` (00:43): only `ruff format --check` failed (`tests/rag/test_retrieval_trace.py`, line endings of the appended pin test); `ruff format` fixed it.
 - **28.11.2026 00:41** Development agent: after the mutation pass and the coordinator's merge of `main` (`c9a2b58`): a pin test for `MAX_K = 20` and `CANDIDATES = 50` (decision 79 names both values; kills survivors 1 and 2), and the top docstring of `mkc/models/client.py` names `DecisionClient` and `EmbeddingClient` too (coordinator grant). The coordinator accepted all 4 survivors and the test agent's new pins.
 - **28.11.2026 00:39** Test agent: mutation pass on `f1e9ee3`, written up under "Mutation pass (MKC-50)". First run: 108 tried, 86 killed, 22 survived. Against the new tests (`da5d8c6`, `06c8798`, `c4963f6`), the 22 survivors were rerun: 18 killed, 4 survived (all near-equivalent). Final: 108 tried, 104 killed, 4 survived. `uv run pytest tests/rag tests/observability tests/models -q` with the new tests: `349 passed, 14 deselected, 4 warnings in 17.09s`.
 - **28.11.2026 00:39** Test agent (mutation pass): two tests in `tests/rag/test_embedding_trace_unit.py` kill C7, C13 (latency 0 on error / success) and E2, E4 (query format with a space, or without the instruction); `uv run pytest tests/rag/test_embedding_trace_unit.py -q`: `9 passed in 4.89s`.
