@@ -3,6 +3,7 @@
 - **Status:** accepted
 - **Date:** 24.11.2026
 - **Design reference:** design doc sections 6, 9, 11 and 20 (Phase 7)
+- **Amended:** 27.11.2026, the spike result (MKC-46, decisions 68 and 69; section at the end)
 
 ## Context
 
@@ -49,3 +50,23 @@ An independent review of the design found that both were added late without budg
 - Retrieved passages are untrusted input; the injection guard screens them as well.
 - If the Jev spike fails, E8 reports the LLM fallback against a smaller alternative, and the README states why.
 - `langchain-typesafe` is pinned; any breakage is contained by the fallback switch.
+
+## Spike result (MKC-46, 27.11.2026): the call path works
+
+The development agent of lane C ran the spike (decisions 68 and 69).
+
+- **Working path:** `langchain-typesafe==0.1.0`'s `TypeSafeClassifier` with `base_url="https://openrouter.ai/api"` and our OpenRouter key. It posts to `https://openrouter.ai/api/v1/systemone`.
+  - OpenRouter's API spec (`https://openrouter.ai/openapi.yaml`, read 27.11.2026) documents this path as "System One": "Compatible with the TypeSafe SDKs".
+  - The native OpenRouter route for decision models is `POST /api/alpha/decisions` (same request shape, marked alpha). It is not used: the library cannot post there without overriding its endpoint.
+- **Live evidence:** `uv run --env-file .env pytest -m live tests/decision/test_jev_live.py -v`: "1 passed in 10.26s" (27.11.2026, 20:47:56). Three Noul questions and one Choice question in one request, parsed into our typed answers.
+  - The same request through `build_decision_model` and `DecisionClient` with a logging hook (20:48:21): HTTP 200, `has_pv` 0.99, `has_heat_pump` 0.99, `has_wallbox` 0.02, `scope` = `household` (confidence 1), `usage.cost` 0.000017934 (USD).
+- **Model id:** `~typesafe/jev-latest` resolved to `typesafe/jev-1.14-20261014`. Thresholds are pinned per model id, so MKC-48 records the resolved id (`Decisions.model_id`) and may pin `typesafe/jev-1.14`.
+- **Zero data retention:** the stock library sends no routing preferences. `build_decision_model` adds `provider: {"zdr": true, "data_collection": "deny"}` (the chat models' `OPENROUTER_ROUTING`) to every body by overriding the library's `_payload`.
+  - OpenRouter honours `provider` on this path: a probe with `provider.only: ["nonexistent-provider"]` failed with 404, `failed_routing_step: "Filter by Allowed Providers"`.
+  - OpenRouter's ZDR endpoint list (`/api/v1/endpoints/zdr`) names the `typesafe/zdr` endpoints of Jev 1.14 and 1.13. The probes do not show the `zdr` filter itself rejecting an endpoint.
+- **The switch:** `MKC_DECISION_BACKEND` defaults to `llm`. The ticket allows switching to `jev` once the spike passes; it stays `llm` until MKC-47 builds the fallback and the wiring and MKC-48 compares both.
+- **Notes for MKC-47:**
+  - The API may answer a question with `{"type": "refusal"}`. `ClassifierResponse` 0.1.0 does not know it, so the whole reply fails validation (a `TypeSafeAPIResponseValidationError`). MKC-47 decides how a refusal is handled.
+  - A Noul answer may carry a `confidence`; `NoulAnswer` 0.1.0 drops it.
+  - `classify_error` already maps the library's HTTP errors by `status_code` (checked 27.11.2026: 429 and 502 are transient, 401 is an auth error) and its timeout (a `TimeoutError`). It misses `TypeSafeAPIConnectionError` and the `Retry-After` of a 429 (the library keeps the headers on the error, not on a response). MKC-47 closes both.
+- **Spend:** three calls printed a cost (`usage.cost`, USD): 0.000011886, 0.000011886 and 0.000017934. Two 404 probes and the pytest run printed none. The full log is in `handoff/lane-c.md` and the status doc.
