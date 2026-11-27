@@ -1,6 +1,6 @@
 # Lane B: Advisor
 
-**Last updated:** 27.11.2026, 20:48
+**Last updated:** 27.11.2026, 20:50
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md`. Times are local time from git and GitHub, never estimated.
 
@@ -21,6 +21,8 @@ Sub-issues (all assigned to `qamran`, on the board, linked to #36): `MKC-36.1` (
 - `MKC-36.2` (#177): built `mkc/advisor/questions.py`; `test_questions.py` and `test_questions_text.py` green (`17 passed`). Own tests in `backend/tests/advisor/test_questions_text.py` (texts, options, order).
 - `MKC-36.3` (#178): built `mkc/advisor/api.py` and the `include_router` line in `mkc/api/app.py`; `uv run pytest tests/advisor -q` gives `53 passed`. Own tests in `test_api_errors.py`; `conftest.py` re-exports the fixtures of `test_api.py`.
 - `MKC-36.4` (#180): built `frontend/src/lib/advisor.ts`, `frontend/src/components/advisor/FactsCard.tsx`, `frontend/src/pages/AdvisorPage.tsx` and the `/advisor` route in `App.tsx` (two operators as a constant); `npx vitest run`: `Test Files  10 passed (10)`, `Tests  49 passed (49)`; eslint, `tsc -b` and `npm run build` pass. `/advisor` has no nav link (`AppShell` is not lane B's file). Own tests in `FactsCard.details.test.tsx` and `AdvisorPage.details.test.tsx`.
+- `MKC-36.5` (#183): decisions 65 and 66 (67 not used so far), design section 7 `SiteFacts`, the backlog's MKC-36 entry (questions route), the status doc's MKC-36 line.
+- **Live calls:** 27.11.2026 20:49, a scratch script outside the repo, three `extract_facts` calls on synthetic text (`openrouter:google/gemini-3.8-flash`, role `facts`): the German example, a bakery, Modul 3. The provider accepted the schema; results matched (household facts; `commercial`; `modul3`). Costs from the trace: €0.0034271802, €0.005025954825, €0.004685212125; sum €0.013138. Nothing recorded for replay.
 
 ### Red tests (test agent)
 
@@ -99,6 +101,7 @@ Frontend:
 
 ## Recent log
 
+- **27.11.2026 20:50** Development agent: live check of the `facts` schema, three calls, €0.013138; docs: decisions 65, 66, design 7, backlog and status doc lines.
 - **27.11.2026 20:48** Development agent: `AdvisorPage.tsx` and the `/advisor` route; `npx vitest run` gives `Test Files  10 passed (10)`, `Tests  49 passed (49)`; eslint, `tsc -b`, `npm run build` pass.
 - **27.11.2026 20:47** Development agent: `FactsCard.tsx` (view, edit with native selects, confirm; out of scope shows the notes only); `npx vitest run src/components` gives `Test Files  5 passed (5)`, `Tests  21 passed (21)`.
 - **27.11.2026 20:47** Development agent: `frontend/src/test/setup.ts` unmounts after each test (`cleanup`): vitest runs without globals, so a second render in one file saw the first (the test agent's `FactsCard.test.tsx` renders five times).
