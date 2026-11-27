@@ -400,6 +400,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
 - **Success criteria:**
   - [ ] Trace IDs link a run to its Langfuse trace (stored on `run`)
   - [ ] One real run visible in Langfuse (screenshot or link in the status doc)
+- **As built (decision 59):** besides `span_model` and `span_tool`, `Tracer` has `span_stop` (`StopEvent`), `outage`, `start_run` (sets `run.trace_id`) and `flush`; Langfuse sits behind a `Sink` (`LangfuseSink`). `ModelClient` methods take a keyword `scope=` (`TraceScope`), `ToolEnv` gained `step` and `ToolTrace` the ids. `mkc.worker.main.build_executor` wires one tracer; `python -m mkc.observability.demo` makes the real run. Finding 18#1 (a run settling on its last limit turn) fixed here.
 
 ### MKC-20: Baseline mode, failure injection and CLI
 
