@@ -1,6 +1,6 @@
 # Lane D: RAG
 
-**Last updated:** 27.11.2026, 20:57
+**Last updated:** 27.11.2026, 20:58
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -17,8 +17,8 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
   - `MKC-49.1` (`#179`) corpus sources file: done (`4ce0e06`), closed
   - `MKC-49.2` (`#181`) chunking per paragraph: done (`49462e7`), closed
   - `MKC-49.3` (`#182`) embedding model through the provider layer: done (`97b760c`, `0871d20`), closed
-  - `MKC-49.4` (`#184`) corpus tables and migration 0012: In progress
-  - `MKC-49.5` (`#185`) corpus loader with the licence guard: Ready
+  - `MKC-49.4` (`#184`) corpus tables and migration 0012: done (`8f8117d`), closed
+  - `MKC-49.5` (`#185`) corpus loader with the licence guard: In progress
   - `MKC-49.6` (`#186`) `mkc corpus load` and the HTTP fetcher: Ready
 
 ### Pinned interfaces (MKC-49)
@@ -75,6 +75,7 @@ The tests import these; module paths and names are fixed, internals are free.
 
 ## Recent log
 
+- **27.11.2026 20:58** Development agent: `#184` closed; red unit tests for `load_corpus` (`uv run pytest tests/rag/test_loader_unit.py -q`: `7 failed in 1.67s`).
 - **27.11.2026 20:57** Development agent: migration `0012_corpus.py` (`down_revision = "0011"`; lane A also writes a `0012`, the coordinator re-chains the second) and the ORM block `MKC-49` at the end of `mkc/db/models.py` (own `Vector` type, no new dependency). `uv run pytest tests/rag/test_corpus_orm_unit.py tests/rag/test_corpus_tables.py tests/db -q -W error::sqlalchemy.exc.SAWarning`: `30 passed in 16.81s`.
 - **27.11.2026 20:55** Development agent: `#182` closed; red ORM tests for the corpus tables (`uv run pytest tests/rag/test_corpus_orm_unit.py -q`: `2 errors in 1.02s`, `relation "chunk" does not exist`).
 - **27.11.2026 20:54** Development agent: ADR 004 amendment and decision 71 (embedding model `qwen/qwen3-embedding-8b`, 1024 dims, $0.01 per million tokens; to be confirmed by the user); `uv run pytest tests/rag/test_embedding_model.py -q`: `2 passed in 0.03s`.
