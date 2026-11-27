@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 11:18
+**Last updated:** 27.11.2026, 11:19
 
 This file is how agents resume work after a session restart.
 
@@ -152,6 +152,8 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+
+- **27.11.2026 11:19** MKC-16: new check `scripts/check_text_files.py` (every tracked text file LF, no NUL byte; CI runs it with the other check scripts). It fails on `0c1f966` (the review's B1) and passes on HEAD and `ff76b94`. The same slip had hit HANDOFF.md in the local commit `b322143`, amended before any push as `b8421b3`.
 
 - **27.11.2026 11:16–11:18** PR #145 review (Fable, comment 11:16:41): **FAIL**. Blocking B1: the backlog held a raw NUL byte and was committed with CRLF line endings, so ripgrep read it as binary. 13 non-blocking findings (see the comment). CI run 45978464750 on `428814d` green. #16 and #139–#144 back to `In progress` at 11:17:50. B1 fixed: the token is now the text `\u0000` and the file is LF again (diff against `ff76b94`: 14 added, 1 removed). Docker Desktop started for the fixes.
 
