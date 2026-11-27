@@ -191,6 +191,7 @@ This file is how agents resume work after a session restart.
 
 ## Recent log
 
+- **27.11.2026 18:16** (4) Docs: decision 60 (switch pairs, baseline status from `run_log`, known limit: a baseline crash loop in the worker has no cap, use `--inline`), design 8.3 cache line, runbook (pairs, known limit, resume and status for baseline, injected faults have no `run_log` row), backlog MKC-32 note, plan as built; HANDOFF marks MKC-19 findings 1 to 3 and MKC-18 finding 2 as done.
 - **27.11.2026 18:16** (3) `mkc run status` showed zeros for a baseline run (no turn rows): red test, then usage from `run_log` (model calls, cost, all attempts) and an `inspect --item` note; the CLI test fixture now keeps the tracer hooks like the real client.
 - **27.11.2026 18:16** (2) Criterion 1 at the seam: `test_execute_run_differs_by_mode_only_in_the_switches` (what `execute_run` hands `process_run` differs only in `switches`, `memory` and the `save_draft` function); it passed once the test's own lambda was shared, since it pins built behaviour.
 - **27.11.2026 18:16** Pre-PR advisor review (about 18:11): four gaps. (1) `Switches` accepted mixes the loop does not honour (`idempotency` unread; `checkpoints` off with `durable_queue` on still wrote turns): now refused, red parametrized test first (2 of 3 failed). The Linux run at `5055477`: 353 passed (18:10:39).

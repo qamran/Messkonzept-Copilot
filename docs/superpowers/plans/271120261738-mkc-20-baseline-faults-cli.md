@@ -67,6 +67,7 @@ As built:
 - `settle_run` leaves a `stopped` run alone explicitly, since `stopped` left `TERMINAL`.
 - The two pins of review focus 1 and 3 passed on their first run: they pin behaviour built in MKC-20.2. Review focus 2, 4 and 5 are CLI tests (`test_resume_after_a_cost_stop_stops_again`, `test_start_refuses_a_bad_items_file`, `test_inline_on_a_leased_run_refuses`).
 - Some red tests failed on a missing attribute or argument (`public_error`), not an assertion (MKC-20.5).
+- Pre-PR review: `Switches` refuses mixes the loop does not honour (`checkpoints` with `durable_queue`, `idempotency` with `durable_approvals`); a seam test for criterion 1 (`test_execute_run_differs_by_mode_only_in_the_switches`); `mkc run status` reads a baseline run's usage from `run_log`; known limit: a baseline crash loop in the worker has no cap across attempts, so baseline runs go `--inline`.
 
 ### MKC-20.1: harness mode and its switches
 
