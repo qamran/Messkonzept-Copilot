@@ -45,7 +45,7 @@ def test_continuation_lines_stay_with_their_absatz() -> None:
 def test_a_double_paragraph_heading_and_whitespace() -> None:
     from mkc.rag.chunking import chunk_text
 
-    text = "§§ 7 bis 9 (weggefallen)\n\n§ 10   Schluss\n(1)   Ende   hier.\n"
+    text = "§§ 7 bis 9 (weggefallen)\n\n§\u00a010   Schluss\n(1)   Ende   hier.\n"
     chunks = chunk_text(text, source_id="g")
     assert [c.source_ref for c in chunks] == ["§§ 7 bis 9", "§ 10 Abs. 1"]
     assert chunks[1].text == "§ 10 Schluss\n(1) Ende hier."
