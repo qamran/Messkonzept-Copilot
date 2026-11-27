@@ -36,7 +36,10 @@ def test_fetch_writes_the_pdf_only_to_storage(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from mkc.extraction.fetch import fetch_document
+    from mkc.extraction.storage import LOCAL_CACHE_DIR
 
+    cache = Path(LOCAL_CACHE_DIR)
+    before = sorted(cache.rglob("*")) if cache.exists() else []
     monkeypatch.chdir(tmp_path)
     pdf = make_pdf(berlin_pages(["1"]))
     fetch_document(
@@ -49,6 +52,8 @@ def test_fetch_writes_the_pdf_only_to_storage(
     assert list(store.data.values()) == [pdf]
     assert store.puts == 1
     assert list(tmp_path.iterdir()) == [], "the PDF must not be written to local disk"
+    after = sorted(cache.rglob("*")) if cache.exists() else []
+    assert after == before, "fetch_document must not write the local cache when given a store"
     assert rows(engine, "select count(*) from blob") == [(0,)], "no PDF in the Postgres blob table"
 
 

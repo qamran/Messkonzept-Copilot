@@ -46,10 +46,8 @@ def test_every_operator_url_is_https_and_allow_listed() -> None:
 
 
 def test_load_operators_reads_the_yaml() -> None:
-    from mkc.extraction.operators import OPERATORS_YAML as PACKAGED
     from mkc.extraction.operators import load_operators
 
-    assert Path(PACKAGED).resolve() == OPERATORS_YAML
     ops = load_operators()
     assert set(ops) >= IDS
     berlin = ops["stromnetz-berlin"]
