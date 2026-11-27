@@ -40,7 +40,7 @@ def test_in_the_image_the_shipped_file_is_used(
 
     monkeypatch.delenv("MKC_CORPUS_SOURCES_FILE", raising=False)
     monkeypatch.setattr(sources, "DEFAULT_SOURCES_PATH", tmp_path / "missing.yaml")
-    assert sources.IMAGE_SOURCES_PATH == Path("/app/data/corpus_sources.yaml")
+    assert sources.IMAGE_SOURCES_PATH.as_posix() == "/app/data/corpus_sources.yaml"
     assert sources.sources_path() == sources.IMAGE_SOURCES_PATH
 
 
@@ -49,7 +49,7 @@ def test_the_path_is_read_at_call_time(tmp_path: Path, monkeypatch: pytest.Monke
     from mkc.rag.sources import CorpusSourceError, load_sources
 
     monkeypatch.setenv("MKC_CORPUS_SOURCES_FILE", str(tmp_path / "nowhere.yaml"))
-    with pytest.raises(CorpusSourceError, match="nowhere.yaml"):
+    with pytest.raises(CorpusSourceError, match=r"nowhere.yaml"):
         load_sources()
 
 

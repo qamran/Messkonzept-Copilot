@@ -44,8 +44,10 @@ def check_cache_dir(
     """Refuse any cache inside the repo, official-only sources included (paths resolved)."""
     if cache_dir.resolve().is_relative_to(repo_root.resolve()):
         restricted = [s.id for s in sources if s.licence is LicenceClass.RESTRICTED]
-        why = f"restricted sources {restricted} must never be written there" if restricted else (
-            "no fetched text is cached in the repo"
+        why = (
+            f"restricted sources {restricted} must never be written there"
+            if restricted
+            else ("no fetched text is cached in the repo")
         )
         raise CorpusLicenceError(
             f"cache {cache_dir} is inside the repo {repo_root}; {why}. "
