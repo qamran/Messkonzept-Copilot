@@ -177,7 +177,7 @@ def test_an_unexpected_error_releases_the_lease_and_backs_off(engine: Engine) ->
     assert time.monotonic() - started >= 0.3  # it does not spin on the same run
     assert owner_of(engine, run_id) is None
     assert turn_numbers(engine, item_id) == []
-    assert states(engine, run_id) == ("running", ["running"])
+    assert states(engine, run_id) == ("running", ["queued"])  # the client fails before a claim
 
 
 def test_a_slow_lease_renewal_does_not_delay_the_heartbeat_file(

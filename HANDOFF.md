@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 12:19
+**Last updated:** 27.11.2026, 12:23
 
 This file is how agents resume work after a session restart.
 
@@ -55,7 +55,7 @@ This file is how agents resume work after a session restart.
 - **MKC-17** (#17), Run executor (worker with lease). Status `In progress`, assigned to `qamran` (27.11.2026 11:37:38). Branch `mkc-17-run-executor` from `266c37d`. The first commit holds only the close-out of MKC-16.
   - Plan: `docs/superpowers/plans/271120261154-mkc-17-run-executor.md` (decision 57: lease on the run row with the database clock, fencing before every commit, heartbeat thread for the file and the lease, stop between turns, `waiting_for_database` written on the first successful probe after an outage).
   - Sub-issues: MKC-17.1 #146 `In progress`; MKC-17.2 #147, MKC-17.3 #148, MKC-17.4 #149 `Ready`.
-  - Next: green for the three hardening tests, then the PR.
+  - Next: docs for the two threads, HANDOFF fixes, Linux SIGTERM test, then the PR.
 
 ## Next steps
 
@@ -161,6 +161,8 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+
+- **27.11.2026 12:23** MKC-17 hardening green: the heartbeat file and the lease renewal have their own threads (`mkc-heartbeat`, `mkc-lease`); a database error on release goes to the outage handling; any other error from `process_run` is logged, the lease released and the worker pauses `MKC_WORKER_DB_BACKOFF_MAX_SECONDS`. The red test of the unexpected error expected the item `running`; it stays `queued` (the client fails before a claim), assertion corrected. Full suite 441 passed, 1 skipped; ruff and mypy strict clean.
 
 - **27.11.2026 12:19** MKC-17 pre-PR review (advisor): the trailers of `344ac64` and `e2fe839` said `qamra/` and were fixed before the first push (`git filter-branch --msg-filter` over the unpushed commits; dates kept, tree unchanged, new ids `c2ec3e8` and `300ea06`). Red: a database error on release, an unexpected error from `process_run`, and a hanging lease renewal must not end the worker or delay the heartbeat file (3 failed: the error escapes, 0.9 s old file).
 

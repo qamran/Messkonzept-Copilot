@@ -1,10 +1,12 @@
 """The run executor (MKC-17.2, decision 57): claims a run with a lease and processes it.
 
 - `run_once` claims one run (`claim_run`), runs `process_run` on it and releases the lease.
-- A heartbeat thread runs while the executor is open (`with Executor(...)`): it touches the
-  heartbeat file every `worker_poll_seconds`, so the liveness probe stays green during a long
-  model call, and renews the lease every `worker_lease_renew_seconds`. A renewal that finds
-  another owner marks the lease lost; a renewal that fails with a database error does not.
+- Two threads run while the executor is open (`with Executor(...)`): one touches the heartbeat
+  file every `worker_poll_seconds`, so the liveness probe stays green during a long model call
+  or a hanging database; the other renews the lease every `worker_lease_renew_seconds`. A
+  renewal that finds another owner marks the lease lost; a database error does not.
+- No error ends the worker: a database error goes to the outage handling, any other error is
+  logged, the lease released and the worker pauses for `worker_db_backoff_max_seconds`.
 - `graceful_shutdown` (SIGTERM) lets the current turn finish and commit, then the item stays
   `running`, the lease is released and `run_once` returns. The next worker resumes at once.
 - A lost lease stops the run: `fence` refuses every later commit with `LeaseLost`.
@@ -18,7 +20,6 @@ import logging
 import os
 import socket
 import threading
-import time
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -85,14 +86,18 @@ class Executor:
         self._heartbeat_file = (
             Path(settings.worker_heartbeat_file) if settings.worker_heartbeat_file else None
         )
-        self._thread: threading.Thread | None = None
+        self._threads: list[threading.Thread] = []
 
     # --- lifecycle --------------------------------------------------------------------------
 
     def __enter__(self) -> "Executor":
         self._closing.clear()
-        self._thread = threading.Thread(target=self._heartbeat, name="mkc-heartbeat", daemon=True)
-        self._thread.start()
+        self._threads = [
+            threading.Thread(target=self._touch_loop, name="mkc-heartbeat", daemon=True),
+            threading.Thread(target=self._renew_loop, name="mkc-lease", daemon=True),
+        ]
+        for thread in self._threads:
+            thread.start()
         return self
 
     def __exit__(
@@ -102,9 +107,9 @@ class Executor:
         tb: TracebackType | None,
     ) -> None:
         self._closing.set()
-        if self._thread is not None:
-            self._thread.join()
-            self._thread = None
+        for thread in self._threads:
+            thread.join()
+        self._threads = []
 
     def graceful_shutdown(self) -> None:
         """Stop after the current turn; `run_once` then releases the lease and returns."""
@@ -172,14 +177,28 @@ class Executor:
             return
         except SETUP_ERRORS as error:
             log.error("run %s: setup error %s, backing off", run_id, type(error).__name__)
-            self._release(run_id)
+            self._release_or_wait(run_id)
             self.wait(settings.worker_db_backoff_max_seconds)
             return
         except SQLAlchemyError as error:
             self._database_error(run_id, error)
             return
-        self._release(run_id)
-        log.info("run %s released by %s", run_id, self.owner)
+        except Exception:
+            log.exception("run %s: unexpected error, backing off", run_id)
+            self._release_or_wait(run_id)
+            self.wait(settings.worker_db_backoff_max_seconds)
+            return
+        if self._release_or_wait(run_id):
+            log.info("run %s released by %s", run_id, self.owner)
+
+    def _release_or_wait(self, run_id: int) -> bool:
+        """Release the lease; on a database error, handle it like any other. True if released."""
+        try:
+            self._release(run_id)
+        except SQLAlchemyError as error:
+            self._database_error(run_id, error)
+            return False
+        return True
 
     def _release(self, run_id: int) -> None:
         with self._sessions() as session, session.begin():
@@ -236,15 +255,15 @@ class Executor:
 
     # --- heartbeat thread -------------------------------------------------------------------
 
-    def _heartbeat(self) -> None:
-        last_renewal = time.monotonic()
+    def _touch_loop(self) -> None:
         while True:
             self._touch()
-            if time.monotonic() - last_renewal >= self.settings.worker_lease_renew_seconds:
-                last_renewal = time.monotonic()
-                self._renew()
             if self._closing.wait(self.settings.worker_poll_seconds):
                 return
+
+    def _renew_loop(self) -> None:
+        while not self._closing.wait(self.settings.worker_lease_renew_seconds):
+            self._renew()
 
     def _touch(self) -> None:
         """Touch the heartbeat file; a failed write is logged and shows up as a failing probe."""
