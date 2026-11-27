@@ -4,14 +4,15 @@ from typing import Any
 
 import pytest
 from langchain_core.messages import HumanMessage
-from sqlalchemy import Engine
+from sqlalchemy import Engine, update
 from sqlalchemy.orm import Session
 
 from mkc.db.models import Item
 from mkc.harness.limits import Limits, StopEvent, StopReason
-from mkc.harness.loop import ItemOutcome, run_item
+from mkc.harness.loop import ItemOutcome, process_run, run_item
 from mkc.harness.prompts import REPROMPT
 from mkc.harness.states import ItemState
+from tests.harness.conftest import make_run, states
 from tests.harness.test_loop import READ, SAVE, STEP_COST, Tools, call, client_for, start, turns
 from tests.harness.test_run_limits import _after
 from tests.models.fakes import FakeChatModel, ai, fake
@@ -133,3 +134,52 @@ def test_no_reprompt_when_max_reprompts_is_zero(engine: Engine) -> None:
     model = fake(ai("No tools."))
     outcome = item_run(engine, item_id, model, Limits(max_reprompts=0), [])
     assert (outcome.reason, len(model.seen)) == ("malformed_output", 1)
+
+
+# --- resume cap --------------------------------------------------------------------------
+
+
+def set_attempts(engine: Engine, item_id: int, n: int) -> None:
+    with engine.begin() as conn:
+        conn.execute(update(Item).where(Item.id == item_id).values(attempts_without_progress=n))
+
+
+def resume(engine: Engine, run_id: int, model: FakeChatModel, events: list[StopEvent]) -> Any:
+    with Session(engine) as session:
+        return process_run(run_id, session=session, client=client_for(model),
+                           registry=Tools().registry(), limits=Limits(max_resumes_item=3),
+                           tracers=[events.append])  # fmt: skip
+
+
+def test_resume_limit_fails_item(engine: Engine) -> None:
+    run_id, (item_id,) = start(engine)  # claimed: `running`, no turn yet
+    set_attempts(engine, item_id, 3)
+    events: list[StopEvent] = []
+    model = fake(ai(tool_calls=[SAVE]))
+    outcomes = resume(engine, run_id, model, events)
+    assert model.seen == []
+    assert outcomes == [ItemOutcome(item_id, ItemState.FAILED, "resume_limit", 0, 0 * STEP_COST)]
+    assert states(engine, run_id) == ("done", ["failed"])
+    assert item_row(engine, item_id).attempts_without_progress == 4
+    assert events == [event(run_id, item_id, StopReason.RESUME_LIMIT, None, 0)]
+
+
+def test_a_resume_counts_an_attempt(engine: Engine) -> None:
+    run_id, (item_id,) = start(engine)
+    set_attempts(engine, item_id, 2)
+    resume(engine, run_id, fake(error=RuntimeError("crash-like")), [])  # no turn stored
+    assert item_row(engine, item_id).attempts_without_progress == 3
+
+
+def test_a_stored_turn_resets_the_attempts(engine: Engine) -> None:
+    run_id, (item_id,) = start(engine)
+    set_attempts(engine, item_id, 3)
+    resume(engine, run_id, fake(ai(tool_calls=[READ]), ai(tool_calls=[SAVE])), [])
+    row = item_row(engine, item_id)
+    assert (row.state, row.attempts_without_progress) == ("draft_saved", 0)
+
+
+def test_a_first_claim_is_not_a_resume(engine: Engine) -> None:
+    run_id, (item_id,) = make_run(engine, "queued")
+    resume(engine, run_id, fake(error=RuntimeError("x")), [])
+    assert item_row(engine, item_id).attempts_without_progress == 0
