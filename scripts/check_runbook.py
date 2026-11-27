@@ -17,6 +17,9 @@ The section "Limits and retries" (MKC-18.4) must name every limit setting (`item
 `run_max_*`, `tool_max_retries`, `model_max_retries`, `model_backoff_*`,
 `turn_timeout_seconds`, `item_max_resumes`) by its `MKC_` variable.
 
+The section "Tracing" (MKC-19.4) must name every Langfuse setting (`langfuse_*`) by its
+`MKC_` variable; the inventory must name Langfuse and its two keys.
+
 Usage: python scripts/check_runbook.py  (exit code 0 = ok, 1 = problems)
 """
 
@@ -36,12 +39,16 @@ SECRET_KEYS = [
     "MKC_GOOGLE_API_KEY",
     "MKC_ANTHROPIC_API_KEY",
     "MKC_META_API_KEY",
+    # Langfuse keys (MKC-19): local in backend/.env, production in mkc-secrets.
+    "MKC_LANGFUSE_PUBLIC_KEY",
+    "MKC_LANGFUSE_SECRET_KEY",
 ]
 LOCAL_FILES = ["backend/.env", "frontend/.env.local", "~/.ssh/oracle_mkc"]
-SERVICES = ["Oracle", "Supabase", "Clerk", "Vercel", "GitHub"]
+SERVICES = ["Oracle", "Supabase", "Clerk", "Vercel", "GitHub", "Langfuse"]
 WORKER_HEADING = "## Worker lease and outages"
 LIMITS_HEADING = "## Limits and retries"
 LIMIT_FIELDS = r"item_max_steps|run_max_\w+|tool_max_retries|model_max_retries|model_backoff_\w+|turn_timeout_seconds|item_max_resumes"
+TRACING_HEADING = "## Tracing"
 CONFIG = "backend/src/mkc/config.py"
 
 
@@ -92,7 +99,15 @@ def problems(root: Path = ROOT) -> list[str]:
     if len(settings) < 10:
         found.append(f"{CONFIG}: expected the 10 limit settings, found {len(settings)}")
     missing = [name for name in settings if name not in limits]
-    return found + [f"{RUNBOOK}: '{LIMITS_HEADING}' does not name '{name}'" for name in missing]
+    found += [f"{RUNBOOK}: '{LIMITS_HEADING}' does not name '{name}'" for name in missing]
+    tracing = section(text, TRACING_HEADING)
+    if tracing is None:
+        return [*found, f"{RUNBOOK}: section '{TRACING_HEADING}' missing"]
+    settings = worker_settings(root, r"langfuse_\w+")
+    if len(settings) < 5:
+        found.append(f"{CONFIG}: expected the 5 Langfuse settings, found {len(settings)}")
+    missing = [name for name in settings if name not in tracing]
+    return found + [f"{RUNBOOK}: '{TRACING_HEADING}' does not name '{name}'" for name in missing]
 
 
 if __name__ == "__main__":
