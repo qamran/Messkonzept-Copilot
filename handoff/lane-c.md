@@ -1,6 +1,6 @@
 # Lane C: Decision layer
 
-**Last updated:** 27.11.2026, 21:13
+**Last updated:** 27.11.2026, 21:12
 
 Only lane C's agents write this file; the coordinator keeps `HANDOFF.md`. Times are local time (CET) from git and GitHub, never estimated.
 
@@ -99,7 +99,7 @@ The re-check of survivors 3, 9, 10 and 11 against `8beb8c8` printed "killed" for
 
 ## Recent log
 
-- **27.11.2026 21:13** Test agent: mutation pass on `f6216cb`: 40 mutants, 28 killed, 12 survived (see "Mutation pass"). Four survivors showed gaps in the parse criterion; three acceptance tests in `8beb8c8` kill them. `uv run pytest tests/decision tests/models -q`: "202 passed, 13 deselected".
+- **27.11.2026 21:12** Test agent (`0b4e268`): mutation pass on `f6216cb`: 40 mutants, 28 killed, 12 survived (see "Mutation pass"). Four survivors showed gaps in the parse criterion; three acceptance tests in `8beb8c8` kill them. `uv run pytest tests/decision tests/models -q`: "202 passed, 13 deselected".
 - **27.11.2026 20:50** Development agent: live spike passed (see "Live calls"); the result in ADR 004 (amendment), the status doc (MKC-46 line, open item ticked), decisions 68 and 69 in the design doc; the backlog's MKC-47 interface line now says `mkc.decision.client.DecisionClient`. Decision 70 is not used yet (kept for MKC-47 or MKC-48).
 - **27.11.2026 20:47** Development agent (`7f54dff`): `mkc/decision/` (`types.py`, `client.py`): `DecisionClient.decide` sends one `invoke` with `Noul`/`Choice`, checks 1 to 32 questions, and converts the reply into our frozen types; a missing, wrong-type or out-of-criteria answer is a `DecisionError`. `uv run pytest -q tests/decision`: "44 passed, 1 deselected"; `uv run mypy`: "Success: no issues found in 51 source files".
 - **27.11.2026 20:46** Development agent (`aea6b8e`): red request tests `tests/decision/test_provider_requests.py` (`7175301`, red on `ImportError`), then `build_decision_model` at the end of `providers.py`: a `TypeSafeClassifier` subclass that adds `OPENROUTER_ROUTING` as `provider` to every body, base URL `https://openrouter.ai/api`. `uv run pytest -q tests/decision/test_providers.py tests/decision/test_provider_requests.py`: "9 passed"; `uv run mypy`: "Success: no issues found in 48 source files".
