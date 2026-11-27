@@ -22,6 +22,7 @@ from typing import Any
 import pdfplumber
 
 from mkc.extraction.fetch import SourceDocument
+from mkc.extraction.sachsen import segment_sachsen
 from mkc.harness.blobs import PREFIX, BlobStore
 
 # Words left of this share of the page width are the main column.
@@ -88,4 +89,5 @@ def _berlin_page(number: int, page: Any) -> ConceptRegion | None:
 
 SEGMENTERS: dict[str, Callable[[bytes], list[ConceptRegion]]] = {
     "stromnetz-berlin": segment_berlin,
+    "sachsennetze": segment_sachsen,
 }
