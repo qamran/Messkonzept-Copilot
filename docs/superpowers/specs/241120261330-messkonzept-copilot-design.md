@@ -254,7 +254,7 @@ Sources: the BDEW Codeliste (LBS codes and their object composition), the operat
   - Completed items are never redone.
   - An interrupted item continues from its last complete turn, with the context rebuilt as: item task + compact summary of earlier turns + the last turn's tool results.
   - A turn that was in flight when the crash happened is discarded and re-requested.
-- **Tool-result cache:** deterministic tools (`extract_text`, `extract_tables`, `render_region`) are cached by (tool, arguments hash, document hash). Re-issued calls cost nothing.
+- **Tool-result cache:** deterministic tools (`extract_text`, `extract_tables`, `render_region`) are cached by (tool, code version, arguments hash, document hash; the code version since decision 56). Re-issued calls cost nothing.
 - **Idempotency:** `save_draft` and `commit_record` use idempotency keys, so a draft or commit is never duplicated.
 - **Built in MKC-16 (decision 56):**
   - `mkc.harness.checkpoint.save_turn` refuses a turn whose calls and results don't pair; a turn cut short by an escaped tool error answers every call with an error.

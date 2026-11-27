@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 11:22
+**Last updated:** 27.11.2026, 11:23
 
 This file is how agents resume work after a session restart.
 
@@ -53,7 +53,7 @@ This file is how agents resume work after a session restart.
 
 - **MKC-16** (#16), Turn checkpoints, resume, tool cache, idempotency. Status `In progress` again (PR #145 review FAIL), assigned to `qamran` (27.11.2026 09:57). Branch `mkc-16-checkpoints` from `ff76b94`. The first commit holds only the close-out of MKC-15.
   - Plan: `docs/superpowers/plans/271120261022-mkc-16-checkpoints.md` (decision 56: blob refs in the Postgres table `blob` until MKC-21's Storage, resume keeps the item `running`, cache key with `code_version`, tools reach the DB through a factory, `save_draft` keyed by `ToolEnv`).
-  - Sub-issues: MKC-16.1 #139 (`In progress`), 16.2 #140, 16.3 #141, 16.4 #142, 16.5 #143, 16.6 #144 (`Ready`).
+  - Sub-issues: MKC-16.1 #139, 16.2 #140, 16.3 #141, 16.4 #142, 16.5 #143, 16.6 #144; all `In progress` again since the review FAIL (11:17:50).
   - MKC-16.1 green: `save_turn` checks the pairing; the loop stores every turn through it; tool-error turns answer every call; duplicate call ids made unique. MKC-16.2 (#140 `In progress` 10:29): green: migration `0005` (table `blob`), `DbBlobStore`, `save_turn` stores results over 16384 bytes as `result_ref`, `stored_result` reads them back. `MKC_TURN_INLINE_MAX_BYTES` in `Settings` and `.env.example`. MKC-16.3 (#141) `In progress` 10:34. MKC-16.3 green: `load_resume_context` (task + `<earlier_turns>` summary in one user message + last turn, blob refs rehydrated), `run_item` continues number, steps and cost, `queue.resumable_item` served first by `process_run`. MKC-16.4 (#142) `In progress` 10:38. MKC-16.4 green: migration `0006` (table `tool_cache`), `ToolCache` (key: tool, code version, sha256 of the validated args, document hash; `ok` results only; each write commits), `Tool.cacheable` on `extract_text`, `extract_tables`, `render_region`, hits traced `cached=True`; `run_item(..., code_version=None)` = cache off. MKC-16.5 (#143) `In progress` 10:41. MKC-16.5 green: migration `0007` (table `draft`, unique `(document_hash, concept_key)`), `record_key(env)`, `make_save_draft(sessions)` (upsert in its own transaction), `default_registry(..., sessions=...)`. MKC-16.6 (#144) `In progress` 10:44. MKC-16.6: decision 56 in the design doc (section 18, 8.2, 8.3), ADR 001, the backlog (notes on MKC-21, MKC-30, MKC-31), the status doc and the plan (rulings). Pre-PR review (fresh agent, finished before 10:50): no Critical; Important 1 (`process_run` drops `code_version` and `inline_max_bytes`) and Minor 1 (`ToolCache` commits the loop's session) fixed; Important 2 deferred to MKC-18 (resume-attempt cap) and MKC-22 (NUL in PDF text). Backlog notes on MKC-18, MKC-22, MKC-23. PR #145 opened 10:59:34; #16 and #139–#144 `Testing` (11:00), criteria ticked. Review (Fable) FAIL at 11:16:41: B1, commit `0c1f966` wrote a raw NUL byte into the backlog, so git stored the whole file as CRLF (1,848 lines). #16 and #139–#144 back to `In progress` (11:17:50). Next: fix B1 and the cheap non-blocking findings (2, 4–10), then a re-review.
 
 ## Next steps
@@ -152,6 +152,8 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+
+- **27.11.2026 11:23** MKC-16 review findings 8 to 10: HANDOFF sub-issue states, the status doc (MKC-15 in the Done list, E1 to E9), design 8.3 cache key with the code version; plan rulings record the review round.
 
 - **27.11.2026 11:22** MKC-16 review finding 2 fixed: `_with_ids` keeps unique ids and appends `-<n>` when a new id would clash. Full suite 414 passed, 1 skipped; mypy strict clean.
 
