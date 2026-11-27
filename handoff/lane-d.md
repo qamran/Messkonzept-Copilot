@@ -1,87 +1,81 @@
 # Lane D: RAG
 
-**Last updated:** 27.11.2026, 21:56
+**Last updated:** 27.11.2026, 23:17
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
-- **Tickets, in order:** `MKC-49` → `MKC-50` → `MKC-51` (MKC-51 waits on lane B's MKC-38)
-- **Branch and worktree:** `mkc-49-corpus-loader`
-- **Owns:** `backend/src/mkc/rag/`, the corpus loader, the retriever, `backend/tests/rag/`, `backend/data/corpus_sources.yaml`
-- **Decision numbers:** 71–73
+- **Tickets, in order:** `MKC-49` (merged, PR #198) → `MKC-50` → `MKC-51` (MKC-51 waits on lane B's MKC-38)
+- **Branch and worktree:** `mkc-50-hybrid-retriever` (cut from `main` `d7fad1e`)
+- **Owns:** `backend/src/mkc/rag/`, the corpus loader, the retriever, `backend/tests/rag/`, `backend/data/corpus_sources.yaml`, `EmbeddingClient` at the end of `mkc/models/client.py`
+- **Decision numbers:** 79–81 (wave 2; 71–73 of wave 1: 71 and 72 used, 73 free)
 
 ## In progress
 
-- `MKC-49` (`#49`): built; the six sub-issues are in Testing (they close with the PR's merge); PR #198 opened 27.11.2026 21:55 (GitHub `createdAt` 2026-11-27T20:55:20Z) at `5b39b61`; `#49` and the six sub-issues are in Testing. The test agent's red acceptance tests are in `backend/tests/rag/`.
-- **Red commits:** `97c18ea` to `f515d26` "MKC-49: red test for the corpus tables' downgrade" (the test agent's last commit on this branch; diff the tests against it).
-- **Sub-issues** (all assigned to `qamran`, on the board, linked to `#49`):
-  - `MKC-49.1` (`#179`) corpus sources file: built (`4ce0e06`), Testing
-  - `MKC-49.2` (`#181`) chunking per paragraph: built (`49462e7`), Testing
-  - `MKC-49.3` (`#182`) embedding model through the provider layer: built (`97b760c`, `0871d20`), Testing
-  - `MKC-49.4` (`#184`) corpus tables and migration 0012: built (`8f8117d`), Testing
-  - `MKC-49.5` (`#185`) corpus loader with the licence guard: built (`46f818c`), Testing
-  - `MKC-49.6` (`#186`) `mkc corpus load` and the HTTP fetcher: built (`5c5f50d`, `3e1c8aa`), Testing
+- `MKC-50` (`#50`), Hybrid retriever: the test agent's red acceptance tests are in `backend/tests/rag/` (see the log for the commits). Next: the development agent builds against them.
+- The coordinator assigned a sub-issue "MKC-49 review findings" (wave 1 review of PR #198, findings 1 to 5 and the open points) to MKC-50. The development agent creates it on the board with the other sub-issues.
+- Migration: MKC-49's is `0013_corpus.py` (`down_revision = "0012"`; the coordinator re-chained it at the merge). A new migration in MKC-50, if any, uses `down_revision = "0013"`.
 
-### Pinned interfaces (MKC-49)
+### Pinned interfaces (MKC-50)
 
 The tests import these; module paths and names are fixed, internals are free.
 
-- `mkc.rag.sources`
-  - `DEFAULT_SOURCES_PATH` = `backend/data/corpus_sources.yaml`
-  - `LicenceClass` enum: `OFFICIAL = "official"` (laws, BNetzA decisions: amtliche Werke), `RESTRICTED = "restricted"` (operator texts)
-  - `SourceType` enum: `LAW = "law"`, `BNETZA_DECISION = "bnetza_decision"`, `OPERATOR_TEXT = "operator_text"`
-  - `CorpusSource` with `id`, `title`, `source_type: SourceType`, `url`, `version`, `licence: LicenceClass`
-  - `load_sources(path) -> list[CorpusSource]`; raises `CorpusSourceError(ValueError)` on a bad file
-  - YAML: top-level `sources:` list; each entry has `id, title, source_type, url (https), version, licence` and never the text. Required ids: `enwg-14a`, `msbg`, `bk6-22-300`, `bk6-22-300-anlage-1`, `bk8-22-010-a`, plus at least one `operator_text`.
-- `mkc.rag.chunking`
-  - `Chunk` with `source_id`, `ordinal` (0, 1, 2, … in text order), `source_ref` (names the §, e.g. `§ 14a` or `§ 14a Abs. 1`; MKC-50's `RetrievedChunk.source_ref` reads it), `text`
-  - `chunk_text(text, *, source_id) -> list[Chunk]`
-  - Chunks do not overlap: each Absatz is in exactly one chunk.
-- `mkc.rag.embeddings`
-  - `EMBEDDING`: the one config value, with `.model: str` and `.dim: int`. ADR 004 must name `EMBEDDING.model` (the ticket's success criterion).
-  - An `Embedder` protocol: `embed(texts: Sequence[str]) -> list[list[float]]` (the fake also has `model` and `dim`).
-- `mkc.rag.loader`
-  - `load_corpus(session, sources, *, embedder, fetcher, cache_dir=None, repo_root=<this repo>)`; works inside the caller's transaction
-  - `fetcher: Callable[[CorpusSource], str]` returns the source's plain text
-  - `CorpusLicenceError`: raised when `cache_dir` (resolved) is inside `repo_root` and any source is `restricted`, **before anything is written**
-  - Re-loading replaces a source's chunks (keyed by `source_id`); no duplicates
-  - The stored `chunk.text` is passed verbatim to `embed`; a model-specific prefix (e.g. a `passage:` prefix) lives inside the embedder
-  - Any code that writes a source's text to disk (the loader's cache or the real fetcher from `make_fetcher`) applies the same guard. No test proves the cache is used; it may stay unused if no cache is needed.
-- `mkc.rag.cli`
-  - `corpus_app` (Typer) with `load --sources PATH`; exit 0 on success, 2 on a bad sources file
-  - `make_embedder(settings)` and `make_fetcher(settings)`: module-level factories the tests monkeypatch
-- Tables (columns the tests read); downgrade to base drops both, upgrade to head twice is a no-op
-  - `corpus_document(id, source_id, title, source_type, url, version, licence)`
-  - `chunk(id, document_id → corpus_document, ordinal, source_ref, text, embedding vector(EMBEDDING.dim), tsv tsvector)` with a GIN index on `tsv`; `tsv` uses the `german` configuration
+- `mkc.rag.retriever`
+  - `RRF_K = 60`; `rrf_merge(rankings: Sequence[Sequence[int]], *, rrf_k: int = RRF_K) -> list[tuple[int, float]]`: score = sum of `1 / (rrf_k + rank)` over the rankings, ranks from 1, a chunk missing from a ranking gets nothing from it; sorted by score, highest first; **ties go to the lower chunk id**.
+  - `MAX_K` and `CANDIDATES` (ints): `10 <= MAX_K <= CANDIDATES`; each side (keyword, vector) looks at up to `CANDIDATES` chunks before fusion.
+  - `RetrievedChunk(chunk_id: int, score: float, source_ref: str, text: str)`: a frozen dataclass; `text` is the stored chunk text unchanged; `score` is the RRF score.
+  - The untrusted mark: `PASSAGE_OPEN = "<retrieved_passage>"`, `PASSAGE_CLOSE = "</retrieved_passage>"`, `RetrievedChunk.as_prompt_data() -> str` = open tag + JSON `{"chunk_id", "source_ref", "text"}` + close tag. The JSON has no `<` or `>` (escaped, as in `mkc/harness/prompts.py`) and keeps umlauts and `§` as they are (`ensure_ascii=False`). The open tag has no attributes. A prompt must use this, never `text` directly (MKC-51).
+  - `retrieve(query: str, k: int = 5, *, session: Session, embedder, tracers: Sequence[Callable[[RetrievalTrace], None]] = (), scope: TraceScope | None = None) -> list[RetrievedChunk]`
+    - at most `k` results, sorted by score (highest first), unique chunk ids; an empty corpus gives `[]`
+    - keyword side: Postgres `german` full-text search on `chunk.tsv`; the query is plain text (`&`, `|`, `!`, `:`, `'`, `<->`, `*` never raise)
+    - vector side: the query vector against `chunk.embedding`
+    - `ValueError` for `k < 1`, `k > MAX_K` or a blank query, before the embedder is called
+    - the query is embedded once with `embedder.embed_query(query)`, the raw query; `embed` is never called by the retriever
+  - `RetrievalTrace` (dataclass): at least `latency_ms: int` (the whole call, embedding included), `k`, `query_chars`, `returned`, `keyword_hits`, `vector_hits`, `error: str | None` (`"<Class>: …"`), `scope: TraceScope | None`. **No query text** (no field named `query` or `text`, no string field holds the query). One trace per `retrieve` call, also when it fails (then `returned == 0` and the error is raised again). A hook that raises is logged and skipped; the next hook still gets the trace.
+- `mkc.rag.embeddings.ProviderEmbedder.embed_query(query: str) -> list[float]`: sends one text that starts with `Instruct: `, contains `\nQuery:` and ends with the query (Qwen3-Embedding's query format, decision 71); adds tokens and cost like `embed`. `embed` still sends passages exactly as stored.
+- `mkc.models.client` (lane D's block at the end)
+  - `EmbedTrace` (dataclass): `model_id`, `mode`, `texts: int` (how many), `input_tokens`, `cost_eur`, `latency_ms: int`, `error: str | None` (starts with the error's class name), `scope: TraceScope | None`. No text of the input anywhere in it.
+  - `EmbeddingClient(..., tracers: Sequence[Callable[[EmbedTrace], None]] = ())` and `EmbeddingClient.from_settings(..., tracers=...)`, kept as `_tracers` (a list). `embed(texts, *, scope=None)`: **one trace per `embed()` call** (not per batch), with the reply's tokens, cost and latency; on a provider error one trace with `error` set, then the error is raised. A hook that raises never breaks the call.
+- MKC-49 review findings (tests, not interfaces):
+  - fetcher: an `http://` URL is refused before any request; an https → http redirect on the same host is refused before the http request.
+  - `law` layout: a line starting with `§ <n>` opens a paragraph only at the start of the text or after a blank line (the fetcher's layout); elsewhere it is body text of the current Absatz. Proven on plain text and through `law_text(html)`.
+  - `law` layout: a blank line inside an Absatz does not split it, even past `MAX_CHUNK_CHARS` (decision 72).
+  - loader: **any** cache folder inside the repo is refused (`CorpusLicenceError`, before any fetch), official-only sources included. The MKC-49 test `test_an_official_only_cache_inside_the_repo_is_allowed` is replaced by `test_an_official_only_cache_inside_the_repo_is_refused_too` (the test agent's change, reason in its docstring).
+  - image: the runtime stage copies `data/corpus_sources.yaml` to `/app/data/corpus_sources.yaml` (one `COPY` line after the `operators.yaml` line; granted by the coordinator).
 
 ### Shared-file rules for the development agent
 
-- New ORM classes go at the end of `mkc/db/models.py` in a block commented `MKC-49`.
-- The `corpus` sub-app is mounted at the end of `mkc/cli.py` with a comment (`app.add_typer(corpus_app, name="corpus")`).
-- The migration is `0012` with `down_revision = "0011"`. Lane A also writes `0012`; the coordinator re-chains the second to merge. The tests name no revision.
-- A new dependency (e.g. `pgvector`, an embedding library) is named in the PR; the coordinator runs `uv lock` after updates from `main`.
-- The real embedder must respect the model rule: every model call goes through `ModelClient` (AGENTS.md). A local model that makes no provider call is the development agent's call; record it in ADR 004 and decision 71.
+- `mkc/observability/`: append only (a new helper at the end of a module). The tests do not require a `run_log` bridge (see the assumptions).
+- `backend/Dockerfile`: only the one `COPY data/corpus_sources.yaml ./data/corpus_sources.yaml` line after the `operators.yaml` line.
+- A new dependency is named in the PR; the coordinator runs `uv lock`.
+- Live calls: at most €0.50 for live query embeddings, logged here.
+- Stale wording to fix (no tests): this file's MKC-49 lines naming migration 0012 (now 0013, history stays); the `DEFAULT_SOURCES_PATH` docstring ("the image carries `backend/data/`"); `EMBED_BATCH_SIZE` ("at most about 1,000 tokens"; decision 72 allows about 2,000); "the PDF library comes with MKC-21" in `fetch.py`, the runbook and the status doc (it is on `main`). Using `pdfplumber` for the PDF sources is optional.
 
-### Test agent's assumptions (open for the coordinator)
+### Test agent's assumptions (for the coordinator to confirm)
 
-1. Chunk granularity (one chunk per § or per Absatz) is left open; the tests only require that no chunk crosses a §, no Absatz is lost and each chunk keeps the source's lines.
-2. Licence classes are two: `official` and `restricted`. A cache of a restricted text inside the repo is refused for the whole load; nothing says whether an official text may be cached inside the repo, so the tests do not check it.
-3. Who owns an on-disk cache of fetched texts, the loader (`cache_dir`) or the fetcher, and whether one is needed at all, is open; the guard applies either way.
-4. The tests cover §-structured law text only; how BNetzA decisions and operator texts are split into sections is the development agent's design.
+1. **Untrusted mark:** a `<retrieved_passage>` wrapper around escaped JSON, as `mkc/harness/prompts.py` does for tool results; the JSON holds `source_ref` too, because it is read from the document.
+2. **Query instruction:** lives in the embedder (`embed_query`), as MKC-49 put any passage prefix in the embedder; `retrieve` passes the raw query.
+3. **Trace at hook level:** `RetrievalTrace` and `EmbedTrace` are hooks like `CallTrace`. How they reach `run_log` and Langfuse is open: `TraceRecord.kind` is a closed `Literal`, `run_log.run_id` is not nullable, and `Tracer` only takes new code at a module's end. A retrieval with no run (MKC-51's "ask why") has no `run_log` row to join. Needs a coordinator decision.
+4. **Score:** the RRF score itself (not normalised); ties to the lower chunk id.
+5. **An official-only cache inside the repo is refused** (review finding 5): one simple rule, nothing needs a cache in the repo, and only `.cache/` is git-ignored.
+6. **The image default path:** `DEFAULT_SOURCES_PATH` uses `parents[3]` of the installed package, which does not exist in the image. The tests pin only the shipped file; making `mkc corpus load` find it without `--sources` needs an `ENV` line or a setting (not granted). Needs a coordinator decision.
+
+### Not covered by red tests
+
+- The exact keyword ranking function (`ts_rank` or other) and the tsquery builder (`plainto_tsquery` or `websearch_to_tsquery`); the tests need only that "§ 14a" and "BK6-22-300" match.
+- The distance operator (cosine, L2 or inner product): the test vectors are unit vectors, so all three agree.
+- A live query embedding (`@pytest.mark.live`): optional for the development agent.
+- An index for the vector side (HNSW or IVFFlat): no test; the corpus is small.
+- The injection guard on retrieved text (MKC-46/51) and the prompt layer that uses `as_prompt_data()` (MKC-51).
 
 ## Next steps
 
-1. Done 21:47: the test agent's mutation pass (98 tried, 95 killed, 3 survived); the 3 survivors have tests since `4db8f62`.
-2. Done 21:55: PR #198 opened; `#49` and its sub-issues in Testing. Next, the coordinator starts the review once `gh pr checks` is green, updates the branch from `main` and re-chains migration `0012` if lane A merges first.
-3. Open for the coordinator:
-   - decision 71 confirmed by the user on 27.11.2026, with the research note `docs/271120262150-embedding-model-research.md`; the production key's guardrail was not checked
-   - 4 of 6 sources are PDFs and refused until MKC-21's PDF library is in; the BK8-22/010-A file is an encrypted PDF (`/Encrypt` in its header) served from an `.html` URL; the `sections` chunker has only run on synthetic text
-   - one operator text only (Stromnetz Berlin); no SachsenNetze URL was found in the repo
-   - `EmbeddingClient` beside `ModelClient` is allowed by the user (the coordinator updates AGENTS.md); it has no tracers, and is live-only while the default mode is `replay`: MKC-50's query embeddings need a decision on tracing and on tests and evals
-   - edits not at a file's end: the import lines of `providers.py`, the price line in `models.yaml`; the ORM block imports at the bottom with `noqa: E402` and registers `vector` in the PostgreSQL dialect's `ischema_names`
-   - the backend image does not copy `backend/data/` (as for the LBS file), so `mkc corpus load` in the container needs `--sources`
+1. The development agent: create the sub-issues (incl. "MKC-49 review findings"), build `mkc.rag.retriever`, `embed_query`, the `EmbeddingClient` hooks and the findings, make the red tests green, then `bash scripts/pre_pr.sh` and the PR.
+2. The test agent: mutation pass on the development agent's code.
+3. Open for the coordinator: assumptions 3 and 6 above.
 
 ## Recent log
 
+- **27.11.2026 23:17** Test agent: lane file rewritten for MKC-50 (header, pinned interfaces, assumptions, what the red tests leave open); decision numbers 79–81.
 - **27.11.2026 21:56** Development agent: `bash scripts/pre_pr.sh` exit 0 at `5b39b61` (`746 passed, 1 skipped, 13 deselected, 4 warnings in 95.73s`); pushed; PR #198 opened (createdAt `2026-11-27T20:55:20Z`), assigned to `qamran`; `#49`, `#179`, `#181`, `#182`, `#184`, `#185`, `#186` set to Testing on the board.
 - **27.11.2026 21:51** Development agent: research note `docs/271120262150-embedding-model-research.md`, linked from ADR 004, decision 71 and the status doc; decision 71 marked confirmed by the user on 27.11.2026; decision 72 (chunk size) added.
 - **27.11.2026 21:50** Development agent: the 3 survivors and the leftover-folder finding. New tests: a lettered Absatz `(2a)` gets `§ 14a Abs. 2a`; the section cap is 4000 characters; a long law Absatz stays whole (decision 72); `REPO_ROOT` is the repo root; the CLI cache test cleans up in `finally`. `uv run pytest tests/rag -q`: `84 passed, 1 deselected, 4 warnings in 9.66s`. Each survivor re-applied by hand and restored: `(\d+)` → `1 failed, 12 passed`; `MAX_CHUNK_CHARS = 40` → `1 failed, 13 passed`; `parents[5]` → `1 failed, 69 passed` (all with `-x`).
