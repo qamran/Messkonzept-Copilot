@@ -82,11 +82,27 @@ def test_timeouts_and_network_errors_are_transient(settings: Settings, error: Ex
         call(openrouter_client(settings, raises(error)))
 
 
-@pytest.mark.parametrize("code", [401, 403])
-def test_auth_errors_are_setup_errors(settings: Settings, code: int) -> None:
+@pytest.mark.parametrize("code", [401, 402])
+def test_a_refused_key_or_no_credits_is_a_setup_error(settings: Settings, code: int) -> None:
+    """OpenRouter: 401 invalid key, 402 insufficient credits; both fail every item alike."""
     with pytest.raises(ModelAuthError) as caught:
         call(openrouter_client(settings, status(code)))
     assert isinstance(caught.value, ModelConfigError)  # a setup error: it stops the run
+
+
+def test_a_402_with_retry_after_is_transient(settings: Settings) -> None:
+    """OpenRouter's in-flight budget: retry only when the 402 carries `Retry-After`."""
+    with pytest.raises(TransientModelError) as caught:
+        call(openrouter_client(settings, status(402, **{"retry-after": "5"})))
+    assert caught.value.retry_after == 5.0
+
+
+def test_a_403_is_not_mapped(settings: Settings) -> None:
+    """OpenRouter's 403 can be a guardrail or moderation flag on one input: it fails only
+    that item (`model_error`), never the whole run."""
+    with pytest.raises(Exception) as caught:
+        call(openrouter_client(settings, status(403)))
+    assert not isinstance(caught.value, ModelError)
 
 
 def test_a_bad_request_is_not_mapped(settings: Settings) -> None:
