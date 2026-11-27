@@ -172,7 +172,10 @@ class ToolRegistry:
         result, cached = self._cached_run(call, ctx, env, cache)
         code = result.error.code if result.error else None
         latency_ms = round((time.perf_counter() - start) * 1000)
-        trace = ToolTrace(call.name, ctx, result.ok, code, code in REFUSALS, latency_ms, cached)
+        trace = ToolTrace(
+            call.name, ctx, result.ok, code, code in REFUSALS, latency_ms, cached,
+            run_id=env.run_id, item_id=env.item_id, step=env.step,
+        )  # fmt: skip
         self._trace(trace)
         return result
 

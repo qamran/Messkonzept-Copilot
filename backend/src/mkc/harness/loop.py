@@ -20,7 +20,7 @@ never stops the next item (extraction never waits for approvals).
 import time
 from collections import Counter
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from decimal import Decimal
 from functools import partial
 from typing import Any
@@ -54,7 +54,7 @@ from mkc.harness.queue import has_work, next_item, resumable_item, settle_run
 from mkc.harness.retry import RetriesExhausted, RetryInterrupted, call_model
 from mkc.harness.states import ItemState, transition
 from mkc.harness.tools import ToolEnv, ToolRegistry
-from mkc.models.client import ModelClient
+from mkc.models.client import ModelClient, TraceScope
 from mkc.models.types import Message, ModelConfigError, ReplayMiss, Role, ToolCall
 
 ROLE: Role = "extract_vision"
@@ -147,9 +147,10 @@ def run_item(
         hit = _run_limit(session, ctx.run_id, item_id, limits, fence, tracers)
         if hit is not None:
             return ItemOutcome(item_id, ItemState.RUNNING, hit.value, step - 1, cost)
+        scope = TraceScope(ctx.run_id, item_id, step)
         try:
             reply = call_model(
-                partial(client.chat_with_tools, ROLE, tuple(messages), specs),
+                partial(client.chat_with_tools, ROLE, tuple(messages), specs, scope=scope),
                 limits=limits,
                 sleep=sleep,
                 should_stop=should_stop,
@@ -178,7 +179,7 @@ def run_item(
             messages += [assistant, Message(role="user", content=REPROMPT)]
             continue
         try:
-            results, saved = _run_calls(registry, calls, env, cache)
+            results, saved = _run_calls(registry, calls, replace(env, step=step), cache)
         except _ToolErrorEscaped as escaped:
             answered = _answer_the_rest(calls, escaped)
             turn = _turn(item_id, step, assistant, answered, step_cost)

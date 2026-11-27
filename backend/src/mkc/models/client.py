@@ -162,7 +162,7 @@ class ModelClient:
     def chat(
         self, role: Role, messages: Sequence[Message], *, scope: TraceScope | None = None
     ) -> ModelReply:
-        return self._call(role, "chat", messages, lambda model: model)
+        return self._call(role, "chat", messages, lambda model: model, scope=scope)
 
     def chat_with_tools(
         self,
@@ -176,7 +176,12 @@ class ModelClient:
             raise ValueError("chat_with_tools needs at least one tool")
         schemas = [tool_schema(t) for t in tools]
         return self._call(
-            role, "chat_with_tools", messages, lambda m: m.bind_tools(schemas), tools=tools
+            role,
+            "chat_with_tools",
+            messages,
+            lambda m: m.bind_tools(schemas),
+            tools=tools,
+            scope=scope,
         )
 
     def vision(
@@ -197,7 +202,7 @@ class ModelClient:
         with_images = list(messages)
         target = messages[last]
         with_images[last] = target.model_copy(update={"images": (*target.images, *images)})
-        return self._call(role, "vision", with_images, lambda model: model)
+        return self._call(role, "vision", with_images, lambda model: model, scope=scope)
 
     def chat_structured(
         self,
@@ -214,6 +219,7 @@ class ModelClient:
             messages,
             lambda model: model.with_structured_output(schema, include_raw=True),
             schema=schema,
+            scope=scope,
         )
 
     # --- one call ---------------------------------------------------------------------
@@ -227,6 +233,7 @@ class ModelClient:
         *,
         tools: Sequence[ToolSpec] = (),
         schema: type[BaseModel] | None = None,
+        scope: TraceScope | None = None,
     ) -> ModelReply:
         target = self._config.roles[role]
         model_id = f"{target.provider}:{target.model}"
@@ -243,7 +250,9 @@ class ModelClient:
         try:
             if self._mode == "replay" and self._store is not None:
                 reply = self._store.get(key)  # never builds a provider client
-                self._trace(CallTrace(role, method, "replay", model_id, 0, reply.usage, None))
+                self._trace(
+                    CallTrace(role, method, "replay", model_id, 0, reply.usage, None, scope)
+                )
                 return reply
             chat_model = self._factory(target.provider, target.model, self._config.timeout_seconds)
             output = prepare(chat_model).invoke(lc_messages)
@@ -255,13 +264,15 @@ class ModelClient:
         except Exception as error:
             latency_ms = round((time.perf_counter() - start) * 1000)
             self._trace(
-                CallTrace(role, method, self._mode, model_id, latency_ms, None, _err(error))
+                CallTrace(role, method, self._mode, model_id, latency_ms, None, _err(error), scope)
             )
             mapped = self._classify(error) if self._classify is not None else None
             if mapped is not None:
                 raise mapped from error  # transient or auth (MKC-18); the cause is kept
             raise
-        self._trace(CallTrace(role, method, self._mode, model_id, latency_ms, reply.usage, None))
+        self._trace(
+            CallTrace(role, method, self._mode, model_id, latency_ms, reply.usage, None, scope)
+        )
         return reply
 
     def _reply(
