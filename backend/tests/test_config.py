@@ -103,3 +103,17 @@ def test_turn_inline_max_bytes_defaults_to_16384_and_reads_the_environment(
     monkeypatch.setenv("MKC_TURN_INLINE_MAX_BYTES", "0")
     with pytest.raises(ValidationError):
         Settings()
+
+
+# MKC-17.2: lease timings (decision 57).
+def test_lease_timings_default_and_read_the_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    assert (Settings().worker_lease_seconds, Settings().worker_lease_renew_seconds) == (120, 20)
+    monkeypatch.setenv("MKC_WORKER_LEASE_SECONDS", "90")
+    monkeypatch.setenv("MKC_WORKER_LEASE_RENEW_SECONDS", "30")
+    assert (Settings().worker_lease_seconds, Settings().worker_lease_renew_seconds) == (90, 30)
+
+
+@pytest.mark.parametrize(("lease", "renew"), [(60, 21), (60, 0), (0, 0)])
+def test_three_renewals_must_fit_into_one_lease(lease: float, renew: float) -> None:
+    with pytest.raises(ValidationError):
+        Settings(worker_lease_seconds=lease, worker_lease_renew_seconds=renew)
