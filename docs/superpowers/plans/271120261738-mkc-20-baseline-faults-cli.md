@@ -59,12 +59,21 @@
 
 ## Sub-issues
 
+As built:
+
+- `execute_run` takes `tool_tracers` and builds the registry per run and mode; the executor no longer holds one registry (`Executor(registry=None)`), so `test_build_executor_wires_one_tracer` now checks `_tool_hooks`. `test_execute_run_builds_the_registry_with_the_tool_hooks` pins that the hooks still reach every tool call.
+- The executor takes `faults=` and `run_once(run_id)`; `build_executor` takes `make_client` and passes other options to the executor; the CLI uses it, so inline runs are traced like worker runs.
+- An injected tool timeout never reaches the registry, so it has no `ToolTrace` (noted for MKC-32).
+- `settle_run` leaves a `stopped` run alone explicitly, since `stopped` left `TERMINAL`.
+- The two pins of review focus 1 and 3 passed on their first run: they pin behaviour built in MKC-20.2. Review focus 2, 4 and 5 are CLI tests (`test_resume_after_a_cost_stop_stops_again`, `test_start_refuses_a_bad_items_file`, `test_inline_on_a_leased_run_refuses`).
+- Some red tests failed on a missing attribute or argument (`public_error`), not an assertion (MKC-20.5).
+
 ### MKC-20.1: harness mode and its switches
 
 - **Files:** `src/mkc/harness/mode.py` (new), `src/mkc/config.py` (`harness_mode: HarnessMode = full`), `migrations/versions/0011_run_mode.py`, `src/mkc/db/models.py` (`Run.mode`), `tests/harness/test_mode.py`, `.env.example`, `harness/limits.py` docstring.
 - **Produces:** `HarnessMode(StrEnum)`, `Switches(checkpoints, tool_cache, durable_queue, idempotency, durable_approvals)` (frozen; `__post_init__` refuses `checkpoints and not durable_queue`), `SWITCHES: Mapping[HarnessMode, Switches]`, `DOCUMENTED_SWITCHES` (the five names in design order).
-- [ ] Red: `test_switches_are_the_documented_five` (field names == `DOCUMENTED_SWITCHES`); `test_full_all_on_baseline_all_off`; `test_checkpoints_need_durable_queue`; `test_modes_share_everything_else`: two `Settings` differing only in `harness_mode` give equal `Limits.from_settings`, equal `[t.to_spec() for t in default_registry().for_context("item")]`, and the same `SYSTEM_PROMPT` and `ROLE`; `test_settings_differ_only_by_mode` (`model_dump()` diff == `{"harness_mode"}`); migration test: `run.mode` defaults to `full`.
-- [ ] Code: as above.
+- [x] Red: `test_switches_are_the_documented_five` (field names == `DOCUMENTED_SWITCHES`); `test_full_all_on_baseline_all_off`; `test_checkpoints_need_durable_queue`; `test_modes_share_everything_else`: two `Settings` differing only in `harness_mode` give equal `Limits.from_settings`, equal `[t.to_spec() for t in default_registry().for_context("item")]`, and the same `SYSTEM_PROMPT` and `ROLE`; `test_settings_differ_only_by_mode` (`model_dump()` diff == `{"harness_mode"}`); migration test: `run.mode` defaults to `full`.
+- [x] Code: as above.
 
 ### MKC-20.2: baseline in the loop
 
@@ -74,7 +83,7 @@
   - `make_memory_save_draft(memory) -> fn`
   - `process_run(..., switches=SWITCHES[FULL], memory=None, faults=None)` and the same keywords on `run_item`
   - `execute_run(run_id, *, session, client, sessions, limits, tool_tracers, stop_tracers, faults=None, **loop_kw) -> list[ItemOutcome]`
-- [ ] Red, in `tests/harness/test_baseline.py`, with the fake model of `test_loop.py`:
+- [x] Red, in `tests/harness/test_baseline.py`, with the fake model of `test_loop.py`:
   - `test_baseline_crash_restarts_from_zero`: two items, `Crash` on the third call. No `turn` rows, items still `queued`, run `running`. A second `process_run` calls the model for item 1 again, and both items end.
   - `test_baseline_holds_approvals_in_memory_only`: save on both items. The run ends `awaiting_approval`, the items end `draft_saved`, the `draft` table is empty, `memory.approvals` has 2 entries, and a fresh `RunMemory` has none.
   - `test_baseline_saves_twice_without_a_key`: two saves of one item give two entries.
@@ -82,13 +91,13 @@
   - `test_baseline_sends_the_same_requests_as_full`: the same no-fault script gives equal `model.seen` in both modes.
   - `test_baseline_skips_the_tool_cache`: no `tool_cache` rows with a `code_version` set.
   - `test_executor_runs_each_run_in_its_mode`: a `baseline` run under the executor writes no turns.
-- [ ] Code: the switches in `run_item`, `_Ctx`, `_run_limit` and `process_run`; `RunMemory`; `execute_run`; the executor calls `execute_run`.
+- [x] Code: the switches in `run_item`, `_Ctx`, `_run_limit` and `process_run`; `RunMemory`; `execute_run`; the executor calls `execute_run`.
 
 ### MKC-20.3: failure injection
 
 - **Files:** `src/mkc/harness/faults.py` (new), `src/mkc/harness/loop.py` (three hook calls), `backend/data/e4_faults.yaml`, `tests/harness/test_faults.py`.
 - **Produces:** `FaultPlan` (pydantic, frozen, `extra="forbid"`, fields `int | None` with `ge=1`), `load_fault_plans(path) -> dict[str, FaultPlan]`, `InjectedKill(BaseException)`, `FaultInjector(plan)` with `.model(fn) -> fn`, `.tool(call) -> ToolResult | None`, `.item_ended(outcome) -> None`, `.fired: list[str]`.
-- [ ] Red, one test per fault type:
+- [x] Red, one test per fault type:
   - `test_rate_limit_is_retried` (one backoff, item saves)
   - `test_tool_timeout_counts_as_a_tool_failure` (`ok: false`, code `timeout`, tool not run)
   - `test_malformed_reply_gets_the_reprompt` (re-prompt sent; item saves)
@@ -98,12 +107,12 @@
   - `test_kill_during_approval_loses_the_draft_in_baseline`
   - `test_each_fault_fires_once`
   - `test_fault_plans_load_from_yaml` (the E4 file: one plan per type; unknown keys and 0 are refused)
-- [ ] Code: as above.
+- [x] Code: as above.
 
 ### MKC-20.4: the CLI
 
 - **Files:** `pyproject.toml` (`typer==<current>`, script `mkc`), `uv.lock`, `src/mkc/cli.py` (new), `src/mkc/harness/states.py` (edge `stopped -> running`; `stopped` leaves `TERMINAL`), `src/mkc/worker/lease.py` (`claim_run(..., run_id=None)`), `src/mkc/worker/executor.py` (`run_once(run_id=None)`, `faults=`), `tests/test_cli.py`, the state tests.
-- [ ] Red, using Typer's `CliRunner` against the test database:
+- [x] Red, using Typer's `CliRunner` against the test database:
   - `test_start_creates_a_queued_run` (prints the id; mode from the setting or `--mode`)
   - `test_start_inline_runs_it` (replay or fake client factory; the run ends)
   - `test_start_inline_with_a_kill_exits_137_and_resume_finishes`
@@ -113,13 +122,13 @@
   - `test_inspect_lists_items_and_log`
   - `test_claim_run_by_id_takes_only_that_run`
   - edge test for `stopped -> running`
-- [ ] Code: as above. A client factory seam in `mkc.cli` (`client_factory = ModelClient.from_settings`) lets tests pass a fake.
+- [x] Code: as above. A client factory seam in `mkc.cli` (`client_factory = ModelClient.from_settings`) lets tests pass a fake.
 
 ### MKC-20.5: tracing findings of the PR #161 review
 
 - **Files:** `src/mkc/observability/trace.py`, `src/mkc/observability/langfuse.py`, `src/mkc/harness/loop.py` (stop detail cut), `tests/observability/`.
-- [ ] Red: `test_langfuse_gets_only_the_error_class` (a `ModelError` whose text quotes a prompt: the sink's `status_message` has no prompt text, and `run_log.error` keeps the text); `test_stop_detail_cuts_tool_names_at_100`; `test_no_trace_id_skips_the_sink`; `test_span_record_errors_stay_inside_the_tracer`; `test_trace_id_cache_is_dropped_after_flush`.
-- [ ] Code: as decision 60 point 9.
+- [x] Red: `test_langfuse_gets_only_the_error_class` (a `ModelError` whose text quotes a prompt: the sink's `status_message` has no prompt text, and `run_log.error` keeps the text); `test_stop_detail_cuts_tool_names_at_100`; `test_no_trace_id_skips_the_sink`; `test_span_record_errors_stay_inside_the_tracer`; `test_trace_id_cache_is_dropped_after_flush`.
+- [x] Code: as decision 60 point 9.
 
 ### Docs (with the last sub-issue)
 

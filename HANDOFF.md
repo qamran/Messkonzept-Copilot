@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 18:07
+**Last updated:** 27.11.2026, 18:09
 
 This file is how agents resume work after a session restart.
 
@@ -58,7 +58,7 @@ This file is how agents resume work after a session restart.
 - **MKC-20** (#20), Baseline mode, failure injection and CLI. Status `In progress`, assigned to `qamran` (27.11.2026 17:14:51). Branch `mkc-20-baseline-cli` from `21f5eb8`. The first commit holds only the close-out of MKC-19.
   - Plan: `docs/superpowers/plans/271120261738-mkc-20-baseline-faults-cli.md` (decision 60: baseline is the same loop with five switches off; fault hooks; CLI; MKC-19 findings 1 to 3).
   - Sub-issues: MKC-20.1 #162 (`In progress`), MKC-20.2 #163, MKC-20.3 #164, MKC-20.4 #165, MKC-20.5 #166 (`Ready`).
-  - MKC-20.1 to MKC-20.4 done (mode, baseline, faults, CLI). MKC-20.5 (#166 `In progress` 18:01:41): done (`TraceRecord.public_error`; no sink without a trace id; guarded hooks; cache cleared on flush). Next: the docs (decision 60, design 8.2/8.5, runbook, status doc, backlog), then the pre-PR checks.
+  - MKC-20.1 to MKC-20.5 done; docs done (decision 60, design 8.2/8.5, ADR 001, runbook "Baseline, faults and the CLI", status doc, backlog notes on MKC-20 and MKC-32, plan as built). Next: pre-PR checks (Linux container run, advisor review), push, PR.
 
 ## Next steps
 
@@ -191,6 +191,7 @@ This file is how agents resume work after a session restart.
 
 ## Recent log
 
+- **27.11.2026 18:09** MKC-20 docs green: runbook section "Baseline, faults and the CLI" (`check_runbook.py` passes), decision 60 in the design doc with 8.2 (edge `stopped -> running`) and 8.5 "Built in MKC-20", ADR 001 note, status doc, backlog notes (MKC-20 as built, MKC-32 replay of fault arms), plan ticked with an "As built" note. Markdown lint 0 errors; every check script passes.
 - **27.11.2026 18:07** MKC-20 docs red: `scripts/check_runbook.py` requires the section "Baseline, faults and the CLI" (fails: missing). Two pins from the plan's review focus added to `test_baseline.py` (`test_baseline_sigterm_writes_nothing`, `test_baseline_takes_running_items_too`); they passed on their first run, since they pin behaviour built in MKC-20.2.
 - **27.11.2026 18:06** MKC-20.5 green: `TraceRecord.public_error` (error class and HTTP status, tool error code, or a tool name cut to 100) is what Langfuse gets as `status_message`; `run_log.error` keeps the text; the `model_unavailable` detail now starts with the error class; no sink call without a trace id (`test_name_and_error_are_cut_before_they_leave` now calls `start_run`); `span_*` build inside the tracer's guard; `flush` clears the trace id cache. Full backend suite 616 passed, 1 skipped; ruff, mypy clean.
 - **27.11.2026 18:03** MKC-20.5 red: 5 tracer tests (error class only to the sink, cut stop details, no sink without a trace id, a bad record stays inside the tracer, trace id cache dropped on flush) and two changed expectations (Langfuse `status_message` is the public error; the `model_unavailable` detail names the error class). Three fail on the missing `public_error` field (AttributeError/TypeError), the rest on assertions.
