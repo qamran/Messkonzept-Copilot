@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 12:08
+**Last updated:** 27.11.2026, 12:11
 
 This file is how agents resume work after a session restart.
 
@@ -55,7 +55,7 @@ This file is how agents resume work after a session restart.
 - **MKC-17** (#17), Run executor (worker with lease). Status `In progress`, assigned to `qamran` (27.11.2026 11:37:38). Branch `mkc-17-run-executor` from `266c37d`. The first commit holds only the close-out of MKC-16.
   - Plan: `docs/superpowers/plans/271120261154-mkc-17-run-executor.md` (decision 57: lease on the run row with the database clock, fencing before every commit, heartbeat thread for the file and the lease, stop between turns, `waiting_for_database` written on the first successful probe after an outage).
   - Sub-issues: MKC-17.1 #146 `In progress`; MKC-17.2 #147, MKC-17.3 #148, MKC-17.4 #149 `Ready`.
-  - Next: MKC-17.4 red: the worker SIGTERM tests without a database, the runbook rule.
+  - Next: MKC-17.4 green: `mkc.worker.main` runs the executor; runbook section; docs.
 
 ## Next steps
 
@@ -161,6 +161,8 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+
+- **27.11.2026 12:11** MKC-17.4 (#149 `In progress`) red: `tests/worker/conftest.py` points `DATABASE_URL` at a closed port unless a test asks for a database, so the SIGTERM and heartbeat tests run without one (they pass); `test_worker_runs_the_executor` fails (the run stays `running`); `scripts/check_runbook.py` requires the section "Worker lease and outages" naming every worker timing setting (fails: section missing).
 
 - **27.11.2026 12:08** MKC-17.3 green: `MKC_WORKER_DB_BACKOFF_MAX_SECONDS` (30), `MKC_DATABASE_CONNECT_TIMEOUT_SECONDS` (10), `engine_options` (pre-ping, connect timeout, TCP keepalives) used by `get_engine`; `mark_waiting`; `Executor` probes with `SELECT 1`, waits with backoff on the stop flag, marks the run `waiting_for_database` once the database is back, and setup errors now back off `MKC_WORKER_DB_BACKOFF_MAX_SECONDS`. The shutdown test bound allows for the Windows connect retry (4 s measured). Full suite 437 passed, 1 skipped; worker tests 5 runs in a row green; ruff and mypy strict clean.
 
