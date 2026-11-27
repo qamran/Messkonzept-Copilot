@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 13:56
+**Last updated:** 27.11.2026, 13:57
 
 This file is how agents resume work after a session restart.
 
@@ -56,25 +56,25 @@ This file is how agents resume work after a session restart.
 - **MKC-18** (#18), Limits and retries. Status `In progress`, assigned to `qamran` (27.11.2026 12:59:40). Branch `mkc-18-limits-retries` from `0f9a413`. The first commit holds only the close-out of MKC-17.
   - Plan: `docs/superpowers/plans/271120261324-mkc-18-limits-retries.md` (decision 58: stop reasons, the stop trace, run usage from the database, retries and turn deadline, re-prompt, tool-retry and resume caps, defaults with reasons). It folds in MKC-13 finding 3, MKC-15 findings 6 and 9, MKC-16 finding 2, MKC-17 findings 1, 6, 7 and 8.
   - Sub-issues: MKC-18.1 #151 (`In progress`), MKC-18.2 #152, MKC-18.3 #153, MKC-18.4 #154 (`Ready`); all assigned to `qamran`, linked to #18, on the board.
-  - MKC-18.4 (#154, `In progress` 13:51:51): design doc updated (8.2 edge table and terminal note, 8.4 outage wording of finding 17#1 and the deadline of 17#7, 8.5 "Built in MKC-18", decision 58 in section 18). Next: status doc, backlog "As built", MKC-15 plan link, HANDOFF next steps.
+  - MKC-18.4 (#154, `In progress` 13:51:51): docs done: ADR 001, status doc, backlog "As built", MKC-15 plan link, plan checkboxes; HANDOFF next steps mark findings 13#3, 15#6, 16#2, 17#1, 17#6, 17#7, 17#8 done and 15#9 re-deferred. Next: full test run, lint, push, PR.
 
 ## Next steps
 
 1. MKC-18: see "In progress".
    - MKC-17, non-blocking findings of the PR #150 review (comment 27.11.2026 12:51:52), for the tickets named:
-     - 1 (MKC-18): `waiting_for_database` is not a durable trace: it is written after the outage and overwritten by the next claim a moment later; production has no state history (the test uses a test-only trigger); design 8.4 and the PR body overstate it. Fix the wording or add a history row or timestamp
+     - 1 (**done in MKC-18**: design 8.4 now says so; MKC-19's run log is the durable record): `waiting_for_database` is not a durable trace: it is written after the outage and overwritten by the next claim a moment later; production has no state history (the test uses a test-only trigger); design 8.4 and the PR body overstate it. Fix the wording or add a history row or timestamp
      - 2 (**before MKC-23/29**): tool writes are not fenced: `save_draft` and the tool cache commit in their own transactions, so a worker that lost its lease can still replace a draft body in its turn in flight; `save_draft` must refuse an item that is no longer `running`, or check the lease
      - 3, 4: test gaps (surviving mutations): fence without the expiry clause, no fence in `_finish`, no fence at the item claim, no `should_stop` at the top of the `process_run` loop, `held.lost` dropped from `should_stop`; no test with two items; the turn count in `test_two_workers_only_one_claims` cannot fail
      - 5: `settle_run` commits without `fence`; `settle_run` on a `waiting_for_database` run with no busy item raises `InvalidTransition` (mind it when the API settles runs)
-     - 6 (MKC-18): "no error ends the worker" has holes: `_renew` catches only `SQLAlchemyError` (another error ends the lease thread silently, every run then loses its lease after 120 s with a green probe), `_touch_loop` only `OSError`, the claim in `run_once` only `SQLAlchemyError`
-     - 7 (MKC-18): a hung model call holds the run forever (threads keep the lease and probe fresh); the docs should say so until the turn deadline exists; a run that always fails setup is claimed again every 30 s and blocks later runs
-     - 8: stale "heartbeat thread renews the lease" wording in `config.py` line 40, the `main.py` docstring, the runbook row for `MKC_WORKER_LEASE_RENEW_SECONDS`, the section comment in `executor.py`
+     - 6 (**done in MKC-18.4**, `tests/worker/test_executor_errors.py`): "no error ends the worker" has holes: `_renew` catches only `SQLAlchemyError` (another error ends the lease thread silently, every run then loses its lease after 120 s with a green probe), `_touch_loop` only `OSError`, the claim in `run_once` only `SQLAlchemyError`
+     - 7 (**done in MKC-18.3**: 180 s turn deadline; a client that can't be built stops the run with `setup_error`): a hung model call holds the run forever (threads keep the lease and probe fresh); the docs should say so until the turn deadline exists; a run that always fails setup is claimed again every 30 s and blocks later runs
+     - 8 (**done in MKC-18.4**): stale "heartbeat thread renews the lease" wording in `config.py` line 40, the `main.py` docstring, the runbook row for `MKC_WORKER_LEASE_RENEW_SECONDS`, the section comment in `executor.py`
      - 9: #149 said "without a database (kind and Compose smoke)"; both smokes run Postgres; the closed-port worker tests and the Linux SIGTERM test prove the no-database part
      - 10: process: `c2ec3e8` 201 lines; #147 went `In progress` (12:04:48) after its green commit (12:04:37)
      - 11: `mark_waiting` does not release the lease; a SIGTERM right after it leaves the run leased for up to 120 s
    - MKC-16, non-blocking findings of the PR #145 re-review (comment 27.11.2026 11:30:07), for the tickets named:
      - 1: decision 56 was taken by the development agent; the user has since made the Storage bucket `mkc-storage` and its key for MKC-21 (27.11.2026; the clock times were not recorded); the Postgres table `blob` stays until MKC-21
-     - 2 (MKC-18): a `ValueError` from `save_turn` or `record_key` in the loop leaves the item `running`, with no cap on resumes
+     - 2 (**done in MKC-18.2**: the resume cap fails such an item with `resume_limit` after 3 resumes without a new turn): a `ValueError` from `save_turn` or `record_key` in the loop leaves the item `running`, with no cap on resumes
      - 3: `_valid_args` repeats the argument check of `_run`; the two can drift apart
      - 4 (E4/E9): after a resume the model sees earlier turns only as tool, arguments and `ok`; watch for re-reads
      - 5: the PR body's B1 line shows the token as a control character, and there are four commits over 200 lines (with `b8421b3`, the line-ending restore, 1,856 lines)
@@ -85,10 +85,10 @@ This file is how agents resume work after a session restart.
    - 2: HANDOFF times: `Last updated` of `6853c47` (09:23 vs 09:21:09), `435ab83` (09:01 vs 09:00:21) and `54c8e52` (09:44 vs 09:43:17) were ahead of the commit; #15 `Testing` was 09:42:49, not 09:43; the HANDOFF named head `d2f883d`, the PR head was `54c8e52`
    - 3, 4: the status doc's "Phase" line said "continues with MKC-14" (fixed in this close-out); the backlog entry for MKC-15 still shows `run_item(item_id)` and `next_item(run_id)`
    - 5 (MKC-21/23; not MKC-16: resume keeps an item `running` and needs no edge): no edge from `awaiting_approval` back to `running`; an item queued for an awaiting run is never served and `settle_run` raises
-   - 6 (MKC-18): any model error other than `ModelConfigError`/`ReplayMiss` fails the item, so a fault hitting all items (a 401, a code bug) fails them all and the run reads `done`; a transient 429/5xx fails the item (no retries yet)
+   - 6 (**done in MKC-18.3**: 401/403 and setup errors stop the run with `setup_error`; 429/5xx/timeouts are retried, then the run stops with `model_unavailable`; other errors still fail the item): any model error other than `ModelConfigError`/`ReplayMiss` fails the item, so a fault hitting all items (a 401, a code bug) fails them all and the run reads `done`; a transient 429/5xx fails the item (no retries yet)
    - 7 (**done in MKC-16**: `process_run` resumes `running` items and turn numbers continue): a setup or database error leaves the item `running` with no edge out; turn numbers restart at 1 if `run_item` runs twice on one item (`IntegrityError` on `uq_turn_item_number`); resume must continue the numbering
    - 8: guard test gaps: raw SQL, bulk updates, a hard-coded current state; it matches the name `transition` only
-   - 9 (MKC-18): `next_item` does not lock the run row; an item can be claimed while the run is stopped
+   - 9 (re-deferred by decision 58 to the ticket that lets the API stop a run: the worker's claim commit is fenced and `fence` locks the run row): `next_item` does not lock the run row; an item can be claimed while the run is stopped
    - 10: a billed model call that raises records cost 0; `ItemOutcome.cost_eur` is not rounded to 6 places like the turn rows
    - 11: a blank line separates `Refs:` from `Co-Authored-By:` in commit messages, so git does not parse `Refs` as a trailer (all history has this shape)
    - pre-PR minors: a saved draft can remain when a later call in the same turn raises (MKC-22/23); duplicate non-empty tool call ids are not made unique (done in MKC-16.1); `TERMINAL`/`EDGES` mix the two enums, which compare by string value
@@ -106,7 +106,7 @@ This file is how agents resume work after a session restart.
 4. MKC-13, non-blocking findings of the PR #127 review (comment 26.11.2026 15:19Z), for MKC-17/MKC-18 or a hardening ticket:
    - 1: another module could import `mkc.models.providers.build_chat_model` and skip `ModelClient`; add a guard that only `client.py` imports `providers`
    - 2: Gemini, Anthropic and Meta have no request-count test (only `max_retries == 0`); the reviewer measured one request each against a local server
-   - 3 (moved to MKC-18 by decision 57, backlog note): the OpenRouter timeout is per phase, not wall clock; the harness needs its own deadline
+   - 3 (**done in MKC-18.3**: `MKC_TURN_TIMEOUT_SECONDS`, 180 s): the OpenRouter timeout is per phase, not wall clock; the harness needs its own deadline
    - 4: replay traces carry the recorded cost; a spend tracer must skip `mode == "replay"`
    - 5: Anthropic, Meta and Gemini prices are stand-ins (`models.yaml`); fix before evaluation spend is recorded on those routes
    - 6, 7: disclosed in the PR: four commits over 200 lines, four without a HANDOFF change; some red tests failed on `ImportError` or a hang

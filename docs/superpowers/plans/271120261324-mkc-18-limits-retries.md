@@ -81,29 +81,31 @@ The re-prompt count (1) is fixed by feature 22 but stays a `Limits` field (`max_
 
 ## Sub-issues
 
+As built: a test of 18.2 set the attempts to 3 where it meant 2 (fixed in `5c193e1`); the 18.2 code moved the end-of-item turn count before any write, so no autoflush splits the last commit.
+
 ### MKC-18.1: run limits and the stop record
 
-- [ ] Red: `backend/tests/harness/test_limits.py` (DB)
+- [x] Red: `backend/tests/harness/test_limits.py` (DB)
   - `Limits.from_settings` reads the settings; invalid values are refused
   - `test_run_step_limit_stops_run`, `test_wall_time_stops_run` (backdated `started_at`), `test_cost_limit_stops_run`: each asserts `run.state == stopped`, its own `stop_reason`, one `StopEvent` with that reason, the item still `running`, no further model call
   - usage is read from the database: a second `process_run` call counts the first call's turns
-- [ ] Code: migration `0009_limits`, `mkc.harness.limits`, settings, `process_run`/`run_item` take `limits` and `tracers`
+- [x] Code: migration `0009_limits`, `mkc.harness.limits`, settings, `process_run`/`run_item` take `limits` and `tracers`
 
 ### MKC-18.2: item limits
 
-- [ ] Red: `test_step_limit_fails_item` (reason `step_limit` + event), `test_tool_retries_fail_item` (a failing fake tool), `test_malformed_output_gets_one_reprompt_then_item_fails` (the second request carries the corrective message; a resume after the first no-call turn carries it too), `test_resume_limit_fails_item` (counter up on resume, reset by a stored turn)
-- [ ] Code: the item checks in `run_item`, the corrective message in `prompts` and `load_resume_context`, the counter in `process_run`
+- [x] Red: `test_step_limit_fails_item` (reason `step_limit` + event), `test_tool_retries_fail_item` (a failing fake tool), `test_malformed_output_gets_one_reprompt_then_item_fails` (the second request carries the corrective message; a resume after the first no-call turn carries it too), `test_resume_limit_fails_item` (counter up on resume, reset by a stored turn)
+- [x] Code: the item checks in `run_item`, the corrective message in `prompts` and `load_resume_context`, the counter in `process_run`
 
 ### MKC-18.3: retries, deadline and setup stops
 
-- [ ] Red:
+- [x] Red:
   - `backend/tests/models/test_errors.py`: a real 429 (with `Retry-After`), 503 and `httpx.ReadTimeout` through the OpenRouter mock transport come out of `ModelClient` as `TransientModelError`; 401 as `ModelAuthError`; 400 unchanged
   - `backend/tests/harness/test_retry.py`: `test_429_backs_off_exponentially` (fake clock: waits 2, 4, 8, 16), `Retry-After` wins when longer, `should_stop` ends the waiting, the deadline turns a hung call into a timeout
   - loop: exhausted retries stop the run with `model_unavailable`; `ReplayMiss`, `ModelConfigError` and 401 stop it with `setup_error`; the executor stops a run whose client can't be built
-- [ ] Code: `mkc.models` errors and classifier, `mkc.harness.retry`, the loop and executor changes; the MKC-15 and MKC-17 tests that pinned the old behaviour change in red commits first
+- [x] Code: `mkc.models` errors and classifier, `mkc.harness.retry`, the loop and executor changes; the MKC-15 and MKC-17 tests that pinned the old behaviour change in red commits first
 
 ### MKC-18.4: executor holes and docs
 
-- [ ] Red: an unexpected error in the lease renewal, the heartbeat touch and the claim does not end the thread or the worker (finding 17#6); `scripts/check_runbook.py` requires the new settings
-- [ ] Code: broad catches with logging in `_renew`, `_touch_loop`, `run_once`
-- [ ] Docs: design 8.2 notes and 8.5, decision 58 in section 18, the stale wording of findings 17#1, 17#7 and 17#8, runbook settings table and "Limits and retries", `.env.example`, status doc, backlog "As built", HANDOFF
+- [x] Red: an unexpected error in the lease renewal, the heartbeat touch and the claim does not end the thread or the worker (finding 17#6); `scripts/check_runbook.py` requires the new settings
+- [x] Code: broad catches with logging in `_renew`, `_touch_loop`, `run_once`
+- [x] Docs: design 8.2 notes and 8.5, decision 58 in section 18, the stale wording of findings 17#1, 17#7 and 17#8, runbook settings table and "Limits and retries", `.env.example`, status doc, backlog "As built", HANDOFF
