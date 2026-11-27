@@ -20,18 +20,33 @@ sys.path.insert(0, str(ROOT / "scripts"))
 import check_pre_pr  # noqa: E402
 
 
-def _bash() -> str | None:
-    """Git Bash on Windows (never WSL's bash.exe), bash elsewhere."""
-    if os.name != "nt":
-        return shutil.which("bash")
-    git = shutil.which("git")
+def _git_bash(git: str | None) -> str | None:
+    """Git for Windows' bin/bash.exe from its git.exe (cmd/ or mingw64/bin/), never WSL's."""
     if not git:
         return None
-    candidate = Path(git).resolve().parents[1] / "bin" / "bash.exe"
-    return str(candidate) if candidate.is_file() else None
+    for parent in Path(git).resolve().parents[:3]:
+        candidate = parent / "bin" / "bash.exe"
+        if candidate.is_file():
+            return str(candidate)
+    return None
+
+
+def _bash() -> str | None:
+    return _git_bash(shutil.which("git")) if os.name == "nt" else shutil.which("bash")
 
 
 BASH = _bash()
+
+
+@pytest.mark.parametrize("git", ["cmd/git.exe", "mingw64/bin/git.exe"])
+def test_git_bash_is_found_from_either_git(tmp_path: Path, git: str) -> None:
+    (tmp_path / "bin").mkdir()
+    (tmp_path / "bin" / "bash.exe").write_bytes(b"")
+    (tmp_path / git).parent.mkdir(parents=True, exist_ok=True)
+    (tmp_path / git).write_bytes(b"")
+    assert _git_bash(str(tmp_path / git)) == str((tmp_path / "bin" / "bash.exe").resolve())
+
+
 needs_bash = pytest.mark.skipif(BASH is None, reason="no POSIX bash (Git Bash on Windows)")
 
 # POSIX sh, so the `bash` stub does not find itself through `env bash`.
