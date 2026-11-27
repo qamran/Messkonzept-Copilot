@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 19:23
+**Last updated:** 27.11.2026, 19:24
 
 This file is how agents resume work after a session restart.
 
@@ -207,6 +207,7 @@ From MKC-168 (decision 61), tickets run in parallel lanes. Each lane keeps its o
 
 ## Recent log
 
+- **27.11.2026 19:24** MKC-168.5 green: backlog section "Parallel lanes and waves" (five lanes, owners, waits; wave 1 MKC-21, MKC-36, MKC-46, MKC-49; later waves), status doc (current ticket, restart files, 61 decisions, workflow summary, table "Decision numbers per lane": 61 coordinator, 62–64 A, 65–67 B, 68–70 C, 71–73 D). `check_lanes.py` exit 0; a mutation run (a lane renamed, MKC-46 dropped from wave 1, block 68–70 changed) gave 3 problems, after the wave check was narrowed to the ticket list (the first version missed the dropped MKC-46). markdownlint 0 errors.
 - **27.11.2026 19:23** MKC-168.5 red: `scripts/check_lanes.py` (backlog section "Parallel lanes and waves" with the five lanes and a wave 1 line naming MKC-21, MKC-36, MKC-46, MKC-49; status doc table "Decision numbers per lane" with 61 and the four blocks) fails: "backlog: missing section". #173 `In progress` (19:23:32).
 - **27.11.2026 19:23** MKC-168.4: decision 61 in the design doc (the user's four choices of 27.11.2026, attributed to the user; the mechanics 5 to 9, attributed to the development agent) and the ADR 005 amendment "Parallel lanes". markdownlint 0 errors; every check script passes.
 - **27.11.2026 19:22** MKC-168.4 green (AGENTS.md): roles coordinator, test agent, development agent and review agent (one per lane or PR); the coordinator now does the `turing` push and the deploy gates; restart files (`HANDOFF.md` coordinator, `handoff/lane-<x>.md` lanes); `scripts/pre_pr.sh` before every PR; review only after `gh pr checks` is green; new section "Parallel lanes" (phases, waiting, worktrees, shared-file rules, merge queue by readiness); checklist: the test agent's red tests unchanged or explained. `check_agents.py` exit 0; markdownlint 0 errors.

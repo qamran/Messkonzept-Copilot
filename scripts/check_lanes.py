@@ -51,7 +51,8 @@ def problems(root: Path = ROOT) -> list[str]:
     if not wave:
         found.append("backlog: missing the '**Wave 1' line")
     else:
-        found += [f"backlog: wave 1 misses {t}" for t in WAVE_1 if not re.search(rf"{t}\b", wave[0])]
+        listed = wave[0].split(";")[0]  # the ticket list, before any note
+        found += [f"backlog: wave 1 misses {t}" for t in WAVE_1 if not re.search(rf"{t}\b", listed)]
 
     status = section((root / STATUS).read_text(encoding="utf-8"), "## Decision numbers per lane")
     if not status:

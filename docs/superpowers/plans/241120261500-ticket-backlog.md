@@ -51,6 +51,22 @@ Failure modes the spec implies that no feature list names explicitly. Each has a
 4. **Supabase paused or unreachable** during a run. Expected: the worker backs off, the run shows `waiting_for_database`, no state is lost, and it resumes when the database is back. Test in **MKC-17**.
 5. **The model asks for a tool that doesn't exist, or one from the run-level set, with plausible arguments.** Expected: a structured error to the model, counted in the trace, nothing executed. Test in **MKC-14**.
 
+## Parallel lanes and waves
+
+Added 27.11.2026 by MKC-168 (decision 61, plan `docs/superpowers/plans/271120261901-parallel-lanes.md`). Tickets run in parallel lanes; each lane owns its package. Inside a lane, tickets run in order. A ticket that can be built in a lane is built now, whatever its phase (the user's choice). The dependencies below still hold: a lane whose next ticket waits on another lane pauses.
+
+| Lane | Tickets, in order | Owns (new code) | Waits on another lane |
+|---|---|---|---|
+| A. Extraction | MKC-21 → MKC-22 → MKC-23 → MKC-25 → MKC-26 → MKC-28 | `mkc/extraction/`, the item tools in `mkc/harness/registry.py`, `backend/data/operators.yaml` | none |
+| A2. SachsenNetze | MKC-27 | `mkc/extraction/sachsen*.py` | A (MKC-21) |
+| B. Advisor | MKC-36 → MKC-37 → MKC-38 | `mkc/advisor/`, advisor API routes, advisor UI pages | MKC-37 waits on A (MKC-30) |
+| C. Decision layer | MKC-46 → MKC-47 → MKC-48 | `mkc/decision/` (`DecisionClient`) | MKC-47 waits on B (MKC-36) and A (MKC-26) |
+| D. RAG | MKC-49 → MKC-50 → MKC-51 | `mkc/rag/`, corpus loader, retriever | MKC-51 waits on B (MKC-38) |
+
+**Wave 1 (from 27.11.2026):** MKC-21 (lane A), MKC-36 (lane B), MKC-46 (lane C), MKC-49 (lane D); MKC-46 and MKC-49 are Phase 7 tickets built early.
+
+**Later waves:** MKC-27 (lane A2) joins once MKC-21 is merged. Tickets outside these lanes (for example MKC-24, MKC-29 to MKC-35) are assigned to a lane or run by the coordinator when their dependencies are done.
+
 ## Ticket format
 
 Every ticket, issue and sub-issue on the board uses this template (also as the GitHub issue template, created in MKC-1):
