@@ -30,7 +30,12 @@ Context = Literal["item", "run"]
 CONTEXTS: tuple[Context, ...] = get_args(Context)
 
 ErrorCode = Literal[
-    "unknown_tool", "tool_not_allowed", "invalid_args", "not_implemented", "tool_failed"
+    "unknown_tool",
+    "tool_not_allowed",
+    "invalid_args",
+    "not_implemented",
+    "tool_failed",
+    "timeout",
 ]
 REFUSALS: frozenset[ErrorCode] = frozenset({"unknown_tool", "tool_not_allowed"})
 """Error codes that count as refusals in the trace: the call was never allowed."""

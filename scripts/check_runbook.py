@@ -20,6 +20,9 @@ The section "Limits and retries" (MKC-18.4) must name every limit setting (`item
 The section "Tracing" (MKC-19.4) must name every Langfuse setting (`langfuse_*`) by its
 `MKC_` variable; the inventory must name Langfuse and its two keys.
 
+The section "Baseline, faults and the CLI" (MKC-20) must name `MKC_HARNESS_MODE`, the five
+baseline switches, the four `mkc run` commands, every fault plan field and the E4 fault file.
+
 Usage: python scripts/check_runbook.py  (exit code 0 = ok, 1 = problems)
 """
 
@@ -49,6 +52,14 @@ WORKER_HEADING = "## Worker lease and outages"
 LIMITS_HEADING = "## Limits and retries"
 LIMIT_FIELDS = r"item_max_steps|run_max_\w+|tool_max_retries|model_max_retries|model_backoff_\w+|turn_timeout_seconds|item_max_resumes"
 TRACING_HEADING = "## Tracing"
+BASELINE_HEADING = "## Baseline, faults and the CLI"
+BASELINE_NAMES = [
+    "MKC_HARNESS_MODE",
+    "checkpoints", "tool_cache", "durable_queue", "idempotency", "durable_approvals",
+    "mkc run start", "mkc run resume", "mkc run status", "mkc run inspect",
+    "timeout_at", "rate_limit_at", "malformed_at", "kill_at_turn", "kill_during_approval",
+    "backend/data/e4_faults.yaml",
+]
 CONFIG = "backend/src/mkc/config.py"
 
 
@@ -107,7 +118,12 @@ def problems(root: Path = ROOT) -> list[str]:
     if len(settings) < 5:
         found.append(f"{CONFIG}: expected the 5 Langfuse settings, found {len(settings)}")
     missing = [name for name in settings if name not in tracing]
-    return found + [f"{RUNBOOK}: '{TRACING_HEADING}' does not name '{name}'" for name in missing]
+    found += [f"{RUNBOOK}: '{TRACING_HEADING}' does not name '{name}'" for name in missing]
+    baseline = section(text, BASELINE_HEADING)
+    if baseline is None:
+        return [*found, f"{RUNBOOK}: section '{BASELINE_HEADING}' missing"]
+    missing = [name for name in BASELINE_NAMES if name not in baseline]
+    return found + [f"{RUNBOOK}: '{BASELINE_HEADING}' does not name '{name}'" for name in missing]
 
 
 if __name__ == "__main__":

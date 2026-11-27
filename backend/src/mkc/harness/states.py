@@ -47,12 +47,14 @@ EDGES: frozenset[tuple[ItemState, ItemState] | tuple[RunState, RunState]] = froz
         (_R.AWAITING_APPROVAL, _R.DONE),  # settle_run
         (_R.RUNNING, _R.WAITING_FOR_DATABASE),  # worker: back after an outage (MKC-17)
         (_R.WAITING_FOR_DATABASE, _R.RUNNING),  # worker: claim_run (MKC-17)
+        (_R.STOPPED, _R.RUNNING),  # `mkc run resume` (MKC-20, decision 60)
     }
 )
 
 TERMINAL: frozenset[ItemState | RunState] = frozenset(
-    {_I.COMMITTED, _I.REJECTED, _I.FAILED, _R.DONE, _R.STOPPED}
+    {_I.COMMITTED, _I.REJECTED, _I.FAILED, _R.DONE}
 )
+"""States nothing leaves. `stopped` left this set in MKC-20: a resume brings it back."""
 
 
 def transition[S: (ItemState, RunState)](current: S, target: S) -> S:

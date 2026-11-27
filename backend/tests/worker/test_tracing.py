@@ -119,4 +119,6 @@ def test_build_executor_wires_one_tracer(engine: Engine) -> None:
     assert worker.tracer is not None
     model_hooks = worker._client_factory()._tracers  # type: ignore[attr-defined]
     assert model_hooks == [worker.tracer.span_model]
-    assert worker._registry._tracers == (worker.tracer.span_tool,)  # type: ignore[attr-defined]
+    # the registry is built per run, in the run's mode (MKC-20), with these hooks
+    assert worker._registry is None  # type: ignore[attr-defined]
+    assert worker._tool_hooks == (worker.tracer.span_tool,)  # type: ignore[attr-defined]

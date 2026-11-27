@@ -16,6 +16,7 @@
   with backoff (1, 2, 4 … `worker_db_backoff_max_seconds`), and once the database is back it
   marks the run `waiting_for_database` (the durable trace of the outage) and returns; the next
   `run_once` claims the run back to `running` and resumes from the last complete turn.
+- Each run runs in its own mode (`run.mode`, MKC-20) through `execute_run`.
 - Tracing (MKC-19, decision 59): with a `tracer`, each run gets its trace id before work
   starts, every stop (also a setup stop) and every outage waited out is recorded, the default
   registry reports tool calls, and the tracer is flushed after each run. The model hook is
@@ -37,9 +38,10 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 
 from mkc.config import Settings
+from mkc.harness.faults import FaultInjector
 from mkc.harness.limits import Limits, StopReason, run_usage, stop_run
-from mkc.harness.loop import SETUP_ERRORS, process_run
-from mkc.harness.registry import default_registry
+from mkc.harness.loop import SETUP_ERRORS
+from mkc.harness.runner import execute_run
 from mkc.harness.tools import ToolRegistry
 from mkc.models.client import ModelClient
 from mkc.observability.trace import Tracer
@@ -82,14 +84,16 @@ class Executor:
         registry: ToolRegistry | None = None,
         owner: str | None = None,
         tracer: Tracer | None = None,
+        faults: FaultInjector | None = None,
     ) -> None:
         self.settings = settings
         self.tracer = tracer
+        self.faults = faults  # only the CLI and tests pass one (MKC-20, decision 60)
         self.owner = owner or default_owner()
         self._sessions = sessions
         self._client_factory = client_factory
-        hooks = (tracer.span_tool,) if tracer is not None else ()
-        self._registry = registry or default_registry(hooks, sessions=sessions)
+        self._tool_hooks = (tracer.span_tool,) if tracer is not None else ()
+        self._registry = registry  # None: the default registry for each run's mode
         self._stop_hooks = (tracer.span_stop,) if tracer is not None else ()
         self._stop = threading.Event()
         self._closing = threading.Event()
@@ -137,12 +141,13 @@ class Executor:
 
     # --- work -------------------------------------------------------------------------------
 
-    def run_once(self) -> bool:
-        """Claim one run and process it. False when there was no run to claim."""
+    def run_once(self, run_id: int | None = None) -> bool:
+        """Claim one run (`run_id`, or the oldest claimable) and process it. False when there
+        was no run to claim."""
         if self._stop.is_set():
             return False
         try:
-            run_id = self._claim()
+            run_id = self._claim(run_id)
         except SQLAlchemyError as error:
             self._database_error(None, error)
             return False
@@ -165,10 +170,13 @@ class Executor:
                 self.tracer.flush()  # bounded by the export timeout; never raises
         return True
 
-    def _claim(self) -> int | None:
+    def _claim(self, run_id: int | None = None) -> int | None:
         with self._sessions() as session:
             run = claim_run(
-                session, owner=self.owner, lease_seconds=self.settings.worker_lease_seconds
+                session,
+                owner=self.owner,
+                lease_seconds=self.settings.worker_lease_seconds,
+                run_id=run_id,
             )
             run_id = None if run is None else run.id
             session.commit()
@@ -182,11 +190,14 @@ class Executor:
         try:
             client = self._client_factory()
             with self._sessions() as session:
-                process_run(
+                execute_run(
                     run_id,
                     session=session,
+                    sessions=self._sessions,
                     client=client,
                     registry=self._registry,
+                    tool_tracers=self._tool_hooks,
+                    faults=self.faults,
                     limits=Limits.from_settings(settings),
                     inline_max_bytes=settings.turn_inline_max_bytes,
                     code_version=settings.commit,

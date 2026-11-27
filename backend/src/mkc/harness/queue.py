@@ -78,11 +78,11 @@ def settle_run(session: Session, run_id: int) -> RunState:
     - `awaiting_approval` when none is, but a draft awaits a decision or a commit
     - `done` when every item is committed, rejected or failed (also when there are none)
 
-    A terminal run (`done`, `stopped`) is returned as it is.
+    A `done` or `stopped` run is returned as it is (a stopped run waits for a resume).
     """
     run = session.scalars(select(Run).where(Run.id == run_id).with_for_update()).one()
     current = RunState(run.state)
-    if current in TERMINAL:
+    if current in TERMINAL or current is RunState.STOPPED:
         return current
     rows = session.scalars(select(Item.state).where(Item.run_id == run_id).distinct())
     present = {ItemState(state) for state in rows}

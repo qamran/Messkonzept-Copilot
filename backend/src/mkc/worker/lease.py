@@ -21,12 +21,15 @@ def _until(lease_seconds: float) -> object:
     return func.now() + func.make_interval(0, 0, 0, 0, 0, 0, lease_seconds)
 
 
-def claim_run(session: Session, *, owner: str, lease_seconds: float) -> Run | None:
+def claim_run(
+    session: Session, *, owner: str, lease_seconds: float, run_id: int | None = None
+) -> Run | None:
     """Take the oldest `running` or `waiting_for_database` run whose lease is free, expired
     or already `owner`'s, and lease it to `owner` for `lease_seconds`.
 
     `FOR UPDATE SKIP LOCKED` covers a claim not yet committed; the lease condition covers a
-    committed one. A `waiting_for_database` run goes back to `running`.
+    committed one. A `waiting_for_database` run goes back to `running`. With `run_id`, only
+    that run is taken (the CLI's `--inline`, MKC-20).
     """
     statement = (
         select(Run)
@@ -43,6 +46,8 @@ def claim_run(session: Session, *, owner: str, lease_seconds: float) -> Run | No
         .limit(1)
         .with_for_update(skip_locked=True)
     )
+    if run_id is not None:
+        statement = statement.where(Run.id == run_id)
     run = session.scalars(statement).first()
     if run is None:
         return None

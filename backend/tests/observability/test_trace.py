@@ -141,6 +141,7 @@ def test_name_and_error_are_cut_before_they_leave(engine: Engine) -> None:
     run_id, (item_id,) = make_run(engine, "running")
     sink = FakeLangfuse()
     the_tracer = tracer(engine, sink)
+    the_tracer.start_run(run_id)  # without a trace id nothing is sent (MKC-20.5)
     the_tracer.span_tool(ToolTrace("x" * 500, "item", False, "unknown_tool", True, 1,
                                    run_id=run_id, item_id=item_id, step=1))  # fmt: skip
     the_tracer.span_model(model_trace(TraceScope(run_id, item_id, 1), usage=None,

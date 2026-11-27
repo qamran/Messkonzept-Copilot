@@ -4,7 +4,7 @@ from pathlib import Path
 
 from alembic import command
 from alembic.config import Config
-from sqlalchemy import create_engine, inspect
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.engine import URL
 
 ALEMBIC_INI = Path(__file__).resolve().parents[2] / "alembic.ini"
@@ -18,6 +18,7 @@ COLUMNS = {
         "lease_expires_at",
         "started_at",  # 0009 (MKC-18)
         "trace_id",  # 0010 (MKC-19)
+        "mode",  # 0011 (MKC-20)
         "created_at",
         "updated_at",
     },
@@ -78,3 +79,18 @@ def test_0004_downgrades_and_upgrades_again(database_env: URL) -> None:
     command.upgrade(config, "head")
     command.upgrade(config, "head")  # the deploy hook runs it on every release
     assert set(_describe(database_env)) == TABLES
+
+
+def test_0011_run_mode_defaults_to_full(database_env: URL) -> None:
+    """A run inserted without a mode is a full-mode run (MKC-20.1, decision 60)."""
+    command.upgrade(Config(str(ALEMBIC_INI)), "head")
+    engine = create_engine(database_env)
+    try:
+        with engine.begin() as conn:
+            run_id, mode = conn.execute(
+                text("insert into run (state) values ('running') returning id, mode")
+            ).one()
+            conn.execute(text("delete from run where id = :id"), {"id": run_id})
+    finally:
+        engine.dispose()
+    assert mode == "full"

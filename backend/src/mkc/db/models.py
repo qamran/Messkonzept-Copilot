@@ -92,6 +92,8 @@ class Run(Base):
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     # The run's Langfuse trace: 32 random hex digits, set once (MKC-19, decision 59).
     trace_id: Mapped[str | None] = mapped_column(Text)
+    # `full` or `baseline` (`HarnessMode`), set when the run is created (MKC-20, decision 60).
+    mode: Mapped[str] = mapped_column(String(16), server_default="full")
     created_at: Mapped[datetime] = _created()
     updated_at: Mapped[datetime] = _updated()
 

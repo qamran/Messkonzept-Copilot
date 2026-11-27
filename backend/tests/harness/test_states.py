@@ -31,6 +31,7 @@ DESIGN_RUN_EDGES: set[tuple[str, str]] = {
     ("awaiting_approval", "done"),
     ("running", "waiting_for_database"),  # MKC-17, decision 57
     ("waiting_for_database", "running"),
+    ("stopped", "running"),  # MKC-20: `mkc run resume`, decision 60
 }
 
 
@@ -85,7 +86,7 @@ def test_every_pair_not_in_the_table_is_refused() -> None:
             with pytest.raises(InvalidTransition):
                 transition(a, b)
             refused += 1
-    assert refused == 8 * 8 - 7 + 5 * 5 - 6
+    assert refused == 8 * 8 - 7 + 5 * 5 - 7
 
 
 def test_item_and_run_states_do_not_mix() -> None:
@@ -94,5 +95,10 @@ def test_item_and_run_states_do_not_mix() -> None:
 
 
 def test_terminal_states_have_no_outgoing_edges() -> None:
-    assert {s.value for s in TERMINAL} == {"committed", "rejected", "failed", "done", "stopped"}
+    assert {s.value for s in TERMINAL} == {"committed", "rejected", "failed", "done"}
     assert not [edge for edge in EDGES if edge[0] in TERMINAL]
+
+
+def test_a_stopped_run_can_only_be_resumed() -> None:
+    """`stopped` is not terminal since MKC-20 (decision 60): `mkc run resume` brings it back."""
+    assert [b for a, b in EDGES if a is RunState.STOPPED] == [RunState.RUNNING]

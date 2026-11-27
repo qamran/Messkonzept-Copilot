@@ -419,6 +419,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
 - **Success criteria:**
   - [ ] Baseline differs from full **only** by the documented switches (asserted by a config test)
   - [ ] Fault plans can be loaded from YAML for E4
+- **As built (decision 60):** baseline is not a second loop: `run_item`/`process_run` take `switches` and a `RunMemory`, and `mkc.harness.runner.execute_run` picks them from `run.mode` (migration 0011). `FaultPlan` fields are 1-based counts; `timeout_at` is a tool timeout (the E4 row); `kill_during_approval` fires after the n-th item ends `draft_saved` until MKC-23 brings approvals. The CLI takes a synthetic items file until MKC-21 and adds `resume` for `stopped` runs (MKC-18 finding 2). PR #161 findings 1 to 3 are fixed here.
 
 ---
 
@@ -613,6 +614,8 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - [ ] No-fault arm: overhead in time, cost and steps, reported for full vs baseline
   - [ ] Fault arm: completion rate, cost, repeated side effects (= 0 for full), recovery time, for each fault type
   - [ ] Report + README-ready chart data committed
+- **Note (decision 60):** a re-prompt, a faulted tool result or a resume context changes the next request, so its replay key differs from a no-fault recording. Record each fault arm once (`MKC_MODEL_MODE=record`) before replaying it; a `ReplayMiss` stops the run with `setup_error`. Fault plans: `backend/data/e4_faults.yaml`; run them with `mkc run start --inline --mode full|baseline --faults ... --plan ...`. An injected tool timeout, 429 or malformed reply has no `run_log` row (it never reaches the registry or the provider); count it from the fault plan and the turn rows. Run baseline arms with `--inline`: a baseline crash loop in the worker has no cap across attempts. Open points from the PR #167 review (findings 3 to 6): fence before a baseline stop writes its report; CLI exit code 0 also for a run that ended `stopped`; `start --inline` creates and claims the run in two transactions, `--faults` without `--inline` is ignored, Ctrl-C leaves the lease to expire; baseline limits restart per attempt.
+- **Note for MKC-23 (PR #167 finding 7):** a baseline item can be `draft_saved` with no `draft` row (its draft was in memory); approvals must not assume a row. Repeated side effects in baseline are the extra entries in `RunMemory.approvals` and the extra `save_draft` rows in `run_log`.
 
 ### MKC-33: E5, safeguard suite
 

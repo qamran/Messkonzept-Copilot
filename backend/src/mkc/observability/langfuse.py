@@ -66,7 +66,7 @@ class LangfuseSink:
                 name=f"{record.kind}: {record.name}",
                 metadata=metadata,
                 level="WARNING" if record.kind == "stop" else "ERROR",
-                status_message=record.error,
+                status_message=record.public_error,
             )
             return
         level: Literal["ERROR"] | None = None if record.ok else "ERROR"
@@ -80,7 +80,7 @@ class LangfuseSink:
                 cost_details=self._cost(record),
                 metadata=metadata,
                 level=level,
-                status_message=record.error,
+                status_message=record.public_error,
             )
         else:
             observation = self._client.start_observation(
@@ -89,7 +89,7 @@ class LangfuseSink:
                 as_type="tool",
                 metadata=metadata,
                 level=level,
-                status_message=record.error,
+                status_message=record.public_error,
             )
         # the span started just now (the SDK takes no start time): end it `latency_ms` later
         observation.end(end_time=time.time_ns() + (record.latency_ms or 0) * 1_000_000)

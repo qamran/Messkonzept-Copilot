@@ -17,6 +17,7 @@ dependencies = [
     "pyjwt[crypto]>=2.10",
     "pyyaml>=6.0",
     "sqlalchemy>=2.0",
+    "typer==0.29.3",
     "uvicorn>=0.32",
 ]
 
@@ -25,6 +26,7 @@ mkc-worker = "mkc.worker.main:run"
 mkc-worker-health = "mkc.worker.health:main"
 mkc-backup = "mkc.backup:main"
 mkc-load-lbs = "mkc.reference.sync:main"
+mkc = "mkc.cli:app"
 
 [dependency-groups]
 dev = [
