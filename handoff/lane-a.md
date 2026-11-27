@@ -67,6 +67,8 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 
 ## Recent log
 
+- **27.11.2026 23:45** Development agent: `mkc/extraction/naive.py` (`naive_text`, `naive_tables`), pure Python: `test_tables.py`: `8 passed in 0.35s`. On the scratch copy of the Berlin PDF the baseline finds all 15 LBS codes and pairs 13 of them with the right concepts (`extract_tables`: 15 of 15); its labels are mostly cut. A first number for E1 (MKC-31), not a measurement.
+
 - **27.11.2026 23:45** Development agent: `mkc/extraction/tables.py` (`extract_tables`, `table_rows`, `Row`): `test_table_rules.py test_tables.py`: 8 passed, the 3 naive-baseline tests still red. On the scratch copy of the Berlin PDF: 15 LBS rows (pages 6 and 7), 50 meter-tech rows (pages 4 and 5), the Z1 heading joined to `Bezugsmessung, Einspeisemessung (Z1 o. Zsv), Abgrenzungsmessung (Z3)`.
 
 - **27.11.2026 23:43** Development agent: red tests for the grid-to-rows rules on grids in the real Berlin shapes (`test_table_rules.py`: the six-row Z1 header with `Abgren-`/`zungsmessung`, blank rows round the LBS header, a short code cell, the decoy): `3 failed`.
