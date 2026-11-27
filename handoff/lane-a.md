@@ -15,8 +15,9 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 
 ## In progress
 
-- `MKC-22` (`#22`, `In progress`, assigned to `qamran`): the test agent's red acceptance tests are pushed, in red commits `60c1f2e` to `86c4df2` (`git diff 86c4df2 -- backend/tests` shows any later change to them). The development agent builds against them.
-- Red run at `86c4df2`: `uv run pytest tests/extraction -q`: `31 failed, 80 passed, 1 skipped, 4 deselected in 7.00s`; `tests/harness/test_tools_hardening.py` and `tests/reference/test_lbs_digits.py`: 11 failed, 1 passed. `ruff check .`: "All checks passed!"; `ruff format --check .`: "217 files already formatted".
+- `MKC-22` (`#22`, `In progress`, assigned to `qamran`): the test agent's red acceptance tests are pushed, in red commits `60c1f2e` to `c72296d` (`git diff c72296d -- backend/tests` shows any later change to them). The development agent builds against them.
+- Red run at `c72296d`: `uv run pytest tests/extraction -q`: `32 failed, 81 passed, 1 skipped, 4 deselected in 6.31s`; full suite `uv run pytest -q`: `43 failed, 947 passed, 2 skipped, 18 deselected, 4 warnings in 105.80s (0:01:45)`, all 43 failures this ticket's red tests. `ruff check .`: "All checks passed!"; `ruff format --check .`: "217 files already formatted".
+- Commits over 200 lines (for the PR body): `60c1f2e` (347 insertions, 84 deletions: the synthetic documents and the lane file rewrite) and `b989630` (211 insertions).
 - Sub-issues: none yet; the development agent creates them, among them "fetch hardening" (the wave 1 review findings 1 to 4 and 7 on PR #197).
 
 ### Pinned interfaces (MKC-22; the tests import these)
@@ -44,7 +45,9 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 2. `stated_lbs` holds only codes printed in an `LBS` bullet. What happens to a printed code that fails the check digit (drop it or keep it with a flag) is left to the development agent as a decision (76–78); no test pins it.
 3. The meter-tech `label` is the table's heading as printed. The real Z1 heading wraps with a hyphen (`Abgren-` / `zungsmessung (Z3)`); only `(Z2)` in the Z2 label is pinned live.
 4. The live expected codes are pinned, not `None`: read by hand on 27.11.2026 from the September 2026 edition (sha256 `4e12c90f…29a18`), table rows (pages 6 and 7) and concept pages 14, 20 and 32 agree. On a new edition the live test skips with the new hash.
-5. The image test (`test_image_operators.py`) is a pin, not a red test: it runs only when `MKC_TEST_IMAGE` names a built image and is skipped otherwise (also in CI's `backend` job). Wiring it into CI's `image` job is the coordinator's call.
+5. The image test (`test_image_operators.py`) is a pin, not a red test, and has never run: it runs only when `MKC_TEST_IMAGE` names a built image and is skipped otherwise (also in CI's `backend` job). The only local `mkc-backend:smoke` image dates from 26.11.2026, before MKC-21, so it was not tried. Wiring it into CI's `image` job is the coordinator's call.
+6. `extract_text` without `bbox` reads the whole page, sidebar included. The model is expected to pass the item's `bbox` from its task.
+7. Production wiring: the worker's runs build the registry in `mkc/harness/runner.py` (`execute_run`: `default_registry(tool_tracers, sessions=..., approvals=...)`), with no `documents`, so the two tools stay placeholders in a real run until `runner.py` and the executor pass a `DocumentOps`. No red test pins this (it is outside lane A's package); the coordinator decides whether MKC-22 wires it.
 
 ### Not covered by red tests (the development agent's items)
 
@@ -53,6 +56,7 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 - A printed code with a wrong check digit, and conditions over two lines.
 - Adding the tools to the item prompt or task (the model learns `page` and `bbox` from the item's task, MKC-21 decision 64 (5)).
 - Wiring `MKC_TEST_IMAGE` into CI (coordinator).
+- Passing `documents` from `execute_run` (`mkc/harness/runner.py`) and the worker executor, so real runs get the real tools (assumption 7).
 - The `uv lock` and `pyproject.toml` stay unchanged unless the development agent adds a dependency (pdfplumber is already there).
 
 ## Next steps
@@ -62,6 +66,8 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 3. Test agent: mutation pass on the development agent's code.
 
 ## Recent log
+
+- **27.11.2026 23:30** Test agent: lane file points at the final red commit `c72296d`; assumptions 5 to 7 added (the image test never ran; no `bbox` means the whole page; `runner.py` builds the item registry without `documents`).
 
 - **27.11.2026 23:30** Test agent: tightened after a review of the red tests: the naive baseline must return a row for `9992000000133` (an empty list no longer passes); the streaming test uses a 10 MB body and asserts reading stops before its end (any chunk size); a NUL in a table cell must not reach `extract_tables`' result; `test_synthetic.py` proves `nul_for` yields a NUL. `uv run pytest tests/extraction -q`: `32 failed, 81 passed, 1 skipped, 4 deselected in 6.31s`. Full suite `uv run pytest -q`: `43 failed, 947 passed, 2 skipped, 18 deselected, 4 warnings in 105.80s (0:01:45)`; all 43 failures are this ticket's red tests (32 extraction, 7 tools hardening, 4 LBS digits).
 
