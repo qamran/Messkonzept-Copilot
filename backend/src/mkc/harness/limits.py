@@ -6,6 +6,7 @@
 - Every stop, of either scope, is also a `StopEvent` for the trace hooks.
 """
 
+from collections.abc import Callable
 from dataclasses import dataclass, fields
 from decimal import Decimal
 from enum import StrEnum
@@ -92,6 +93,24 @@ class Limits:
             backoff_max_s=settings.model_backoff_max_seconds,
             turn_timeout_s=settings.turn_timeout_seconds,
         )
+
+
+@dataclass(frozen=True)
+class StopEvent:
+    """One stop, as the trace hooks see it (like `CallTrace` and `ToolTrace`; MKC-19 sends it
+    to Langfuse and `run_log`). `steps` and `cost_eur` are the run's for a run stop and the
+    item's for an item stop. `detail` is extra text, e.g. the error class."""
+
+    scope: Scope
+    run_id: int
+    item_id: int | None
+    reason: StopReason
+    detail: str | None
+    steps: int
+    cost_eur: Decimal
+
+
+StopTracer = Callable[[StopEvent], None]
 
 
 @dataclass(frozen=True)
