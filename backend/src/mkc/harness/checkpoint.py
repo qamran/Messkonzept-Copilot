@@ -30,6 +30,23 @@ class TurnRecord:
     cost_eur: Decimal
 
 
+@dataclass(frozen=True)
+class ResumeContext:
+    """Where an item continues: its messages, the next turn number, steps and cost so far."""
+
+    messages: list[Message]
+    next_number: int
+    steps_done: int
+    cost_eur: Decimal
+
+
+def load_resume_context(
+    session: Session, item_id: int, *, blobs: BlobStore | None = None
+) -> ResumeContext:
+    """The item task + a compact summary of earlier turns + the last complete turn."""
+    raise NotImplementedError
+
+
 def stored_result(entry: dict[str, Any], blobs: BlobStore) -> dict[str, Any]:
     """The full tool result of a stored turn entry, inline or from its blob ref."""
     if "result_ref" in entry:

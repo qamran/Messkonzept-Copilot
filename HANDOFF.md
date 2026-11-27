@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 10:35
+**Last updated:** 27.11.2026, 10:36
 
 This file is how agents resume work after a session restart.
 
@@ -54,7 +54,7 @@ This file is how agents resume work after a session restart.
 - **MKC-16** (#16), Turn checkpoints, resume, tool cache, idempotency. Status `In progress`, assigned to `qamran` (27.11.2026 09:57). Branch `mkc-16-checkpoints` from `ff76b94`. The first commit holds only the close-out of MKC-15.
   - Plan: `docs/superpowers/plans/271120261022-mkc-16-checkpoints.md` (decision 56: blob refs in the Postgres table `blob` until MKC-21's Storage, resume keeps the item `running`, cache key with `code_version`, tools reach the DB through a factory, `save_draft` keyed by `ToolEnv`).
   - Sub-issues: MKC-16.1 #139 (`In progress`), 16.2 #140, 16.3 #141, 16.4 #142, 16.5 #143, 16.6 #144 (`Ready`).
-  - MKC-16.1 green: `save_turn` checks the pairing; the loop stores every turn through it; tool-error turns answer every call; duplicate call ids made unique. MKC-16.2 (#140 `In progress` 10:29): green: migration `0005` (table `blob`), `DbBlobStore`, `save_turn` stores results over 16384 bytes as `result_ref`, `stored_result` reads them back. `MKC_TURN_INLINE_MAX_BYTES` in `Settings` and `.env.example`. MKC-16.3 (#141) `In progress` 10:34. Next: MKC-16.3 red tests `tests/harness/test_resume.py`.
+  - MKC-16.1 green: `save_turn` checks the pairing; the loop stores every turn through it; tool-error turns answer every call; duplicate call ids made unique. MKC-16.2 (#140 `In progress` 10:29): green: migration `0005` (table `blob`), `DbBlobStore`, `save_turn` stores results over 16384 bytes as `result_ref`, `stored_result` reads them back. `MKC_TURN_INLINE_MAX_BYTES` in `Settings` and `.env.example`. MKC-16.3 (#141) `In progress` 10:34. MKC-16.3: red tests committed (`tests/harness/test_resume.py`, skeleton `ResumeContext`, `load_resume_context`). Next: green.
 
 ## Next steps
 
@@ -152,6 +152,8 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+
+- **27.11.2026 10:36** MKC-16.3 red: `test_resume.py` 8 failed, 2 passed (zero stored turns is already a fresh start; a duplicate turn number already raises `IntegrityError`; both pin behaviour that resume must keep).
 
 - **27.11.2026 10:35** MKC-16.3 refactor: the system prompt, `task_message` and `wrap_tool_result` moved to `mkc.harness.prompts` (the checkpoint module needs them; `loop` re-exports them). Harness tests 128 passed.
 
