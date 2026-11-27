@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 12:04
+**Last updated:** 27.11.2026, 12:06
 
 This file is how agents resume work after a session restart.
 
@@ -55,7 +55,7 @@ This file is how agents resume work after a session restart.
 - **MKC-17** (#17), Run executor (worker with lease). Status `In progress`, assigned to `qamran` (27.11.2026 11:37:38). Branch `mkc-17-run-executor` from `266c37d`. The first commit holds only the close-out of MKC-16.
   - Plan: `docs/superpowers/plans/271120261154-mkc-17-run-executor.md` (decision 57: lease on the run row with the database clock, fencing before every commit, heartbeat thread for the file and the lease, stop between turns, `waiting_for_database` written on the first successful probe after an outage).
   - Sub-issues: MKC-17.1 #146 `In progress`; MKC-17.2 #147, MKC-17.3 #148, MKC-17.4 #149 `Ready`.
-  - Next: MKC-17.3 red: `test_database_unavailable_sets_waiting_and_resumes`.
+  - Next: MKC-17.3 green: probe and backoff in `Executor`, `mark_waiting`, `engine_options`.
 
 ## Next steps
 
@@ -161,6 +161,8 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+
+- **27.11.2026 12:06** MKC-17.3 (#148 `In progress`) red: `tests/worker/test_outage.py`: `test_database_unavailable_sets_waiting_and_resumes` (cuts the test database with `ALLOW_CONNECTIONS false` and `pg_terminate_backend` during model call 2, restores it after 1 s; a test-only trigger records the run history) and the shutdown during an unreachable database; `engine_options` in `tests/db/test_session.py` (stub). 3 failed (missing setting, `NotImplementedError`).
 
 - **27.11.2026 12:04** MKC-17.2 green: `mkc.worker.executor.Executor` (`run_once`, `graceful_shutdown`, heartbeat thread for the file and the lease, release after the run, no release after `LeaseLost`, setup errors release and back off). Full suite 434 passed, 1 skipped; ruff and mypy strict clean.
 

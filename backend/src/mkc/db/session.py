@@ -6,11 +6,16 @@ The engine is created on first use, so the API and the worker import without a d
 from collections.abc import Iterator
 from contextlib import contextmanager
 from functools import lru_cache
+from typing import Any
 
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import Session
 
-from mkc.config import get_settings
+from mkc.config import Settings, get_settings
+
+
+def engine_options(settings: Settings) -> dict[str, Any]:
+    raise NotImplementedError
 
 
 @lru_cache(maxsize=4)
