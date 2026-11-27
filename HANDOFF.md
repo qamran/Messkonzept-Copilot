@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 09:01
+**Last updated:** 27.11.2026, 09:05
 
 This file is how agents resume work after a session restart.
 
@@ -51,12 +51,13 @@ This file is how agents resume work after a session restart.
 ## In progress
 
 - **MKC-15** (#15), Item loop, work queue and states. Status `In progress`, assigned to `qamran` (26.11.2026 23:25). Branch `mkc-15-item-loop` from `1a42369`. The first commit holds only the close-out of MKC-14.
-  - Start: read the ticket, write the plan, create the sub-issues, then work test-first.
+  - Plan: `docs/superpowers/plans/271120260903-mkc-15-item-loop.md` (decision 54: the state edge table and `ToolEnv`; Docker needed for the DB tests).
+  - Sub-issues (assigned to `qamran`, linked to #15, on the board): MKC-15.1 #132 states (`In progress`), MKC-15.2 #133 `ToolEnv`, MKC-15.3 #134 tables, MKC-15.4 #135 queue, MKC-15.5 #136 item loop, MKC-15.6 #137 docs (all `Ready`).
   - Uses MKC-14: `default_registry().for_context("item")` gives the model's tools (`Tool.to_spec()` → `ModelClient.chat_with_tools`); `ToolRegistry.execute(call, "item")` turns every model tool call into a `ToolResult`.
 
 ## Next steps
 
-1. MKC-15: see "In progress". First step: the plan and the sub-issues.
+1. MKC-15: see "In progress". Next: MKC-15.1 red tests (`tests/harness/test_states.py`).
 2. MKC-14, non-blocking findings of the PR #131 review (comment 26.11.2026 23:17:35), for the tickets named:
    - 2 (before MKC-22, 23, 28 add real argument models): `execute` can still raise: a bad `ctx` (`KeyError`), a tool exception whose `__str__` fails, an argument validator that raises `TypeError`/`AttributeError`/`KeyError` (only `ValidationError` is caught)
    - 3: the side-effect check is truthiness (`side_effect=None`/`0` passes at runtime; mypy catches it)
@@ -139,6 +140,7 @@ This file is how agents resume work after a session restart.
 
 Newest first. Times are local (CET), taken from git and GitHub.
 
+- **27.11.2026 09:03–09:05** MKC-15: plan written (decision 54); sub-issues MKC-15.1 #132 to MKC-15.6 #137 created 09:04:21–09:04:41, assigned to `qamran`, linked to #15 and put on the board (#132 `In progress`, the rest `Ready`).
 - **27.11.2026 09:00** The user confirmed decision 53 (review finding 11 of PR #131) and chose to point AGENTS.md to it: the safety rule now says what a side-effect tool is. Design doc decision log and status doc record the confirmation.
 - **26.11.2026 23:17–23:25** PR #131 review PASS (Fable, comment 23:17:35; 12 non-blocking findings, see Next steps), merged as `1a42369` (23:17:44); #14 and #128–#130 closed and `Done`. `main` pushed to `turing`; `origin/main` = `turing/main` = `1a42369`. `cd` run 45903858656 green: `image` 23:17:50–23:21:57; `backend` approved by the development agent (decision 51) at 23:22:23, ran 23:22:25–23:23:27; `frontend` approved at 23:23:50, ran 23:23:52–23:24:31. Checked afterwards: `/api/version` = `1a42369…`, `/health` 200, `/api/admin/backup-status` without a token 401, the site 200. MKC-15 (#15) assigned to `qamran` and set to `In progress` (23:25); branch `mkc-15-item-loop` from `1a42369`.
 - **26.11.2026 23:07–23:08** MKC-14: branch pushed; PR #131 opened (23:07:43) with criteria, evidence and disclosures; #14 and #128–#130 set to `Testing` (23:08).
