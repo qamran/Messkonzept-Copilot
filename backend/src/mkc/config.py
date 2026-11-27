@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     worker's run is taken over after at most this long."""
 
     worker_lease_renew_seconds: float = Field(default=20.0, gt=0)
-    """How often the heartbeat thread renews the lease; three renewals must fit into a lease."""
+    """How often the lease thread renews the lease; three renewals must fit into a lease."""
 
     worker_db_backoff_max_seconds: float = Field(default=30.0, gt=0)
     """While the database is unreachable, the worker probes it after 1, 2, 4 … seconds, at

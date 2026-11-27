@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 13:54
+**Last updated:** 27.11.2026, 13:55
 
 This file is how agents resume work after a session restart.
 
@@ -56,7 +56,7 @@ This file is how agents resume work after a session restart.
 - **MKC-18** (#18), Limits and retries. Status `In progress`, assigned to `qamran` (27.11.2026 12:59:40). Branch `mkc-18-limits-retries` from `0f9a413`. The first commit holds only the close-out of MKC-17.
   - Plan: `docs/superpowers/plans/271120261324-mkc-18-limits-retries.md` (decision 58: stop reasons, the stop trace, run usage from the database, retries and turn deadline, re-prompt, tool-retry and resume caps, defaults with reasons). It folds in MKC-13 finding 3, MKC-15 findings 6 and 9, MKC-16 finding 2, MKC-17 findings 1, 6, 7 and 8.
   - Sub-issues: MKC-18.1 #151 (`In progress`), MKC-18.2 #152, MKC-18.3 #153, MKC-18.4 #154 (`Ready`); all assigned to `qamran`, linked to #18, on the board.
-  - MKC-18.4 (#154, `In progress` 13:51:51): runbook section "Limits and retries" (settings, what a stop looks like, queries) and `.env.example` entries are in; `check_runbook.py` is green; the two stale worker rows fixed (finding 17#8). Next: the stale code wording, then design doc, decision 58, status doc, backlog.
+  - MKC-18.4 (#154, `In progress` 13:51:51): stale "heartbeat thread renews the lease" wording fixed in `config.py`, `main.py` and the executor section comment (finding 17#8); next design doc 8.2/8.4/8.5, decision 58, status doc, backlog.
 
 ## Next steps
 

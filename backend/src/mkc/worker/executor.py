@@ -282,7 +282,7 @@ class Executor:
                 return True
             delay = min(delay * 2, ceiling)
 
-    # --- heartbeat thread -------------------------------------------------------------------
+    # --- the heartbeat and lease threads -----------------------------------------------------
 
     def _touch_loop(self) -> None:
         while True:

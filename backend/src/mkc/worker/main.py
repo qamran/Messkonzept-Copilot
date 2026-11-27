@@ -20,8 +20,8 @@ _STOP_SIGNALS = (signal.SIGTERM, signal.SIGINT)
 def run(stop: threading.Event | None = None) -> None:
     """Claim and process runs until SIGTERM or SIGINT (or `stop` is set), then return cleanly.
 
-    The executor's heartbeat thread touches the heartbeat file and renews the lease. On a
-    stop, the current turn finishes and commits, the lease is released, and `run` returns.
+    Two executor threads run meanwhile: one touches the heartbeat file, one renews the lease.
+    On a stop, the current turn finishes and commits, the lease is released, and `run` returns.
     Must be called from the main thread (Python only installs signal handlers there).
     `stop` lets a caller, such as a test watchdog, end the loop from another thread.
     """
