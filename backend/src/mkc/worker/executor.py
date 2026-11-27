@@ -8,6 +8,10 @@
 - `graceful_shutdown` (SIGTERM) lets the current turn finish and commit, then the item stays
   `running`, the lease is released and `run_once` returns. The next worker resumes at once.
 - A lost lease stops the run: `fence` refuses every later commit with `LeaseLost`.
+- A database error is an outage only if a `SELECT 1` probe also fails. Then the worker probes
+  with backoff (1, 2, 4 … `worker_db_backoff_max_seconds`), and once the database is back it
+  marks the run `waiting_for_database` (the durable trace of the outage) and returns; the next
+  `run_once` claims the run back to `running` and resumes from the last complete turn.
 """
 
 import logging
@@ -21,6 +25,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from types import TracebackType
 
+from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -29,7 +34,14 @@ from mkc.harness.loop import SETUP_ERRORS, process_run
 from mkc.harness.registry import default_registry
 from mkc.harness.tools import ToolRegistry
 from mkc.models.client import ModelClient
-from mkc.worker.lease import LeaseLost, claim_run, fence, release_lease, renew_lease
+from mkc.worker.lease import (
+    LeaseLost,
+    claim_run,
+    fence,
+    mark_waiting,
+    release_lease,
+    renew_lease,
+)
 
 __all__ = ["Executor", "claim_run", "default_owner"]
 
@@ -112,12 +124,11 @@ class Executor:
         """Claim one run and process it. False when there was no run to claim."""
         if self._stop.is_set():
             return False
-        with self._sessions() as session:
-            run = claim_run(
-                session, owner=self.owner, lease_seconds=self.settings.worker_lease_seconds
-            )
-            run_id = None if run is None else run.id
-            session.commit()
+        try:
+            run_id = self._claim()
+        except SQLAlchemyError as error:
+            self._database_error(None, error)
+            return False
         if run_id is None:
             return False
         held = _Held(run_id)
@@ -130,6 +141,15 @@ class Executor:
             with self._lock:
                 self._held = None
         return True
+
+    def _claim(self) -> int | None:
+        with self._sessions() as session:
+            run = claim_run(
+                session, owner=self.owner, lease_seconds=self.settings.worker_lease_seconds
+            )
+            run_id = None if run is None else run.id
+            session.commit()
+        return run_id
 
     def _process(self, held: _Held) -> None:
         run_id = held.run_id
@@ -153,7 +173,10 @@ class Executor:
         except SETUP_ERRORS as error:
             log.error("run %s: setup error %s, backing off", run_id, type(error).__name__)
             self._release(run_id)
-            self.wait(settings.worker_lease_renew_seconds)
+            self.wait(settings.worker_db_backoff_max_seconds)
+            return
+        except SQLAlchemyError as error:
+            self._database_error(run_id, error)
             return
         self._release(run_id)
         log.info("run %s released by %s", run_id, self.owner)
@@ -161,6 +184,55 @@ class Executor:
     def _release(self, run_id: int) -> None:
         with self._sessions() as session, session.begin():
             release_lease(session, run_id, owner=self.owner)
+
+    # --- database outages ------------------------------------------------------------------
+
+    def _database_up(self) -> bool:
+        try:
+            with self._sessions() as session:
+                session.execute(text("SELECT 1"))
+        except SQLAlchemyError:
+            return False
+        return True
+
+    def _database_error(self, run_id: int | None, error: SQLAlchemyError) -> None:
+        """Wait out an outage, or log and back off when the database is reachable."""
+        name = type(error).__name__
+        if self._database_up():
+            log.error("run %s: database error %s (the database is reachable)", run_id, name)
+            if run_id is not None:
+                try:
+                    self._release(run_id)
+                except SQLAlchemyError:
+                    log.warning("run %s: lease not released; it expires", run_id)
+            self.wait(self.settings.worker_db_backoff_max_seconds)
+            return
+        log.warning("database unavailable (%s), waiting; run %s", name, run_id)
+        if not self._wait_for_database():
+            log.info("shutdown while the database is unavailable; the lease expires")
+            return
+        log.info("database available again")
+        if run_id is None:
+            return
+        try:
+            with self._sessions() as session, session.begin():
+                marked = mark_waiting(session, run_id, owner=self.owner)
+        except SQLAlchemyError as again:
+            log.warning("run %s: not marked waiting_for_database: %s", run_id, again)
+            return
+        if marked:
+            log.info("run %s: waiting_for_database, resuming", run_id)
+
+    def _wait_for_database(self) -> bool:
+        """Probe with backoff until the database answers (True) or shutdown (False)."""
+        ceiling = self.settings.worker_db_backoff_max_seconds
+        delay = min(1.0, ceiling)
+        while True:
+            if self.wait(delay):
+                return False
+            if self._database_up():
+                return True
+            delay = min(delay * 2, ceiling)
 
     # --- heartbeat thread -------------------------------------------------------------------
 

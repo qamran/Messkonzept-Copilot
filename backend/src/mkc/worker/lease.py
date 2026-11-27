@@ -75,6 +75,30 @@ def release_lease(session: Session, run_id: int, *, owner: str) -> None:
     )
 
 
+def mark_waiting(session: Session, run_id: int, *, owner: str) -> bool:
+    """After an outage: set the run `running -> waiting_for_database` if `owner` still holds it
+    or nobody took it over. False when the run moved on (another owner, another state)."""
+    statement = (
+        select(Run)
+        .where(
+            Run.id == run_id,
+            Run.state == RunState.RUNNING.value,
+            or_(
+                Run.lease_owner == owner,
+                Run.lease_owner.is_(None),
+                Run.lease_expires_at < func.now(),
+            ),
+        )
+        .with_for_update()
+    )
+    run = session.scalars(statement).first()
+    if run is None:
+        return False
+    run.state = transition(RunState(run.state), RunState.WAITING_FOR_DATABASE).value
+    session.flush()
+    return True
+
+
 def fence(session: Session, run_id: int, *, owner: str) -> None:
     """Lock the run row and raise `LeaseLost` unless `owner` holds a valid lease.
 

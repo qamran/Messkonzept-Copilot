@@ -39,6 +39,14 @@ class Settings(BaseSettings):
     worker_lease_renew_seconds: float = Field(default=20.0, gt=0)
     """How often the heartbeat thread renews the lease; three renewals must fit into a lease."""
 
+    worker_db_backoff_max_seconds: float = Field(default=30.0, gt=0)
+    """While the database is unreachable, the worker probes it after 1, 2, 4 … seconds, at
+    most this long apart (MKC-17, decision 57)."""
+
+    database_connect_timeout_seconds: int = Field(default=10, ge=1)
+    """A connection attempt fails after this long, so a paused database does not hang the
+    worker (MKC-17)."""
+
     database_url: str = Field(
         default=f"{_PSYCOPG_SCHEME}mkc:mkc@127.0.0.1:5433/mkc",
         validation_alias=AliasChoices("DATABASE_URL", "MKC_DATABASE_URL"),

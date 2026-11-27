@@ -136,4 +136,6 @@ def test_shutdown_ends_the_wait_for_an_unreachable_database() -> None:
     started = time.monotonic()
     with worker:
         assert worker.run_once() is False
-    assert time.monotonic() - started < 3.0
+    # A refused connect returns at once on Linux; Windows retries it for up to the 2 s connect
+    # timeout, once for the claim and once for the probe. Without the stop it would go on.
+    assert time.monotonic() - started < 2 * 2 + 1.5
