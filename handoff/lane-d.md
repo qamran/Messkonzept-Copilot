@@ -1,6 +1,6 @@
 # Lane D: RAG
 
-**Last updated:** 27.11.2026, 21:20
+**Last updated:** 27.11.2026, 21:47
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -70,7 +70,7 @@ The tests import these; module paths and names are fixed, internals are free.
 
 ## Next steps
 
-1. The test agent runs its mutation pass on `mkc/rag/` (and the embedding code at the end of `mkc/models/client.py` and `providers.py`) and reports the surviving mutants.
+1. Done 21:47: the test agent's mutation pass (see the log). The development agent decides on the 3 survivors and the leftover-folder finding before the PR.
 2. Then the development agent opens the PR (on the coordinator's word), discloses the commits over 200 lines and the new code in `mkc/models/` and `mkc/db/models.py`, and moves `#49` to Testing.
 3. Open for the coordinator:
    - decision 71 (the embedding model) needs the user's confirmation; the OpenRouter workspace guardrail drove it (observed on the local key; the production key's workspace was not checked)
@@ -82,6 +82,11 @@ The tests import these; module paths and names are fixed, internals are free.
 
 ## Recent log
 
+- **27.11.2026 21:47** Test agent: mutation pass on `d4de5fd`. One mutant at a time, each restored before the next; none committed. Each ran `uv run pytest tests/rag tests/models -q -x` (baseline `235 passed, 13 deselected, 4 warnings in 21.83s`). Scope: `mkc/rag/` (sources, chunking, embeddings, loader, fetch, cli), the embedding code in `mkc/models/client.py` and `providers.py`, the MKC-49 block of `mkc/db/models.py`, and migration `0012_corpus.py`. Result: **98 tried, 95 killed, 3 survived** (all 98 applied; 0 not applied). Survivors:
+  1. `backend/src/mkc/rag/chunking.py:31` `_ABSATZ` `(\d+[a-z]?)` → `(\d+)`. A lettered Absatz such as `(2a)` no longer opens its own chunk: it is merged into the Absatz before it and gets that Absatz's `source_ref`. No test has a lettered Absatz. Real laws have them, so a unit test with `(1a)` would kill it.
+  2. `backend/src/mkc/rag/chunking.py:24` `MAX_CHUNK_CHARS = 4000` → `40`. No test splits a long block. Law blocks have no inner blank lines, so the cap never applies to them. This matches the development agent's 21:03 log entry: the largest real MsbG chunk was 7836 characters, which is over the 4000 cap.
+  3. `backend/src/mkc/rag/loader.py:24` `REPO_ROOT` `parents[4]` → `parents[5]` (the folder above the repo). The guard still refuses every cache inside the repo but is too broad. No test checks `REPO_ROOT == <repo root>`.
+  Finding (not a mutant): `tests/rag/test_cli_unit.py:57` `test_a_cache_inside_the_repo_is_refused` points `--cache-dir` at `backend/.mkc49-cli-cache-test` in the real repo and has no `finally` cleanup. Under the guard-removed mutants it wrote the 2 synthetic texts there, and the test agent deleted the folder (the worktree is clean again). A `try/finally: shutil.rmtree(...)` would stop a broken guard from leaving files in the repo.
 - **27.11.2026 21:20** Development agent: sub-issues `#179`–`#186` reopened and set to Testing (sub-issues close with the PR's merge, as `#169`–`#173` did with PR `#174`). ADR 004 table: every zero-data-retention embedding model listed (exact id match of OpenRouter's two lists), unverified dimensions dropped. Check on the saved MsbG page: 220 chunk refs, all unique; the 79 paragraphs in chunk order match the page's `jnenbez` list. `refs/original` of `filter-branch` deleted.
 - **27.11.2026 21:13** Development agent: `bash scripts/pre_pr.sh` exit 0 at `1d54b78` (`742 passed, 1 skipped, 13 deselected, 4 warnings in 136.96s`; commits over 200 lines: `d526f60` 232, `97b760c` 265, `ecd4252` 241). The test agent's red tests are unchanged since `f515d26` (`git diff --stat f515d26 HEAD` on them is empty).
 - **27.11.2026 21:09** Development agent: `bash scripts/pre_pr.sh` exit 1: every step green (`742 passed, 1 skipped, 13 deselected, 4 warnings in 128.45s`) except the commit check: two trailers read `Refs: qamra/` (my typo in `6dcb8ef`, `2b3774a`). Fixed with `git filter-branch --msg-filter` on the unpushed range `f515d26..HEAD`; from the loader's red tests on, the SHAs changed (`6dcb8ef`→`1d4df45`, `2b94d13`→`46f818c`, `2b3774a`→`ecd4252`, `972af4f`→`5c5f50d`, `4666aef`→`3e1c8aa`, `76633d3`→`fcc30be`); `#185` got a correcting comment. `#186` closed.
