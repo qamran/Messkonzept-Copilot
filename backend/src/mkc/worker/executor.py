@@ -38,6 +38,7 @@ from mkc.harness.loop import SETUP_ERRORS, process_run
 from mkc.harness.registry import default_registry
 from mkc.harness.tools import ToolRegistry
 from mkc.models.client import ModelClient
+from mkc.observability.trace import Tracer
 from mkc.worker.lease import (
     LeaseLost,
     claim_run,
@@ -76,8 +77,10 @@ class Executor:
         client_factory: Callable[[], ModelClient],
         registry: ToolRegistry | None = None,
         owner: str | None = None,
+        tracer: Tracer | None = None,
     ) -> None:
         self.settings = settings
+        self.tracer = tracer
         self.owner = owner or default_owner()
         self._sessions = sessions
         self._client_factory = client_factory
