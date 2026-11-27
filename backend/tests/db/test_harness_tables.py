@@ -10,7 +10,15 @@ from sqlalchemy.engine import URL
 ALEMBIC_INI = Path(__file__).resolve().parents[2] / "alembic.ini"
 TABLES = {"run", "item", "turn"}
 COLUMNS = {
-    "run": {"id", "state", "stop_reason", "created_at", "updated_at"},
+    "run": {
+        "id",
+        "state",
+        "stop_reason",
+        "lease_owner",  # 0008 (MKC-17)
+        "lease_expires_at",
+        "created_at",
+        "updated_at",
+    },
     "item": {
         "id",
         "run_id",
