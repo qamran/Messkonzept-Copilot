@@ -45,13 +45,14 @@ describe('AdvisorPage (MKC-36)', () => {
     vi.mocked(apiFetch).mockResolvedValue(Response.json(FACTS))
     render(<AdvisorPage operators={OPERATORS} />)
 
-    await describeSite('EFH, 10 kWp PV, Batterie, WP Modul 2')
+    await describeSite('EFH mit PV, Speicher und Wärmepumpe')
 
-    expect(await screen.findByText(/10 kWp/)).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: /confirm/i })).toBeInTheDocument()
+    expect(screen.getByText(/10 kWp/)).toBeInTheDocument()
     const [path, init] = vi.mocked(apiFetch).mock.calls[0]
     expect(path).toBe('/api/advisor/facts')
     expect(JSON.parse(String(init?.body))).toEqual({
-      text: 'EFH, 10 kWp PV, Batterie, WP Modul 2',
+      text: 'EFH mit PV, Speicher und Wärmepumpe',
       operator_id: 'sachsennetze',
     })
   })
@@ -62,7 +63,7 @@ describe('AdvisorPage (MKC-36)', () => {
       .mockResolvedValueOnce(Response.json(QUESTIONS))
     render(<AdvisorPage operators={OPERATORS} />)
 
-    await describeSite('EFH, 10 kWp PV, Batterie, WP Modul 2')
+    await describeSite('EFH mit PV, Speicher und Wärmepumpe')
     await userEvent.click(await screen.findByRole('button', { name: /confirm/i }))
 
     expect(await screen.findByText(QUESTIONS[0].text)).toBeInTheDocument()

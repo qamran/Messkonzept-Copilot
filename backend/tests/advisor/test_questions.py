@@ -71,6 +71,10 @@ def test_pv_questions_not_asked_without_pv() -> None:
     assert required_questions(facts) == []
 
 
+def test_module_not_asked_without_an_sve() -> None:
+    assert required_questions(_facts(sve=[], unknown=["sve.modul14a"])) == []
+
+
 def test_extra_household_asked_when_unknown() -> None:
     facts = _facts(extra_households=None, unknown=["extra_households"])
     assert _fields(required_questions(facts)) == {"extra_households"}

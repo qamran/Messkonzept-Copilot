@@ -30,6 +30,7 @@ def _assert_not_covered(facts: SiteFacts, reason: str) -> None:
     assert facts.pv is None
     assert facts.battery is None
     assert facts.sve == []
+    assert facts.extra_households is None
     assert facts.unknown == []
 
 
