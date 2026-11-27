@@ -1,6 +1,6 @@
 # Lane A: Extraction
 
-**Last updated:** 27.11.2026, 23:47
+**Last updated:** 27.11.2026, 23:49
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -66,6 +66,8 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 3. Test agent: mutation pass on the development agent's code.
 
 ## Recent log
+
+- **27.11.2026 23:49** Development agent: fetch hardening (PR #197 findings 1 to 4): a redirect to a URL with userinfo is refused before it is requested; the client's jar refuses every cookie; `is_allowed_url` allows only the default port and is False for a malformed one; `http_get` streams and raises `DownloadTooLarge` past `MAX_DOWNLOAD_BYTES` (50 MiB), `content-length` only as an early exit. `pytest tests/extraction`: `132 passed, 1 skipped, 4 deselected`. My `test_fetch_limits.py` (malformed `content-length`) was written with the code; against a plain `int()` it gives `2 failed, 1 passed`.
 
 - **27.11.2026 23:47** Development agent: `extract_text` (`TextArgs`: `page`, optional `bbox` of four finite numbers, ordered) and `extract_tables` are real item tools through `default_registry(documents=DocumentOps(...))`; the PDF is read by the item's document hash. `test_extract_tools.py` (the red tests): passed; `pytest tests/extraction tests/harness/test_registry.py tests/harness/test_tools.py`: `11 failed, 148 passed, 1 skipped, 4 deselected`, the 11 all fetch hardening. My `test_extract_args.py` was written with the code; with the bbox rules taken out it gives `5 failed, 3 passed`, with them `8 passed`. Live run at 23:45:48: `uv run pytest -m live tests/extraction/test_live_extract.py`: `2 passed in 8.51s`.
 
