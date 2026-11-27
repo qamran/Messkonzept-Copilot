@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 10:34
+**Last updated:** 27.11.2026, 10:35
 
 This file is how agents resume work after a session restart.
 
@@ -152,6 +152,8 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+
+- **27.11.2026 10:35** MKC-16.3 refactor: the system prompt, `task_message` and `wrap_tool_result` moved to `mkc.harness.prompts` (the checkpoint module needs them; `loop` re-exports them). Harness tests 128 passed.
 
 - **27.11.2026 10:34** MKC-16.2: `MKC_TURN_INLINE_MAX_BYTES` green (suite 381 passed, 1 skipped; check scripts pass). #141 `In progress` at 10:34:14.
 
