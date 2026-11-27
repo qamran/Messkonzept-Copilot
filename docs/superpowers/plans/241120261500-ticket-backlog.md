@@ -450,7 +450,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
 - **Success criteria:**
   - [ ] A naive pdftotext baseline function is kept for the E1 comparison
   - [ ] Both tools are deterministic and cached
-- **Note (MKC-16 pre-PR review):** Postgres JSONB rejects ` `, and PDF text can hold NUL characters. Strip them from tool output before it reaches `turn`, `tool_cache` or `blob` JSON, or the item stays `running` and crashes on every resume.
+- **Note (MKC-16 pre-PR review):** Postgres JSONB rejects `\u0000`, and PDF text can hold NUL characters. Strip them from tool output before it reaches `turn`, `tool_cache` or `blob` JSON, or the item stays `running` and crashes on every resume.
 
 ### MKC-23: Render, draft assembly, save_draft
 
