@@ -56,7 +56,7 @@ class Tool:
     name: str
     description: str
     args_model: type[BaseModel]
-    fn: Callable[[Any], Any]
+    fn: Callable[[Any, ToolEnv], Any]
     side_effect: bool
     deterministic: bool
 
@@ -137,16 +137,16 @@ class ToolRegistry:
     def for_context(self, ctx: Context) -> tuple[Tool, ...]:
         return self._contexts[ctx]
 
-    def execute(self, call: ToolCall, ctx: Context) -> ToolResult:
-        """Run `call` in `ctx`, or return the structured error that says why not."""
+    def execute(self, call: ToolCall, ctx: Context, env: ToolEnv) -> ToolResult:
+        """Run `call` in `ctx` with the harness's `env`, or return the error that says why not."""
         start = time.perf_counter()
-        result = self._run(call, ctx)
+        result = self._run(call, ctx, env)
         code = result.error.code if result.error else None
         latency_ms = round((time.perf_counter() - start) * 1000)
         self._trace(ToolTrace(call.name, ctx, result.ok, code, code in REFUSALS, latency_ms))
         return result
 
-    def _run(self, call: ToolCall, ctx: Context) -> ToolResult:
+    def _run(self, call: ToolCall, ctx: Context, env: ToolEnv) -> ToolResult:
         tool = self._all.get(call.name)
         if tool is None:
             return _fail("unknown_tool", f"no tool named {call.name!r}")
@@ -160,7 +160,7 @@ class ToolRegistry:
         except ValidationError as error:
             return _fail("invalid_args", _validation_message(error))
         try:
-            return ToolResult(ok=True, data=tool.fn(args))
+            return ToolResult(ok=True, data=tool.fn(args, env))
         except NotImplementedError as error:
             return _fail("not_implemented", f"tool {call.name!r} is not built yet: {error}")
         except Exception as error:
