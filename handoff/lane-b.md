@@ -1,6 +1,6 @@
 # Lane B: Advisor
 
-**Last updated:** 27.11.2026, 20:46
+**Last updated:** 27.11.2026, 20:47
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md`. Times are local time from git and GitHub, never estimated.
 
@@ -99,6 +99,7 @@ Frontend:
 
 ## Recent log
 
+- **27.11.2026 20:47** Development agent: `frontend/src/test/setup.ts` unmounts after each test (`cleanup`): vitest runs without globals, so a second render in one file saw the first (the test agent's `FactsCard.test.tsx` renders five times).
 - **27.11.2026 20:46** Development agent: `frontend/src/lib/advisor.ts` (types, `extractFacts`, `requiredQuestions`); `npx vitest run src/lib/advisor.test.ts` gives `Tests  3 passed (3)`.
 - **27.11.2026 20:45** Development agent: red frontend tests `FactsCard.details.test.tsx`, `AdvisorPage.details.test.tsx` (`Test Files  2 failed (2)`, missing modules).
 - **27.11.2026 20:44** Development agent: `mkc/advisor/api.py` (`POST /api/advisor/facts`, `POST /api/advisor/questions`, `get_model_client`); `uv run pytest tests/advisor -q` gives `53 passed in 12.44s`.
