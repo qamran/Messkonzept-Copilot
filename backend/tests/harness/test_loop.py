@@ -17,7 +17,7 @@ from mkc.harness.states import ItemState
 from mkc.harness.tools import Tool, ToolEnv, ToolRegistry
 from mkc.models.client import ModelClient
 from mkc.models.config import ModelsConfig
-from mkc.models.types import ROLES, ModelConfigError, Provider, ReplayMiss
+from mkc.models.types import ROLES, Provider
 from tests.harness.conftest import make_run, states
 from tests.models.fakes import FakeChatModel, ai, fake
 
@@ -349,18 +349,4 @@ def test_a_run_whose_items_all_fail_is_done(engine: Engine) -> None:
     assert states(engine, run_id) == ("done", ["failed"])
 
 
-# --- setup errors stop the run instead of failing every item ------------------------------
-
-
-@pytest.mark.parametrize("error", [ModelConfigError("no OPENROUTER_API_KEY"), ReplayMiss("k")])
-def test_setup_errors_propagate_and_the_run_is_not_settled(
-    engine: Engine, error: Exception
-) -> None:
-    run_id, _ = make_run(engine, "queued", "queued")
-    with Session(engine) as session, pytest.raises(type(error)):
-        process_run(
-            run_id, session=session, client=client_for(fake(error=error)),
-            registry=Tools().registry(), limits=Limits(max_steps_item=5),
-        )  # fmt: skip
-    # not `done`: the second item was never tried, and the first is left for resume (MKC-16)
-    assert states(engine, run_id) == ("running", ["running", "queued"])
+# The setup errors moved to `test_model_stops.py` (MKC-18: they stop the run).
