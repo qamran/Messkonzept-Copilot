@@ -1,8 +1,11 @@
-"""`fetch_document` and `segment_document` as run-level operations (MKC-21.5, design 8.1).
+"""`fetch_document` and `segment_document` as run-level operations (MKC-21.5, design 8.1),
+and `extract_text` and `extract_tables` as item tools (MKC-22.3).
 
-Harness code calls them through the registry in the `run` context, so they get its argument
-validation, error results and tracing; the model never sees them. `default_registry` makes
-them real when it gets a `DocumentOps`.
+Harness code calls the run-level operations through the registry in the `run` context, so
+they get its argument validation, error results and tracing; the model never sees them. The
+item tools read the PDF from the store by the item's document hash (`ToolEnv`), never by a
+model argument, and return plain JSON, which the tool cache stores (decision 56).
+`default_registry` makes all four real when it gets a `DocumentOps`.
 """
 
 from typing import Any
@@ -13,7 +16,9 @@ from sqlalchemy.orm import Session, sessionmaker
 from mkc.extraction.fetch import Getter, document_by_hash, fetch_document, http_get
 from mkc.extraction.operators import OperatorConfig
 from mkc.extraction.segment import segment_document
-from mkc.harness.blobs import BlobStore
+from mkc.extraction.tables import extract_tables
+from mkc.extraction.text import read_page
+from mkc.harness.blobs import PREFIX, BlobStore
 from mkc.harness.tools import ToolEnv
 
 
@@ -68,3 +73,17 @@ class DocumentOps:
                 for r in regions
             ],
         }
+
+    def extract_text(self, args: BaseModel, env: ToolEnv) -> dict[str, Any]:
+        values = args.model_dump()
+        fields = read_page(self._pdf(env), int(values["page"]), values.get("bbox"))
+        return fields.model_dump(mode="json")
+
+    def extract_tables(self, args: BaseModel, env: ToolEnv) -> list[dict[str, Any]]:
+        rows = extract_tables(self._pdf(env), args.model_dump()["kind"])
+        return [r.model_dump(mode="json") for r in rows]
+
+    def _pdf(self, env: ToolEnv) -> bytes:
+        if env.document_hash is None:
+            raise UnknownDocument("the item has no document hash")
+        return self.store.get(PREFIX + env.document_hash)

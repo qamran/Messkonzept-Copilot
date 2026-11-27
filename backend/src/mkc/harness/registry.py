@@ -4,11 +4,13 @@ Item tools are the only tools the model sees. Run-level operations are harness c
 are registered here only so they get the same validation and tracing.
 
 The argument models and functions are placeholders. The owning tickets replace them:
-`extract_text`, `extract_tables` (MKC-22); `render_region`, `save_draft`, `enqueue_approval`
-(MKC-23); `read_diagram` (MKC-26); `validate_draft` (MKC-28); `commit_record` (MKC-29). Until
-then every placeholder returns the structured error `not_implemented`; none fakes success.
-`fetch_document` and `segment_document` are built (MKC-21): they are real when
-`default_registry` gets a `DocumentOps`, and stay placeholders without one.
+`render_region`, `save_draft`, `enqueue_approval` (MKC-23); `read_diagram` (MKC-26);
+`validate_draft` (MKC-28); `commit_record` (MKC-29). Until then every placeholder returns the
+structured error `not_implemented`; none fakes success. `fetch_document` and
+`segment_document` (MKC-21) and the item tools `extract_text` and `extract_tables` (MKC-22)
+are built: they are real when `default_registry` gets a `DocumentOps`, and stay placeholders
+without one. The item tools read the PDF by the item's document hash; the model never names
+a document.
 
 `save_draft` writes only its own item's draft, idempotently by (document hash, concept
 number), so it has no side effect (decision 53). Harness code runs `enqueue_approval` on its
@@ -18,7 +20,7 @@ result; the model never queues anything itself.
 from dataclasses import replace
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, FiniteFloat, model_validator
 from sqlalchemy.orm import Session, sessionmaker
 
 from mkc.extraction.operations import DocumentOps
@@ -31,8 +33,21 @@ class _Args(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
-class PageArgs(_Args):
+class TextArgs(_Args):
     page: int = Field(ge=1, description="1-based page number")
+    bbox: tuple[FiniteFloat, FiniteFloat, FiniteFloat, FiniteFloat] | None = Field(
+        default=None,
+        description="x0, top, x1, bottom in PDF points from the top left, as in the item's"
+        " task; omitted means the whole page",
+    )
+
+    @model_validator(mode="after")
+    def _ordered(self) -> "TextArgs":
+        if self.bbox is not None and not (
+            self.bbox[0] < self.bbox[2] and self.bbox[1] < self.bbox[3]
+        ):
+            raise ValueError("bbox needs x0 < x1 and top < bottom")
+        return self
 
 
 class TablesArgs(_Args):
@@ -73,7 +88,8 @@ def _placeholder(ticket: str) -> Any:
 
 
 ITEM_TOOLS: tuple[Tool, ...] = (
-    Tool("extract_text", "Text fields of one concept page.", PageArgs,
+    Tool("extract_text", "Title, applications, footnotes and stated LBS codes of one concept"
+         " region.", TextArgs,
          _placeholder("MKC-22"), side_effect=False, deterministic=True, cacheable=True),
     Tool("extract_tables", "Rows of the document's meter-tech or LBS table.", TablesArgs,
          _placeholder("MKC-22"), side_effect=False, deterministic=True, cacheable=True),
@@ -111,7 +127,8 @@ def default_registry(
     `approvals` (baseline, durable approvals off), `save_draft` appends to that memory
     instead, with no key (MKC-20, decision 60); the tool and its spec stay the same. With
     `documents`, `fetch_document` and `segment_document` are the real run-level operations
-    (MKC-21, decision 64)."""
+    (MKC-21, decision 64), and `extract_text` and `extract_tables` the real item tools
+    (MKC-22)."""
     item = ITEM_TOOLS
     save = None
     if approvals is not None:
@@ -122,6 +139,12 @@ def default_registry(
         item = tuple(replace(t, fn=save) if t.name == "save_draft" else t for t in ITEM_TOOLS)
     run = RUN_OPERATIONS
     if documents is not None:
-        real = {"fetch_document": documents.fetch, "segment_document": documents.segment}
+        real = {
+            "fetch_document": documents.fetch,
+            "segment_document": documents.segment,
+            "extract_text": documents.extract_text,
+            "extract_tables": documents.extract_tables,
+        }
+        item = tuple(replace(t, fn=real[t.name]) if t.name in real else t for t in item)
         run = tuple(replace(t, fn=real[t.name]) if t.name in real else t for t in run)
     return ToolRegistry(item=item, run=run, tracers=tracers)
