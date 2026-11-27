@@ -1,6 +1,6 @@
 # Lane A: Extraction
 
-**Last updated:** 28.11.2026, 00:32
+**Last updated:** 28.11.2026, 00:33
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -15,7 +15,7 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 
 ## In progress
 
-- `MKC-22` (`#22`, `In progress`, assigned to `qamran`): built by the development agent against the test agent's red tests (red commits `60c1f2e` to `c72296d`; `git diff c72296d -- backend/tests` shows only added files, none of the red files changed). Code and docs are done; the branch waits for the test agent's mutation pass, then the PR.
+- `MKC-22` (`#22`, `In progress`, assigned to `qamran`): built by the development agent against the test agent's red tests (red commits `60c1f2e` to `c72296d`; `git diff c72296d -- backend/tests` shows only added files, none of the red files changed). Code and docs are done; the mutation pass is done (15 survivors, all accepted by the coordinator as equivalent or near-equivalent). The coordinator merged `main` (MKC-27) as `5d013a5` and removed leftover conflict markers in `21d2b07`. Next: the PR.
 - Built: `mkc/extraction/text.py`, `tables.py`, `naive.py`, `cleantext.py`; the item tools in `registry.py` (`TextArgs`) and `DocumentOps.extract_text` / `extract_tables`; fetch hardening in `fetch.py`; `is_valid_code` (`mkc/reference/lbs.py`) and `ToolRegistry.execute` (`mkc/harness/tools.py`). Decisions 76 (text fields), 77 (tables, baseline), 78 (fetch hardening) in design section 18; decision 62 (5) notes the hop rules; status doc, backlog "As built" and runbook "The allow-list" updated. No new dependency, no migration, no `config.py` change.
 - The development agent's own tests (added files, for the PR body): `test_text_rules.py`, `test_table_rules.py`, `test_naive_rules.py`, `test_extract_args.py`, `test_fetch_limits.py`.
 - Coordinator's answers (27.11.2026): assumptions 1, 3, 5 and 6 confirmed; 2 decided by the development agent (decision 76 (2): kept as printed); 4 checked by the live run (passed); 7 goes to MKC-23 (wiring `DocumentOps` through `runner.py` and the executor).
@@ -90,12 +90,14 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 
 ## Next steps
 
-1. Done: the test agent's mutation pass (section above); its 15 survivors are equivalent or near-equivalent, none needs a fix. Next: the development agent runs `scripts/pre_pr.sh` again with the new tests, then opens the PR.
+1. Development agent: the pre-PR gate on the final head, the PR, #22 and #208 to #213 to `Testing`; then the review agent once `gh pr checks` is green.
 2. MKC-23 (lane A's next ticket): pass `documents=DocumentOps(...)` from `execute_run` (`mkc/harness/runner.py`) and the worker executor, so real runs get the real `extract_text` and `extract_tables` (the coordinator grants `runner.py` then); tell the model `page` and `bbox` in the item's task or prompt.
 3. MKC-28: `validate_draft` must flag a stated code that fails the check digit or is not in the Codeliste (extraction keeps it as printed, decision 76 (2)).
 4. Coordinator: `MKC_TEST_IMAGE` in CI's `image` job, so `test_image_operators.py` runs (decision 78 (6)).
 
 ## Recent log
+
+- **28.11.2026 00:33** Development agent: pulled the branch at `21d2b07` (the test agent's mutation pass and the coordinator's merge of `main`, MKC-27). The coordinator accepts the 15 survivors; no code change. Next: the gate and the PR.
 
 - **28.11.2026 00:32** Test agent: the "Mutation pass (MKC-22)" section itself (the commit before, `e499198`, carried only its log line because an edit had failed).
 
