@@ -11,7 +11,11 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from mkc.db.models import Turn
+from mkc.harness.blobs import BlobStore
 from mkc.models.types import Message
+
+INLINE_MAX_BYTES = 16384
+"""A tool result whose JSON is larger is stored as a blob ref (`MKC_TURN_INLINE_MAX_BYTES`)."""
 
 
 @dataclass(frozen=True)
@@ -25,7 +29,18 @@ class TurnRecord:
     cost_eur: Decimal
 
 
-def save_turn(session: Session, turn: TurnRecord) -> None:
+def stored_result(entry: dict[str, Any], blobs: BlobStore) -> dict[str, Any]:
+    """The full tool result of a stored turn entry, inline or from its blob ref."""
+    raise NotImplementedError
+
+
+def save_turn(
+    session: Session,
+    turn: TurnRecord,
+    *,
+    blobs: BlobStore | None = None,
+    inline_max_bytes: int = INLINE_MAX_BYTES,
+) -> None:
     """Add the turn's row to `session` without committing; the caller commits.
 
     Raises `ValueError` unless the results answer the calls one to one, in call order.

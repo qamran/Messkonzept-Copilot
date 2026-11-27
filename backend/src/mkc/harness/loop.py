@@ -21,7 +21,7 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from mkc.db.models import Item
-from mkc.harness.checkpoint import TurnRecord, save_turn
+from mkc.harness.checkpoint import INLINE_MAX_BYTES, TurnRecord, save_turn
 from mkc.harness.queue import next_item, settle_run
 from mkc.harness.states import ItemState, transition
 from mkc.harness.tools import ToolEnv, ToolRegistry
@@ -73,7 +73,13 @@ class _ToolErrorEscaped(Exception):
 
 
 def run_item(
-    item_id: int, *, session: Session, client: ModelClient, registry: ToolRegistry, max_steps: int
+    item_id: int,
+    *,
+    session: Session,
+    client: ModelClient,
+    registry: ToolRegistry,
+    max_steps: int,
+    inline_max_bytes: int = INLINE_MAX_BYTES,
 ) -> ItemOutcome:
     """Run the model-driven tool loop for one claimed (`running`) item."""
     item = session.get_one(Item, item_id)
