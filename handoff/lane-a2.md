@@ -1,6 +1,6 @@
 # Lane A2: SachsenNetze and gold
 
-**Last updated:** 27.11.2026, 23:24
+**Last updated:** 27.11.2026, 23:40
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -51,8 +51,27 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 - Which split method is chosen (by design, see above) and the quality of its reason in the plan doc.
 - A catalogue whose halves are not at the page middle (not in the real PDF).
 - The `operators.yaml` comment about "not checked yet" (the URL is correct: it is for the development agent to update the comment).
-- Mutation pass: not yet run (the code is ready).
+- Mutation pass: done, see "Mutation pass" below.
 - Development agent's own tests: `tests/extraction/test_sachsen_layout.py` (the real page furniture, the heading form, the placeholder by title, any page width).
+
+### Mutation pass (test agent, 27.11.2026, head `5b7b8b9`)
+
+- Method: one hand-written mutant at a time (exact string replacement, checked as applied), `__pycache__` cleared, then `pytest tests/extraction -q -x` (non-live), file restored after each. No mutant was committed. Base run: `89 passed, 3 deselected`.
+- Result: 73 mutants listed, 72 applied (one string did not match and was dropped), 47 killed, 25 survived.
+- New acceptance tests in `test_sachsen_rules.py` (fixture items `Line`, `Curve`, `Image` added to `sachsen_pdf.py`) kill 16 of the 25 survivors. Final: 72 applied, 63 killed, 9 survived. With them: `107 passed, 3 deselected`.
+- Killed by the new tests: heading words 2 pt off the line (`LINE_TOLERANCE` 0), a heading word alone on its line (`len(lines[0]) < 1`), `2.1:` as a number, `NUMBER.match` instead of `fullmatch`, a placeholder as the only second line (`len(lines) > 2`), `PLACEHOLDER.search`, `nr\.` without the optional dot, a frame at 21 pt above the heading (`top - 40`, `0 <=`), `<= footer` on words, a divider crossing the middle (`x0 - 30`), rounding to 0 decimals, lines, curves and images dropped from the graphics, and a half boundary at `width - 1`.
+- Already killed (first run): footer band 0.95, 0.80, 1.0 and 0.90, wrong heading word, heading check removed, `len(lines[0]) < 3`, `if not lines` removed, number regex without the dash part, without the letter, without the colon, `group(0)`, title taken from the last line, placeholder never matched, no `IGNORECASE`, `nr(tbd`, first-line top taken from the last line, footer bound dropped for graphics, x1 `+ 30`, `and` to `or`, either half edge dropped, `_inside` dropped for words and graphics, halves swapped, cut at a third, one half only, page numbers from 0 or reversed, `None` regions kept, line sort without top or by x, words in a line sorted by `-x0`, each bbox min/max flipped, content words only or graphics only, rects dropped, footer taken from the width, and both dispatch mutants in `segment.py` (to Berlin, or removed) plus Berlin pointed at `segment_sachsen`.
+- Survivors (9):
+  1. `sachsen.py:34` `FOOTER_BAND` 0.92 (496.8 pt instead of 491.4 pt): near-equivalent. The real page has nothing between 486 pt (frame bottoms) and 498 pt (logo); only an object in that gap would differ.
+  2. `sachsen.py:37` number part `\d{1,3}` instead of `\d{1,2}`: a three-digit concept number is not in the real catalogue; not pinned on purpose.
+  3. `sachsen.py:37` letter suffix `[a-z]*` instead of `[a-z]?`: `2-1ab:` is not in the real catalogue; not pinned on purpose.
+  4. `sachsen.py:87` graphics lower bound `top + LINE_TOLERANCE`: near-equivalent. Only a graphic that starts within 3 pt of the heading's top differs.
+  5. `sachsen.py:87` graphics lower bound `top` instead of `top - LINE_TOLERANCE`: same.
+  6. `sachsen.py:87` `< footer` as `<= footer` on graphics: equivalent unless a graphic starts at exactly 491.4 pt.
+  7. `sachsen.py:55` `x0 > x0` instead of `>=` (half edge): equivalent unless a graphic starts at exactly the half's edge and is the leftmost content; the heading is always further left.
+  8. `sachsen.py:55` `x1 < x1` instead of `<=`: equivalent unless a graphic ends at exactly the half's edge and is the rightmost content.
+  9. `sachsen.py:62` line grouping compares with the last word of the line instead of the first: equivalent for the two-word headings in the catalogue; it differs only when a line drifts by more than 3 pt over several words.
+- Not mutated: `PLACEHOLDER` allowing other titles, the exact `Nr. (tbd)` wording of other editions (not in the PDF), and the `from __future__` and type-only import lines.
 
 ## Next steps
 
@@ -62,6 +81,7 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 
 ## Recent log
 
+- **27.11.2026 23:40** Test agent: mutation pass on head `5b7b8b9`: 72 mutants applied, 47 killed, 25 survived; new tests `test_sachsen_rules.py` kill 16 more (63 killed, 9 survived, all near-equivalent or not pinned on purpose); `107 passed, 3 deselected`.
 - **27.11.2026 23:24** Development agent: decision 74 (2) now states only what the PDF shows for the placeholder (title `Nr. (tbd)`, no image, `Anwendungen: -`); the design's open question on the split method is marked answered. No ADR describes segmentation (ADR 003 is the database), so no ADR change.
 - **27.11.2026 23:24** Development agent: test `test_the_footer_band_keeps_a_frame_line_a_little_lower_than_page_8s` pins `FOOTER_BAND` (0.91): with 0.9 it fails (`1 failed, 5 passed`), with 0.91 `6 passed`.
 - **27.11.2026 23:19** Development agent: decision 74 (design section 18), the status doc's Lane A2 section, the backlog's MKC-27 "As built" note and the `operators.yaml` comment (09/2025, 9 pages, 11 concepts). Decision 75 is left for MKC-24.
