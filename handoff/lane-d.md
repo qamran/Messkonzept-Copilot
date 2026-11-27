@@ -1,6 +1,6 @@
 # Lane D: RAG
 
-**Last updated:** 27.11.2026, 23:38
+**Last updated:** 27.11.2026, 23:41
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -76,6 +76,7 @@ The tests import these; module paths and names are fixed, internals are free.
 
 ## Recent log
 
+- **27.11.2026 23:41** Development agent: live test `tests/rag/test_retriever_live.py` (`@pytest.mark.live`; the real EnWG § 14a page and the synthetic `musterg` into the test database, then two query embeddings). Run 1, 23:39:38–23:40:26: `1 passed, 4 warnings in 45.24s` (its printed cost was cut off by my `tail`; the same texts as run 2). Run 2, 23:40:30–23:41:08: `load: tokens 1859, cost 0.00001700 EUR; total with 2 queries: tokens 1949, cost 0.00001782 EUR`; the question "Darf der Netzbetreiber meine Wärmepumpe bei drohender Überlastung drosseln?" → `['§ 14a Abs. 1', '§ 14a Abs. 3', '§ 14a Abs. 2']`, latency 677 ms; "§ 14a" → `['§ 14a Abs. 2', '§ 14a Abs. 1', '§ 14a Abs. 4']`; `1 passed in 36.18s`. MKC-50 live spend: two runs of about EUR 0.0000178 each.
 - **27.11.2026 23:38** Development agent: MKC-50.3, the additive `mkc/observability/` change the coordinator granted: `TraceRecord` kind `retrieval`, `Tracer.span_retrieval` (through `_record`, so the no-trace-id rule holds; nothing without a scope), a `retriever` branch in `LangfuseSink.send` (other branches unchanged), `LANGFUSE_TYPES["retrieval"] = "RETRIEVER"` in the demo. No migration (`run_log.kind` is `String(16)`). `uv run pytest tests/observability tests/rag/test_retrieval_trace.py -q`: `37 passed in 3.72s`.
 - **27.11.2026 23:37** Development agent: `mkc.rag.retriever`: `rrf_merge` (`RRF_K = 60`, ties to the lower id), `RetrievedChunk.as_prompt_data()`, `RetrievalTrace`, `retrieve` (`MAX_K = 20`, `CANDIDATES = 50`; keyword: `plainto_tsquery('german')` with its terms ORed, `ts_rank`, then id; vector: cosine `<=>`, then id; one log line per call with counts and the error class). `uv run pytest tests/rag/test_retriever.py tests/rag/test_retriever_unit.py -q`: `27 passed in 2.33s`; `tests/rag/test_retrieval_trace.py`: 5 of 9 green, the 4 bridge tests wait on MKC-50.3.
 - **27.11.2026 23:36** Development agent: own red tests `tests/rag/test_retrieval_trace.py`: the keyword side ORs the query terms, refused arguments are not traced, one log line per call without the query, and the bridge (with a run scope one `run_log` row of kind `retrieval` and one sink record in the run's trace; outside a run no row and no sink call; a Langfuse `retriever` observation). `uv run pytest tests/rag/test_retrieval_trace.py -q`: `9 failed in 2.37s`.
