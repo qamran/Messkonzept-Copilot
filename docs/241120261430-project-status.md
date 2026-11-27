@@ -205,5 +205,5 @@ User choices:
   - `EmbeddingClient` at the end of `mkc/models/client.py`, the OpenRouter embedding call at the end of `providers.py`
 - **Embedding model (decision 71, confirmed by the user on 27.11.2026):** `qwen/qwen3-embedding-8b`, 1024 dimensions, $0.01 per million tokens, through OpenRouter with zero data retention (ADR 004 amendment). Research note: `docs/271120262150-embedding-model-research.md`.
 - **Chunk size (decision 72):** one chunk per law Absatz, never split; other texts by numbered sections, split at blank lines over 4,000 characters.
-- **Not yet:** PDF sources (the two BNetzA decisions, Anlage 1 and the operator catalogue) wait on the PDF library of MKC-21; the two laws load today.
+- **Not yet:** PDF sources (the two BNetzA decisions, Anlage 1 and the operator catalogue): `pdfplumber` is on `main` since MKC-21, but the corpus fetcher does not read PDFs yet (a later lane D ticket); the two laws load today.
 - **LLM spend (MKC-49):** about €0.0005 in total: embedding probes and the live test (under €0.00001 together) and one live load of EnWG § 14a and the MsbG into a throwaway database (51,934 tokens, €0.000475). Each call is logged in `handoff/lane-d.md`.

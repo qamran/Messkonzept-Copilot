@@ -339,7 +339,8 @@ EmbedFactory = Callable[[Provider, str, int, float], EmbedCall]
 """Builds the embedding call for (provider, model, dimensions, timeout in seconds)."""
 
 EMBED_BATCH_SIZE = 32
-"""Texts per request; a chunk is at most about 1,000 tokens, so a request stays small."""
+"""Texts per request; a law Absatz can reach about 2,000 tokens (decision 72), so a request
+stays well inside the model's limits."""
 
 
 @dataclass(frozen=True)

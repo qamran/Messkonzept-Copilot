@@ -1,6 +1,6 @@
 # Lane D: RAG
 
-**Last updated:** 27.11.2026, 23:32
+**Last updated:** 27.11.2026, 23:33
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -76,6 +76,7 @@ The tests import these; module paths and names are fixed, internals are free.
 
 ## Recent log
 
+- **27.11.2026 23:33** Development agent: Review finding 3 (stale wording): "the PDF library comes with MKC-21" in `fetch.py` (docstring and error), the runbook and the status doc now say `pdfplumber` is on `main` and PDF reading is a later lane D ticket; `EMBED_BATCH_SIZE` names decision 72's 2,000 tokens. The `DEFAULT_SOURCES_PATH` docstring was fixed in the previous commit; this file's migration lines already say 0013.
 - **27.11.2026 23:32** Development agent: `MKC_CORPUS_SOURCES_FILE` (`config.py` and `.env.example`, block `MKC-50`), `sources_path()` (setting, then the source-tree file, then `IMAGE_SOURCES_PATH` `/app/data/corpus_sources.yaml`), the CLI without `--sources` uses it, and the one `COPY data/corpus_sources.yaml` line in the Dockerfile (no `ENV` line: outside the grant, the code falls back to the image path). `uv run pytest tests/rag/test_sources_path_unit.py tests/rag/test_image_unit.py tests/rag/test_sources_unit.py tests/rag/test_cli_unit.py tests/rag/test_corpus_cli.py tests/extraction/test_operators_file.py -q`: `32 passed in 1.88s`.
 - **27.11.2026 23:32** Development agent: red tests for the sources path (`MKC_CORPUS_SOURCES_FILE`, then the source-tree file, then `/app/data/corpus_sources.yaml`; the CLI without `--sources`); `uv run pytest tests/rag/test_sources_path_unit.py -q`: `5 failed in 1.27s`.
 - **27.11.2026 23:31** Development agent: Review finding 5: `check_cache_dir` refuses any cache inside the repo, official-only sources included; loader docstring, CLI docstring and runbook say so. `uv run pytest tests/rag/test_loader_unit.py tests/rag/test_corpus_loader.py tests/rag/test_cli_unit.py tests/rag/test_corpus_cli.py -q`: `19 passed in 3.22s`.
