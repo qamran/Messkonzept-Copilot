@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 23:32
+**Last updated:** 28.11.2026, 00:07
 
 This file is how agents resume work after a session restart.
 
@@ -23,7 +23,7 @@ This file is how agents resume work after a session restart.
 - **Remotes:**
   - `origin` = qamran/Messkonzept-Copilot (home, public)
   - `turing` = TuringCollegeSubmissions/qshahz-AE.CAP.AFA.1.1 (code-only mirror, no issues; ADR 005 option (c), decision 35)
-  - Both at `d7fad1e` (merge of PR #199).
+  - Both at `3bacfc5` (merge of PR #214).
 - **`main` is protected:** PRs only, enforced for admins. Required checks: the `ci` jobs `backend`, `frontend`, `gitleaks`, `dependency-scan` and `docs` (since 25.11.2026 09:50, MKC-6.5) `image` (since 13:52, MKC-8) and `kind` (since 15:42, MKC-9); the branch must be up to date with `main`. `publish` is not required (skipped on PRs).
 - **Agent rules:** `AGENTS.md` (CLAUDE.md imports it). The development agent continues without asking and stops only for genuine decisions (decision 36).
 - **Done:**
@@ -62,7 +62,7 @@ From MKC-168 (decision 61), tickets run in parallel lanes. Each lane keeps its o
 | Lane | Tickets | File | State |
 |---|---|---|---|
 | A. Extraction | MKC-21 → 22 → 23 → 25 → 26 → 28 → 29 → 30 | `handoff/lane-a.md` | MKC-21 done (PR #197, `2a841a2`); MKC-22 in progress (wave 2, decisions 76–78) |
-| A2. SachsenNetze and gold | MKC-27 (after MKC-21) → 24 (after MKC-23) | `handoff/lane-a2.md` | MKC-27 in progress (wave 2, decisions 74–75) |
+| A2. SachsenNetze and gold | MKC-27 (after MKC-21) → 24 (after MKC-23) | `handoff/lane-a2.md` | MKC-27 done (PR #214, `3bacfc5`); paused: MKC-24 waits on MKC-23 |
 | B. Advisor | MKC-36 → (37 after MKC-30) → 38 | `handoff/lane-b.md` | MKC-36 done (PR #196, `046f61e`); paused: MKC-37 waits on MKC-30 |
 | C. Decision layer | MKC-46 → (47 after MKC-36, MKC-26) → (48 after MKC-31) | `handoff/lane-c.md` | MKC-46 done (PR #195, `085323a`); next MKC-47 waits on MKC-36 and MKC-26 |
 | D. RAG | MKC-49 → 50 → (51 after MKC-38) | `handoff/lane-d.md` | MKC-49 done (PR #198, `6681d48`); MKC-50 in progress (wave 2, decisions 79–81) |
@@ -229,6 +229,8 @@ New tables go at the end of `mkc/db/models.py` in a block commented with the tic
 - **The user's PC:** it went down without a clean shutdown on 23.11 and 26.11.2026 (cause not found; graphics-driver hang reports on both days; a memory test is not done yet). Commit and push often. Two files exist only on the PC: the VM's admin SSH key and `backend/.env` (runbook "Only on the PC"); the user was advised to copy them into a password manager.
 
 ## Recent log
+
+- **28.11.2026 00:07** PR #214 (MKC-27, lane A2) review PASS (Fable, comment 23:59:29; 6 non-blocking findings: (1) two lane-a2 log times a minute before their commits (23:10 vs 23:11:01, 23:40 vs 23:41:20); (2) the PR body calls `9e6641e` the head, it was `1bf96df`; (3) the status doc's "73 decision numbers" heading is stale (coordinator, at the wave's end); (4) #201 and #202 to close; (5) the placeholder rule matches only the 09/2025 wording `Nr. (tbd)`, the live test's 11 numbers would show a change; (6) `LINE_TOLERANCE` defined in both `segment.py` and `sachsen.py`), merged as `3bacfc5` (23:59:33). #27 closed by the merge; #201, #202 closed by the coordinator; #27, #201, #202 `Done` (00:00:19). `main` pushed to `turing` (00:00:23); `origin/main` = `turing/main` = `3bacfc5`. `cd` run 46079888798: `image` 23:59:38 to 00:04:43; `backend` approved at 00:04:59, ran 00:05:00 to 00:05:53; `frontend` approved at 00:06:14, ran 00:06:16 to 00:06:59; run exit 0. Checked: `/api/version` commit `3bacfc5...`, `/health` 200 (00:07:02). No other lane PR was open. MKC-50 (lane D, `f1e9ee3`, gate exit 0) and MKC-22 (lane A, `f0bf9e8`, gate exit 0) built; their mutation passes are running. Rulings: MKC-50's sources-path fallback, its additive `mkc/observability/` edits and the extra reference ranking (a `§ <n>` in the query) accepted; embedding spend inside a run is not in the run trace yet (for MKC-51).
 
 - **27.11.2026 23:32** Wave 2 red tests done in all three lanes and all development agents started (baselines and rulings under In progress). MKC-27 sub-issues #201 and #202 created by lane A2.
 
