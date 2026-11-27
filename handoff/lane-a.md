@@ -1,6 +1,6 @@
 # Lane A: Extraction
 
-**Last updated:** 27.11.2026, 21:47
+**Last updated:** 27.11.2026, 21:48
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -89,13 +89,15 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
   20. `worker/executor.py:206` the executor does not pass `blobs` to the run: the test checks only `Executor.blobs`, so the worker would keep large turn results in the `blob` table.
 ## Next steps
 
-1. Development agent: `bash scripts/pre_pr.sh`, push the branch, report to the coordinator (no PR yet).
-2. Test agent: run the mutation pass on the development agent's code (`mkc/extraction/`, `mkc/harness/storage.py`, the `blobs` path in `loop.py`, `--operator` in `cli.py`).
-3. Development agent: open the PR when the coordinator says so. Changes to the test agent's tests, with reasons: `conftest.py` (`berlin_pages` in the real layout, `Side` sidebar lines in `make_pdf`), the docstring of `test_segment.py`, `EXPECTED_BERLIN_CONCEPTS = 26` in `test_live_berlin.py`.
+1. Done: the mutation pass (section above); survivors 3, 7, 13 to 20 are killed by new tests; 1, 2, 4, 5, 6, 8 to 12 are accepted with reasons in the PR body.
+2. Development agent: `bash scripts/pre_pr.sh` on the final head, then open the PR (coordinator's go, 27.11.2026); #21 and #187 to #191 to `Testing`.
+3. In the PR body: Changes to the test agent's tests, with reasons: `conftest.py` (`berlin_pages` in the real layout, `Side` sidebar lines in `make_pdf`), the docstring of `test_segment.py`, `EXPECTED_BERLIN_CONCEPTS = 26` in `test_live_berlin.py`.
 4. Admin, before the deploy: the five `MKC_STORAGE_*` values into `mkc-secrets` (runbook "Fetch and segment").
 5. Decisions taken for the test agent's open assumptions: 1 confirmed; 2 (a return to an older hash) is a new edition (decision 62); 3 replaced by the real layout (decision 64); 4 confirmed.
 
 ## Recent log
+
+- **27.11.2026 21:48** Development agent: redirect hops written down as a known limit in decision 62 (5) and the runbook ("The allow-list"): hops off the list are requested, with a plain GET only; the final host decides. `check_runbook.py` passes; markdownlint 0 errors. #187 to #190 moved back to `In progress` until the PR exists.
 
 - **27.11.2026 21:47** Development agent: mutation survivors 13, 14 and 17 killed: `test_run_operations.py` checks edition and `new_edition` across the registry and in the CLI output (`edition 2, a new edition`), the edition of `segment_document`'s result, and that `--operator` with a real `--items` file is refused with "exactly one" before any fetch; 11 passed, the three mutants fail it.
 
