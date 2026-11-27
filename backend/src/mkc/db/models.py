@@ -1,9 +1,23 @@
 """ORM models. Each table also has an Alembic migration; a test checks they match."""
 
 from datetime import datetime
+from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import BigInteger, CheckConstraint, DateTime, Identity, String, Text
+from sqlalchemy import (
+    BigInteger,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Identity,
+    Index,
+    Integer,
+    Numeric,
+    String,
+    Text,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -48,3 +62,64 @@ class LbsStructureRow(Base):
     objects: Mapped[list[dict[str, Any]]] = mapped_column(JSONB)
     source: Mapped[str] = mapped_column(Text)
     version: Mapped[str] = mapped_column(Text)
+
+
+def _created() -> Mapped[datetime]:
+    return mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+def _updated() -> Mapped[datetime]:
+    return mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class Run(Base):
+    """One extraction run (MKC-15). `state` is a `RunState`; change it only via `transition`."""
+
+    __tablename__ = "run"
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
+    state: Mapped[str] = mapped_column(String(32))
+    # Which run-level limit stopped the run (MKC-18); None unless `state` is `stopped`.
+    stop_reason: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = _created()
+    updated_at: Mapped[datetime] = _updated()
+
+
+class Item(Base):
+    """One concept of one document: the unit the item loop works on (MKC-15).
+
+    `task` holds what the model is told (operator, concept key, region). `state` is an
+    `ItemState`; change it only via `transition`.
+    """
+
+    __tablename__ = "item"
+    __table_args__ = (
+        UniqueConstraint("run_id", "concept_key", name="uq_item_run_concept"),
+        Index("ix_item_run_state", "run_id", "state"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
+    run_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("run.id"))
+    concept_key: Mapped[str] = mapped_column(Text)
+    document_hash: Mapped[str] = mapped_column(Text)
+    task: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    state: Mapped[str] = mapped_column(String(32))
+    # Why the item failed, e.g. `step_limit`; None unless `state` is `failed`.
+    failure_reason: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = _created()
+    updated_at: Mapped[datetime] = _updated()
+
+
+class Turn(Base):
+    """One step of the item loop: the assistant message and the results of its tool calls."""
+
+    __tablename__ = "turn"
+    __table_args__ = (UniqueConstraint("item_id", "number", name="uq_turn_item_number"),)
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
+    item_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("item.id"))
+    number: Mapped[int] = mapped_column(Integer)
+    assistant: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    tool_results: Mapped[list[dict[str, Any]]] = mapped_column(JSONB)
+    cost_eur: Mapped[Decimal] = mapped_column(Numeric(12, 6))
+    created_at: Mapped[datetime] = _created()
