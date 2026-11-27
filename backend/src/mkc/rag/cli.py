@@ -2,7 +2,7 @@
 sources of a sources file in one transaction.
 
 Exit codes: 0 loaded; 1 a fetch, the embedder or the database failed (nothing is written);
-2 bad input (sources file, `--source` id, a cache folder inside the repo).
+2 bad input (sources file, `--source` id, a cache folder inside the repo, for any source).
 
 The embedder calls the provider, so it needs `MKC_MODEL_MODE=live` and
 `MKC_OPENROUTER_API_KEY`. Tests replace `make_embedder` and `make_fetcher`.
