@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 14:06
+**Last updated:** 27.11.2026, 14:34
 
 This file is how agents resume work after a session restart.
 
@@ -55,8 +55,8 @@ This file is how agents resume work after a session restart.
 
 - **MKC-18** (#18), Limits and retries. Status `In progress`, assigned to `qamran` (27.11.2026 12:59:40). Branch `mkc-18-limits-retries` from `0f9a413`. The first commit holds only the close-out of MKC-17.
   - Plan: `docs/superpowers/plans/271120261324-mkc-18-limits-retries.md` (decision 58: stop reasons, the stop trace, run usage from the database, retries and turn deadline, re-prompt, tool-retry and resume caps, defaults with reasons). It folds in MKC-13 finding 3, MKC-15 findings 6 and 9, MKC-16 finding 2, MKC-17 findings 1, 6, 7 and 8.
-  - Sub-issues: MKC-18.1 #151 (`In progress`), MKC-18.2 #152, MKC-18.3 #153, MKC-18.4 #154 (`Ready`); all assigned to `qamran`, linked to #18, on the board.
-  - MKC-18 pre-PR fixes: wording fixed in runbook, design 8.5 and decision 58, plan, backlog (401/402 setup, 403 item; a failed call cost is recorded nowhere; what counts as a resume); the plan names the rebased hash. Next: CI backend commands (mypy on tests, Linux worker test), then push and PR.
+  - Sub-issues: MKC-18.1 #151 to MKC-18.4 #154, all assigned to `qamran`, linked to #18, on the board, all `In progress` (GitHub: #151 12:26:30Z = 13:26:30, #152 13:35:58, #153 13:42:12, #154 13:51:52).
+  - All code and docs done; local and Linux runs green. Next: push, PR, sub-issues and #18 to `Testing`, review agent.
 
 ## Next steps
 
@@ -173,6 +173,8 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+
+- **27.11.2026 13:35-14:33** MKC-18 work: #152 `In progress` 13:35:58, #153 13:42:12, #154 13:51:52 (GitHub timeline; the progress lines said 13:35:56 and 13:51:51 from the local clock). Pre-PR advisor review (about 13:58): four `Refs:` trailers said `qamra/` (the same slip as in MKC-17), fixed by a message-only `git rebase --exec` before any push, so every hash after `9388835` changed; OpenRouter's error docs: 402 (insufficient credits) is now a setup error unless it carries `Retry-After`, 403 (can be a moderation flag) fails only the item; `test_deploys_never_accumulate_resume_attempts` added; "the trace keeps it" corrected (a failed call's cost is recorded nowhere). Linux (`git archive HEAD` piped into `ghcr.io/astral-sh/uv:python3.12-bookworm`, Compose db): `tests/worker tests/harness` 253 passed (14:33). A bind-mounted run failed two worker tests on `main` too (imports over the Windows mount took minutes); one run had the 0.9 s-lease heartbeat test fail once under load, 3 of 3 green alone on the branch and on `main`.
 
 - **27.11.2026 13:24-13:28** MKC-18: plan written (decision 58); sub-issues MKC-18.1 #151 to MKC-18.4 #154 created 13:26:02-13:26:14 (GitHub `createdAt`), assigned to `qamran`, linked to #18 and put on the board (#151 `In progress`, the rest `Ready`, set by 13:27:04). Plan commit `c97a4fe` at 13:27:17; its `Last updated` said 13:28 (ahead of git, corrected here).
 
