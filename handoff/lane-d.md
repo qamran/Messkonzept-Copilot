@@ -1,6 +1,6 @@
 # Lane D: RAG
 
-**Last updated:** 27.11.2026, 20:46
+**Last updated:** 27.11.2026, 20:50
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -14,8 +14,8 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 - `MKC-49` (`#49`): the development agent is building it, test-first. The test agent's red acceptance tests are in `backend/tests/rag/`.
 - **Red commits:** `97c18ea` to `f515d26` "MKC-49: red test for the corpus tables' downgrade" (the test agent's last commit on this branch; diff the tests against it).
 - **Sub-issues** (all assigned to `qamran`, on the board, linked to `#49`):
-  - `MKC-49.1` (`#179`) corpus sources file: In progress
-  - `MKC-49.2` (`#181`) chunking per paragraph: Ready
+  - `MKC-49.1` (`#179`) corpus sources file: done (`4ce0e06`), closed
+  - `MKC-49.2` (`#181`) chunking per paragraph: In progress
   - `MKC-49.3` (`#182`) embedding model through the provider layer: Ready
   - `MKC-49.4` (`#184`) corpus tables and migration 0012: Ready
   - `MKC-49.5` (`#185`) corpus loader with the licence guard: Ready
@@ -75,6 +75,7 @@ The tests import these; module paths and names are fixed, internals are free.
 
 ## Recent log
 
+- **27.11.2026 20:50** Development agent: `#179` closed; red unit tests for chunking (`uv run pytest tests/rag/test_chunking_unit.py -q`: `10 failed in 0.26s`).
 - **27.11.2026 20:46** Development agent: `mkc.rag.sources` and `backend/data/corpus_sources.yaml` (6 sources; every URL fetched once on 27.11.2026, HTTP 200; no text stored); `uv run pytest tests/rag/test_sources_unit.py tests/rag/test_corpus_sources.py -q`: `18 passed in 0.57s`.
 - **27.11.2026 20:41** Development agent: sub-issues `#179`, `#181`, `#182`, `#184`, `#185`, `#186` created, assigned, on the board and linked to `#49`; red unit tests for `load_sources` (`uv run pytest tests/rag/test_sources_unit.py -q`: `14 failed in 0.45s`).
 - **27.11.2026 20:30** Test agent: added `test_corpus_tables_downgrade_and_upgrade_again`; `uv run pytest tests/rag -q`: `10 failed, 7 errors in 4.77s`. The 5 red commits `97c18ea`..`969ebf0` (20:28) were pushed to `origin/mkc-49-corpus-loader`.
