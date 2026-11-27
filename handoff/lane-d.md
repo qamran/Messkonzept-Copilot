@@ -1,6 +1,6 @@
 # Lane D: RAG
 
-**Last updated:** 27.11.2026, 21:51
+**Last updated:** 27.11.2026, 21:56
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -11,7 +11,7 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 
 ## In progress
 
-- `MKC-49` (`#49`): built; the six sub-issues are in Testing (they close with the PR's merge); the mutation pass is done; the PR comes next. The test agent's red acceptance tests are in `backend/tests/rag/`.
+- `MKC-49` (`#49`): built; the six sub-issues are in Testing (they close with the PR's merge); PR #198 opened 27.11.2026 21:55 (GitHub `createdAt` 2026-11-27T20:55:20Z) at `5b39b61`; `#49` and the six sub-issues are in Testing. The test agent's red acceptance tests are in `backend/tests/rag/`.
 - **Red commits:** `97c18ea` to `f515d26` "MKC-49: red test for the corpus tables' downgrade" (the test agent's last commit on this branch; diff the tests against it).
 - **Sub-issues** (all assigned to `qamran`, on the board, linked to `#49`):
   - `MKC-49.1` (`#179`) corpus sources file: built (`4ce0e06`), Testing
@@ -71,7 +71,7 @@ The tests import these; module paths and names are fixed, internals are free.
 ## Next steps
 
 1. Done 21:47: the test agent's mutation pass (98 tried, 95 killed, 3 survived); the 3 survivors have tests since `4db8f62`.
-2. The development agent runs the gate, pushes and opens the PR; `#49` and its sub-issues go to Testing. The coordinator starts the review once `gh pr checks` is green, updates the branch from `main` and re-chains migration `0012` if lane A merges first.
+2. Done 21:55: PR #198 opened; `#49` and its sub-issues in Testing. Next, the coordinator starts the review once `gh pr checks` is green, updates the branch from `main` and re-chains migration `0012` if lane A merges first.
 3. Open for the coordinator:
    - decision 71 confirmed by the user on 27.11.2026, with the research note `docs/271120262150-embedding-model-research.md`; the production key's guardrail was not checked
    - 4 of 6 sources are PDFs and refused until MKC-21's PDF library is in; the BK8-22/010-A file is an encrypted PDF (`/Encrypt` in its header) served from an `.html` URL; the `sections` chunker has only run on synthetic text
@@ -82,6 +82,7 @@ The tests import these; module paths and names are fixed, internals are free.
 
 ## Recent log
 
+- **27.11.2026 21:56** Development agent: `bash scripts/pre_pr.sh` exit 0 at `5b39b61` (`746 passed, 1 skipped, 13 deselected, 4 warnings in 95.73s`); pushed; PR #198 opened (createdAt `2026-11-27T20:55:20Z`), assigned to `qamran`; `#49`, `#179`, `#181`, `#182`, `#184`, `#185`, `#186` set to Testing on the board.
 - **27.11.2026 21:51** Development agent: research note `docs/271120262150-embedding-model-research.md`, linked from ADR 004, decision 71 and the status doc; decision 71 marked confirmed by the user on 27.11.2026; decision 72 (chunk size) added.
 - **27.11.2026 21:50** Development agent: the 3 survivors and the leftover-folder finding. New tests: a lettered Absatz `(2a)` gets `§ 14a Abs. 2a`; the section cap is 4000 characters; a long law Absatz stays whole (decision 72); `REPO_ROOT` is the repo root; the CLI cache test cleans up in `finally`. `uv run pytest tests/rag -q`: `84 passed, 1 deselected, 4 warnings in 9.66s`. Each survivor re-applied by hand and restored: `(\d+)` → `1 failed, 12 passed`; `MAX_CHUNK_CHARS = 40` → `1 failed, 13 passed`; `parents[5]` → `1 failed, 69 passed` (all with `-x`).
 - **27.11.2026 21:47** Test agent: mutation pass on `d4de5fd`. One mutant at a time, each restored before the next; none committed. Each ran `uv run pytest tests/rag tests/models -q -x` (baseline `235 passed, 13 deselected, 4 warnings in 21.83s`). Scope: `mkc/rag/` (sources, chunking, embeddings, loader, fetch, cli), the embedding code in `mkc/models/client.py` and `providers.py`, the MKC-49 block of `mkc/db/models.py`, and migration `0012_corpus.py`. Result: **98 tried, 95 killed, 3 survived** (all 98 applied; 0 not applied). Survivors:
