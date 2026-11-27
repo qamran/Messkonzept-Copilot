@@ -8,6 +8,9 @@ back to the model; nothing raises out of `execute`.
 `side_effect` (decision 53): the tool reaches outside its own item (network, catalogue,
 approval queue, or state a re-run with the same arguments cannot overwrite by key). Such a
 tool can never be registered in the item context.
+
+`ToolEnv` (decision 54): the harness's ids for the call. Tools key their work by these, never
+by model arguments.
 """
 
 import logging
@@ -138,7 +141,15 @@ class ToolRegistry:
         return self._contexts[ctx]
 
     def execute(self, call: ToolCall, ctx: Context, env: ToolEnv) -> ToolResult:
-        """Run `call` in `ctx` with the harness's `env`, or return the error that says why not."""
+        """Run `call` in `ctx` with the harness's `env`, or return the error that says why not.
+
+        Nothing the model sends makes this raise. An item-context call whose `env` lacks the
+        item's ids is a harness bug and raises `ValueError` before any tool runs.
+        """
+        if ctx == "item" and None in (env.item_id, env.document_hash, env.concept_key):
+            raise ValueError(
+                f"the item context needs item_id, document_hash and concept_key: {env}"
+            )
         start = time.perf_counter()
         result = self._run(call, ctx, env)
         code = result.error.code if result.error else None
