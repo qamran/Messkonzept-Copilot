@@ -31,7 +31,8 @@ class ReplayMiss(ModelError):
 
 
 class ModelAuthError(ModelConfigError):
-    """The provider refused the key (401 or 403): a setup error, it stops the run (MKC-18)."""
+    """The provider refused the key (401) or the account has no credits (402): a setup error,
+    it stops the run (MKC-18)."""
 
 
 class TransientModelError(ModelError):

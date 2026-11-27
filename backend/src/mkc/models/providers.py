@@ -99,8 +99,10 @@ def make_factory(settings: Settings) -> ChatModelFactory:
     return factory
 
 
-AUTH_STATUS = frozenset({401, 403})
-"""The provider refused the key: a setup error that would fail every item (MKC-18)."""
+SETUP_STATUS = frozenset({401, 402})
+"""A refused key (401) or no credits left (402): every item would fail the same way, so it is a
+setup error that stops the run (MKC-18). A 403 is not here: on OpenRouter it can be a guardrail
+or moderation flag on one input, so it fails only that item."""
 
 _TRANSIENT_TYPES: tuple[type[BaseException], ...] = (
     httpx.TransportError,  # timeouts and network errors (the OpenRouter SDK lets them through)
@@ -114,18 +116,22 @@ def classify_error(error: Exception) -> ModelError | None:
     """Our error class for a provider error, or None to pass it on unchanged (MKC-18).
 
     By duck typing on `status_code` (OpenRouter, OpenAI, Anthropic) or `code` (Google), so a
-    new SDK version with new class names still maps: 401/403 are `ModelAuthError`; 408, 429
-    and 5xx, timeouts and network errors are `TransientModelError`. Everything else (a 400,
-    a bug) stays as it is and fails the item.
+    new SDK version with new class names still maps: 401 and 402 are `ModelAuthError`; 408,
+    429 and 5xx, timeouts and network errors, and a 402 with `Retry-After` (OpenRouter's
+    in-flight budget) are `TransientModelError`. Everything else (a 400, a 403, a bug) stays
+    as it is and fails the item.
     """
     if isinstance(error, ModelError):
         return None
     status = _status(error)
     name = type(error).__name__
-    if status in AUTH_STATUS:
-        return ModelAuthError(f"the provider refused the key: HTTP {status} ({name})")
+    retry_after = _retry_after(error)
+    if status == 402 and retry_after is not None:
+        return TransientModelError(f"HTTP 402 ({name})", retry_after)
+    if status in SETUP_STATUS:
+        return ModelAuthError(f"the provider refused the key or credits: HTTP {status} ({name})")
     if status in (408, 429) or (status is not None and 500 <= status <= 599):
-        return TransientModelError(f"HTTP {status} ({name})", _retry_after(error))
+        return TransientModelError(f"HTTP {status} ({name})", retry_after)
     if isinstance(error, _TRANSIENT_TYPES):
         return TransientModelError(f"{name}: {error}"[:300])
     return None
