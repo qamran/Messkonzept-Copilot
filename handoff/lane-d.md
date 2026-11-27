@@ -1,6 +1,6 @@
 # Lane D: RAG
 
-**Last updated:** 27.11.2026, 23:50
+**Last updated:** 27.11.2026, 23:52
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -78,6 +78,7 @@ The tests import these; module paths and names are fixed, internals are free.
 
 ## Recent log
 
+- **27.11.2026 23:52** Development agent: found by my own check before the report: `RetrievalTrace.error` took `str(exc)`, and a SQLAlchemy error's text ends with `[parameters: {'query': …}]`, so a database failure put the query into the trace and `run_log.error`. Red test `test_a_database_error_never_puts_the_query_into_the_trace`; `uv run pytest tests/rag/test_retrieval_trace.py -q -k database`: `1 failed, 10 deselected in 2.32s`.
 - **27.11.2026 23:50** Development agent: `bash scripts/pre_pr.sh` exit 0 at `483a3f1` (23:50): `994 passed, 1 skipped, 17 deselected, 4 warnings in 103.11s (0:01:43)`; `20 commits in origin/main..HEAD`; over 200 lines: `29ca7cd 282 lines` (the test agent's red commit, to disclose). The test agent's red tests are unchanged since `50bcd89` (`git diff --stat 50bcd89 HEAD -- backend/tests/` lists only my three new files). The 23:48 entry's SHA corrected to `0aca7bb`. Pushed; waiting for the coordinator and the test agent's mutation pass (no PR yet).
 - **27.11.2026 23:48** Development agent: `bash scripts/pre_pr.sh` exit 1 at `0aca7bb` (23:47): the same MD038, now in my own log line above; reworded.
 - **27.11.2026 23:45** Development agent: `bash scripts/pre_pr.sh` exit 1 at `0514854` (23:45): every step green (`994 passed, 1 skipped, 17 deselected, 4 warnings in 105.78s (0:01:45)`) except markdownlint: `handoff/lane-d.md:34:123 MD038/no-space-in-code` (the code span of `Instruct:` with its trailing space in the pinned interfaces). Reworded to `Instruct:` and a space.

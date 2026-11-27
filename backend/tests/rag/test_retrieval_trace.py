@@ -172,3 +172,35 @@ def test_the_demo_expects_a_retriever_for_a_retrieval_row() -> None:
     from mkc.observability.demo import expected_types
 
     assert expected_types(["retrieval"]) == Counter({"RETRIEVER": 1})
+
+
+class FailingSession(Session):
+    """A database error whose text quotes the statement's parameters, as SQLAlchemy's do."""
+
+    def scalars(self, statement: Any, params: Any = None, **kwargs: Any) -> Any:
+        from sqlalchemy.exc import OperationalError
+
+        raise OperationalError(str(statement), params, Exception("server closed the connection"))
+
+
+def test_a_database_error_never_puts_the_query_into_the_trace(
+    engine: Engine, corpus_engine: Engine, dim: int, caplog: pytest.LogCaptureFixture
+) -> None:
+    """`str()` of a SQLAlchemy error ends with `[parameters: {'query': …}]`: the trace keeps
+    the error class (and the SQLSTATE when there is one), never the message."""
+    from sqlalchemy.exc import OperationalError
+
+    run_id, _ = make_run(engine, "running")
+    tracer = Tracer(sessionmaker(bind=engine), FakeLangfuse())
+    tracer.start_run(run_id)
+    seen: list[Any] = []
+    with FailingSession(corpus_engine) as failing, pytest.raises(OperationalError) as raised:
+        _retrieve(failing, "Wärmepumpe Musterstraße", 3, ScriptedEmbedder(dim),
+                  tracers=[tracer.span_retrieval, seen.append], scope=TraceScope(run_id))  # fmt: skip
+    assert "Musterstraße" in str(raised.value), "the caller still gets the full error"
+    (trace,) = seen
+    assert trace.error is not None and trace.error.startswith("OperationalError")
+    assert "Musterstra" not in trace.error and "rmepumpe" not in trace.error
+    (row,) = _log_rows(engine)
+    assert row.error is not None and "Musterstra" not in row.error
+    assert "Musterstra" not in caplog.text
