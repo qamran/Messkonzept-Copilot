@@ -6,8 +6,9 @@ never stops the next item (extraction never waits for approvals).
 
 - One step is one model call. Each step writes one `turn` row and commits.
 - The step that ends the item writes its turn row and the state change in one commit.
-- Model and tool exceptions fail the item. Setup errors (`SETUP_ERRORS`), database errors and
-  crashes propagate: the item stays `running`.
+- Model and tool exceptions fail the item. Transient model errors are retried (`call_model`);
+  when retries run out, or on a setup error (`SETUP_ERRORS`), the run stops (MKC-18). Database
+  errors and crashes propagate: the item stays `running`.
 - Resume (MKC-16): `run_item` continues from the item's last complete turn
   (`load_resume_context`); `process_run` serves `running` items before queued ones.
 - `run_item` commits whatever the caller's session has pending.
@@ -16,10 +17,12 @@ never stops the next item (extraction never waits for approvals).
   the worker lost its lease.
 """
 
+import time
 from collections import Counter
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from decimal import Decimal
+from functools import partial
 from typing import Any
 
 from sqlalchemy import func, select, update
@@ -48,6 +51,7 @@ from mkc.harness.prompts import (
     wrap_tool_result,
 )
 from mkc.harness.queue import next_item, resumable_item, settle_run
+from mkc.harness.retry import RetriesExhausted, RetryInterrupted, call_model
 from mkc.harness.states import ItemState, transition
 from mkc.harness.tools import ToolEnv, ToolRegistry
 from mkc.models.client import ModelClient
@@ -57,9 +61,9 @@ ROLE: Role = "extract_vision"
 """The extraction model in `models.yaml`."""
 
 SETUP_ERRORS = (ModelConfigError, ReplayMiss)
-"""Errors that would fail every item the same way (a missing key, a missing recording). They
-propagate: the item stays `running` and the run is not settled, so it never reads as `done`.
-MKC-18 turns them into a run stop."""
+"""Errors that would fail every item the same way (a missing key or setting, a missing
+recording, a refused key: `ModelAuthError` is a `ModelConfigError`). They stop the run with
+`setup_error` (MKC-18, decision 58); the item keeps its place, so the run never reads `done`."""
 
 SAVE_TOOL = "save_draft"
 
@@ -75,6 +79,11 @@ def _never() -> bool:
 
 def _unfenced(session: Session) -> None:
     return None
+
+
+def _sleep(seconds: float) -> bool:
+    time.sleep(seconds)
+    return False
 
 
 @dataclass(frozen=True)
@@ -110,6 +119,7 @@ def run_item(
     should_stop: Callable[[], bool] = _never,
     fence: Callable[[Session], None] = _unfenced,
     tracers: Sequence[StopTracer] = (),
+    sleep: Callable[[float], bool] = _sleep,
 ) -> ItemOutcome:
     """Run the model-driven tool loop for one claimed (`running`) item."""
     item = session.get_one(Item, item_id)
@@ -138,9 +148,19 @@ def run_item(
         if hit is not None:
             return ItemOutcome(item_id, ItemState.RUNNING, hit.value, step - 1, cost)
         try:
-            reply = client.chat_with_tools(ROLE, messages, specs)
-        except SETUP_ERRORS:
-            raise
+            reply = call_model(
+                partial(client.chat_with_tools, ROLE, tuple(messages), specs),
+                limits=limits,
+                sleep=sleep,
+                should_stop=should_stop,
+            )
+        except RetryInterrupted:
+            return ItemOutcome(item_id, ItemState.RUNNING, INTERRUPTED, step - 1, cost)
+        except RetriesExhausted as exhausted:
+            last = str(exhausted.__cause__)[:300]
+            return ctx.stop(StopReason.MODEL_UNAVAILABLE, last, step - 1, cost)
+        except SETUP_ERRORS as error:
+            return ctx.stop(StopReason.SETUP_ERROR, type(error).__name__, step - 1, cost)
         except Exception as error:
             return ctx.fail(None, StopReason.MODEL_ERROR, step, cost, type(error).__name__)
         step_cost = Decimal(str(reply.usage.cost_eur))
@@ -194,6 +214,7 @@ def process_run(
     should_stop: Callable[[], bool] = _never,
     fence: Callable[[Session], None] = _unfenced,
     tracers: Sequence[StopTracer] = (),
+    sleep: Callable[[float], bool] = _sleep,
 ) -> list[ItemOutcome]:
     """Claim and run items until the queue is empty, then settle the run.
 
@@ -238,6 +259,7 @@ def process_run(
                 should_stop=should_stop,
                 fence=fence,
                 tracers=tracers,
+                sleep=sleep,
             )
         )
         if outcomes[-1].state is ItemState.RUNNING:
@@ -364,6 +386,13 @@ class _Ctx:
         )
         self.fence(self.session)
         self.session.commit()
+
+    def stop(self, reason: StopReason, detail: str, steps: int, cost: Decimal) -> ItemOutcome:
+        """Stop the run (decision 58); this item keeps its place and its checkpoint."""
+        usage = run_usage(self.session, self.run_id)
+        stop_run(self.session, self.run_id, reason, usage=usage, fence=self.fence,
+                 tracers=self.tracers, item_id=self.item_id, detail=detail)  # fmt: skip
+        return ItemOutcome(self.item_id, ItemState.RUNNING, reason.value, steps, cost)
 
     def fail(
         self,
