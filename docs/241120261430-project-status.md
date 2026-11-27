@@ -210,7 +210,7 @@ User choices:
 
 ## Lane A2: SachsenNetze segmentation (MKC-27)
 
-- **State (27.11.2026):** built on `mkc-27-sachsen-segment`; the test agent's mutation pass is next, then the PR. Sub-issues MKC-27.1 and 27.2 (`#201`, `#202`).
+- **State (27.11.2026):** built on `mkc-27-sachsen-segment`; the test agent's mutation pass killed 63 of 72 applied mutants; the coordinator accepted the 9 survivors (near-equivalent or not pinned on purpose); the PR is next. Sub-issues MKC-27.1 and 27.2 (`#201`, `#202`).
 - **Built:** `mkc/extraction/sachsen.py` (`segment_sachsen`), registered as `SEGMENTERS["sachsennetze"]`, so `mkc run start --operator sachsennetze` queues one item per concept.
 - **Split method (decision 74):** half page, with the reasons in the plan `docs/superpowers/plans/271120262318-mkc-27-sachsen-segmentation.md`.
 - **Catalogue:** "Standard-Messkonzepte in Niederspannung", 09/2025, 9 landscape pages; 12 halves, of which the placeholder `13 / Nr. (tbd)` is not an item. The live run gives 11 regions on pages 3 to 8.
