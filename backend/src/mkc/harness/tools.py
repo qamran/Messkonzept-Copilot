@@ -36,6 +36,20 @@ _MAX_MESSAGE = 1000
 
 
 @dataclass(frozen=True)
+class ToolEnv:
+    """The harness's ids for the call (decision 54). The model never sets these.
+
+    Item tools get all four. Run-level operations get `run_id` and whatever else exists at
+    that point (`fetch_document` runs before there is a document or an item).
+    """
+
+    run_id: int
+    item_id: int | None = None
+    document_hash: str | None = None
+    concept_key: str | None = None
+
+
+@dataclass(frozen=True)
 class Tool:
     """A tool: its arguments are validated against `args_model` before `fn` is called."""
 
