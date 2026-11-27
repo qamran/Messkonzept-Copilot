@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 14:05
+**Last updated:** 27.11.2026, 14:06
 
 This file is how agents resume work after a session restart.
 
@@ -56,7 +56,7 @@ This file is how agents resume work after a session restart.
 - **MKC-18** (#18), Limits and retries. Status `In progress`, assigned to `qamran` (27.11.2026 12:59:40). Branch `mkc-18-limits-retries` from `0f9a413`. The first commit holds only the close-out of MKC-17.
   - Plan: `docs/superpowers/plans/271120261324-mkc-18-limits-retries.md` (decision 58: stop reasons, the stop trace, run usage from the database, retries and turn deadline, re-prompt, tool-retry and resume caps, defaults with reasons). It folds in MKC-13 finding 3, MKC-15 findings 6 and 9, MKC-16 finding 2, MKC-17 findings 1, 6, 7 and 8.
   - Sub-issues: MKC-18.1 #151 (`In progress`), MKC-18.2 #152, MKC-18.3 #153, MKC-18.4 #154 (`Ready`); all assigned to `qamran`, linked to #18, on the board.
-  - MKC-18 pre-PR fixes: classifier 401/402/403 done; test `test_deploys_never_accumulate_resume_attempts` added (five deploys with a resume cap of 1). Next: wording fixes (401/402, "the trace keeps it", what counts as a resume), CI commands.
+  - MKC-18 pre-PR fixes: wording fixed in runbook, design 8.5 and decision 58, plan, backlog (401/402 setup, 403 item; a failed call cost is recorded nowhere; what counts as a resume); the plan names the rebased hash. Next: CI backend commands (mypy on tests, Linux worker test), then push and PR.
 
 ## Next steps
 
@@ -85,7 +85,7 @@ This file is how agents resume work after a session restart.
    - 2: HANDOFF times: `Last updated` of `6853c47` (09:23 vs 09:21:09), `435ab83` (09:01 vs 09:00:21) and `54c8e52` (09:44 vs 09:43:17) were ahead of the commit; #15 `Testing` was 09:42:49, not 09:43; the HANDOFF named head `d2f883d`, the PR head was `54c8e52`
    - 3, 4: the status doc's "Phase" line said "continues with MKC-14" (fixed in this close-out); the backlog entry for MKC-15 still shows `run_item(item_id)` and `next_item(run_id)`
    - 5 (MKC-21/23; not MKC-16: resume keeps an item `running` and needs no edge): no edge from `awaiting_approval` back to `running`; an item queued for an awaiting run is never served and `settle_run` raises
-   - 6 (**done in MKC-18.3**: 401/403 and setup errors stop the run with `setup_error`; 429/5xx/timeouts are retried, then the run stops with `model_unavailable`; other errors still fail the item): any model error other than `ModelConfigError`/`ReplayMiss` fails the item, so a fault hitting all items (a 401, a code bug) fails them all and the run reads `done`; a transient 429/5xx fails the item (no retries yet)
+   - 6 (**done in MKC-18.3**: 401/402 and setup errors stop the run with `setup_error`, 403 fails the item; 429/5xx/timeouts are retried, then the run stops with `model_unavailable`; other errors still fail the item): any model error other than `ModelConfigError`/`ReplayMiss` fails the item, so a fault hitting all items (a 401, a code bug) fails them all and the run reads `done`; a transient 429/5xx fails the item (no retries yet)
    - 7 (**done in MKC-16**: `process_run` resumes `running` items and turn numbers continue): a setup or database error leaves the item `running` with no edge out; turn numbers restart at 1 if `run_item` runs twice on one item (`IntegrityError` on `uq_turn_item_number`); resume must continue the numbering
    - 8: guard test gaps: raw SQL, bulk updates, a hard-coded current state; it matches the name `transition` only
    - 9 (re-deferred by decision 58 to the ticket that lets the API stop a run: the worker's claim commit is fenced and `fence` locks the run row): `next_item` does not lock the run row; an item can be claimed while the run is stopped
