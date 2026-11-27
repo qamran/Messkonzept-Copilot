@@ -69,3 +69,21 @@ def test_local_cache_dir_is_gitignored(name: str) -> None:
         ["git", "check-ignore", "-q", "--no-index", target], cwd=REPO, check=False
     )
     assert result.returncode == 0, f"{target} is not gitignored"
+
+
+def test_the_cli_caches_pdfs_in_storage_when_it_is_configured() -> None:
+    # Mutation pass: `mkc run start --operator` must use Supabase Storage when the settings
+    # name it, not the local cache.
+    from mkc.cli import make_documents
+    from mkc.config import Settings
+    from mkc.harness.storage import StorageBlobStore
+
+    storage = {
+        "storage_s3_endpoint": "https://p.storage.supabase.co/storage/v1/s3",
+        "storage_s3_region": "eu-west-1",
+        "storage_bucket": "mkc-storage",
+        "storage_access_key_id": "id",
+        "storage_secret_access_key": "secret",
+    }
+    docs = make_documents(Settings(**storage), sessionmaker())
+    assert isinstance(docs.store, StorageBlobStore)

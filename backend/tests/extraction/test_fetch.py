@@ -146,3 +146,32 @@ def test_new_hash_at_same_url_creates_new_edition_and_flags_it(
         (new.sha256, 2),
     ]
     assert rows(engine, f"select edition from operator where id = '{OPERATOR_ID}'") == [(2,)]
+
+
+def test_editions_are_numbered_per_operator(
+    engine: Engine, sessions: sessionmaker[Session], store: MemoryStore
+) -> None:
+    # Review Focus 1 (mutation pass): another operator's editions never count towards this
+    # operator's numbering or its new-edition flag.
+    from mkc.extraction.fetch import fetch_document
+    from mkc.extraction.operators import OperatorConfig
+
+    other_url = "https://other.example/messkonzepte.pdf"
+    ops = {
+        **operators(),
+        "other": OperatorConfig(
+            id="other",
+            name="Other (test)",
+            voltage_level="NS",
+            url=other_url,
+            allowed_hosts=("other.example",),
+        ),
+    }
+    get = FakeGet(
+        [(URL_OK, make_pdf(berlin_pages(["1"]))), (other_url, make_pdf(berlin_pages(["1", "2"])))]
+    )
+    kw = {"sessions": sessions, "store": store, "get": get, "operators": ops}
+    first = fetch_document(OPERATOR_ID, **kw)
+    other = fetch_document("other", **kw)
+    assert (first.edition, first.new_edition) == (1, False)
+    assert (other.edition, other.new_edition) == (1, False)
