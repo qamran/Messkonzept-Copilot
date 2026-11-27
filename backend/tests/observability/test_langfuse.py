@@ -8,11 +8,12 @@ from typing import Any
 
 import pytest
 from langfuse import Langfuse
+from opentelemetry import trace
 from opentelemetry.sdk.trace import ReadableSpan
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 
 from mkc.config import Settings
-from mkc.observability.langfuse import LangfuseSink
+from mkc.observability.langfuse import LangfuseSink, make_client
 from mkc.observability.trace import TraceRecord
 
 EUR_PER_USD = 0.9145
@@ -108,3 +109,24 @@ def test_from_settings_needs_both_keys() -> None:
     )
     assert isinstance(built, LangfuseSink)
     built.shutdown()
+
+
+def test_only_our_own_observations_leave(
+    exported: tuple[LangfuseSink, InMemorySpanExporter],
+) -> None:
+    """The SDK becomes the global OpenTelemetry provider, and its default filter passes any
+    span with `gen_ai.*` attributes, such as the Anthropic SDK's own tracing with the prompt.
+    Only the sink's observations may leave (decision 59: no content)."""
+    exporter = InMemorySpanExporter()
+    settings = Settings(langfuse_public_key=f"pk-lf-test-{uuid.uuid4().hex}",
+                        langfuse_secret_key="sk-lf-test",  # type: ignore[arg-type]
+                        langfuse_base_url="http://127.0.0.1:9")  # fmt: skip
+    client = make_client(settings, span_exporter=exporter)
+    try:
+        sink = LangfuseSink(client, eur_per_usd=EUR_PER_USD)
+        with trace.get_tracer("anthropic").start_as_current_span("chat") as foreign:
+            foreign.set_attribute("gen_ai.prompt", "the prompt text")
+        sink.send(MODEL, TRACE)
+        assert [s.name for s in spans(sink, exporter)] == ["extract_vision"]
+    finally:
+        client.shutdown()

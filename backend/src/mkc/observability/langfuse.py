@@ -23,6 +23,20 @@ from mkc.models.config import DEFAULT_MODELS_FILE, load_models_config
 from mkc.observability.trace import TraceRecord
 
 
+def make_client(settings: Settings, **extra: Any) -> Langfuse:
+    """The Langfuse client for the settings; `extra` goes to the constructor (tests pass an
+    in-memory `span_exporter`)."""
+    return Langfuse(
+        public_key=settings.langfuse_public_key,
+        secret_key=settings.langfuse_secret_key.get_secret_value(),
+        base_url=settings.langfuse_base_url,
+        timeout=settings.langfuse_timeout_seconds,
+        environment=settings.langfuse_environment,
+        release=settings.commit,
+        **extra,
+    )
+
+
 class LangfuseSink:
     def __init__(self, client: Langfuse, *, eur_per_usd: float) -> None:
         self._client = client
@@ -35,15 +49,7 @@ class LangfuseSink:
         if not settings.langfuse_public_key or not secret:
             return None
         path = Path(settings.models_file) if settings.models_file else DEFAULT_MODELS_FILE
-        client = Langfuse(
-            public_key=settings.langfuse_public_key,
-            secret_key=secret,
-            base_url=settings.langfuse_base_url,
-            timeout=settings.langfuse_timeout_seconds,
-            environment=settings.langfuse_environment,
-            release=settings.commit,
-        )
-        return cls(client, eur_per_usd=load_models_config(path).eur_per_usd)
+        return cls(make_client(settings), eur_per_usd=load_models_config(path).eur_per_usd)
 
     def send(self, record: TraceRecord, trace_id: str | None) -> None:
         context: TraceContext | None = None if trace_id is None else {"trace_id": trace_id}
