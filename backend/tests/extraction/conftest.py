@@ -204,9 +204,16 @@ class Box:
 A4 = (595.0, 842.0)
 
 
-def layout_pdf(pages: Sequence[Sequence[Text | Box]], size: tuple[float, float] = A4) -> bytes:
+def layout_pdf(
+    pages: Sequence[Sequence[Text | Box]],
+    size: tuple[float, float] = A4,
+    *,
+    nul_for: str | None = None,
+) -> bytes:
     """A small valid PDF with text and rules at given positions (Helvetica, WinAnsi/cp1252).
-    Built by hand, like `make_pdf`, so no PDF file is ever committed."""
+    Built by hand, like `make_pdf`, so no PDF file is ever committed. `nul_for` names one
+    character whose glyph the font's `/ToUnicode` map turns into U+0000, as some real PDFs
+    do: pdfplumber then reads a NUL there (MKC-22, the MKC-16 note on JSONB)."""
     h = size[1]
     streams = []
     for items in pages:
@@ -220,7 +227,7 @@ def layout_pdf(pages: Sequence[Sequence[Text | Box]], size: tuple[float, float] 
                 y = h - item.top - item.size
                 ops.append(f"BT /F1 {item.size:g} Tf 1 0 0 1 {item.x:g} {y:g} Tm ({esc}) Tj ET")
         streams.append("\n".join(ops).encode("cp1252"))
-    return _assemble(streams, size)
+    return _assemble(streams, size, nul_for)
 
 
 LINE = 11.0  # line pitch inside a table cell
@@ -247,14 +254,19 @@ def ruled_table(
     return items, y
 
 
-def _assemble(streams: Sequence[bytes], size: tuple[float, float]) -> bytes:
+def _assemble(
+    streams: Sequence[bytes], size: tuple[float, float], nul_for: str | None = None
+) -> bytes:
     w, h = size
     n = len(streams)
+    font = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding"
+    if nul_for is not None:
+        font += f" /ToUnicode {4 + 2 * n} 0 R"
     objs: list[bytes] = [
         b"<< /Type /Catalog /Pages 2 0 R >>",
         (f"<< /Type /Pages /Kids [{' '.join(f'{4 + 2 * i} 0 R' for i in range(n))}] /Count {n} >>")
         .encode(),
-        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+        (font + " >>").encode(),
     ]  # fmt: skip
     for i, stream in enumerate(streams):
         objs.append(
@@ -264,6 +276,14 @@ def _assemble(streams: Sequence[bytes], size: tuple[float, float]) -> bytes:
             ).encode()
         )
         objs.append(b"<< /Length %d >>\nstream\n" % len(stream) + stream + b"\nendstream")
+    if nul_for is not None:
+        code = nul_for.encode("cp1252").hex().upper()
+        cmap = (
+            "/CIDInit /ProcSet findresource begin 12 dict begin begincmap /CMapName /Nul def\n"
+            f"1 begincodespacerange <00> <FF> endcodespacerange\n1 beginbfchar <{code}> <0000>"
+            "\nendbfchar endcmap CMapName currentdict /CMap defineresource pop end end"
+        ).encode()
+        objs.append(b"<< /Length %d >>\nstream\n" % len(cmap) + cmap + b"\nendstream")
     out = bytearray(b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n")
     offsets = []
     for num, body in enumerate(objs, start=1):
