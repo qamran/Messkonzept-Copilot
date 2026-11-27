@@ -65,7 +65,15 @@ def test_exhausted_retries_stop_the_run_with_model_unavailable(engine: Engine) -
     assert states(engine, run_id) == ("stopped", ["running", "queued"])
     assert stop_reason(engine, run_id) == "model_unavailable"
     assert events == [
-        StopEvent("run", run_id, ids[0], StopReason.MODEL_UNAVAILABLE, "HTTP 503", 0, 0)
+        StopEvent(
+            "run",
+            run_id,
+            ids[0],
+            StopReason.MODEL_UNAVAILABLE,
+            "TransientModelError: HTTP 503",
+            0,
+            0,
+        )  # the class, for the trace sink
     ]
 
 

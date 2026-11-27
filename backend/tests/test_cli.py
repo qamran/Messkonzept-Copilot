@@ -201,4 +201,3 @@ def test_status_of_a_missing_run(engine: Engine) -> None:
     result = mkc("run", "status", "99")
     assert result.exit_code == 1
     assert "no run 99" in result.output
-

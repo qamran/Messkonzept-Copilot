@@ -74,12 +74,13 @@ def test_replayed_call_sends_no_cost(exported: tuple[LangfuseSink, InMemorySpanE
 def test_failed_call_has_level_error(exported: tuple[LangfuseSink, InMemorySpanExporter]) -> None:
     sink, exporter = exported
     failed = TraceRecord(**(MODEL.__dict__ | {"ok": False, "error": "TimeoutError: slow",
+                                              "public_error": "TimeoutError",
                                               "input_tokens": None, "output_tokens": None,
                                               "cost_eur": None}))  # fmt: skip
     sink.send(failed, TRACE)
     found = attrs(spans(sink, exporter)[0])
     assert found[ATTR + "level"] == "ERROR"
-    assert found[ATTR + "status_message"] == "TimeoutError: slow"
+    assert found[ATTR + "status_message"] == "TimeoutError"  # never the error text (MKC-20.5)
     assert ATTR + "usage_details" not in found and ATTR + "cost_details" not in found
 
 
