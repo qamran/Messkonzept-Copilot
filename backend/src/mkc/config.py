@@ -78,6 +78,10 @@ class Settings(BaseSettings):
     """Model calls one item may make before it fails with `step_limit` (MKC-15; MKC-18
     replaces it with the run limits)."""
 
+    turn_inline_max_bytes: int = Field(default=16384, ge=1)
+    """A tool result whose JSON is larger is stored as a blob ref, not inline in the turn row
+    (MKC-16.2, decision 56). Same default as `mkc.harness.checkpoint.INLINE_MAX_BYTES`."""
+
     openrouter_api_key: SecretStr = SecretStr("")
     """OpenRouter key (default route, zero data retention). A secret: never logged."""
 
