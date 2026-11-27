@@ -1,6 +1,6 @@
 # Lane C: Decision layer
 
-**Last updated:** 27.11.2026, 20:46
+**Last updated:** 27.11.2026, 20:49
 
 Only lane C's agents write this file; the coordinator keeps `HANDOFF.md`. Times are local time (CET) from git and GitHub, never estimated.
 
@@ -73,6 +73,7 @@ Costs are copied from OpenRouter's `usage.cost` (USD) in each response.
 
 ## Recent log
 
+- **27.11.2026 20:49** Development agent: `mkc/decision/` (`types.py`, `client.py`): `DecisionClient.decide` sends one `invoke` with `Noul`/`Choice`, checks 1 to 32 questions, and converts the reply into our frozen types; a missing, wrong-type or out-of-criteria answer is a `DecisionError`. `uv run pytest -q tests/decision`: "44 passed, 1 deselected"; `uv run mypy`: "Success: no issues found in 51 source files".
 - **27.11.2026 20:46** Development agent: red request tests `tests/decision/test_provider_requests.py` (`7175301`, red on `ImportError`), then `build_decision_model` at the end of `providers.py`: a `TypeSafeClassifier` subclass that adds `OPENROUTER_ROUTING` as `provider` to every body, base URL `https://openrouter.ai/api`. `uv run pytest -q tests/decision/test_providers.py tests/decision/test_provider_requests.py`: "9 passed"; `uv run mypy`: "Success: no issues found in 48 source files".
 - **27.11.2026 20:43** Development agent: sub-issues `#192`–`#194` created, assigned to `qamran`, on the board and linked to `#46`. Added `langchain-typesafe==0.1.0` (`uv add`; lock adds only `langchain-typesafe`, deps `httpx2`, `langchain-core`) and the MKC-46 settings block. `uv run pytest -q tests/decision/test_settings.py`: "7 passed".
 - **27.11.2026 20:37** Test agent (`dd184a2`): checked the fake end to end (a scratch script: the canned body validates; `.nouls`, `.choices`, `.model` and `seen` as the tests expect). Split the live test's imports so ruff stays green once `mkc.decision` exists. Whole backend suite `uv run pytest -q`: "26 failed, 676 passed, 1 skipped, 13 deselected" (the 26 are this lane's red tests); `uv run mypy`: "Success: no issues found in 48 source files"; every `scripts/check_*.py` exits 0.
