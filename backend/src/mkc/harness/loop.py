@@ -11,9 +11,13 @@ never stops the next item (extraction never waits for approvals).
 - Resume (MKC-16): `run_item` continues from the item's last complete turn
   (`load_resume_context`); `process_run` serves `running` items before queued ones.
 - `run_item` commits whatever the caller's session has pending.
+- The worker (MKC-17) passes `should_stop`, checked after each committed turn and before each
+  claim (the item stays `running`), and `fence`, called before each commit; it raises when
+  the worker lost its lease.
 """
 
 from collections import Counter
+from collections.abc import Callable
 from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any
@@ -41,12 +45,24 @@ MKC-18 turns them into a run stop."""
 
 SAVE_TOOL = "save_draft"
 
+INTERRUPTED = "interrupted"
+"""`ItemOutcome.reason` of an item left `running` because `should_stop` said so."""
+
 __all__ = ["SYSTEM_PROMPT", "TOOL_RESULT_CLOSE", "task_message", "wrap_tool_result"]
+
+
+def _never() -> bool:
+    return False
+
+
+def _unfenced(session: Session) -> None:
+    return None
 
 
 @dataclass(frozen=True)
 class ItemOutcome:
-    """How an item ended. `reason` is set when `state` is `failed`."""
+    """How an item ended. `reason` is set when `state` is `failed`, and is `interrupted` when
+    the item was left `running` by `should_stop`."""
 
     item_id: int
     state: ItemState
@@ -73,6 +89,8 @@ def run_item(
     max_steps: int,
     inline_max_bytes: int = INLINE_MAX_BYTES,
     code_version: str | None = None,
+    should_stop: Callable[[], bool] = _never,
+    fence: Callable[[Session], None] = _unfenced,
 ) -> ItemOutcome:
     """Run the model-driven tool loop for one claimed (`running`) item."""
     item = session.get_one(Item, item_id)
@@ -101,7 +119,15 @@ def run_item(
         except Exception as error:
             reason = f"model_error: {type(error).__name__}"
             return _finish(
-                session, item_id, None, ItemState.FAILED, reason, step, cost, inline_max_bytes
+                session,
+                item_id,
+                None,
+                ItemState.FAILED,
+                reason,
+                step,
+                cost,
+                inline_max_bytes,
+                fence,
             )
         step_cost = Decimal(str(reply.usage.cost_eur))
         cost += step_cost
@@ -118,6 +144,7 @@ def run_item(
                 step,
                 cost,
                 inline_max_bytes,
+                fence,
             )
         try:
             results, saved = _run_calls(registry, calls, env, cache)
@@ -126,22 +153,49 @@ def run_item(
             turn = _turn(item_id, step, assistant, answered, step_cost)
             reason = f"tool_error: {type(escaped.error).__name__}"
             return _finish(
-                session, item_id, turn, ItemState.FAILED, reason, step, cost, inline_max_bytes
+                session,
+                item_id,
+                turn,
+                ItemState.FAILED,
+                reason,
+                step,
+                cost,
+                inline_max_bytes,
+                fence,
             )
         turn = _turn(item_id, step, assistant, results, step_cost)
         if saved:
             return _finish(
-                session, item_id, turn, ItemState.DRAFT_SAVED, None, step, cost, inline_max_bytes
+                session,
+                item_id,
+                turn,
+                ItemState.DRAFT_SAVED,
+                None,
+                step,
+                cost,
+                inline_max_bytes,
+                fence,
             )
         save_turn(session, turn, inline_max_bytes=inline_max_bytes)
+        fence(session)
         session.commit()
+        if should_stop():
+            return ItemOutcome(item_id, ItemState.RUNNING, INTERRUPTED, step, cost)
         messages.append(assistant)
         messages += [
             Message(role="tool", content=r["content"], tool_call_id=r["tool_call_id"])
             for r in results
         ]
     return _finish(
-        session, item_id, None, ItemState.FAILED, "step_limit", max_steps, cost, inline_max_bytes
+        session,
+        item_id,
+        None,
+        ItemState.FAILED,
+        "step_limit",
+        max_steps,
+        cost,
+        inline_max_bytes,
+        fence,
     )
 
 
@@ -154,16 +208,22 @@ def process_run(
     max_steps: int,
     inline_max_bytes: int = INLINE_MAX_BYTES,
     code_version: str | None = None,
+    should_stop: Callable[[], bool] = _never,
+    fence: Callable[[Session], None] = _unfenced,
 ) -> list[ItemOutcome]:
     """Claim and run items until the queue is empty, then settle the run.
 
     `inline_max_bytes` and `code_version` go to every `run_item` (the worker passes
-    `Settings.turn_inline_max_bytes` and the build's commit, MKC-17).
+    `Settings.turn_inline_max_bytes` and the build's commit, MKC-17). When `should_stop`
+    ends the run early, the run is not settled.
     """
-    outcomes = []
+    outcomes: list[ItemOutcome] = []
     while True:
+        if should_stop():
+            return outcomes
         item = resumable_item(session, run_id) or next_item(session, run_id)
         item_id = None if item is None else item.id
+        fence(session)
         session.commit()  # the claim is durable before the first model call
         if item_id is None:
             break
@@ -176,8 +236,12 @@ def process_run(
                 max_steps=max_steps,
                 inline_max_bytes=inline_max_bytes,
                 code_version=code_version,
+                should_stop=should_stop,
+                fence=fence,
             )
         )
+        if outcomes[-1].state is ItemState.RUNNING:
+            return outcomes
     settle_run(session, run_id)
     session.commit()
     return outcomes
@@ -268,6 +332,7 @@ def _finish(
     steps: int,
     cost: Decimal,
     inline_max_bytes: int,
+    fence: Callable[[Session], None],
 ) -> ItemOutcome:
     """Store the last turn (if any) and the item's end state in one commit."""
     item = session.get_one(Item, item_id)
@@ -275,5 +340,6 @@ def _finish(
         save_turn(session, turn, inline_max_bytes=inline_max_bytes)
     item.state = transition(ItemState(item.state), state).value
     item.failure_reason = reason
+    fence(session)
     session.commit()
     return ItemOutcome(item_id, state, reason, steps, cost)

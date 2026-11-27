@@ -23,6 +23,7 @@ class RunState(StrEnum):
     AWAITING_APPROVAL = "awaiting_approval"
     DONE = "done"
     STOPPED = "stopped"
+    WAITING_FOR_DATABASE = "waiting_for_database"
 
 
 class InvalidTransition(ValueError):
@@ -44,6 +45,8 @@ EDGES: frozenset[tuple[ItemState, ItemState] | tuple[RunState, RunState]] = froz
         (_R.RUNNING, _R.DONE),  # settle_run: every item terminal
         (_R.RUNNING, _R.STOPPED),  # a run-level limit (MKC-18)
         (_R.AWAITING_APPROVAL, _R.DONE),  # settle_run
+        (_R.RUNNING, _R.WAITING_FOR_DATABASE),  # worker: back after an outage (MKC-17)
+        (_R.WAITING_FOR_DATABASE, _R.RUNNING),  # worker: claim_run (MKC-17)
     }
 )
 

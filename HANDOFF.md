@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 11:24
+**Last updated:** 27.11.2026, 12:35
 
 This file is how agents resume work after a session restart.
 
@@ -23,7 +23,7 @@ This file is how agents resume work after a session restart.
 - **Remotes:**
   - `origin` = qamran/Messkonzept-Copilot (home, public)
   - `turing` = TuringCollegeSubmissions/qshahz-AE.CAP.AFA.1.1 (code-only mirror, no issues; ADR 005 option (c), decision 35)
-  - Both at `ff76b94` (merge of PR #138).
+  - Both at `266c37d` (merge of PR #145).
 - **`main` is protected:** PRs only, enforced for admins. Required checks: the `ci` jobs `backend`, `frontend`, `gitleaks`, `dependency-scan` and `docs` (since 25.11.2026 09:50, MKC-6.5) `image` (since 13:52, MKC-8) and `kind` (since 15:42, MKC-9); the branch must be up to date with `main`. `publish` is not required (skipped on PRs).
 - **Agent rules:** `AGENTS.md` (CLAUDE.md imports it). The development agent continues without asking and stops only for genuine decisions (decision 36).
 - **Done:**
@@ -42,6 +42,7 @@ This file is how agents resume work after a session restart.
   - MKC-13: provider layer `mkc.models`: `ModelClient` (`chat`, `chat_with_tools`, `vision`, `chat_structured`), role mapping and USD prices in the packaged `models.yaml`, EUR cost, traces, record/replay (`MKC_MODEL_MODE`, default `replay`), provider factory (OpenRouter with zero-data-retention routing and no SDK retries; Gemini; Anthropic; Meta API `api.meta.ai/v1` instead of the closed Llama API), ast guard tests, `live` contract tests (12 passed); decisions 51 and 52 (PR #127)
   - MKC-14: tool registry `mkc.harness.tools` (`Tool`, `ToolResult`, `ToolError`, `ToolTrace`, immutable `ToolRegistry` with per-context allow-lists and structured errors; refusals counted in the trace) and `mkc.harness.registry.default_registry()` (the six item tools and four run-level operations of design 8.1 as `not_implemented` placeholders); decision 53 on `side_effect` (PR #131)
   - MKC-15: item loop, work queue and states: `mkc.harness.states` (edge table, one `transition` function, AST guard test), `ToolEnv` (the harness's ids for every tool call), migration 0004 (`run`, `item`, `turn`), `mkc.harness.queue` (`next_item` with `FOR UPDATE OF item SKIP LOCKED`, `settle_run`), `mkc.harness.loop` (`run_item`, `process_run`), `MKC_ITEM_MAX_STEPS`; decision 54 (PR #138)
+  - MKC-16: checkpoints and resume: `mkc.harness.checkpoint` (`save_turn`: complete turns only; `load_resume_context`: task + `<earlier_turns>` summary + last turn), `mkc.harness.blobs` (table `blob`, migration 0005; refs for results over `MKC_TURN_INLINE_MAX_BYTES`), `mkc.harness.cache` (table `tool_cache`, migration 0006; key with the code version), `mkc.harness.drafts` (table `draft`, migration 0007; `record_key`), `process_run` resumes `running` items; `scripts/check_text_files.py`; decision 56 (PR #145)
 - **Server (set up 25.11.2026, decisions 43 and 44):** Oracle VM `mkc-k3s`, `ubuntu@92.6.240.17`, admin login with the user's key `~/.ssh/oracle_mkc`; k3s v1.37.2 with Traefik; cert-manager v1.21.3 with ClusterIssuers `letsencrypt-staging` and `letsencrypt-prod`; API host `92-6-240-17.sslip.io`; 6443 closed from outside. Vercel project `messkonzept-copilot` (scope `qamran`); GitHub environment `production` (reviewer `qamran`, `main` only, secret `VERCEL_TOKEN`). Every step: `docs/251120261645-runbook.md`.
 - **Backups (since 26.11.2026):** bucket `mkc-backups` (eu-frankfurt-1), objects `nightly/mkc-<UTC time>.sql.gz`, deleted after 14 days by the rule `delete-after-14-days`; the upload link (`mkc-backup-upload`, write only, expires 26.11.2027) is `MKC_BACKUP_UPLOAD_URL` in `mkc-secrets` on the VM and nowhere else. Where every outside setting and secret lives: runbook section of that name. A copy with the PC's full paths is in the gitignored `internal/` folder (`261120261226-settings-and-secrets-inventory.md`; local only, not backed up).
 - **How to run the frontend:** `frontend/.env.local` holds `VITE_CLERK_PUBLISHABLE_KEY` and `VITE_API_URL=http://127.0.0.1:8000` (gitignored). Run the API with `cd backend && uv run --env-file .env uvicorn mkc.api.app:create_app --factory --port 8000` (`backend/.env` has `MKC_CLERK_ISSUER`), then `cd frontend && npm run dev` (`localhost:5173`). Test sign-ins: the user's Google account (admin); a `+clerk_test@example.com` user (code `424242`) and a second Gmail account (both no role).
@@ -51,14 +52,24 @@ This file is how agents resume work after a session restart.
 
 ## In progress
 
-- **MKC-16** (#16), Turn checkpoints, resume, tool cache, idempotency. Status `Testing` again (PR #145, re-review), assigned to `qamran` (27.11.2026 09:57). Branch `mkc-16-checkpoints` from `ff76b94`. The first commit holds only the close-out of MKC-15.
-  - Plan: `docs/superpowers/plans/271120261022-mkc-16-checkpoints.md` (decision 56: blob refs in the Postgres table `blob` until MKC-21's Storage, resume keeps the item `running`, cache key with `code_version`, tools reach the DB through a factory, `save_draft` keyed by `ToolEnv`).
-  - Sub-issues: MKC-16.1 #139, 16.2 #140, 16.3 #141, 16.4 #142, 16.5 #143, 16.6 #144; `In progress` after the review FAIL (11:17:50), `Testing` again for the re-review.
-  - MKC-16.1 green: `save_turn` checks the pairing; the loop stores every turn through it; tool-error turns answer every call; duplicate call ids made unique. MKC-16.2 (#140 `In progress` 10:29): green: migration `0005` (table `blob`), `DbBlobStore`, `save_turn` stores results over 16384 bytes as `result_ref`, `stored_result` reads them back. `MKC_TURN_INLINE_MAX_BYTES` in `Settings` and `.env.example`. MKC-16.3 (#141) `In progress` 10:34. MKC-16.3 green: `load_resume_context` (task + `<earlier_turns>` summary in one user message + last turn, blob refs rehydrated), `run_item` continues number, steps and cost, `queue.resumable_item` served first by `process_run`. MKC-16.4 (#142) `In progress` 10:38. MKC-16.4 green: migration `0006` (table `tool_cache`), `ToolCache` (key: tool, code version, sha256 of the validated args, document hash; `ok` results only; each write commits), `Tool.cacheable` on `extract_text`, `extract_tables`, `render_region`, hits traced `cached=True`; `run_item(..., code_version=None)` = cache off. MKC-16.5 (#143) `In progress` 10:41. MKC-16.5 green: migration `0007` (table `draft`, unique `(document_hash, concept_key)`), `record_key(env)`, `make_save_draft(sessions)` (upsert in its own transaction), `default_registry(..., sessions=...)`. MKC-16.6 (#144) `In progress` 10:44. MKC-16.6: decision 56 in the design doc (section 18, 8.2, 8.3), ADR 001, the backlog (notes on MKC-21, MKC-30, MKC-31), the status doc and the plan (rulings). Pre-PR review (fresh agent, finished before 10:50): no Critical; Important 1 (`process_run` drops `code_version` and `inline_max_bytes`) and Minor 1 (`ToolCache` commits the loop's session) fixed; Important 2 deferred to MKC-18 (resume-attempt cap) and MKC-22 (NUL in PDF text). Backlog notes on MKC-18, MKC-22, MKC-23. PR #145 opened 10:59:34; #16 and #139–#144 `Testing` (11:00), criteria ticked. Review (Fable) FAIL at 11:16:41: B1, commit `0c1f966` wrote a raw NUL byte into the backlog, so git stored the whole file as CRLF (1,848 lines). #16 and #139–#144 back to `In progress` (11:17:50). Next: fix B1 and the cheap non-blocking findings (2, 4–10), then a re-review.
+- **MKC-17** (#17), Run executor (worker with lease). Status `In progress`, assigned to `qamran` (27.11.2026 11:37:38). Branch `mkc-17-run-executor` from `266c37d`. The first commit holds only the close-out of MKC-16.
+  - Plan: `docs/superpowers/plans/271120261154-mkc-17-run-executor.md` (decision 57: lease on the run row with the database clock, fencing before every commit, heartbeat thread for the file and the lease, stop between turns, `waiting_for_database` written on the first successful probe after an outage).
+  - Sub-issues: MKC-17.1 #146, MKC-17.2 #147 (12:04:48), MKC-17.3 #148 (12:06:00) and MKC-17.4 #149 (12:11:11) `In progress` (board times from the status changes).
+  - Known slip: the plan commit `cad7334` (11:57:20) says `Last updated` 11:58, ahead of its commit.
+  - PR #150 open (12:35); #17 and #146 to #149 `Testing` (12:35:40-12:35:48).
+  - Next: review agent (Fable) on PR #150; on PASS and green CI: merge commit, push `main` to `turing`, approve the `cd` gates, check the worker pod's log and restarts (first deploy where it queries the database every second).
 
 ## Next steps
 
-1. MKC-16: see "In progress".
+1. MKC-17: see "In progress".
+   - MKC-16, non-blocking findings of the PR #145 re-review (comment 27.11.2026 11:30:07), for the tickets named:
+     - 1: decision 56 was taken by the development agent; the user has since made the Storage bucket `mkc-storage` and its key for MKC-21 (27.11.2026; the clock times were not recorded); the Postgres table `blob` stays until MKC-21
+     - 2 (MKC-18): a `ValueError` from `save_turn` or `record_key` in the loop leaves the item `running`, with no cap on resumes
+     - 3: `_valid_args` repeats the argument check of `_run`; the two can drift apart
+     - 4 (E4/E9): after a resume the model sees earlier turns only as tool, arguments and `ok`; watch for re-reads
+     - 5: the PR body's B1 line shows the token as a control character, and there are four commits over 200 lines (with `b8421b3`, the line-ending restore, 1,856 lines)
+     - 6: `check_text_files.py` picks text files by suffix and a short name list
+     - 7: the HANDOFF entry "11:24-11:24" should have been one time
 2. MKC-15, non-blocking findings of the PR #138 review (comment 27.11.2026 09:49), and the deferred minors of the pre-PR review (listed in the PR body), for the tickets named:
    - 1: process, disclosed: `8fc77aa` 503 lines, `8d380c6` 201; `daeb2ce` has no HANDOFF change; `d2f883d` holds red tests and fix together; the guard test passed on its first run
    - 2: HANDOFF times: `Last updated` of `6853c47` (09:23 vs 09:21:09), `435ab83` (09:01 vs 09:00:21) and `54c8e52` (09:44 vs 09:43:17) were ahead of the commit; #15 `Testing` was 09:42:49, not 09:43; the HANDOFF named head `d2f883d`, the PR head was `54c8e52`
@@ -85,7 +96,7 @@ This file is how agents resume work after a session restart.
 4. MKC-13, non-blocking findings of the PR #127 review (comment 26.11.2026 15:19Z), for MKC-17/MKC-18 or a hardening ticket:
    - 1: another module could import `mkc.models.providers.build_chat_model` and skip `ModelClient`; add a guard that only `client.py` imports `providers`
    - 2: Gemini, Anthropic and Meta have no request-count test (only `max_retries == 0`); the reviewer measured one request each against a local server
-   - 3: the OpenRouter timeout is per phase, not wall clock; the harness needs its own deadline (MKC-17)
+   - 3 (moved to MKC-18 by decision 57, backlog note): the OpenRouter timeout is per phase, not wall clock; the harness needs its own deadline
    - 4: replay traces carry the recorded cost; a spend tracer must skip `mode == "replay"`
    - 5: Anthropic, Meta and Gemini prices are stand-ins (`models.yaml`); fix before evaluation spend is recorded on those routes
    - 6, 7: disclosed in the PR: four commits over 200 lines, four without a HANDOFF change; some red tests failed on `ImportError` or a hang
@@ -125,7 +136,7 @@ This file is how agents resume work after a session restart.
    - N8: `cd.yml` lines 38, 39 and 83 lost their `\` line breaks (the commands still work)
    - N9: the `main` check in `mkc-deploy` calls GitHub's API without a token (rate limit, outage refuse a valid deploy); `behind` also accepts an old merged branch commit that has no image (the deploy then fails and Helm rolls back)
 9. Non-blocking follow-ups from the PR #103 review (for later tickets):
-   - N1 (MKC-17/MKC-20): the heartbeat is only touched between polls; with max age 30 s and liveness 3 × 30 s, a turn of up to 240 s would get a healthy worker restarted. Beat during a turn or raise the max age (noted in ADR 002 and decision 42).
+   - N1 (**done in MKC-17**: a thread of its own touches the file): the heartbeat is only touched between polls; with max age 30 s and liveness 3 × 30 s, a turn of up to 240 s would get a healthy worker restarted. Beat during a turn or raise the max age (noted in ADR 002 and decision 42).
    - N2: `/tmp` is an `emptyDir` and survives a container restart, so an old heartbeat can make a restarted worker look Ready for up to 30 s; remove the file on start or add a `startupProbe`.
    - N3: the smoke test does not prove the heartbeat is refreshed; only the unit test does.
    - N5 follow-up: no kept test renders an all-digit tag; a `helm template --set image.tag=1234567` line in the `kind` job would cover it.
@@ -152,6 +163,38 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+
+- **27.11.2026 12:35** MKC-17: worker tests in Linux (`git archive HEAD` in `ghcr.io/astral-sh/uv:python3.12-bookworm` against the Compose db): 30 passed, including the real-SIGTERM process test. Branch pushed, PR #150 opened (12:35); #17 and #146 to #149 set to `Testing` (12:35:40-12:35:48).
+
+- **27.11.2026 12:33** MKC-17 docs: decision 57, design 8.4, the plan and ADR 002 name the two threads and "no error ends the worker"; HANDOFF: sub-issue board times, the `Last updated` slip of `cad7334`, MKC-13 finding 3 moved to MKC-18, PR #103 N1 done.
+
+- **27.11.2026 12:23** MKC-17 hardening green: the heartbeat file and the lease renewal have their own threads (`mkc-heartbeat`, `mkc-lease`); a database error on release goes to the outage handling; any other error from `process_run` is logged, the lease released and the worker pauses `MKC_WORKER_DB_BACKOFF_MAX_SECONDS`. The red test of the unexpected error expected the item `running`; it stays `queued` (the client fails before a claim), assertion corrected. Full suite 441 passed, 1 skipped; ruff and mypy strict clean.
+
+- **27.11.2026 12:19** MKC-17 pre-PR review (advisor): the trailers of `344ac64` and `e2fe839` said `qamra/` and were fixed before the first push (`git filter-branch --msg-filter` over the unpushed commits; dates kept, tree unchanged, new ids `c2ec3e8` and `300ea06`). Red: a database error on release, an unexpected error from `process_run`, and a hanging lease renewal must not end the worker or delay the heartbeat file (3 failed: the error escapes, 0.9 s old file).
+
+- **27.11.2026 12:14** MKC-17.4 docs: runbook section "Worker lease and outages" (timings table, deploy, crash, outage, lease query; `check_runbook.py` passes); design 8.2 (state and two edges), 8.4 "Built in MKC-17" and decision 57; ADR 002 heartbeat note closed; status doc; backlog notes on MKC-17 (as built, `save_draft` database errors stay `tool_failed`) and MKC-18 (setup errors to a run stop, turn deadline); `.env.example` lists the four new settings; plan boxes ticked. Markdown lint (CI version 0.18.1) 0 errors.
+
+- **27.11.2026 12:12** MKC-17.4 green (code): `mkc.worker.main.run` runs the `Executor` (sessions on `get_engine()`, `ModelClient.from_settings` built only once a run is held, `default_registry(sessions=...)`, `code_version=Settings.commit`, `inline_max_bytes=Settings.turn_inline_max_bytes`); SIGTERM and a set `stop` call `graceful_shutdown`; the heartbeat moved to the executor thread. Worker tests 26 passed, 1 skipped.
+
+- **27.11.2026 12:11** MKC-17.4 (#149 `In progress`) red: `tests/worker/conftest.py` points `DATABASE_URL` at a closed port unless a test asks for a database, so the SIGTERM and heartbeat tests run without one (they pass); `test_worker_runs_the_executor` fails (the run stays `running`); `scripts/check_runbook.py` requires the section "Worker lease and outages" naming every worker timing setting (fails: section missing).
+
+- **27.11.2026 12:08** MKC-17.3 green: `MKC_WORKER_DB_BACKOFF_MAX_SECONDS` (30), `MKC_DATABASE_CONNECT_TIMEOUT_SECONDS` (10), `engine_options` (pre-ping, connect timeout, TCP keepalives) used by `get_engine`; `mark_waiting`; `Executor` probes with `SELECT 1`, waits with backoff on the stop flag, marks the run `waiting_for_database` once the database is back, and setup errors now back off `MKC_WORKER_DB_BACKOFF_MAX_SECONDS`. The shutdown test bound allows for the Windows connect retry (4 s measured). Full suite 437 passed, 1 skipped; worker tests 5 runs in a row green; ruff and mypy strict clean.
+
+- **27.11.2026 12:06** MKC-17.3 (#148 `In progress`) red: `tests/worker/test_outage.py`: `test_database_unavailable_sets_waiting_and_resumes` (cuts the test database with `ALLOW_CONNECTIONS false` and `pg_terminate_backend` during model call 2, restores it after 1 s; a test-only trigger records the run history) and the shutdown during an unreachable database; `engine_options` in `tests/db/test_session.py` (stub). 3 failed (missing setting, `NotImplementedError`).
+
+- **27.11.2026 12:04** MKC-17.2 green: `mkc.worker.executor.Executor` (`run_once`, `graceful_shutdown`, heartbeat thread for the file and the lease, release after the run, no release after `LeaseLost`, setup errors release and back off). Full suite 434 passed, 1 skipped; ruff and mypy strict clean.
+
+- **27.11.2026 12:04** MKC-17.2: lease settings `MKC_WORKER_LEASE_SECONDS` (120) and `MKC_WORKER_LEASE_RENEW_SECONDS` (20; three renewals must fit into a lease); `process_run` and `run_item` take `should_stop` (checked after each committed turn and before each claim; the item stays `running`, reason `interrupted`, the run is not settled) and `fence` (before every commit). Lint fixes in the red tests (`Field` for the hooks, a raw `match`).
+
+- **27.11.2026 12:02** MKC-17.2 red: `tests/worker/test_executor.py` (`test_sigterm_finishes_turn_then_releases_lease`, idle `run_once`, heartbeat and lease fresh during a 1.5 s model call, a lost lease stores no turn) and the lease timing settings in `tests/test_config.py`; `Executor` is a stub. The tests fail on the missing settings.
+
+- **27.11.2026 12:00** MKC-17.1 green: migration `0008_run_lease` (`run.lease_owner`, `run.lease_expires_at`), `RunState.WAITING_FOR_DATABASE` with two edges, `mkc.worker.lease` (`claim_run`, `renew_lease`, `release_lease`, `fence`/`LeaseLost`); the refused-pair count in `test_states.py` follows the new state. Full suite 426 passed, 1 skipped; ruff and mypy strict clean.
+
+- **27.11.2026 11:59** MKC-17.1 red: `tests/worker/test_lease.py` (claim, expiry, fence, renew, release), new run state and edges in `test_states.py`, lease columns in `test_harness_tables.py`; `mkc.worker.lease` is a stub. 15 failed, 16 passed (NotImplementedError, missing state and columns).
+
+- **27.11.2026 11:54-11:57** MKC-17: plan written (decision 57); sub-issues MKC-17.1 #146 to MKC-17.4 #149 created 11:56:23-11:56:55 (GitHub `createdAt`), assigned to `qamran`, linked to #17 and put on the board (#146 `In progress`, the rest `Ready`).
+
+- **27.11.2026 11:30-11:38** PR #145 re-review PASS (Fable, comment 11:30:07; 7 non-blocking findings, see Next steps), merged as `266c37d` (11:30:11); #16 and #139 to #144 closed and `Done` (11:31:30). `main` pushed to `turing` (11:30:39); `origin/main` = `turing/main` = `266c37d`. `cd` run 45982634658 green: `image` 11:30:17 to 11:34:25; `backend` approved by the development agent (decision 51) at 11:34:53, ran 11:34:55 to 11:35:56 (migrations 0005 to 0007 by the hook Job); `frontend` approved at 11:36:16, ran 11:36:17 to 11:36:58. Checked afterwards: `/api/version` = `266c37d...`, `/health` 200, `/api/admin/backup-status` without a token 401, the site 200. The user made the Supabase Storage bucket `mkc-storage` (private, 50 MB) and the S3 key `mkc-backend` for MKC-21; the five `MKC_STORAGE_*` values are in `backend/.env` (checked by name, no quotes); the user also removed the quotes from every value there. Runbook inventory updated. MKC-17 (#17) assigned to `qamran` and set to `In progress` (11:37:38); branch `mkc-17-run-executor` from `266c37d`.
 
 - **27.11.2026 11:24-11:24** MKC-16: Docker Desktop shut down (11:24:05); PR #145 body updated with review round 1; #16 and #139 to #144 set to `Testing` again. Next: re-review by the review agent (Fable).
 

@@ -29,6 +29,8 @@ DESIGN_RUN_EDGES: set[tuple[str, str]] = {
     ("running", "done"),
     ("running", "stopped"),
     ("awaiting_approval", "done"),
+    ("running", "waiting_for_database"),  # MKC-17, decision 57
+    ("waiting_for_database", "running"),
 }
 
 
@@ -43,7 +45,13 @@ def test_enum_values_are_the_design_names() -> None:
         "rejected",
         "failed",
     }
-    assert {s.value for s in RunState} == {"running", "awaiting_approval", "done", "stopped"}
+    assert {s.value for s in RunState} == {
+        "running",
+        "awaiting_approval",
+        "done",
+        "stopped",
+        "waiting_for_database",
+    }
 
 
 def test_edge_table_matches_the_design() -> None:
@@ -77,7 +85,7 @@ def test_every_pair_not_in_the_table_is_refused() -> None:
             with pytest.raises(InvalidTransition):
                 transition(a, b)
             refused += 1
-    assert refused == 8 * 8 - 7 + 4 * 4 - 4
+    assert refused == 8 * 8 - 7 + 5 * 5 - 6
 
 
 def test_item_and_run_states_do_not_mix() -> None:

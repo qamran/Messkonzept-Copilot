@@ -9,6 +9,10 @@ It must name:
 - every `VITE_*` variable the frontend build reads,
 - the local-only files that hold keys.
 
+The section "Worker lease and outages" (MKC-17.4) must name every worker timing setting in
+`backend/src/mkc/config.py` (`worker_*` and `database_connect_timeout_seconds`) by its
+`MKC_` variable.
+
 Usage: python scripts/check_runbook.py  (exit code 0 = ok, 1 = problems)
 """
 
@@ -31,13 +35,15 @@ SECRET_KEYS = [
 ]
 LOCAL_FILES = ["backend/.env", "frontend/.env.local", "~/.ssh/oracle_mkc"]
 SERVICES = ["Oracle", "Supabase", "Clerk", "Vercel", "GitHub"]
+WORKER_HEADING = "## Worker lease and outages"
+CONFIG = "backend/src/mkc/config.py"
 
 
-def section(text: str) -> str | None:
-    start = text.find(HEADING + "\n")
+def section(text: str, heading: str = HEADING) -> str | None:
+    start = text.find(heading + "\n")
     if start < 0:
         return None
-    rest = text[start + len(HEADING) :]
+    rest = text[start + len(heading) :]
     end = re.search(r"^## ", rest, flags=re.MULTILINE)
     return rest[: end.start()] if end else rest
 
@@ -52,14 +58,27 @@ def required_names(root: Path) -> list[str]:
     return sorted(names)
 
 
+def worker_settings(root: Path) -> list[str]:
+    """The `MKC_` names of the worker timing settings, read from the Settings class."""
+    source = (root / CONFIG).read_text(encoding="utf-8")
+    fields = re.findall(r"^    (worker_\w+|database_connect_timeout_seconds):", source, flags=re.MULTILINE)
+    return sorted(f"MKC_{name.upper()}" for name in fields)
+
+
 def problems(root: Path = ROOT) -> list[str]:
     path = root / RUNBOOK
     if not path.is_file():
         return [f"{RUNBOOK}: file missing"]
-    body = section(path.read_text(encoding="utf-8"))
+    text = path.read_text(encoding="utf-8")
+    body = section(text)
     if body is None:
         return [f"{RUNBOOK}: section '{HEADING}' missing"]
-    return [f"{RUNBOOK}: the inventory does not name '{name}'" for name in required_names(root) if name not in body]
+    found = [f"{RUNBOOK}: the inventory does not name '{name}'" for name in required_names(root) if name not in body]
+    worker = section(text, WORKER_HEADING)
+    if worker is None:
+        return [*found, f"{RUNBOOK}: section '{WORKER_HEADING}' missing"]
+    missing = [name for name in worker_settings(root) if name not in worker]
+    return found + [f"{RUNBOOK}: '{WORKER_HEADING}' does not name '{name}'" for name in missing]
 
 
 if __name__ == "__main__":
