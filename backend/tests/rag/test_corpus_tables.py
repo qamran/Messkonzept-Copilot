@@ -1,8 +1,7 @@
 """MKC-49: tables `corpus_document` and `chunk` (embedding vector, German full text).
 
 No revision number is named here: lane A also writes the next migration, and the coordinator
-may re-chain this lane's one (AGENTS.md, Parallel lanes). The round trip to base is covered
-by tests/db/test_migrations.py.
+may re-chain this lane's one (AGENTS.md, Parallel lanes), so the downgrade goes to base.
 """
 
 from pathlib import Path
@@ -54,3 +53,24 @@ def test_corpus_tables_exist_at_head(database_env: URL) -> None:
     assert types["embedding"] == f"vector({EMBEDDING.dim})"
     assert types["tsv"] == "tsvector"
     assert gin_on_tsv, "no GIN index on chunk.tsv"
+
+
+def _corpus_tables(url: URL) -> set[str]:
+    engine = create_engine(url)
+    try:
+        with engine.connect() as conn:
+            names = set(inspect(conn).get_table_names())
+    finally:
+        engine.dispose()
+    return names & {"corpus_document", "chunk"}
+
+
+def test_corpus_tables_downgrade_and_upgrade_again(database_env: URL) -> None:
+    config = Config(str(ALEMBIC_INI))
+    command.upgrade(config, "head")
+    assert _corpus_tables(database_env) == {"corpus_document", "chunk"}
+    command.downgrade(config, "base")
+    assert _corpus_tables(database_env) == set()
+    command.upgrade(config, "head")
+    command.upgrade(config, "head")  # the deploy hook runs it on every release
+    assert _corpus_tables(database_env) == {"corpus_document", "chunk"}
