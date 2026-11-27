@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 17:15
+**Last updated:** 27.11.2026, 17:42
 
 This file is how agents resume work after a session restart.
 
@@ -56,7 +56,9 @@ This file is how agents resume work after a session restart.
 ## In progress
 
 - **MKC-20** (#20), Baseline mode, failure injection and CLI. Status `In progress`, assigned to `qamran` (27.11.2026 17:14:51). Branch `mkc-20-baseline-cli` from `21f5eb8`. The first commit holds only the close-out of MKC-19.
-  - Next: read the ticket, write the plan and the sub-issues. Fold in the MKC-19 findings tagged MKC-20 below.
+  - Plan: `docs/superpowers/plans/271120261738-mkc-20-baseline-faults-cli.md` (decision 60: baseline is the same loop with five switches off; fault hooks; CLI; MKC-19 findings 1 to 3).
+  - Sub-issues: MKC-20.1 #162 (`In progress`), MKC-20.2 #163, MKC-20.3 #164, MKC-20.4 #165, MKC-20.5 #166 (`Ready`).
+  - Next: MKC-20.1, red config test `backend/tests/harness/test_mode.py`.
 
 ## Next steps
 
@@ -188,6 +190,8 @@ This file is how agents resume work after a session restart.
 - **The user's PC:** it went down without a clean shutdown on 23.11 and 26.11.2026 (cause not found; graphics-driver hang reports on both days; a memory test is not done yet). Commit and push often. Two files exist only on the PC: the VM's admin SSH key and `backend/.env` (runbook "Only on the PC"); the user was advised to copy them into a password manager.
 
 ## Recent log
+
+- **27.11.2026 17:38-17:41** MKC-20: plan written (decision 60, advisor-checked: baseline as switches in the existing loop, not a second loop); sub-issues MKC-20.1 #162 to MKC-20.5 #166 created 17:39:50-17:40:31 (GitHub `createdAt`), assigned to `qamran`, linked to #20 and put on the board (#162 `In progress`, the rest `Ready`, set by 17:40:40).
 
 - **27.11.2026 17:04-17:15** PR #161 review PASS (Fable, comment 17:04:15; 6 non-blocking findings, see Next steps), merged as `21f5eb8` (17:04:19); #19 and #156 to #160 closed (17:04:21-17:04:30) and `Done` (by 17:14:35). `main` pushed to `turing` (17:04:56); `origin/main` = `turing/main` = `21f5eb8`. `deploy/vm/values-production.yaml` copied to `/etc/mkc/values.yaml` (17:05:11; `MKC_LANGFUSE_ENVIRONMENT: production`). `cd` run 46030433364 green: `image` 17:04:26 to 17:11:05; `backend` approved by the development agent (decision 51) at 17:11:21, ran 17:11:23 to 17:12:20 (migration 0009 -> 0010 by the hook Job); `frontend` approved at 17:12:32, ran 17:12:35 to 17:13:17. Checked afterwards: `/api/version` = `21f5eb8...`, `/health` 200, `/api/admin/backup-status` without a token 401, the site 200; worker pod `mkc-worker-6d574d88b-qmt75` Running, 0 restarts, log `worker started as ...`, env has `MKC_LANGFUSE_ENVIRONMENT`, `MKC_LANGFUSE_PUBLIC_KEY`, `MKC_LANGFUSE_SECRET_KEY` (names only); Job `mkc-migrate` Complete. No `Ready` ticket on the board; MKC-20 (#20) taken next in the plan's order, assigned to `qamran` and set to `In progress` (17:14:51); branch `mkc-20-baseline-cli` from `21f5eb8`. Docker Desktop stopped and WSL shut down after this commit.
 
