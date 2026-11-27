@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 12:11
+**Last updated:** 27.11.2026, 12:12
 
 This file is how agents resume work after a session restart.
 
@@ -55,7 +55,7 @@ This file is how agents resume work after a session restart.
 - **MKC-17** (#17), Run executor (worker with lease). Status `In progress`, assigned to `qamran` (27.11.2026 11:37:38). Branch `mkc-17-run-executor` from `266c37d`. The first commit holds only the close-out of MKC-16.
   - Plan: `docs/superpowers/plans/271120261154-mkc-17-run-executor.md` (decision 57: lease on the run row with the database clock, fencing before every commit, heartbeat thread for the file and the lease, stop between turns, `waiting_for_database` written on the first successful probe after an outage).
   - Sub-issues: MKC-17.1 #146 `In progress`; MKC-17.2 #147, MKC-17.3 #148, MKC-17.4 #149 `Ready`.
-  - Next: MKC-17.4 green: `mkc.worker.main` runs the executor; runbook section; docs.
+  - Next: MKC-17.4: runbook section "Worker lease and outages", design 8.2/8.4 and decision 57, status doc, backlog.
 
 ## Next steps
 
@@ -161,6 +161,8 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+
+- **27.11.2026 12:12** MKC-17.4 green (code): `mkc.worker.main.run` runs the `Executor` (sessions on `get_engine()`, `ModelClient.from_settings` built only once a run is held, `default_registry(sessions=...)`, `code_version=Settings.commit`, `inline_max_bytes=Settings.turn_inline_max_bytes`); SIGTERM and a set `stop` call `graceful_shutdown`; the heartbeat moved to the executor thread. Worker tests 26 passed, 1 skipped.
 
 - **27.11.2026 12:11** MKC-17.4 (#149 `In progress`) red: `tests/worker/conftest.py` points `DATABASE_URL` at a closed port unless a test asks for a database, so the SIGTERM and heartbeat tests run without one (they pass); `test_worker_runs_the_executor` fails (the run stays `running`); `scripts/check_runbook.py` requires the section "Worker lease and outages" naming every worker timing setting (fails: section missing).
 
