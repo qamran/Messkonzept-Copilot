@@ -79,3 +79,15 @@ def test_other_tables_and_the_other_kind_give_nothing() -> None:
     assert table_rows(Z1, 4, "lbs") == []
     assert table_rows(LBS, 6, "meter_tech") == []
     assert table_rows([], 1, "lbs") == []
+
+
+def test_a_suspended_hyphen_keeps_its_hyphen() -> None:
+    """`Bezugs-` / `und Einspeisemessung` is a suspended compound, not a split word."""
+    grid = [
+        ["Messkonzept", "Bezugs-\nund Einspeisemessung (Z1)", None, None],
+        ["Nr.", "bis 30 kVA", "> 30 bis 55 kVA", "> 55 kVA"],
+        ["1", "2RZ 60 A", "2RZ 100A", "ME (Wandler)"],
+    ]
+    assert [r.label for r in table_rows(grid, 4, "meter_tech")] == [
+        "Bezugs- und Einspeisemessung (Z1)"
+    ]
