@@ -1,0 +1,46 @@
+# The narrow RAG corpus (MKC-49, ADR 004, feature 69). Metadata only: never a source's text.
+# `mkc corpus load` fetches each URL at run time (AGENTS.md data rules).
+#
+# licence:
+# - official: laws and BNetzA decisions, official works (§ 5 UrhG); free to use and store.
+# - restricted: operator texts; never written inside the repo.
+#
+# Every URL was fetched once on 27.11.2026 (HTTP 200); `version` is read from the document
+# or its page on that day.
+sources:
+  - id: enwg-14a
+    title: "Energiewirtschaftsgesetz (EnWG), § 14a Netzorientierte Steuerung von steuerbaren Verbrauchseinrichtungen und steuerbaren Netzanschlüssen; Festlegungskompetenzen"
+    source_type: law
+    url: https://www.gesetze-im-internet.de/enwg_2005/__14a.html
+    version: "EnWG zuletzt geändert durch Art. 3 G v. 20.11.2026 I Nr. 355 (gelesen 27.11.2026)"
+    licence: official
+  - id: msbg
+    title: "Gesetz über den Messstellenbetrieb und die Datenkommunikation in intelligenten Energienetzen (Messstellenbetriebsgesetz, MsbG)"
+    source_type: law
+    url: https://www.gesetze-im-internet.de/messbg/BJNR203410016.html
+    version: "zuletzt geändert durch Art. 17 G v. 18.12.2025 I Nr. 347 (gelesen 27.11.2026)"
+    licence: official
+  - id: bk6-22-300
+    title: "BNetzA BK6-22-300: Festlegung zur Integration von steuerbaren Verbrauchseinrichtungen und steuerbaren Netzanschlüssen nach § 14a EnWG"
+    source_type: bnetza_decision
+    url: https://www.bundesnetzagentur.de/DE/Beschlusskammern/1_GZ/BK6-GZ/2022/BK6-22-300/Beschluss/BK6-22-300_Beschluss_20231127.pdf?__blob=publicationFile&v=1
+    version: "Beschluss vom 27.11.2023"
+    licence: official
+  - id: bk6-22-300-anlage-1
+    title: "BNetzA BK6-22-300, Anlage 1 zum Beschluss"
+    source_type: bnetza_decision
+    url: https://www.bundesnetzagentur.de/DE/Beschlusskammern/1_GZ/BK6-GZ/2022/BK6-22-300/Beschluss/BK6-22-300_Beschluss_Anlage1.pdf?__blob=publicationFile&v=1
+    version: "Anlage 1 zum Beschluss vom 27.11.2023"
+    licence: official
+  - id: bk8-22-010-a
+    title: "BNetzA BK8-22/010-A: Festlegung von Netzentgelten für steuerbare Anschlüsse und Verbrauchseinrichtungen (NSAVER) nach § 14a EnWG"
+    source_type: bnetza_decision
+    url: https://www.bundesnetzagentur.de/DE/Beschlusskammern/1_GZ/BK8-GZ/2022/2022_4-Steller/BK8-22-0010/BK8-22-0010-A_Festlegung_DL_BF.html
+    version: "Festlegung vom 23.11.2023"
+    licence: official
+  - id: stromnetz-berlin-messkonzepte
+    title: "Stromnetz Berlin: Messkonzepte"
+    source_type: operator_text
+    url: https://www.stromnetz.berlin/files/globalassets/dokumente/anschluss/messkonzepte_09-2026.pdf
+    version: "Ausgabe September 2026"
+    licence: restricted

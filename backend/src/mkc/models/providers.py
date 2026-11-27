@@ -5,6 +5,7 @@ variable), the configured timeout and no retries of its own: retries belong to t
 so faults such as a 429 stay visible to it (E4).
 """
 
+from collections.abc import Sequence
 from typing import cast
 
 import anthropic
@@ -23,7 +24,7 @@ from openrouter.utils import BackoffStrategy, RetryConfig
 from pydantic import JsonValue, SecretStr
 
 from mkc.config import Settings
-from mkc.models.client import ChatModelFactory
+from mkc.models.client import ChatModelFactory, EmbedCall, EmbedFactory
 from mkc.models.types import (
     ModelAuthError,
     ModelConfigError,
@@ -195,3 +196,63 @@ def build_decision_model(
         timeout=settings.turn_timeout_seconds,
         client=http_client,
     )
+
+
+# --- Embeddings (MKC-49) ------------------------------------------------------------------
+
+
+def build_embed_call(
+    provider: Provider,
+    model: str,
+    settings: Settings,
+    timeout: float,
+    *,
+    dimensions: int,
+    http_client: httpx.Client | None = None,
+) -> EmbedCall:
+    """An embedding call for one model: texts → (vectors in input order, input tokens).
+
+    OpenRouter only, with the same zero-data-retention routing and no SDK retries as chat.
+    `dimensions` is sent (the model truncates its vectors, Matryoshka style) and checked on
+    every vector. `http_client` is a test seam (a mock transport)."""
+    if provider != "openrouter":
+        raise ModelConfigError(f"embeddings run through OpenRouter only, not {provider!r}")
+    key = _key(provider, settings)
+    timeout_ms = round(timeout * 1000)
+    sdk = openrouter.OpenRouter(
+        api_key=key.get_secret_value(),
+        timeout_ms=timeout_ms,
+        retry_config=NO_RETRIES,
+        client=http_client,
+    )
+
+    def embed(texts: Sequence[str]) -> tuple[list[list[float]], int]:
+        reply = sdk.embeddings.generate(
+            model=model,
+            input=list(texts),
+            dimensions=dimensions,
+            encoding_format="float",
+            provider=dict(OPENROUTER_ROUTING),  # type: ignore[arg-type]
+        )
+        if isinstance(reply, str):
+            raise ModelError(f"{provider}:{model} answered with a stream, not JSON")
+        data = sorted(reply.data, key=lambda d: d.index if d.index is not None else -1)
+        if [d.index for d in data] != list(range(len(texts))):
+            raise ModelError(f"{provider}:{model} returned {len(data)} vectors for {len(texts)}")
+        vectors: list[list[float]] = []
+        for item in data:
+            if isinstance(item.embedding, str) or len(item.embedding) != dimensions:
+                raise ModelError(f"{provider}:{model} returned a vector that is not {dimensions}d")
+            vectors.append([float(x) for x in item.embedding])
+        if reply.usage is None:
+            raise ModelError(f"{provider}:{model} reported no token usage; cost unknown")
+        return vectors, reply.usage.prompt_tokens
+
+    return embed
+
+
+def make_embed_factory(settings: Settings) -> EmbedFactory:
+    def factory(provider: Provider, model: str, dimensions: int, timeout: float) -> EmbedCall:
+        return build_embed_call(provider, model, settings, timeout, dimensions=dimensions)
+
+    return factory
