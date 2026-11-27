@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 12:33
+**Last updated:** 27.11.2026, 12:35
 
 This file is how agents resume work after a session restart.
 
@@ -56,7 +56,8 @@ This file is how agents resume work after a session restart.
   - Plan: `docs/superpowers/plans/271120261154-mkc-17-run-executor.md` (decision 57: lease on the run row with the database clock, fencing before every commit, heartbeat thread for the file and the lease, stop between turns, `waiting_for_database` written on the first successful probe after an outage).
   - Sub-issues: MKC-17.1 #146, MKC-17.2 #147 (12:04:48), MKC-17.3 #148 (12:06:00) and MKC-17.4 #149 (12:11:11) `In progress` (board times from the status changes).
   - Known slip: the plan commit `cad7334` (11:57:20) says `Last updated` 11:58, ahead of its commit.
-  - Next: Linux run of the worker tests, then the PR.
+  - PR #150 open (12:35); #17 and #146 to #149 `Testing` (12:35:40-12:35:48).
+  - Next: review agent (Fable) on PR #150; on PASS and green CI: merge commit, push `main` to `turing`, approve the `cd` gates, check the worker pod's log and restarts (first deploy where it queries the database every second).
 
 ## Next steps
 
@@ -162,6 +163,8 @@ This file is how agents resume work after a session restart.
 ## Recent log
 
 Newest first. Times are local (CET), taken from git and GitHub.
+
+- **27.11.2026 12:35** MKC-17: worker tests in Linux (`git archive HEAD` in `ghcr.io/astral-sh/uv:python3.12-bookworm` against the Compose db): 30 passed, including the real-SIGTERM process test. Branch pushed, PR #150 opened (12:35); #17 and #146 to #149 set to `Testing` (12:35:40-12:35:48).
 
 - **27.11.2026 12:33** MKC-17 docs: decision 57, design 8.4, the plan and ADR 002 name the two threads and "no error ends the worker"; HANDOFF: sub-issue board times, the `Last updated` slip of `cad7334`, MKC-13 finding 3 moved to MKC-18, PR #103 N1 done.
 
