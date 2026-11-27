@@ -22,22 +22,31 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any
 
+from sqlalchemy import func, select, update
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 
-from mkc.db.models import Item
+from mkc.db.models import Item, Turn
 from mkc.harness.cache import ToolCache
 from mkc.harness.checkpoint import INLINE_MAX_BYTES, TurnRecord, load_resume_context, save_turn
 from mkc.harness.limits import (
     Limits,
+    StopEvent,
     StopReason,
     StopTracer,
+    emit,
     run_limit_hit,
     run_usage,
     start_clock,
     stop_run,
 )
-from mkc.harness.prompts import SYSTEM_PROMPT, TOOL_RESULT_CLOSE, task_message, wrap_tool_result
+from mkc.harness.prompts import (
+    REPROMPT,
+    SYSTEM_PROMPT,
+    TOOL_RESULT_CLOSE,
+    task_message,
+    wrap_tool_result,
+)
 from mkc.harness.queue import next_item, resumable_item, settle_run
 from mkc.harness.states import ItemState, transition
 from mkc.harness.tools import ToolEnv, ToolRegistry
@@ -112,18 +121,20 @@ def run_item(
         document_hash=item.document_hash,
         concept_key=item.concept_key,
     )
+    ctx = _Ctx(session, item_id, item.run_id, inline_max_bytes, fence, tracers)
     specs = [tool.to_spec() for tool in registry.for_context("item")]
     cache = None
     if code_version is not None:
         cache = ToolCache(sessionmaker(bind=session.get_bind()), code_version)
     context = load_resume_context(session, item_id)
     messages = list(context.messages)
+    reprompts = context.no_call_turns  # re-prompts already used (decision 58)
+    failures = Counter(context.tool_failures)
     session.commit()  # no transaction stays open across a model call
 
     cost = context.cost_eur
-    run_id = env.run_id
     for step in range(context.next_number, limits.max_steps_item + 1):
-        hit = _run_limit(session, run_id, item_id, limits, fence, tracers)
+        hit = _run_limit(session, ctx.run_id, item_id, limits, fence, tracers)
         if hit is not None:
             return ItemOutcome(item_id, ItemState.RUNNING, hit.value, step - 1, cost)
         try:
@@ -131,68 +142,36 @@ def run_item(
         except SETUP_ERRORS:
             raise
         except Exception as error:
-            reason = f"model_error: {type(error).__name__}"
-            return _finish(
-                session,
-                item_id,
-                None,
-                ItemState.FAILED,
-                reason,
-                step,
-                cost,
-                inline_max_bytes,
-                fence,
-            )
+            return ctx.fail(None, StopReason.MODEL_ERROR, step, cost, type(error).__name__)
         step_cost = Decimal(str(reply.usage.cost_eur))
         cost += step_cost
         calls = _with_ids(reply.tool_calls, step)
         assistant = Message(role="assistant", content=reply.text, tool_calls=calls)
         if not calls:
             turn = _turn(item_id, step, assistant, [], step_cost)
-            return _finish(
-                session,
-                item_id,
-                turn,
-                ItemState.FAILED,
-                "no_tool_call",
-                step,
-                cost,
-                inline_max_bytes,
-                fence,
-            )
+            if reprompts >= limits.max_reprompts:
+                return ctx.fail(turn, StopReason.MALFORMED_OUTPUT, step, cost)
+            reprompts += 1
+            ctx.store(turn)
+            if should_stop():
+                return ItemOutcome(item_id, ItemState.RUNNING, INTERRUPTED, step, cost)
+            messages += [assistant, Message(role="user", content=REPROMPT)]
+            continue
         try:
             results, saved = _run_calls(registry, calls, env, cache)
         except _ToolErrorEscaped as escaped:
             answered = _answer_the_rest(calls, escaped)
             turn = _turn(item_id, step, assistant, answered, step_cost)
-            reason = f"tool_error: {type(escaped.error).__name__}"
-            return _finish(
-                session,
-                item_id,
-                turn,
-                ItemState.FAILED,
-                reason,
-                step,
-                cost,
-                inline_max_bytes,
-                fence,
-            )
+            name = type(escaped.error).__name__
+            return ctx.fail(turn, StopReason.TOOL_ERROR, step, cost, name)
         turn = _turn(item_id, step, assistant, results, step_cost)
         if saved:
-            return _finish(
-                session,
-                item_id,
-                turn,
-                ItemState.DRAFT_SAVED,
-                None,
-                step,
-                cost,
-                inline_max_bytes,
-                fence,
-            )
-        save_turn(session, turn, inline_max_bytes=inline_max_bytes)
-        fence(session)
-        session.commit()
+            return ctx.finish(turn, ItemState.DRAFT_SAVED, None, step, cost)
+        failures.update(r["name"] for r in results if not r["result"]["ok"])
+        over = [name for name, n in failures.items() if n > limits.max_retries_tool]
+        if over:
+            return ctx.fail(turn, StopReason.TOOL_RETRIES, step, cost, over[0])
+        ctx.store(turn)
         if should_stop():
             return ItemOutcome(item_id, ItemState.RUNNING, INTERRUPTED, step, cost)
         messages.append(assistant)
@@ -200,17 +179,7 @@ def run_item(
             Message(role="tool", content=r["content"], tool_call_id=r["tool_call_id"])
             for r in results
         ]
-    return _finish(
-        session,
-        item_id,
-        None,
-        ItemState.FAILED,
-        StopReason.STEP_LIMIT.value,
-        limits.max_steps_item,
-        cost,
-        inline_max_bytes,
-        fence,
-    )
+    return ctx.fail(None, StopReason.STEP_LIMIT, limits.max_steps_item, cost)
 
 
 def process_run(
@@ -241,12 +210,22 @@ def process_run(
             return outcomes
         if _run_limit(session, run_id, None, limits, fence, tracers) is not None:
             return outcomes
-        item = resumable_item(session, run_id) or next_item(session, run_id)
+        item = resumable_item(session, run_id)
+        resumed = item is not None
+        if item is None:
+            item = next_item(session, run_id)
+        else:
+            item.attempts_without_progress += 1  # back to 0 with the next stored turn
         item_id = None if item is None else item.id
+        attempts = 0 if item is None else item.attempts_without_progress
         fence(session)
         session.commit()  # the claim is durable before the first model call
         if item_id is None:
             break
+        if resumed and attempts > limits.max_resumes_item:
+            ctx = _Ctx(session, item_id, run_id, inline_max_bytes, fence, tracers)
+            outcomes.append(ctx.fail(None, StopReason.RESUME_LIMIT, None, None))
+            continue
         outcomes.append(
             run_item(
                 item_id,
@@ -366,23 +345,70 @@ def _turn(
     return TurnRecord(item_id, number, assistant, results, cost)
 
 
-def _finish(
-    session: Session,
-    item_id: int,
-    turn: TurnRecord | None,
-    state: ItemState,
-    reason: str | None,
-    steps: int,
-    cost: Decimal,
-    inline_max_bytes: int,
-    fence: Callable[[Session], None],
-) -> ItemOutcome:
-    """Store the last turn (if any) and the item's end state in one commit."""
-    item = session.get_one(Item, item_id)
-    if turn is not None:
-        save_turn(session, turn, inline_max_bytes=inline_max_bytes)
-    item.state = transition(ItemState(item.state), state).value
-    item.failure_reason = reason
-    fence(session)
-    session.commit()
-    return ItemOutcome(item_id, state, reason, steps, cost)
+@dataclass(frozen=True)
+class _Ctx:
+    """What storing a turn and ending an item need."""
+
+    session: Session
+    item_id: int
+    run_id: int
+    inline_max_bytes: int
+    fence: Callable[[Session], None]
+    tracers: Sequence[StopTracer]
+
+    def store(self, turn: TurnRecord) -> None:
+        """Store a turn that does not end the item; a stored turn is progress (decision 58)."""
+        save_turn(self.session, turn, inline_max_bytes=self.inline_max_bytes)
+        self.session.execute(
+            update(Item).where(Item.id == self.item_id).values(attempts_without_progress=0)
+        )
+        self.fence(self.session)
+        self.session.commit()
+
+    def fail(
+        self,
+        turn: TurnRecord | None,
+        reason: StopReason,
+        steps: int | None,
+        cost: Decimal | None,
+        detail: str | None = None,
+    ) -> ItemOutcome:
+        return self.finish(turn, ItemState.FAILED, reason, steps, cost, detail)
+
+    def finish(
+        self,
+        turn: TurnRecord | None,
+        state: ItemState,
+        reason: StopReason | None,
+        steps: int | None,
+        cost: Decimal | None,
+        detail: str | None = None,
+    ) -> ItemOutcome:
+        """Store the last turn (if any) and the item's end state in one commit. A failure is
+        also a `StopEvent` with the item's stored turns and their cost; with `steps` and
+        `cost` None the outcome takes those stored values too."""
+        session = self.session
+        turns, spent = session.execute(  # before any write: no autoflush splits the commit
+            select(func.count(Turn.id), func.coalesce(func.sum(Turn.cost_eur), 0)).where(
+                Turn.item_id == self.item_id
+            )
+        ).one()
+        turns, spent = int(turns), Decimal(spent)
+        item = session.get_one(Item, self.item_id)
+        if turn is not None:
+            save_turn(session, turn, inline_max_bytes=self.inline_max_bytes)
+            item.attempts_without_progress = 0
+            turns, spent = turns + 1, spent + turn.cost_eur
+        stored = None
+        if reason is not None:
+            stored = f"{reason.value}: {detail}" if detail else reason.value
+        item.state = transition(ItemState(item.state), state).value
+        item.failure_reason = stored
+        self.fence(session)
+        session.commit()
+        if reason is not None:
+            event = StopEvent("item", self.run_id, self.item_id, reason, detail, turns, spent)
+            emit(self.tracers, event)
+        steps = turns if steps is None else steps
+        cost = spent if cost is None else cost
+        return ItemOutcome(self.item_id, state, stored, steps, cost)
