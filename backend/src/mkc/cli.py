@@ -179,13 +179,22 @@ def status(run_id: int) -> None:
     with _sessions()() as session:
         run = _run(session, run_id)
         counts = Counter(session.scalars(select(Item.state).where(Item.run_id == run_id)))
-        usage = run_usage(session, run_id)
         lease = f"{run.lease_owner} until {run.lease_expires_at}" if run.lease_owner else "free"
         typer.echo(f"run {run_id}: {run.state} (mode {run.mode})")
         typer.echo(f"stop reason: {run.stop_reason or '-'}")
         typer.echo("items: " + (", ".join(f"{s} {n}" for s, n in sorted(counts.items())) or "-"))
-        typer.echo(f"usage: steps {usage.steps}, cost {usage.cost_eur:.4f} EUR, "
-                   f"wall {usage.wall_s:.1f} s")  # fmt: skip
+        if run.mode == HarnessMode.BASELINE:  # no turn rows, no start time: read run_log
+            calls, cost = session.execute(
+                select(func.count(RunLog.id), func.coalesce(func.sum(RunLog.cost_eur), 0)).where(
+                    RunLog.run_id == run_id, RunLog.kind == "model"
+                )
+            ).one()
+            typer.echo(f"usage (baseline, from run_log, all attempts): model calls {calls}, "
+                       f"cost {Decimal(cost or 0):.4f} EUR")  # fmt: skip
+        else:
+            usage = run_usage(session, run_id)
+            typer.echo(f"usage: steps {usage.steps}, cost {usage.cost_eur:.4f} EUR, "
+                       f"wall {usage.wall_s:.1f} s")  # fmt: skip
         typer.echo(f"lease: {lease}")
 
 
@@ -231,6 +240,10 @@ def _item_turns(session: Session, run_id: int, item_id: int) -> None:
     if it is None or it.run_id != run_id:
         raise _fail(f"no item {item_id} in run {run_id}", 1)
     typer.echo(f"item {it.id} {it.concept_key}: {it.state}")
+    run = session.get_one(Run, run_id)
+    if run.mode == HarnessMode.BASELINE:
+        typer.echo("baseline run: no turn rows (checkpoints off); see run_log in `inspect`")
+        return
     turns = session.scalars(select(Turn).where(Turn.item_id == item_id).order_by(Turn.number))
     for turn in turns:
         calls = [f"{r['name']} {'ok' if _ok(r) else 'failed'}" for r in turn.tool_results]

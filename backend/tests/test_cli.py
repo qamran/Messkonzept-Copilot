@@ -3,6 +3,7 @@ runner against the test database. The model is a scripted fake (`mkc.cli.make_cl
 
 from collections.abc import Iterator
 from pathlib import Path
+from typing import Any
 
 import pytest
 from sqlalchemy import Engine, func, update
@@ -11,10 +12,11 @@ from typer.testing import CliRunner, Result
 
 from mkc.cli import app
 from mkc.db.models import Run
+from mkc.models.client import ModelClient
 from mkc.worker.lease import claim_run
 from tests.harness.conftest import engine, make_run, states
 from tests.harness.test_baseline import READ, saved
-from tests.harness.test_loop import client_for
+from tests.harness.test_loop import config
 from tests.models.fakes import FakeChatModel
 
 __all__ = ["engine"]
@@ -42,7 +44,14 @@ def items(tmp_path: Path) -> Path:
 def model(monkeypatch: pytest.MonkeyPatch) -> Iterator[FakeChatModel]:
     """The fake model every inline run talks to; tests set its `responses`."""
     fake = FakeChatModel(responses=[])
-    monkeypatch.setattr("mkc.cli.make_client", lambda settings, tracers: client_for(fake))
+
+    def make(
+        settings: Any, tracers: Any
+    ) -> ModelClient:  # keeps the tracer hooks, like the real one
+        return ModelClient(config(), lambda provider, name, timeout: fake, mode="live",
+                           tracers=tracers)  # fmt: skip
+
+    monkeypatch.setattr("mkc.cli.make_client", make)
     monkeypatch.setenv("MKC_WORKER_HEARTBEAT_FILE", "")
     yield fake
 
@@ -201,3 +210,19 @@ def test_status_of_a_missing_run(engine: Engine) -> None:
     result = mkc("run", "status", "99")
     assert result.exit_code == 1
     assert "no run 99" in result.output
+
+
+def test_status_of_a_baseline_run_counts_from_run_log(
+    engine: Engine, items: Path, model: FakeChatModel
+) -> None:
+    """Baseline writes no turn rows and no start time: usage comes from `run_log`."""
+    model.responses = [READ, saved(1), saved(2)]
+    args = ("run", "start", "--items", str(items), "--inline", "--mode", "baseline")
+    assert mkc(*args).exit_code == 0
+    result = mkc("run", "status", "1")
+    assert "run 1: awaiting_approval (mode baseline)" in result.output
+    assert "usage (baseline, from run_log, all attempts): model calls 3, cost 0.0009 EUR" in (
+        result.output
+    )
+    detail = mkc("run", "inspect", "1", "--item", "1")
+    assert "baseline run: no turn rows" in detail.output
