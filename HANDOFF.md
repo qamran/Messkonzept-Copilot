@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 27.11.2026, 18:34
+**Last updated:** 27.11.2026, 18:37
 
 This file is how agents resume work after a session restart.
 
@@ -192,6 +192,7 @@ This file is how agents resume work after a session restart.
 
 ## Recent log
 
+- **27.11.2026 18:37** Review finding 2: the 429, malformed-reply and tool-timeout tests now run in both modes (`tests/harness/test_faults.py` 13 passed). Mutation check: with baseline's `max_reprompts` forced to 0 in `run_item`, `test_malformed_reply_gets_the_reprompt[baseline]` fails (1 failed, 12 passed); mutant reverted, 13 passed.
 - **27.11.2026 18:34** PR #167 review FAIL (Fable, comment 18:33:08; reviewed at `f9640fd`): one blocker (CI `backend` red at `ruff format --check .`, run 46040951730; mypy and pytest skipped after it), nine non-blocking findings. #20 and #162 to #166 back to `In progress` (by 18:34:07). `ruff format .` reformats `0011_run_mode.py`; `ruff format --check .` now says 131 files formatted.
 - **27.11.2026 18:19** MKC-20: PR #167 opened (18:19:01, GitHub `createdAt`); #20 and #162 to #166 set to `Testing` (by 18:19:28). Review agent (Fable) started next. The user asked for a plan to run later work with several dev and testing agents on non-intersecting work, after this ticket.
 - **27.11.2026 18:18** MKC-20 pre-PR checks at `ad7c287`: Windows `uv run pytest -q` 624 passed, 1 skipped; Linux container (`git archive HEAD` into `ghcr.io/astral-sh/uv:python3.12-bookworm`, Compose db) `tests/worker tests/harness tests/observability tests/db tests/test_cli.py` 359 passed (18:17:33); ruff, format, mypy (48 files), all check scripts, markdownlint clean; every `Refs:` trailer says `qamran/`. Commits over 200 lines (insertions plus deletions): `c719a96` 238, `172e1f1` 232, `9e97f8d` 323, `970c0ca` 233, `926bf67` 221. Docker Desktop stopped and WSL shut down (18:18:12).

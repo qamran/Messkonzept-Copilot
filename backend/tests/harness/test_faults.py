@@ -38,8 +38,9 @@ def drafts(engine: Engine) -> int:
         return session.scalar(select(func.count()).select_from(Draft)) or 0
 
 
-def test_rate_limit_is_retried(engine: Engine) -> None:
-    run_id, _ = make(engine, 1, mode="full")
+@pytest.mark.parametrize("mode", ["full", "baseline"])  # criterion 1 on the fault paths
+def test_rate_limit_is_retried(engine: Engine, mode: str) -> None:
+    run_id, _ = make(engine, 1, mode=mode)
     model, waits = FakeChatModel(responses=[saved(1)]), []
     faulty(engine, run_id, model, FaultPlan(rate_limit_at=1), waits=waits)
     assert waits == [2.0]  # one backoff (MKC-18 default base)
@@ -47,26 +48,30 @@ def test_rate_limit_is_retried(engine: Engine) -> None:
     assert states(engine, run_id) == ("awaiting_approval", ["draft_saved"])
 
 
-def test_tool_timeout_counts_as_a_tool_failure(engine: Engine) -> None:
-    run_id, (item_id,) = make(engine, 1, mode="full")
+@pytest.mark.parametrize("mode", ["full", "baseline"])  # criterion 1 on the fault paths
+def test_tool_timeout_counts_as_a_tool_failure(engine: Engine, mode: str) -> None:
+    run_id, (item_id,) = make(engine, 1, mode=mode)
     tools = Tools()
     model = FakeChatModel(responses=[READ, saved(1)])
     faulty(engine, run_id, model, FaultPlan(timeout_at=1), registry=tools.registry())
-    result = turns(engine, item_id)[0].tool_results[0]["result"]
-    assert result["ok"] is False
-    assert result["error"]["code"] == "timeout"
     assert '"timeout"' in model.seen[1][-1].content  # the model was told
+    if mode == "full":  # baseline keeps no turn rows
+        result = turns(engine, item_id)[0].tool_results[0]["result"]
+        assert result["ok"] is False
+        assert result["error"]["code"] == "timeout"
     assert states(engine, run_id) == ("awaiting_approval", ["draft_saved"])
 
 
-def test_malformed_reply_gets_the_reprompt(engine: Engine) -> None:
-    run_id, (item_id,) = make(engine, 1, mode="full")
+@pytest.mark.parametrize("mode", ["full", "baseline"])  # criterion 1 on the fault paths
+def test_malformed_reply_gets_the_reprompt(engine: Engine, mode: str) -> None:
+    run_id, (item_id,) = make(engine, 1, mode=mode)
     model = FakeChatModel(responses=[saved(1)])
     faulty(engine, run_id, model, FaultPlan(malformed_at=1))
     assert len(model.seen) == 1  # the malformed reply did not come from the model
     assert model.seen[0][-1].content == REPROMPT
-    first = turns(engine, item_id)[0]
-    assert first.assistant["tool_calls"] == [] and first.cost_eur == 0
+    if mode == "full":  # baseline keeps no turn rows
+        first = turns(engine, item_id)[0]
+        assert first.assistant["tool_calls"] == [] and first.cost_eur == 0
     assert states(engine, run_id) == ("awaiting_approval", ["draft_saved"])
 
 
