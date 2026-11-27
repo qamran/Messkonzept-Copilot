@@ -1,4 +1,5 @@
-"""`ModelClient`: the one way to call a model (MKC-13, AGENTS.md model rules).
+"""`ModelClient`: the way to call a chat model (MKC-13, AGENTS.md model rules); decisions go
+through `DecisionClient` (`mkc.decision`) and embeddings through `EmbeddingClient` (below).
 
 LangChain chat models do the provider plumbing underneath (`bind_tools`,
 `with_structured_output`); this wrapper picks the model per role from config, converts our

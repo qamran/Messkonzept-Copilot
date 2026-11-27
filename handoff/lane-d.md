@@ -1,6 +1,6 @@
 # Lane D: RAG
 
-**Last updated:** 28.11.2026, 00:39
+**Last updated:** 28.11.2026, 00:41
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -11,7 +11,7 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 
 ## In progress
 
-- `MKC-50` (`#50`), Hybrid retriever: built and pushed, the gate green; every red test is green; sub-issues MKC-50.1 to 50.5 (`#203`–`#207`, In progress), with MKC-50.4 (`#206`) the MKC-49 review findings. Next: the test agent's mutation pass, then the PR.
+- `MKC-50` (`#50`), Hybrid retriever: built; the test agent's mutation pass is done (108 tried, 104 killed, 4 survivors accepted by the coordinator); the coordinator merged `main` (MKC-27) as `c9a2b58`; sub-issues MKC-50.1 to 50.5 (`#203`–`#207`), with MKC-50.4 (`#206`) the MKC-49 review findings. Next: the PR.
 - Decisions written: 79 (the retriever), 80 (the retrieval and embedding traces), 81 (the corpus files); ADR 004 amendment "the query side".
 - Migration: MKC-49's is `0013_corpus.py` (`down_revision = "0012"`; the coordinator re-chained it at the merge). MKC-50 adds none.
 
@@ -89,13 +89,13 @@ The test agent, on `f1e9ee3`. One hand-written mutant at a time, applied exactly
 
 ## Next steps
 
-1. The development agent: `bash scripts/pre_pr.sh`, push, report to the coordinator (no PR yet).
-2. Done: the test agent's mutation pass (see "Mutation pass (MKC-50)"): 108 tried, 104 killed, 4 near-equivalent survivors.
-3. The PR (`Closes #50`), with the changed MKC-49 test (`test_an_official_only_cache_inside_the_repo_is_refused_too`) and the 282-line red commit `29ca7cd` disclosed.
-4. Open for the coordinator: `EmbedTrace` has no `run_log` bridge yet, so a query embedding's spend inside a run is not in `run_log` (only in `ProviderEmbedder`'s totals); the top docstring of `mkc/models/client.py` still calls `ModelClient` "the one way to call a model" (outside lane D's block).
+1. The development agent: the PR (`Closes #50`), #50 and #203–#207 to Testing; then the review agent.
+2. Done: the test agent's mutation pass (see "Mutation pass (MKC-50)"): 108 tried, 104 killed, 4 near-equivalent survivors, accepted by the coordinator (`MAX_K` and `CANDIDATES` now pinned at 20 and 50 by decision 79).
+3. Follow-up for MKC-51: `EmbedTrace` has no `run_log` bridge yet, so a query embedding's spend inside a run is not in the run trace (only in `ProviderEmbedder`'s totals).
 
 ## Recent log
 
+- **28.11.2026 00:41** Development agent: after the mutation pass and the coordinator's merge of `main` (`c9a2b58`): a pin test for `MAX_K = 20` and `CANDIDATES = 50` (decision 79 names both values; kills survivors 1 and 2), and the top docstring of `mkc/models/client.py` names `DecisionClient` and `EmbeddingClient` too (coordinator grant). The coordinator accepted all 4 survivors and the test agent's new pins.
 - **28.11.2026 00:39** Test agent: mutation pass on `f1e9ee3`, written up under "Mutation pass (MKC-50)". First run: 108 tried, 86 killed, 22 survived. Against the new tests (`da5d8c6`, `06c8798`, `c4963f6`), the 22 survivors were rerun: 18 killed, 4 survived (all near-equivalent). Final: 108 tried, 104 killed, 4 survived. `uv run pytest tests/rag tests/observability tests/models -q` with the new tests: `349 passed, 14 deselected, 4 warnings in 17.09s`.
 - **28.11.2026 00:39** Test agent (mutation pass): two tests in `tests/rag/test_embedding_trace_unit.py` kill C7, C13 (latency 0 on error / success) and E2, E4 (query format with a space, or without the instruction); `uv run pytest tests/rag/test_embedding_trace_unit.py -q`: `9 passed in 4.89s`.
 - **28.11.2026 00:39** Test agent (mutation pass): `tests/rag/test_retrieval_details.py` kills R22 (L2 instead of cosine), R44 (SQLSTATE dropped), R51 (query_chars stripped), R58 (log line with the full error), T10 (warning outside a run), T11 (`span_retrieval` unguarded) and L3 (Langfuse status message with the error text); `uv run pytest tests/rag/test_retrieval_details.py -q`: `7 passed in 1.51s`.

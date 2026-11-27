@@ -247,3 +247,9 @@ def test_a_database_error_never_puts_the_query_into_the_trace(
     (row,) = _log_rows(engine)
     assert row.error is not None and "Musterstra" not in row.error
     assert "Musterstra" not in caplog.text
+
+
+def test_the_bounds_are_the_ones_decision_79_names() -> None:
+    from mkc.rag.retriever import CANDIDATES, MAX_K
+
+    assert (MAX_K, CANDIDATES) == (20, 50)
