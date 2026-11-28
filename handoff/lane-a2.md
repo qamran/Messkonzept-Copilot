@@ -1,6 +1,6 @@
 # Lane A2: SachsenNetze and gold
 
-**Last updated:** 28.11.2026, 11:39
+**Last updated:** 28.11.2026, 11:43
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -25,6 +25,8 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 - **Concepts (8):** the Berlin dev keys that are not pinned: `stromnetz-berlin:1.2`, `2.1`, `3.2`, `4`, `5`, `6`, `7`, `11.1` (exactly 13 dev minus the 5 pins). The 5 pinned keys get the user's from-scratch labels in MKC-25 (as blind items: `mkc gold export --blind --key ...`).
 - **Model:** the `gold_draft` role, `openrouter:anthropic/claude-haiku-5.5` (another family than `google/gemini-3.8-flash`). OpenRouter's model listing (28.11.2026) gives its input modalities as `text, image, file`, so each call sends the region's text **and** the region rendered at 150 dpi: the meter topology is in the drawing.
 - **Command:** `uv run mkc gold draft --operator stromnetz-berlin --side dev --max-eur 1.50` (pins skipped by default), against the local Compose database. Each printed line (key, model, cost) goes into the log below.
+- **Coordinator's go (28.11.2026):** record mode with `MKC_MODEL_REPLAY_DIR` outside the repo; export plus a review sheet for the user; nothing imported, no batch line written. Rulings: the design 11.1 wording change is accepted (decision 88); the in-memory SachsenNetze fetch for its 11 split keys (no model call) is accepted; the Dockerfile copy of `gold_split.yaml` goes to MKC-29.
+- **Run:** against a separate local database `mkc_gold` on the Compose server (migrated to `0015`), not the shared `mkc` database and never production.
 - **Cost estimate:** `$0.10` / `$0.50` per million tokens; a concept is a few thousand tokens in and about 1,500 out, so the batch is well under €0.05 of the €1.50 budget.
 - **Then:** `uv run mkc gold export --out <scratch>/gold-batch-1.json` (outside the repo, never committed) for the user to verify; `mkc gold import ... --verified-by qamran`; the user logs the batch line in the status doc.
 
@@ -87,6 +89,7 @@ Coordinator rulings (28.11.2026): 1, 2, 3, 5, 7, 8, 9 and 10 confirmed; 6 is the
 
 ## Recent log
 
+- **28.11.2026 11:43** Development agent: live batch 1 (record mode, `gold_draft` = `openrouter:anthropic/claude-haiku-5.5`, text plus 150 dpi image, `--max-eur 1.50`). Run 1 (11:41), as printed: `stromnetz-berlin:1.2` 0.000689 EUR stored; `11.1` 0.000766 EUR stored; `2.1` 0.000693 EUR stored; `3.2` 0.000732 EUR stored; `4` 0.000813 EUR stored; `5` 0.000739 EUR stored; `6` failed, cost unknown (`ModelError`: meter purpose `Summenzähler` is not in the schema); `7` failed, cost unknown (`ModelError`: LBS code `99920000000133`, 14 digits); `total: 0.004432 EUR for 8 keys, 2 failed calls`. Run 2 (11:42), one retry of `6` and `7`: both failed again with the same errors, cost unknown; `total: 0.000000 EUR for 2 keys, 2 failed calls`. 4 failed calls have no printed cost. Exported: `batch1.json` (6 items) and `batch1-review.md` in the scratchpad `gold` folder (outside the repo). Nothing imported; no status doc line.
 - **28.11.2026 11:39** Development agent: `scripts/pre_pr.sh` at `4860080` (pushed): exit 1, `pre-PR gate FAILED: backend: pytest docs: check scripts`. pytest `1 failed, 1362 passed, 2 skipped, 20 deselected, 6 warnings in 116.82s (0:01:56)`, the failure `tests/test_check_gold.py::test_the_repo_passes`; among the check scripts only `scripts/check_gold.py` prints a problem. Both wait for the user task. Everything else ok; commits over 200 lines: `e41e032` (345), `becb54f` (258), `417a4bd` (317), `c7953e7` (218), `8d55ac2` (345; it also carries the draft command, `#232` scope, under `Refs #233`). Red tests unchanged since `cf4175f` (`git diff cf4175f..HEAD -- backend/tests/test_check_gold.py backend/tests/gold/` shows only the two new files `test_gold_cli_draft.py` and `test_gold_family.py`). Open for the coordinator: `GOLD_SPLIT_FILE` is not in the image (the Dockerfile copies only `operators.yaml` and `corpus_sources.yaml`), which MKC-29 will need. No PR opened.
 - **28.11.2026 11:37** Development agent: `mkc gold draft` skips a verified key before the call (no paid call), prints a failed call as "cost unknown" and goes on (exit 1 at the end, the total always printed); decision 88 and the runbook say so. `tests/gold` `86 passed in 4.79s`; hand mutations of the spend cap, the store-time and the import-time facts check each give `1 failed, 10 passed`.
 - **28.11.2026 11:35** Development agent: own red tests: a verified key gets no paid call (it was drafted, then refused at store), a failed call is reported with "cost unknown" and the batch goes on, plus tests for `--max-eur`, the facts-only refusal in `store_gold_draft` and in import: `2 failed, 9 passed in 2.91s` (the 2 are the first two; the other three already pass and are checked by hand mutation next).
