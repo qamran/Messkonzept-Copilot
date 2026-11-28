@@ -17,7 +17,7 @@ from mkc.harness.limits import Limits
 from mkc.harness.runner import execute_run
 from tests.extraction.conftest import MemoryStore
 from tests.extraction.drafts import valid_draft
-from tests.extraction.synthetic import TITLE, concept_page_pdf
+from tests.extraction.synthetic import CONCEPT_BBOX, TITLE, concept_page_pdf
 from tests.harness.test_loop import call, client_for, turns
 from tests.models.fakes import FakeChatModel, ai
 
@@ -36,7 +36,9 @@ def item_for(engine: Engine, document_hash: str) -> tuple[int, int]:
 
 
 def replies() -> list[Any]:
-    read = call("extract_text", "r1", page=1)
+    # the region's bbox, as the item task gives it: without one the page's sidebar is read
+    # too (decision 76), and its "Messkonzepte" lands inside the wrapped title
+    read = call("extract_text", "r1", page=1, bbox=list(CONCEPT_BBOX))
     render = call("render_region", "g1", page=1, bbox=[72.0, 72.0, 144.0, 144.0], dpi=72)
     save = call("save_draft", "s1", draft=valid_draft())
     return [ai(tool_calls=[read, render]), ai(tool_calls=[save])]
