@@ -45,11 +45,11 @@ Lanes never touch each other's packages. A few files are shared by design. Each 
 | Shared file | Rule |
 |---|---|
 | `HANDOFF.md` | **Per-lane logs.** Each lane writes only `handoff/lane-<x>.md` (its "In progress", "Next" and log). The coordinator alone edits `HANDOFF.md`, which keeps the board summary, the links to the lane files and the merges and deploys. `check_handoff.py` checks the lane files too. |
-| Migrations | Each PR adds its revision with `down_revision` set to `main`'s head when the branch was cut. A new test, `test_single_migration_head`, fails when `main` has two heads. Branch protection already requires the branch to be up to date, so the second PR to merge gets its revision re-chained by the coordinator in the rebase, then CI runs again. |
+| Migrations | Each PR adds its revision with `down_revision` set to `main`'s head when the branch was cut. A new test, `test_single_migration_head`, fails when `main` has two heads. Branch protection already requires the branch to be up to date, so the second PR to merge gets its revision re-chained by the coordinator when it updates that PR from `main` (a merge, never a rebase; AGENTS.md), then CI runs again. |
 | Decision log (design section 18) | **Number blocks per wave.** Wave 1: decision 61 (this workflow, coordinator), 62–64 lane A, 65–67 lane B, 68–70 lane C, 71–73 lane D. Unused numbers are skipped and marked "not used" at the wave's end. |
 | Status doc, runbook, design sections, backlog | Each lane edits only its own ticket's section, and adds new sections at the end of its own area. The coordinator resolves any text conflict at merge time. |
 | `config.py`, `.env.example` | Append-only, one block per lane with a comment naming the ticket. Conflicts are line-adjacent only and the coordinator resolves them. |
-| `pyproject.toml`, `uv.lock` | A lane that adds a dependency says so in its PR. After a rebase, the coordinator runs `uv lock` once; the lock is never hand-merged. |
+| `pyproject.toml`, `uv.lock` | A lane that adds a dependency says so in its PR. After an update from `main`, the coordinator runs `uv lock` once; the lock is never hand-merged. |
 | `registry.py` (item tools) | Owned by lane A only. Other lanes register nothing there. |
 | The board | Each agent moves only its own ticket and its sub-issues. |
 

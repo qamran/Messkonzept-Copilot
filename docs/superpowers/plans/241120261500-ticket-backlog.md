@@ -35,7 +35,7 @@ These apply to every ticket.
 - **Tests first:** every code change starts with a failing test (TDD). CI must be green before merge.
 - **Never committed:** operator PDFs, BDEW/edi@energy documents, real customer data, secrets. Tests use synthetic PDFs generated in the test, or live fetches marked `@pytest.mark.live`.
 - **hupe1980/mako** is not used in any form (code, data model, ideas).
-- **Models:** all calls go through `ModelClient` (or `DecisionClient`). OpenRouter is the default, with zero-data-retention routing. Gemini free tier only for public or synthetic input.
+- **Models:** all calls go through `ModelClient` (or `DecisionClient` for decisions, `EmbeddingClient` for embeddings). OpenRouter is the default, with zero-data-retention routing. Gemini free tier only for public or synthetic input.
 - **The model never gets side-effect tools.** Run-level operations (`fetch_document`, `segment_document`, `enqueue_approval`, `commit_record`) are harness code.
 - **Docs stay current:** a ticket that changes a decision updates the design doc's decision log, the matching ADR (or a new one, file prefix `ddMMyyyyHHmm-`) and `docs/241120261430-project-status.md` in the same PR.
 - **Budgets:** LLM €20–30 in total; the user's verification time 10–12 h in total. Every evaluation ticket records its spend in the status doc.
