@@ -107,3 +107,12 @@ German legal quality was not measured; the only quality source is the model card
 Chunk size (decision 72): one chunk per law Absatz, never split; the 4,000-character cap applies only to other texts, split at blank lines.
 
 Sources: the research note above; the [Qwen3-Embedding-8B model card](https://huggingface.co/Qwen/Qwen3-Embedding-8B); OpenRouter's `GET /api/v1/embeddings/models` and `GET /api/v1/endpoints/zdr` (27.11.2026); the live probes logged in `handoff/lane-d.md`.
+
+## Amendment (27.11.2026, MKC-50): the query side
+
+Decision 79, by the development agent of lane D.
+
+- **Query instruction:** `ProviderEmbedder.embed_query` sends `Instruct: <task>`, a newline, then `Query:<query>`, the format of the Qwen3-Embedding model card; the task is one English sentence (`mkc.rag.embeddings.QUERY_INSTRUCTION`). Chunks stay embedded as stored.
+- **One query, one call:** `retrieve` embeds the raw query once through `embed_query`; the instruction never reaches `chunk` or the keyword side.
+- **Traces:** `EmbeddingClient` calls its hooks with one `EmbedTrace` per `embed()` call (tokens, EUR cost, latency, error class; never the texts), as `ModelClient` does with `CallTrace` (decision 80).
+- **Live check:** `tests/rag/test_retriever_live.py` (`-m live`) loaded the real EnWG § 14a page and asked "Darf der Netzbetreiber meine Wärmepumpe bei drohender Überlastung drosseln?": the three results were `§ 14a Abs. 1`, `Abs. 3` and `Abs. 2` (1,949 tokens, EUR 0.0000178 in total).

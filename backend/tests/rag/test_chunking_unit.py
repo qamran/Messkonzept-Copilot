@@ -142,3 +142,67 @@ def test_a_long_law_absatz_stays_whole() -> None:
     (chunk,) = chunk_text(f"§ 5 Lang\n{long_absatz}\n", source_id="g")
     assert chunk.source_ref == "§ 5 Abs. 1"
     assert len(chunk.text) > MAX_CHUNK_CHARS
+
+
+# --- MKC-50: MKC-49 review findings 2 and 4 (the `law` layout) ---------------------------
+
+
+def test_a_body_line_starting_with_a_paragraph_sign_is_not_a_heading() -> None:
+    """Review finding 2: `§ 2 Satz 1 gilt entsprechend.` is the body of § 3, not a new § 2.
+    A `§` line directly after a body line of an open paragraph is body text; a heading comes
+    when no paragraph is open yet (start of text, after a preamble) or after a blank line
+    (the fetcher's layout)."""
+    from mkc.rag.chunking import chunk_text
+
+    text = "§ 3 Verweis\n§ 2 Satz 1 gilt entsprechend.\n"
+    (chunk,) = chunk_text(text, source_id="g")
+    assert chunk.source_ref == "§ 3"
+    assert chunk.text == "§ 3 Verweis\n§ 2 Satz 1 gilt entsprechend."
+
+
+def test_a_paragraph_sign_line_inside_an_absatz_stays_in_it() -> None:
+    from mkc.rag.chunking import chunk_text
+
+    text = (
+        "§ 5 Pflichten\n(1) Der Betreiber misst.\n§ 7 gilt entsprechend.\n(2) Ende.\n"
+        "\n§ 6 X\n(1) Y.\n"
+    )
+    chunks = chunk_text(text, source_id="g")
+    assert [c.source_ref for c in chunks] == ["§ 5 Abs. 1", "§ 5 Abs. 2", "§ 6 Abs. 1"]
+    assert chunks[0].text.splitlines() == [
+        "§ 5 Pflichten",
+        "(1) Der Betreiber misst.",
+        "§ 7 gilt entsprechend.",
+    ]
+
+
+def test_a_fetched_law_page_with_a_body_line_starting_with_a_paragraph_sign() -> None:
+    """The same through the fetcher's HTML-to-text step: an unnumbered Absatz that starts
+    with `§`."""
+    from mkc.rag.chunking import chunk_text
+    from mkc.rag.fetch import law_text
+
+    page = """<html><body><div id="paddingLR12">
+<div class="jnnorm"><div class="jnheader"><h3><span class="jnenbez">&#167; 3</span>&#160;
+<span class="jnentitel">Verweis</span></h3></div>
+<div class="jnhtml"><div class="jurAbsatz">&#167; 2 Satz 1 gilt entsprechend.</div></div></div>
+<div class="jnnorm"><div class="jnheader"><h3><span class="jnenbez">&#167; 4</span>&#160;
+<span class="jnentitel">Ende</span></h3></div>
+<div class="jnhtml"><div class="jurAbsatz">(1) Schluss.</div></div></div>
+</div></body></html>"""
+    chunks = chunk_text(law_text(page), source_id="g")
+    assert [c.source_ref for c in chunks] == ["§ 3", "§ 4 Abs. 1"]
+    assert chunks[0].text == "§ 3 Verweis\n§ 2 Satz 1 gilt entsprechend."
+
+
+def test_a_blank_line_inside_a_long_law_absatz_does_not_split_it() -> None:
+    """Review finding 4 (decision 72): in a plain-text law a blank line can fall inside an
+    Absatz; the Absatz stays one chunk even when both halves together pass the cap."""
+    from mkc.rag.chunking import MAX_CHUNK_CHARS, chunk_text
+
+    half = "Satz. " * (MAX_CHUNK_CHARS // 9)  # about two thirds of the cap
+    text = f"§ 5 Lang\n(1) {half}\n\n{half}\n(2) Kurz.\n"
+    chunks = chunk_text(text, source_id="g")
+    assert [c.source_ref for c in chunks] == ["§ 5 Abs. 1", "§ 5 Abs. 2"]
+    assert len(chunks[0].text) > MAX_CHUNK_CHARS
+    assert chunks[0].text.count("Satz.") == 2 * (MAX_CHUNK_CHARS // 9)

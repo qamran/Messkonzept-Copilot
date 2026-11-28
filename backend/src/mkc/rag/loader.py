@@ -3,9 +3,11 @@
 `load_corpus` works inside the caller's transaction and only flushes. Re-loading a source
 replaces its document row and chunks (keyed by `source_id`), so there are never two copies.
 
-Licence guard: a non-official (`restricted`) text must never land inside the repo. When a
-cache folder is given and it lies inside the repo while any source is restricted, the whole
-load is refused before anything is fetched or written (AGENTS.md data rules).
+Cache guard: no fetched text is ever cached inside the repo. A non-official (`restricted`)
+text must never land there (AGENTS.md data rules), and only `.cache/` is git-ignored, so a
+cache elsewhere in the repo could be committed by accident. When a cache folder inside the
+repo is given, the whole load is refused before anything is fetched or written, whatever the
+sources' licences (MKC-49 review finding 5).
 """
 
 import hashlib
@@ -29,7 +31,7 @@ Fetcher = Callable[[CorpusSource], str]
 
 
 class CorpusLicenceError(ValueError):
-    """A restricted text would be written inside the repo."""
+    """A fetched text would be written inside the repo."""
 
 
 class CorpusLoadError(RuntimeError):
@@ -39,12 +41,17 @@ class CorpusLoadError(RuntimeError):
 def check_cache_dir(
     cache_dir: Path, sources: Sequence[CorpusSource], *, repo_root: Path = REPO_ROOT
 ) -> None:
-    """Refuse a cache inside the repo when any source is restricted (paths resolved)."""
-    restricted = [s.id for s in sources if s.licence is LicenceClass.RESTRICTED]
-    if restricted and cache_dir.resolve().is_relative_to(repo_root.resolve()):
+    """Refuse any cache inside the repo, official-only sources included (paths resolved)."""
+    if cache_dir.resolve().is_relative_to(repo_root.resolve()):
+        restricted = [s.id for s in sources if s.licence is LicenceClass.RESTRICTED]
+        why = (
+            f"restricted sources {restricted} must never be written there"
+            if restricted
+            else ("no fetched text is cached in the repo")
+        )
         raise CorpusLicenceError(
-            f"cache {cache_dir} is inside the repo {repo_root}; restricted sources "
-            f"{restricted} must never be written there. Use a folder outside the repo."
+            f"cache {cache_dir} is inside the repo {repo_root}; {why}. "
+            "Use a folder outside the repo."
         )
 
 

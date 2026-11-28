@@ -42,6 +42,7 @@ COPY migrations ./migrations
 # The operator allow-list (MKC-21): the package is installed into the venv, so it is found
 # through MKC_OPERATORS_FILE, not next to the source.
 COPY data/operators.yaml ./data/operators.yaml
+COPY data/corpus_sources.yaml ./data/corpus_sources.yaml
 
 ENV MKC_OPERATORS_FILE=/app/data/operators.yaml
 ENV PATH="/app/.venv/bin:${PATH}" \

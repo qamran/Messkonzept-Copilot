@@ -1,87 +1,134 @@
 # Lane D: RAG
 
-**Last updated:** 27.11.2026, 21:56
+**Last updated:** 28.11.2026, 00:48
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
-- **Tickets, in order:** `MKC-49` → `MKC-50` → `MKC-51` (MKC-51 waits on lane B's MKC-38)
-- **Branch and worktree:** `mkc-49-corpus-loader`
-- **Owns:** `backend/src/mkc/rag/`, the corpus loader, the retriever, `backend/tests/rag/`, `backend/data/corpus_sources.yaml`
-- **Decision numbers:** 71–73
+- **Tickets, in order:** `MKC-49` (merged, PR #198) → `MKC-50` → `MKC-51` (MKC-51 waits on lane B's MKC-38)
+- **Branch and worktree:** `mkc-50-hybrid-retriever` (cut from `main` `d7fad1e`)
+- **Owns:** `backend/src/mkc/rag/`, the corpus loader, the retriever, `backend/tests/rag/`, `backend/data/corpus_sources.yaml`, `EmbeddingClient` at the end of `mkc/models/client.py`
+- **Decision numbers:** 79–81 (wave 2; wave 1's block 71–73 is closed)
 
 ## In progress
 
-- `MKC-49` (`#49`): built; the six sub-issues are in Testing (they close with the PR's merge); PR #198 opened 27.11.2026 21:55 (GitHub `createdAt` 2026-11-27T20:55:20Z) at `5b39b61`; `#49` and the six sub-issues are in Testing. The test agent's red acceptance tests are in `backend/tests/rag/`.
-- **Red commits:** `97c18ea` to `f515d26` "MKC-49: red test for the corpus tables' downgrade" (the test agent's last commit on this branch; diff the tests against it).
-- **Sub-issues** (all assigned to `qamran`, on the board, linked to `#49`):
-  - `MKC-49.1` (`#179`) corpus sources file: built (`4ce0e06`), Testing
-  - `MKC-49.2` (`#181`) chunking per paragraph: built (`49462e7`), Testing
-  - `MKC-49.3` (`#182`) embedding model through the provider layer: built (`97b760c`, `0871d20`), Testing
-  - `MKC-49.4` (`#184`) corpus tables and migration 0012: built (`8f8117d`), Testing
-  - `MKC-49.5` (`#185`) corpus loader with the licence guard: built (`46f818c`), Testing
-  - `MKC-49.6` (`#186`) `mkc corpus load` and the HTTP fetcher: built (`5c5f50d`, `3e1c8aa`), Testing
+- `MKC-50` (`#50`), Hybrid retriever: built; the test agent's mutation pass is done (108 tried, 104 killed, 4 survivors accepted by the coordinator); the coordinator merged `main` (MKC-27) as `c9a2b58`; sub-issues MKC-50.1 to 50.5 (`#203`–`#207`), with MKC-50.4 (`#206`) the MKC-49 review findings. PR #216 opened; in Testing.
+- Decisions written: 79 (the retriever), 80 (the retrieval and embedding traces), 81 (the corpus files); ADR 004 amendment "the query side".
+- Migration: MKC-49's is `0013_corpus.py` (`down_revision = "0012"`; the coordinator re-chained it at the merge). MKC-50 adds none.
 
-### Pinned interfaces (MKC-49)
+### Pinned interfaces (MKC-50)
 
 The tests import these; module paths and names are fixed, internals are free.
 
-- `mkc.rag.sources`
-  - `DEFAULT_SOURCES_PATH` = `backend/data/corpus_sources.yaml`
-  - `LicenceClass` enum: `OFFICIAL = "official"` (laws, BNetzA decisions: amtliche Werke), `RESTRICTED = "restricted"` (operator texts)
-  - `SourceType` enum: `LAW = "law"`, `BNETZA_DECISION = "bnetza_decision"`, `OPERATOR_TEXT = "operator_text"`
-  - `CorpusSource` with `id`, `title`, `source_type: SourceType`, `url`, `version`, `licence: LicenceClass`
-  - `load_sources(path) -> list[CorpusSource]`; raises `CorpusSourceError(ValueError)` on a bad file
-  - YAML: top-level `sources:` list; each entry has `id, title, source_type, url (https), version, licence` and never the text. Required ids: `enwg-14a`, `msbg`, `bk6-22-300`, `bk6-22-300-anlage-1`, `bk8-22-010-a`, plus at least one `operator_text`.
-- `mkc.rag.chunking`
-  - `Chunk` with `source_id`, `ordinal` (0, 1, 2, … in text order), `source_ref` (names the §, e.g. `§ 14a` or `§ 14a Abs. 1`; MKC-50's `RetrievedChunk.source_ref` reads it), `text`
-  - `chunk_text(text, *, source_id) -> list[Chunk]`
-  - Chunks do not overlap: each Absatz is in exactly one chunk.
-- `mkc.rag.embeddings`
-  - `EMBEDDING`: the one config value, with `.model: str` and `.dim: int`. ADR 004 must name `EMBEDDING.model` (the ticket's success criterion).
-  - An `Embedder` protocol: `embed(texts: Sequence[str]) -> list[list[float]]` (the fake also has `model` and `dim`).
-- `mkc.rag.loader`
-  - `load_corpus(session, sources, *, embedder, fetcher, cache_dir=None, repo_root=<this repo>)`; works inside the caller's transaction
-  - `fetcher: Callable[[CorpusSource], str]` returns the source's plain text
-  - `CorpusLicenceError`: raised when `cache_dir` (resolved) is inside `repo_root` and any source is `restricted`, **before anything is written**
-  - Re-loading replaces a source's chunks (keyed by `source_id`); no duplicates
-  - The stored `chunk.text` is passed verbatim to `embed`; a model-specific prefix (e.g. a `passage:` prefix) lives inside the embedder
-  - Any code that writes a source's text to disk (the loader's cache or the real fetcher from `make_fetcher`) applies the same guard. No test proves the cache is used; it may stay unused if no cache is needed.
-- `mkc.rag.cli`
-  - `corpus_app` (Typer) with `load --sources PATH`; exit 0 on success, 2 on a bad sources file
-  - `make_embedder(settings)` and `make_fetcher(settings)`: module-level factories the tests monkeypatch
-- Tables (columns the tests read); downgrade to base drops both, upgrade to head twice is a no-op
-  - `corpus_document(id, source_id, title, source_type, url, version, licence)`
-  - `chunk(id, document_id → corpus_document, ordinal, source_ref, text, embedding vector(EMBEDDING.dim), tsv tsvector)` with a GIN index on `tsv`; `tsv` uses the `german` configuration
+- `mkc.rag.retriever`
+  - `RRF_K = 60`; `rrf_merge(rankings: Sequence[Sequence[int]], *, rrf_k: int = RRF_K) -> list[tuple[int, float]]`: score = sum of `1 / (rrf_k + rank)` over the rankings, ranks from 1, a chunk missing from a ranking gets nothing from it; sorted by score, highest first; **ties go to the lower chunk id**.
+  - `MAX_K` and `CANDIDATES` (ints): `10 <= MAX_K <= CANDIDATES`; each side (keyword, vector) looks at up to `CANDIDATES` chunks before fusion.
+  - `RetrievedChunk(chunk_id: int, score: float, source_ref: str, text: str)`: a frozen dataclass; `text` is the stored chunk text unchanged; `score` is the RRF score.
+  - The untrusted mark: `PASSAGE_OPEN = "<retrieved_passage>"`, `PASSAGE_CLOSE = "</retrieved_passage>"`, `RetrievedChunk.as_prompt_data() -> str` = open tag + JSON `{"chunk_id", "source_ref", "text"}` + close tag. The JSON has no `<` or `>` (escaped, as in `mkc/harness/prompts.py`) and keeps umlauts and `§` as they are (`ensure_ascii=False`). The open tag has no attributes. A prompt must use this, never `text` directly (MKC-51).
+  - `retrieve(query: str, k: int = 5, *, session: Session, embedder, tracers: Sequence[Callable[[RetrievalTrace], None]] = (), scope: TraceScope | None = None) -> list[RetrievedChunk]`
+    - at most `k` results, sorted by score (highest first), unique chunk ids; an empty corpus gives `[]`
+    - keyword side: Postgres `german` full-text search on `chunk.tsv` ("Wärmepumpen" must find "Wärmepumpe"); the query is plain text (`&`, `|`, `!`, `:`, `'`, `<->`, `*` never raise)
+    - vector side: the query vector against `chunk.embedding`
+    - `ValueError` for `k < 1`, `k > MAX_K` or a blank query, before the embedder is called
+    - the query is embedded once with `embedder.embed_query(query)`, the raw query; `embed` is never called by the retriever
+  - `RetrievalTrace` (dataclass): at least `latency_ms: int` (the whole call, embedding included), `k`, `query_chars`, `returned`, `keyword_hits`, `vector_hits`, `error: str | None` (`"<Class>: …"`), `scope: TraceScope | None`. **No query text** (no field named `query` or `text`, no string field holds the query). One trace per `retrieve` call, also when it fails (then `returned == 0` and the error is raised again). A hook that raises is logged and skipped; the next hook still gets the trace.
+- `mkc.rag.embeddings.ProviderEmbedder.embed_query(query: str) -> list[float]`: sends one text that starts with `Instruct:` and a space, contains `\nQuery:` and ends with the query (Qwen3-Embedding's query format, decision 71); adds tokens and cost like `embed`. `embed` still sends passages exactly as stored.
+- `mkc.models.client` (lane D's block at the end)
+  - `EmbedTrace` (dataclass): `model_id`, `mode`, `texts: int` (how many), `input_tokens`, `cost_eur`, `latency_ms: int`, `error: str | None` (starts with the error's class name), `scope: TraceScope | None`. No text of the input anywhere in it.
+  - `EmbeddingClient(..., tracers: Sequence[Callable[[EmbedTrace], None]] = ())` and `EmbeddingClient.from_settings(..., tracers=...)`, kept as `_tracers` (a list). `embed(texts, *, scope=None)`: **one trace per `embed()` call** (not per batch), with the reply's tokens, cost and latency; on a provider error one trace with `error` set, then the error is raised. A hook that raises never breaks the call.
+- MKC-49 review findings (tests, not interfaces):
+  - fetcher: an `http://` URL is refused before any request; an https → http redirect on the same host is refused before the http request.
+  - `law` layout: a line starting with `§ <n>` directly after a body line of an open paragraph is body text of the current Absatz. A heading comes when no paragraph is open yet (start of the text, after a preamble) or after a blank line (the fetcher's layout). Proven on plain text and through `law_text(html)`; a patch of `_law_blocks` along these lines (applied and restored by the test agent) turns the three tests green and breaks no other test in `tests/rag`.
+  - `law` layout: a blank line inside an Absatz does not split it, even past `MAX_CHUNK_CHARS` (decision 72).
+  - loader: **any** cache folder inside the repo is refused (`CorpusLicenceError`, before any fetch), official-only sources included. The MKC-49 test `test_an_official_only_cache_inside_the_repo_is_allowed` is replaced by `test_an_official_only_cache_inside_the_repo_is_refused_too` (the test agent's change, reason in its docstring).
+  - image: the runtime stage copies `data/corpus_sources.yaml` to `/app/data/corpus_sources.yaml` (one `COPY` line after the `operators.yaml` line; granted by the coordinator).
 
 ### Shared-file rules for the development agent
 
-- New ORM classes go at the end of `mkc/db/models.py` in a block commented `MKC-49`.
-- The `corpus` sub-app is mounted at the end of `mkc/cli.py` with a comment (`app.add_typer(corpus_app, name="corpus")`).
-- The migration is `0012` with `down_revision = "0011"`. Lane A also writes `0012`; the coordinator re-chains the second to merge. The tests name no revision.
-- A new dependency (e.g. `pgvector`, an embedding library) is named in the PR; the coordinator runs `uv lock` after updates from `main`.
-- The real embedder must respect the model rule: every model call goes through `ModelClient` (AGENTS.md). A local model that makes no provider call is the development agent's call; record it in ADR 004 and decision 71.
+- `mkc/observability/`: append only (a new helper at the end of a module). The tests do not require a `run_log` bridge (see the assumptions).
+- `backend/Dockerfile`: only the one `COPY data/corpus_sources.yaml ./data/corpus_sources.yaml` line after the `operators.yaml` line.
+- A new dependency is named in the PR; the coordinator runs `uv lock`.
+- Live calls: at most €0.50 for live query embeddings, logged here.
+- Stale wording to fix (no tests): this file's MKC-49 lines naming migration 0012 (now 0013, history stays); the `DEFAULT_SOURCES_PATH` docstring ("the image carries `backend/data/`"); `EMBED_BATCH_SIZE` ("at most about 1,000 tokens"; decision 72 allows about 2,000); "the PDF library comes with MKC-21" in `fetch.py`, the runbook and the status doc (it is on `main`). Using `pdfplumber` for the PDF sources is optional.
 
-### Test agent's assumptions (open for the coordinator)
+### Test agent's assumptions (for the coordinator to confirm)
 
-1. Chunk granularity (one chunk per § or per Absatz) is left open; the tests only require that no chunk crosses a §, no Absatz is lost and each chunk keeps the source's lines.
-2. Licence classes are two: `official` and `restricted`. A cache of a restricted text inside the repo is refused for the whole load; nothing says whether an official text may be cached inside the repo, so the tests do not check it.
-3. Who owns an on-disk cache of fetched texts, the loader (`cache_dir`) or the fetcher, and whether one is needed at all, is open; the guard applies either way.
-4. The tests cover §-structured law text only; how BNetzA decisions and operator texts are split into sections is the development agent's design.
+1. **Untrusted mark:** a `<retrieved_passage>` wrapper around escaped JSON, as `mkc/harness/prompts.py` does for tool results; the JSON holds `source_ref` too, because it is read from the document.
+2. **Query instruction:** lives in the embedder (`embed_query`), as MKC-49 put any passage prefix in the embedder; `retrieve` passes the raw query.
+3. **Trace at hook level:** `RetrievalTrace` and `EmbedTrace` are hooks like `CallTrace`. How they reach `run_log` and Langfuse is open: `TraceRecord.kind` is a closed `Literal`, `run_log.run_id` is not nullable, and `Tracer` only takes new code at a module's end. A retrieval with no run (MKC-51's "ask why") has no `run_log` row to join. **Coordinator's decision (built, decision 80):** a new kind `retrieval` and `Tracer.span_retrieval`; outside a run a log line only; no migration.
+4. **Score:** the RRF score itself (not normalised); ties to the lower chunk id.
+5. **An official-only cache inside the repo is refused** (review finding 5): one simple rule, nothing needs a cache in the repo, and only `.cache/` is git-ignored.
+6. **The image default path:** `DEFAULT_SOURCES_PATH` uses `parents[3]` of the installed package, which does not exist in the image. The tests pin only the shipped file; making `mkc corpus load` find it without `--sources` needs an `ENV` line or a setting (not granted). **Coordinator's decision (built, decision 81):** `MKC_CORPUS_SOURCES_FILE`; without it the source-tree file, else `/app/data/corpus_sources.yaml` (the code falls back to the image path, so the Dockerfile has only the granted `COPY` line, no `ENV` line).
+7. **All confirmed by the coordinator:** 1, 2, 4 and 5 as written.
+
+### Not covered by red tests
+
+- The exact keyword ranking function (`ts_rank` or other) and the tsquery builder (`plainto_tsquery` or `websearch_to_tsquery`); the tests need only that "§ 14a" and "BK6-22-300" match.
+- The distance operator (cosine, L2 or inner product): the test vectors are unit vectors, so all three agree.
+- A blank line inside a plain-text Absatz followed by a line starting with `§ <n>` stays ambiguous (read as a heading); the fetcher's HTML path never produces it.
+- A live query embedding (`@pytest.mark.live`): optional for the development agent.
+- An index for the vector side (HNSW or IVFFlat): no test; the corpus is small.
+- The injection guard on retrieved text (MKC-46/51) and the prompt layer that uses `as_prompt_data()` (MKC-51).
+
+### Mutation pass (MKC-50)
+
+The test agent, on `f1e9ee3`. One hand-written mutant at a time, applied exactly (each old text found once), `src/**/__pycache__` cleared before and after, restored after each run; none committed. Each run: `uv run pytest tests/rag tests/observability tests/models -q -x` (baseline `328 passed, 14 deselected, 4 warnings in 17.00s`).
+
+- **Scope:** `mkc/rag/retriever.py` (RRF, `MAX_K`/`CANDIDATES`, keyword side, vector side, reference side, `as_prompt_data`, `RetrievalTrace`, the error-text rule, the log line), `EmbedTrace` and the hooks in `EmbeddingClient`, `ProviderEmbedder.embed_query`/`query_text`, `Tracer.span_retrieval`, the `retrieval` branch of `LangfuseSink.send`, the demo's `RETRIEVER` type, the `§` heading rule in chunking, the loader's cache rule, the sources-path fallback, `--sources` in the CLI and the Dockerfile `COPY`.
+- **First run:** **108 tried, 86 killed, 22 survived** (all 108 applied; 0 not applied).
+- **New tests:** `da5d8c6`, `06c8798` and `c4963f6` kill 18 of the 22. The 22 survivors were run again against them: 18 killed, 4 survived.
+- **After the new tests:** **108 tried, 104 killed, 4 survived**, and all 4 are near-equivalent:
+  1. `backend/src/mkc/rag/retriever.py:48` `MAX_K = 20` → `50`. The value is not pinned (the pin is `10 <= MAX_K <= CANDIDATES`). Near-equivalent: a design value. Pin it only if decision 79/80 fixes it.
+  2. `backend/src/mkc/rag/retriever.py:51` `CANDIDATES = 50` → `20`. Same as above: the test corpora have at most 10 chunks.
+  3. `backend/src/mkc/rag/retriever.py:71` `<=>` (cosine) → `<#>` (negative inner product). Equivalent for normalised vectors: Qwen3's vectors are normalised, and so are the tests' vectors, except one that points along the query, where both orders agree. The L2 mutant `<->` is killed by `test_the_vector_side_ranks_by_cosine_not_by_length`.
+  4. `backend/src/mkc/rag/chunking.py:87` the first `after_blank = True` → `False`. Equivalent: before the first paragraph, `current is None` already lets a heading through.
+- **Killed by the new tests:**
+  - reference side: R26 (named Absatz `ASC`), R30 (prefix `§ 1%` spills into § 14), R32 (`Abs.2a`), R34 (no `Absatz`/`Abs` forms), R35 (no lettered Absatz), R36 (`§\s+`, so `§14a` is missed), R37 (`if not absatz`);
+  - vector side: R22 (`<->`);
+  - trace: R44 (SQLSTATE dropped), R51 (`query_chars` stripped), R58 (the log line carries the full error text, not the class), T10 (no early return outside a run, so a warning is logged), T11 (`span_retrieval` unguarded), L3 (the Langfuse `status_message` carries the error text);
+  - embeddings: C7 and C13 (latency 0 on error or on success), E2 (a space after `Query:`), E4 (no instruction).
 
 ## Next steps
 
-1. Done 21:47: the test agent's mutation pass (98 tried, 95 killed, 3 survived); the 3 survivors have tests since `4db8f62`.
-2. Done 21:55: PR #198 opened; `#49` and its sub-issues in Testing. Next, the coordinator starts the review once `gh pr checks` is green, updates the branch from `main` and re-chains migration `0012` if lane A merges first.
-3. Open for the coordinator:
-   - decision 71 confirmed by the user on 27.11.2026, with the research note `docs/271120262150-embedding-model-research.md`; the production key's guardrail was not checked
-   - 4 of 6 sources are PDFs and refused until MKC-21's PDF library is in; the BK8-22/010-A file is an encrypted PDF (`/Encrypt` in its header) served from an `.html` URL; the `sections` chunker has only run on synthetic text
-   - one operator text only (Stromnetz Berlin); no SachsenNetze URL was found in the repo
-   - `EmbeddingClient` beside `ModelClient` is allowed by the user (the coordinator updates AGENTS.md); it has no tracers, and is live-only while the default mode is `replay`: MKC-50's query embeddings need a decision on tracing and on tests and evals
-   - edits not at a file's end: the import lines of `providers.py`, the price line in `models.yaml`; the ORM block imports at the bottom with `noqa: E402` and registers `vector` in the PostgreSQL dialect's `ischema_names`
-   - the backend image does not copy `backend/data/` (as for the LBS file), so `mkc corpus load` in the container needs `--sources`
+1. PR #216 is open; #50 and #203–#207 are in Testing. Next: CI green, then the review agent.
+2. Done: the test agent's mutation pass (see "Mutation pass (MKC-50)"): 108 tried, 104 killed, 4 near-equivalent survivors, accepted by the coordinator (`MAX_K` and `CANDIDATES` now pinned at 20 and 50 by decision 79).
+3. Follow-up for MKC-51: `EmbedTrace` has no `run_log` bridge yet, so a query embedding's spend inside a run is not in the run trace (only in `ProviderEmbedder`'s totals).
 
 ## Recent log
 
+- **28.11.2026 00:48** Development agent: `bash scripts/pre_pr.sh` exit 0 at `ab214ee` (00:45): `1056 passed, 1 skipped, 18 deselected, 4 warnings in 103.61s (0:01:43)`; `33 commits in origin/main..HEAD`; over 200 lines: `29ca7cd 282 lines`. Pushed; PR #216 opened (createdAt `2026-11-27T23:47:26Z`, 00:47 CET), assigned to `qamran`; `#50` and `#203`–`#207` set to Testing on the board.
+- **28.11.2026 00:43** Development agent: `bash scripts/pre_pr.sh` exit 1 at `0b92b87` (00:43): only `ruff format --check` failed (`tests/rag/test_retrieval_trace.py`, line endings of the appended pin test); `ruff format` fixed it.
+- **28.11.2026 00:41** Development agent: after the mutation pass and the coordinator's merge of `main` (`c9a2b58`): a pin test for `MAX_K = 20` and `CANDIDATES = 50` (decision 79 names both values; kills survivors 1 and 2), and the top docstring of `mkc/models/client.py` names `DecisionClient` and `EmbeddingClient` too (coordinator grant). The coordinator accepted all 4 survivors and the test agent's new pins.
+- **28.11.2026 00:39** Test agent: mutation pass on `f1e9ee3`, written up under "Mutation pass (MKC-50)". First run: 108 tried, 86 killed, 22 survived. Against the new tests (`da5d8c6`, `06c8798`, `c4963f6`), the 22 survivors were rerun: 18 killed, 4 survived (all near-equivalent). Final: 108 tried, 104 killed, 4 survived. `uv run pytest tests/rag tests/observability tests/models -q` with the new tests: `349 passed, 14 deselected, 4 warnings in 17.09s`.
+- **28.11.2026 00:39** Test agent (mutation pass): two tests in `tests/rag/test_embedding_trace_unit.py` kill C7, C13 (latency 0 on error / success) and E2, E4 (query format with a space, or without the instruction); `uv run pytest tests/rag/test_embedding_trace_unit.py -q`: `9 passed in 4.89s`.
+- **28.11.2026 00:39** Test agent (mutation pass): `tests/rag/test_retrieval_details.py` kills R22 (L2 instead of cosine), R44 (SQLSTATE dropped), R51 (query_chars stripped), R58 (log line with the full error), T10 (warning outside a run), T11 (`span_retrieval` unguarded) and L3 (Langfuse status message with the error text); `uv run pytest tests/rag/test_retrieval_details.py -q`: `7 passed in 1.51s`.
+- **28.11.2026 00:39** Test agent (mutation pass): `tests/rag/test_reference_side.py` kills the 7 reference-side survivors (R26, R30, R32, R34, R35, R36, R37); `uv run pytest tests/rag/test_reference_side.py -q`: `12 passed in 1.60s`.
+- **28.11.2026 00:01** Development agent: `bash scripts/pre_pr.sh` exit 0 at `ae6e5f2` (00:01): `1000 passed, 1 skipped, 17 deselected, 4 warnings in 107.78s (0:01:47)`; `26 commits in origin/main..HEAD`; over 200 lines: `29ca7cd 282 lines` (the test agent's red commit). The test agent's acceptance files: `75 passed in 8.19s`; `uv run pytest tests/rag -q -p no:warnings`: `146 passed, 2 deselected in 12.50s`. Red tests unchanged since `50bcd89` (the diff lists only my three new test files). Pushed; waiting for the coordinator and the mutation pass.
+- **27.11.2026 23:58** Development agent: checks before the report: the real MsbG and EnWG § 14a pages fetched and chunked in memory (no embedding, nothing written): `msbg chunks 220 unique refs 220 duplicates [] paragraphs 79 largest 7836`, `enwg-14a chunks 4 unique refs 4 duplicates [] paragraphs 1 largest 2564`, the same as MKC-49's 220 after the new `§` heading rule; `backend/.dockerignore` is a deny list without `data/`, so the new `COPY` line finds its file. Docs: the runbook names `MKC_CORPUS_SOURCES_FILE` and the lookup order; decision 79 the reference side, decision 80 the error text rule; the live spend wording says run 1's cost was not printed.
+- **27.11.2026 23:57** Development agent: the reference side: a `§ <n>` (optionally `Abs. <m>`) in the query ranks the chunks of that paragraph by `source_ref`, the named Absatz first, then by id; a third ranking in the fusion; `reference_hits` in `RetrievalTrace`, the log line and the `run_log` detail. Now "Wann gilt § 14a?" → `['§ 14a Abs. 2', '§ 14a Abs. 1', '§ 1 Abs. 2']` and "Was regelt § 14a Abs. 1?" → `['§ 14a Abs. 1', '§ 14a Abs. 2', '§ 1 Abs. 1']`. `uv run pytest tests/rag tests/observability -q -p no:warnings`: `173 passed, 2 deselected in 14.63s`.
+- **27.11.2026 23:55** Development agent: a check of mixed questions on the test corpus: with the terms ORed, "Wann gilt § 14a?" gave `['§ 1 Abs. 2', '§ 2 Abs. 3', '§ 14a Abs. 2']` (keyword hits 4) and "Was regelt § 14a Abs. 1?" `['§ 1 Abs. 1', '§ 1 Abs. 2', '§ 3 Abs. 1']` (keyword hits 8): "gilt", "regelt", "Abs." and "1" match other paragraphs, and the vector side ranks § 14a last there. Red tests for a third ranking, the reference side (a `§ <n>` in the query ranks the chunks of that paragraph, the named Absatz first; `reference_hits` in the trace), and for a stopword-only query. `uv run pytest tests/rag/test_retrieval_trace.py -q -p no:warnings`: `6 failed, 10 passed in 3.12s`.
+- **27.11.2026 23:53** Development agent: the fix: `RetrievalTrace.error` is `<Class>: SQLSTATE <code>` or `<Class>: message withheld`, never the message; the caller still gets the full exception; the red test's long line split. `uv run pytest tests/rag tests/observability -q`: `168 passed, 2 deselected, 4 warnings in 16.77s`.
+- **27.11.2026 23:52** Development agent: found by my own check before the report: `RetrievalTrace.error` took `str(exc)`, and a SQLAlchemy error's text ends with `[parameters: {'query': …}]`, so a database failure put the query into the trace and `run_log.error`. Red test `test_a_database_error_never_puts_the_query_into_the_trace`; `uv run pytest tests/rag/test_retrieval_trace.py -q -k database`: `1 failed, 10 deselected in 2.32s`.
+- **27.11.2026 23:50** Development agent: `bash scripts/pre_pr.sh` exit 0 at `483a3f1` (23:50): `994 passed, 1 skipped, 17 deselected, 4 warnings in 103.11s (0:01:43)`; `20 commits in origin/main..HEAD`; over 200 lines: `29ca7cd 282 lines` (the test agent's red commit, to disclose). The test agent's red tests are unchanged since `50bcd89` (`git diff --stat 50bcd89 HEAD -- backend/tests/` lists only my three new files). The 23:48 entry's SHA corrected to `0aca7bb`. Pushed; waiting for the coordinator and the test agent's mutation pass (no PR yet).
+- **27.11.2026 23:48** Development agent: `bash scripts/pre_pr.sh` exit 1 at `0aca7bb` (23:47): the same MD038, now in my own log line above; reworded.
+- **27.11.2026 23:45** Development agent: `bash scripts/pre_pr.sh` exit 1 at `0514854` (23:45): every step green (`994 passed, 1 skipped, 17 deselected, 4 warnings in 105.78s (0:01:45)`) except markdownlint: `handoff/lane-d.md:34:123 MD038/no-space-in-code` (the code span of `Instruct:` with its trailing space in the pinned interfaces). Reworded to `Instruct:` and a space.
+- **27.11.2026 23:42** Development agent: docs: decisions 79–81 in the design doc's decision log, ADR 004 amendment "the query side", the backlog's MKC-50 "As built" note, the status doc's lane D section (MKC-50 and its live spend); this file's state, assumptions 3 and 6 (the coordinator's decisions) and next steps. Every `scripts/check_*.py` exits 0.
+- **27.11.2026 23:41** Development agent: live test `tests/rag/test_retriever_live.py` (`@pytest.mark.live`; the real EnWG § 14a page and the synthetic `musterg` into the test database, then two query embeddings). Run 1, 23:39:38–23:40:26: `1 passed, 4 warnings in 45.24s` (its printed cost was cut off by my `tail`; the same texts as run 2). Run 2, 23:40:30–23:41:08: `load: tokens 1859, cost 0.00001700 EUR; total with 2 queries: tokens 1949, cost 0.00001782 EUR`; the question "Darf der Netzbetreiber meine Wärmepumpe bei drohender Überlastung drosseln?" → `['§ 14a Abs. 1', '§ 14a Abs. 3', '§ 14a Abs. 2']`, latency 677 ms; "§ 14a" → `['§ 14a Abs. 2', '§ 14a Abs. 1', '§ 14a Abs. 4']`; `1 passed in 36.18s`. MKC-50 live spend: run 2 EUR 0.00001782; run 1's cost was not printed (the same texts).
+- **27.11.2026 23:38** Development agent: MKC-50.3, the additive `mkc/observability/` change the coordinator granted: `TraceRecord` kind `retrieval`, `Tracer.span_retrieval` (through `_record`, so the no-trace-id rule holds; nothing without a scope), a `retriever` branch in `LangfuseSink.send` (other branches unchanged), `LANGFUSE_TYPES["retrieval"] = "RETRIEVER"` in the demo. No migration (`run_log.kind` is `String(16)`). `uv run pytest tests/observability tests/rag/test_retrieval_trace.py -q`: `37 passed in 3.72s`.
+- **27.11.2026 23:37** Development agent: `mkc.rag.retriever`: `rrf_merge` (`RRF_K = 60`, ties to the lower id), `RetrievedChunk.as_prompt_data()`, `RetrievalTrace`, `retrieve` (`MAX_K = 20`, `CANDIDATES = 50`; keyword: `plainto_tsquery('german')` with its terms ORed, `ts_rank`, then id; vector: cosine `<=>`, then id; one log line per call with counts and the error class). `uv run pytest tests/rag/test_retriever.py tests/rag/test_retriever_unit.py -q`: `27 passed in 2.33s`; `tests/rag/test_retrieval_trace.py`: 5 of 9 green, the 4 bridge tests wait on MKC-50.3.
+- **27.11.2026 23:36** Development agent: own red tests `tests/rag/test_retrieval_trace.py`: the keyword side ORs the query terms, refused arguments are not traced, one log line per call without the query, and the bridge (with a run scope one `run_log` row of kind `retrieval` and one sink record in the run's trace; outside a run no row and no sink call; a Langfuse `retriever` observation). `uv run pytest tests/rag/test_retrieval_trace.py -q`: `9 failed in 2.37s`.
+- **27.11.2026 23:35** Development agent: `EmbedTrace` and `EmbeddingClient(tracers=...)` (one trace per `embed()` call, also on a provider error, with the original error's class; a failing hook is logged and skipped; the factory call is inside the traced region), `embed(texts, *, scope=None)`; `ProviderEmbedder.embed_query` with Qwen3-Embedding's `Instruct: <task>\nQuery:<query>` format (`QUERY_INSTRUCTION`, `query_text`) and the `QueryEmbedder` protocol. `uv run pytest tests/rag/test_embedding_trace_unit.py tests/rag/test_embeddings_unit.py tests/models -q`: `175 passed, 12 deselected, 4 warnings in 8.00s`.
+- **27.11.2026 23:35** Development agent: `ruff format` on `loader.py` and two lint fixes in `test_sources_path_unit.py` (SIM300, RUF043); `uv run ruff check src tests`: `All checks passed!`.
+- **27.11.2026 23:33** Development agent: Review finding 3 (stale wording): "the PDF library comes with MKC-21" in `fetch.py` (docstring and error), the runbook and the status doc now say `pdfplumber` is on `main` and PDF reading is a later lane D ticket; `EMBED_BATCH_SIZE` names decision 72's 2,000 tokens. The `DEFAULT_SOURCES_PATH` docstring was fixed in the previous commit; this file's migration lines already say 0013.
+- **27.11.2026 23:32** Development agent: `MKC_CORPUS_SOURCES_FILE` (`config.py` and `.env.example`, block `MKC-50`), `sources_path()` (setting, then the source-tree file, then `IMAGE_SOURCES_PATH` `/app/data/corpus_sources.yaml`), the CLI without `--sources` uses it, and the one `COPY data/corpus_sources.yaml` line in the Dockerfile (no `ENV` line: outside the grant, the code falls back to the image path). `uv run pytest tests/rag/test_sources_path_unit.py tests/rag/test_image_unit.py tests/rag/test_sources_unit.py tests/rag/test_cli_unit.py tests/rag/test_corpus_cli.py tests/extraction/test_operators_file.py -q`: `32 passed in 1.88s`.
+- **27.11.2026 23:32** Development agent: red tests for the sources path (`MKC_CORPUS_SOURCES_FILE`, then the source-tree file, then `/app/data/corpus_sources.yaml`; the CLI without `--sources`); `uv run pytest tests/rag/test_sources_path_unit.py -q`: `5 failed in 1.27s`.
+- **27.11.2026 23:31** Development agent: Review finding 5: `check_cache_dir` refuses any cache inside the repo, official-only sources included; loader docstring, CLI docstring and runbook say so. `uv run pytest tests/rag/test_loader_unit.py tests/rag/test_corpus_loader.py tests/rag/test_cli_unit.py tests/rag/test_corpus_cli.py -q`: `19 passed in 3.22s`.
+- **27.11.2026 23:31** Development agent: `#203`–`#207` (MKC-50.1 to 50.5) created, assigned to `qamran`, linked to `#50` and set to In progress. Review finding 2: in the `law` layout a `§` line is a heading only first or after a blank line; `uv run pytest tests/rag/test_chunking_unit.py -q`: `17 passed in 0.17s`.
+- **27.11.2026 23:23** Test agent: `test_the_keyword_side_uses_the_german_configuration` ("Wärmepumpen" stems to `warmepump` under `german` only, checked on the test Postgres); the latency test sleeps 70 ms for its 50 ms bound; the finding 2 rule reworded (a heading also comes when no paragraph is open, e.g. after a preamble) and checked satisfiable: `_law_blocks` patched by hand and restored, `uv run pytest tests/rag -q`: `34 failed, 90 passed, 1 deselected, 4 warnings in 10.81s` (the 3 finding-2 tests green, no new failure). Decision block 71–73 marked closed. `uv run pytest tests/rag/test_retriever.py -q`: `18 failed in 2.84s`; `uv run pytest tests/rag -q`: `38 failed, 87 passed, 1 deselected, 4 warnings in 11.10s`.
+- **27.11.2026 23:19** Test agent: tests for the MKC-49 review findings (PR #198). `uv run pytest tests/rag/test_fetch_unit.py tests/rag/test_chunking_unit.py tests/rag/test_loader_unit.py tests/rag/test_image_unit.py -q`: `5 failed, 36 passed in 1.50s`. Red (5): the three `§`-body-line tests (finding 2), `test_an_official_only_cache_inside_the_repo_is_refused_too` (finding 5; replaces the MKC-49 test that allowed it) and `test_the_image_ships_corpus_sources_yaml`. Green today, proven by mutants applied and restored by hand: the https tests (finding 1; scheme check removed: `2 failed, 13 passed`) and the blank-line test (finding 4; law blank lines kept: `4 failed, 13 passed` in `test_chunking_unit.py`, the new blank-line test among them).
+- **27.11.2026 23:19** Test agent: red tests for the `EmbeddingClient` hooks (`EmbedTrace`, one per `embed()` call, also on error, never the texts) and `ProviderEmbedder.embed_query` (Qwen3's `Instruct: …\nQuery:…` format) in `tests/rag/test_embedding_trace_unit.py`; `uv run pytest tests/rag/test_embedding_trace_unit.py -q`: `6 failed, 1 passed in 5.35s` (`test_passages_are_still_embedded_as_stored` is green already: it guards the passage side).
+- **27.11.2026 23:19** Test agent: red tests for `retrieve` on the test database (`tests/rag/test_retriever.py`: `test_paragraph_reference_found_by_keyword`, "BK6-22-300", ordering, `k` bounds, blank query, empty corpus, the RRF score, and `test_latency_per_query_logged_in_the_trace` with `RetrievalTrace`); hand-made unit vectors put both `§ 14a` chunks last on the vector side. `uv run pytest tests/rag/test_retriever.py -q`: `17 failed in 2.57s` (no `mkc.rag.retriever` yet). The commit is over 200 lines (one test module with its corpus fixture).
+- **27.11.2026 23:19** Test agent: red tests for reciprocal rank fusion (`RRF_K = 60`, ties to the lower chunk id) and the untrusted mark (`RetrievedChunk.as_prompt_data()`) in `tests/rag/test_retriever_unit.py`; `uv run pytest tests/rag/test_retriever_unit.py -q`: `9 failed in 0.24s` (no `mkc.rag.retriever` yet).
+- **27.11.2026 23:17** Test agent: lane file rewritten for MKC-50 (header, pinned interfaces, assumptions, what the red tests leave open); decision numbers 79–81.
 - **27.11.2026 21:56** Development agent: `bash scripts/pre_pr.sh` exit 0 at `5b39b61` (`746 passed, 1 skipped, 13 deselected, 4 warnings in 95.73s`); pushed; PR #198 opened (createdAt `2026-11-27T20:55:20Z`), assigned to `qamran`; `#49`, `#179`, `#181`, `#182`, `#184`, `#185`, `#186` set to Testing on the board.
 - **27.11.2026 21:51** Development agent: research note `docs/271120262150-embedding-model-research.md`, linked from ADR 004, decision 71 and the status doc; decision 71 marked confirmed by the user on 27.11.2026; decision 72 (chunk size) added.
 - **27.11.2026 21:50** Development agent: the 3 survivors and the leftover-folder finding. New tests: a lettered Absatz `(2a)` gets `§ 14a Abs. 2a`; the section cap is 4000 characters; a long law Absatz stays whole (decision 72); `REPO_ROOT` is the repo root; the CLI cache test cleans up in `finally`. `uv run pytest tests/rag -q`: `84 passed, 1 deselected, 4 warnings in 9.66s`. Each survivor re-applied by hand and restored: `(\d+)` → `1 failed, 12 passed`; `MAX_CHUNK_CHARS = 40` → `1 failed, 13 passed`; `parents[5]` → `1 failed, 69 passed` (all with `-x`).

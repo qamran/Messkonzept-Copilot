@@ -5,7 +5,7 @@
   Absatz, the layout `mkc.rag.chunking` splits (`law`). Footnotes and the table of contents
   are left out.
 - Plain text is passed on. PDFs (the BNetzA decisions, operator catalogues) are refused for
-  now: the PDF library comes with lane A (MKC-21), and this lane does not add a second one.
+  now: `pdfplumber` is on `main` since MKC-21, but reading PDFs here is a later lane D ticket.
 
 Nothing is written to disk here; the loader's optional cache has its own licence guard.
 """
@@ -143,8 +143,7 @@ def http_fetcher(*, client: httpx.Client | None = None) -> Callable[[CorpusSourc
         kind = content_type.split(";")[0].strip().lower()
         if body.startswith(b"%PDF") or kind == "application/pdf":
             raise CorpusFetchError(
-                f"{source.id}: PDF sources are not supported yet (the PDF library comes "
-                "with MKC-21); load the others with --source"
+                f"{source.id}: PDF sources are not supported yet; load the others with --source"
             )
         if kind == "text/html":
             return law_text(_decode(body, content_type))
