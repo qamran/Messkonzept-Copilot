@@ -10,7 +10,7 @@ the one pdfplumber reads. The same bytes, page, bbox and DPI give the same PNG.
 import io
 from dataclasses import dataclass
 
-import pypdfium2 as pdfium
+import pypdfium2 as pdfium  # type: ignore[import-untyped]  # no py.typed; comes with pdfplumber
 
 TOLERANCE_PT = 0.01
 """How far past the page edge a bbox may reach (float noise from the segmenter)."""
