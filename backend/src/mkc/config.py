@@ -191,6 +191,11 @@ class Settings(BaseSettings):
     decision_model: str = "~typesafe/jev-latest"
     """The decision model on OpenRouter, sent to `/api/v1/systemone` (MKC-46)."""
 
+    # MKC-50 (lane D, RAG): the corpus sources file.
+    corpus_sources_file: str = ""
+    """The corpus sources file of `mkc corpus load`. Empty = `backend/data/corpus_sources.yaml`
+    next to the source, or `/app/data/corpus_sources.yaml` in the image."""
+
     @model_validator(mode="after")
     def _lease_outlives_renewals(self) -> "Settings":
         """A lease must survive two missed renewals, or a slow database loses it."""

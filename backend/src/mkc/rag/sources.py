@@ -15,7 +15,11 @@ import yaml
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 DEFAULT_SOURCES_PATH = Path(__file__).resolve().parents[3] / "data" / "corpus_sources.yaml"
-"""`backend/data/corpus_sources.yaml`; the backend image carries `backend/data/` too."""
+"""`backend/data/corpus_sources.yaml` next to the source tree. The image installs `mkc` into
+the venv, where this path does not exist; it ships the file at `IMAGE_SOURCES_PATH`."""
+
+IMAGE_SOURCES_PATH = Path("/app/data/corpus_sources.yaml")
+"""Where the backend image ships the sources file (`backend/Dockerfile`)."""
 
 
 class CorpusSourceError(ValueError):
@@ -70,8 +74,20 @@ def _licence_for(source_type: SourceType) -> LicenceClass:
     return LicenceClass.OFFICIAL if source_type in OFFICIAL_TYPES else LicenceClass.RESTRICTED
 
 
-def load_sources(path: Path = DEFAULT_SOURCES_PATH) -> list[CorpusSource]:
-    """Read and check the sources file; every problem is a `CorpusSourceError`."""
+def sources_path() -> Path:
+    """`MKC_CORPUS_SOURCES_FILE` if set, else the source-tree file, else the image's file."""
+    from mkc.config import get_settings
+
+    configured = get_settings().corpus_sources_file
+    if configured:
+        return Path(configured)
+    return DEFAULT_SOURCES_PATH if DEFAULT_SOURCES_PATH.is_file() else IMAGE_SOURCES_PATH
+
+
+def load_sources(path: Path | None = None) -> list[CorpusSource]:
+    """Read and check the sources file (default: `sources_path()`); every problem is a
+    `CorpusSourceError`."""
+    path = sources_path() if path is None else path
     try:
         data = yaml.safe_load(path.read_text(encoding="utf-8"))
     except OSError as error:

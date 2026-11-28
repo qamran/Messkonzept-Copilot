@@ -43,14 +43,34 @@ def test_the_guard_runs_before_any_fetch(
     assert (fetched, embedder.texts) == ([], [])
 
 
-def test_an_official_only_cache_inside_the_repo_is_allowed(
+def test_an_official_only_cache_inside_the_repo_is_refused_too(
     corpus_engine: Engine, sources_file: Path, embedder: FakeEmbedder, tmp_path: Path
 ) -> None:
-    from mkc.rag.loader import check_cache_dir
+    """MKC-50 (MKC-49 review finding 5): no fetched text is ever cached inside the repo, law
+    text included. Only `.cache/` is git-ignored, so a cache elsewhere in the repo could be
+    committed by accident, and nothing needs one there. Replaces the MKC-49 test that
+    allowed an official-only cache inside the repo."""
+    from mkc.rag.loader import CorpusLicenceError, check_cache_dir, load_corpus
     from mkc.rag.sources import LicenceClass
 
     official = [s for s in _sources(sources_file) if s.licence is LicenceClass.OFFICIAL]
-    check_cache_dir(tmp_path / "c", official, repo_root=tmp_path)  # no error
+    assert official
+    with pytest.raises(CorpusLicenceError):
+        check_cache_dir(tmp_path / "c", official, repo_root=tmp_path)
+    with pytest.raises(CorpusLicenceError):
+        check_cache_dir(tmp_path / "c", [], repo_root=tmp_path)
+    fetched: list[str] = []
+
+    def fetcher(source: Any) -> str:
+        fetched.append(source.id)
+        return TEXTS[source.id]
+
+    with Session(corpus_engine) as session, pytest.raises(CorpusLicenceError):
+        load_corpus(session, official, embedder=embedder, fetcher=fetcher,
+                    cache_dir=tmp_path / "c", repo_root=tmp_path)  # fmt: skip
+    assert (fetched, embedder.texts) == ([], [])
+    assert not (tmp_path / "c").exists()
+    check_cache_dir(tmp_path / "outside", official, repo_root=tmp_path / "repo")  # no error
 
 
 def test_the_cache_is_read_instead_of_fetching_again(

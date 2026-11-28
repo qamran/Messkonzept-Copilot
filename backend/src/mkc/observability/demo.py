@@ -48,7 +48,8 @@ def make_demo_run(session: Session) -> int:
     return run.id
 
 
-LANGFUSE_TYPES = {"model": "GENERATION", "tool": "TOOL", "stop": "EVENT", "outage": "EVENT"}
+LANGFUSE_TYPES = {"model": "GENERATION", "tool": "TOOL", "stop": "EVENT", "outage": "EVENT",
+                  "retrieval": "RETRIEVER"}  # fmt: skip
 """The Langfuse observation type of each `run_log` kind."""
 
 

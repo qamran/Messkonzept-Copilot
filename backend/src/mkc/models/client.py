@@ -1,4 +1,5 @@
-"""`ModelClient`: the one way to call a model (MKC-13, AGENTS.md model rules).
+"""`ModelClient`: the way to call a chat model (MKC-13, AGENTS.md model rules); decisions go
+through `DecisionClient` (`mkc.decision`) and embeddings through `EmbeddingClient` (below).
 
 LangChain chat models do the provider plumbing underneath (`bind_tools`,
 `with_structured_output`); this wrapper picks the model per role from config, converts our
@@ -339,7 +340,8 @@ EmbedFactory = Callable[[Provider, str, int, float], EmbedCall]
 """Builds the embedding call for (provider, model, dimensions, timeout in seconds)."""
 
 EMBED_BATCH_SIZE = 32
-"""Texts per request; a chunk is at most about 1,000 tokens, so a request stays small."""
+"""Texts per request; a law Absatz can reach about 2,000 tokens (decision 72), so a request
+stays well inside the model's limits."""
 
 
 @dataclass(frozen=True)
@@ -349,6 +351,24 @@ class EmbeddingReply:
     input_tokens: int
     cost_eur: float
     latency_ms: int
+
+
+@dataclass(frozen=True)
+class EmbedTrace:
+    """One `embed()` call, as the trace hooks see it (MKC-50): one per call, not per batch.
+    Counts only: never the texts. `error` starts with the provider error's class name."""
+
+    model_id: str
+    mode: ModelMode
+    texts: int
+    input_tokens: int
+    cost_eur: float
+    latency_ms: int
+    error: str | None
+    scope: TraceScope | None = None
+
+
+EmbedTracer = Callable[[EmbedTrace], None]
 
 
 class EmbeddingClient:
@@ -369,6 +389,7 @@ class EmbeddingClient:
         mode: ModelMode = "live",
         classify: Classifier | None = None,
         batch_size: int = EMBED_BATCH_SIZE,
+        tracers: Sequence[EmbedTracer] = (),
     ) -> None:
         if mode != "live":
             raise ModelConfigError(
@@ -382,10 +403,17 @@ class EmbeddingClient:
         self._dim = dim
         self._classify = classify
         self._batch_size = batch_size
+        self._tracers = list(tracers)
 
     @classmethod
     def from_settings(
-        cls, settings: Settings, *, provider: Provider, model: str, dim: int
+        cls,
+        settings: Settings,
+        *,
+        provider: Provider,
+        model: str,
+        dim: int,
+        tracers: Sequence[EmbedTracer] = (),
     ) -> "EmbeddingClient":
         from mkc.models.providers import classify_error, make_embed_factory  # provider packages
 
@@ -398,31 +426,63 @@ class EmbeddingClient:
             dim=dim,
             mode=settings.model_mode,
             classify=classify_error,
+            tracers=tracers,
         )
 
-    def embed(self, texts: Sequence[str]) -> EmbeddingReply:
-        """The texts' vectors in input order, sent in batches."""
+    def embed(self, texts: Sequence[str], *, scope: TraceScope | None = None) -> EmbeddingReply:
+        """The texts' vectors in input order, sent in batches; one `EmbedTrace` per call."""
         start = time.perf_counter()
         vectors: list[list[float]] = []
         tokens = 0
-        if texts:
-            call = self._factory(
-                self._provider, self._model, self._dim, self._config.timeout_seconds
-            )
-            for at in range(0, len(texts), self._batch_size):
-                try:
+        try:
+            if texts:
+                call = self._factory(
+                    self._provider, self._model, self._dim, self._config.timeout_seconds
+                )
+                for at in range(0, len(texts), self._batch_size):
                     batch, used = call(texts[at : at + self._batch_size])
-                except Exception as error:
-                    mapped = self._classify(error) if self._classify is not None else None
-                    if mapped is not None:
-                        raise mapped from error
-                    raise
-                vectors += batch
-                tokens += used
-        return EmbeddingReply(
+                    vectors += batch
+                    tokens += used
+        except Exception as error:
+            self._trace(len(texts), tokens, _elapsed_ms(start), _err(error), scope)
+            mapped = self._classify(error) if self._classify is not None else None
+            if mapped is not None:
+                raise mapped from error
+            raise
+        reply = EmbeddingReply(
             vectors=vectors,
-            model_id=f"{self._provider}:{self._model}",
+            model_id=self._model_id,
             input_tokens=tokens,
             cost_eur=self._config.cost_eur(self._provider, self._model, tokens, 0),
-            latency_ms=round((time.perf_counter() - start) * 1000),
+            latency_ms=_elapsed_ms(start),
         )
+        self._trace(len(texts), tokens, reply.latency_ms, None, scope)
+        return reply
+
+    @property
+    def _model_id(self) -> str:
+        return f"{self._provider}:{self._model}"
+
+    def _trace(
+        self, texts: int, tokens: int, latency_ms: int, error: str | None,
+        scope: TraceScope | None,
+    ) -> None:  # fmt: skip
+        trace = EmbedTrace(
+            model_id=self._model_id,
+            mode="live",
+            texts=texts,
+            input_tokens=tokens,
+            cost_eur=self._config.cost_eur(self._provider, self._model, tokens, 0),
+            latency_ms=latency_ms,
+            error=error,
+            scope=scope,
+        )
+        for tracer in self._tracers:
+            try:
+                tracer(trace)
+            except Exception:
+                log.exception("embedding trace hook failed for %s", self._model_id)
+
+
+def _elapsed_ms(start: float) -> int:
+    return round((time.perf_counter() - start) * 1000)

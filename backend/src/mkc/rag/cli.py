@@ -2,7 +2,7 @@
 sources of a sources file in one transaction.
 
 Exit codes: 0 loaded; 1 a fetch, the embedder or the database failed (nothing is written);
-2 bad input (sources file, `--source` id, a cache folder inside the repo).
+2 bad input (sources file, `--source` id, a cache folder inside the repo, for any source).
 
 The embedder calls the provider, so it needs `MKC_MODEL_MODE=live` and
 `MKC_OPENROUTER_API_KEY`. Tests replace `make_embedder` and `make_fetcher`.
@@ -20,11 +20,14 @@ from mkc.models.types import ModelError
 from mkc.rag.embeddings import Embedder, ProviderEmbedder
 from mkc.rag.fetch import CorpusFetchError, http_fetcher
 from mkc.rag.loader import CorpusLicenceError, CorpusLoadError, Fetcher, load_corpus
-from mkc.rag.sources import DEFAULT_SOURCES_PATH, CorpusSourceError, load_sources
+from mkc.rag.sources import CorpusSourceError, load_sources, sources_path
 
 corpus_app = typer.Typer(no_args_is_help=True, help="Load the RAG corpus (MKC-49).")
 
-SourcesOpt = Annotated[Path, typer.Option("--sources", help="The sources file (YAML).")]
+SourcesOpt = Annotated[
+    Path | None,
+    typer.Option("--sources", help="The sources file (default: MKC_CORPUS_SOURCES_FILE)."),
+]
 OnlyOpt = Annotated[
     list[str] | None, typer.Option("--source", help="Load only this source id (repeatable).")
 ]
@@ -51,11 +54,12 @@ def _fail(message: str, code: int) -> typer.Exit:
 
 @corpus_app.command()
 def load(
-    sources: SourcesOpt = DEFAULT_SOURCES_PATH,
+    sources: SourcesOpt = None,
     source: OnlyOpt = None,
     cache_dir: CacheOpt = None,
 ) -> None:
     """Fetch, chunk, embed and index every source of the file (or the chosen ones)."""
+    sources = sources_path() if sources is None else sources
     try:
         chosen = load_sources(sources)
     except CorpusSourceError as error:
