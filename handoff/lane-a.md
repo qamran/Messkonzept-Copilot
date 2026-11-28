@@ -1,6 +1,6 @@
 # Lane A: Extraction
 
-**Last updated:** 28.11.2026, 11:16
+**Last updated:** 28.11.2026, 11:18
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -57,6 +57,8 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 4. Test agent: the mutation pass once the development agent's code is in.
 
 ## Recent log
+
+- **28.11.2026 11:18** Development agent: `mkc.extraction.vision_check` (MKC-25.2): `load_truth`, `require_filled`, `compare` (decision 86), `parse_reply`, `check_concepts` (every entry checked, found and on its page before the first call; one `vision` call per concept, role `extract_vision`; system and user text are constants, the image the only document input; an unreadable reply is three `no`), `results_table`, and the CLI (`--truth`, `--pdf`, `--dpi`, default 200; fetches Berlin with the operator allow-list; prints each call's cost and the read). `pytest tests/extraction/test_vision_check.py`: `2 failed, 28 passed in 3.75s`, the 2 being the sheet tests (no sheet yet). `mypy`: "Success: no issues found in 78 source files". No model calls.
 
 - **28.11.2026 11:16** Development agent: sub-issues MKC-25.1 to 25.3 created at 11:14 (#228 to #230, GitHub `createdAt` 10:14:35Z to 10:14:42Z), linked to #25, on the board `In progress`, assigned to `qamran`. `draft_locked` for the whole key (MKC-25.1): `_check_writable` locks the key's draft row and refuses when any item of the key, or the item its `approval` row points at, is `approved` or `committed`; `loop.py` unchanged. `pytest tests/harness`: `330 passed in 25.50s` (red before: `test_draft_locked.py` `6 failed, 3 passed in 2.91s`). Fetch disclosed: the Berlin PDF once with `curl` at 11:12 (sha256 `4e12c90f…29a18`) into the session scratchpad outside the repo, to read the concept list and look at five diagrams (rendered there at 70 dpi); deleted at 11:12. No model calls.
 
