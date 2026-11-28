@@ -60,6 +60,10 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 
 ## Recent log
 
+- **28.11.2026 08:06** Development agent: `render_region` (`mkc/extraction/render.py`, PDFium) is real through `DocumentOps`; the PNG goes into the store, the result holds `image_ref`, `width`, `height`; page, bbox and the cap `render_max_dpi` (`MKC_RENDER_MAX_DPI`, default 300) are checked before anything is drawn (`ToolRefused("invalid_args")`); `page` and `dpi` are `StrictInt`, bbox coordinates refuse booleans (MKC-14 finding 10, also for `extract_text`). `pytest tests/extraction tests/harness/test_registry.py tests/harness/test_tools.py tests/harness/test_tools_hardening.py tests/test_config.py`: `3 failed, 310 passed, 1 skipped, 5 deselected` (the 3 are the redirect hops, MKC-23.5). Fetch disclosed: both operator PDFs with `curl` at 08:04 into a scratch folder outside the repo (Berlin `4e12c90f…29a18`, SachsenNetze `7200b472…0bec`): no page rotation, pdfium and pdfplumber agree on the page sizes, and Berlin page 14's region renders as concept 3.
+
+- **28.11.2026 07:58** Development agent: `MesskonzeptDraft` and the schema export (`ffd2601`); sub-issues MKC-23.1 to 23.6 created (#219 to #224), linked to #23, on the board `In progress`. Live redirect check at 07:49: both operator URLs answer 200 `application/pdf` with no redirect, so every hop is held to the allow-list (coordinator ruling on assumption 15).
+
 - **28.11.2026 07:44** Test agent: red test `05c2c43` (a row-less `draft_saved` item in a full run, PR #167 finding 7). Red run at `05c2c43`: eight new test files `59 failed, 5 passed in 6.05s`; full suite `59 failed, 1169 passed, 2 skipped, 20 deselected, 4 warnings in 111.13s (0:01:51)`. Commit sizes corrected from `git log --shortstat`.
 
 - **28.11.2026 07:40** Test agent: MKC-23 red tests committed (`5e00ed9` to `7923957`, 07:36) and the lane file (`11425dc`). Assumptions 1 to 15 above.

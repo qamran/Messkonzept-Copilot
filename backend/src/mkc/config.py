@@ -196,6 +196,11 @@ class Settings(BaseSettings):
     """The corpus sources file of `mkc corpus load`. Empty = `backend/data/corpus_sources.yaml`
     next to the source, or `/app/data/corpus_sources.yaml` in the image."""
 
+    # MKC-23 (lane A): the DPI cap of `render_region` (decision 82).
+    render_max_dpi: int = Field(default=300, ge=36, le=1200)
+    """The highest DPI `render_region` renders at; a call above it is refused (`invalid_args`).
+    300 dpi reads a diagram's small print; an A4 page at 300 dpi is about 8.7 megapixels."""
+
     @model_validator(mode="after")
     def _lease_outlives_renewals(self) -> "Settings":
         """A lease must survive two missed renewals, or a slow database loses it."""

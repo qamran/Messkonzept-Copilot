@@ -18,9 +18,17 @@ result; the model never queues anything itself.
 """
 
 from dataclasses import replace
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, FiniteFloat, model_validator
+from pydantic import (
+    BaseModel,
+    BeforeValidator,
+    ConfigDict,
+    Field,
+    FiniteFloat,
+    StrictInt,
+    model_validator,
+)
 from sqlalchemy.orm import Session, sessionmaker
 
 from mkc.extraction.draft import MesskonzeptDraft
@@ -34,20 +42,32 @@ class _Args(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+def _not_bool(value: Any) -> Any:
+    if isinstance(value, bool):
+        raise ValueError("a number, not a boolean")
+    return value
+
+
+# Strict shapes (MKC-14 finding 10): a page is an int, never `True` or `1.0`; a coordinate is
+# a finite number, never a boolean, NaN or inf.
+Page = Annotated[StrictInt, Field(ge=1, description="1-based page number")]
+Coord = Annotated[FiniteFloat, BeforeValidator(_not_bool)]
+Bbox = tuple[Coord, Coord, Coord, Coord]
+BBOX_DOC = "x0, top, x1, bottom in PDF points from the top left, as in the item's task"
+
+
+def _check_order(bbox: Bbox | None) -> None:
+    if bbox is not None and not (bbox[0] < bbox[2] and bbox[1] < bbox[3]):
+        raise ValueError("bbox needs x0 < x1 and top < bottom")
+
+
 class TextArgs(_Args):
-    page: int = Field(ge=1, description="1-based page number")
-    bbox: tuple[FiniteFloat, FiniteFloat, FiniteFloat, FiniteFloat] | None = Field(
-        default=None,
-        description="x0, top, x1, bottom in PDF points from the top left, as in the item's"
-        " task; omitted means the whole page",
-    )
+    page: Page
+    bbox: Bbox | None = Field(default=None, description=f"{BBOX_DOC}; omitted: the whole page")
 
     @model_validator(mode="after")
     def _ordered(self) -> "TextArgs":
-        if self.bbox is not None and not (
-            self.bbox[0] < self.bbox[2] and self.bbox[1] < self.bbox[3]
-        ):
-            raise ValueError("bbox needs x0 < x1 and top < bottom")
+        _check_order(self.bbox)
         return self
 
 
@@ -56,9 +76,14 @@ class TablesArgs(_Args):
 
 
 class RenderArgs(_Args):
-    page: int = Field(ge=1)
-    bbox: tuple[float, float, float, float] = Field(description="x0, y0, x1, y1 in PDF points")
-    dpi: int = Field(ge=1)
+    page: Page
+    bbox: Bbox = Field(description=f"{BBOX_DOC}; inside the page")
+    dpi: StrictInt = Field(ge=1, description="dots per inch, at most the configured cap")
+
+    @model_validator(mode="after")
+    def _ordered(self) -> "RenderArgs":
+        _check_order(self.bbox)
+        return self
 
 
 class ImageArgs(_Args):
@@ -149,6 +174,7 @@ def default_registry(
             "segment_document": documents.segment,
             "extract_text": documents.extract_text,
             "extract_tables": documents.extract_tables,
+            "render_region": documents.render_region,
         }
         item = tuple(replace(t, fn=real[t.name]) if t.name in real else t for t in item)
         run = tuple(replace(t, fn=real[t.name]) if t.name in real else t for t in run)
