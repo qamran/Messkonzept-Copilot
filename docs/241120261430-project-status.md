@@ -1,6 +1,6 @@
 # Project status: Messkonzept-Copilot
 
-**Last updated:** 28.11.2026, 01:40
+**Last updated:** 28.11.2026, 10:04
 
 This is the living status document. It is updated whenever a decision is made or work is completed. Older brainstorming material lives in `brainstorming internal/` (gitignored and frozen).
 
@@ -76,7 +76,8 @@ This is the living status document. It is updated whenever a decision is made or
 - **Live contract tests (MKC-13.6), 26.11.2026 15:58–16:00:** `cd backend && uv run --env-file .env pytest -m live tests/models/test_contract_live.py -v -s`: **12 passed**. Tool-call round-trip, structured output and vision (not a criterion; a 64×64 red PNG) for OpenRouter (`google/gemini-3.5-flash-lite`, zero-data-retention routing), Gemini (`gemini-3.5-flash-lite`, free tier), Anthropic (`claude-haiku-5-5`) and the Meta API (`muse-spark-1.3` on `api.meta.ai/v1`). The first runs (15:39–15:46) had no Meta key; Meta said "white" for a 16×16 image and "red" at 64×64, so the test image is 64 px. **Spend for the ticket:** under €0.02 by the price table (all runs plus two Meta probe calls; Anthropic prices are an OpenRouter stand-in, Gemini counted as free tier).
 - **MKC-36 done** (lane B; PR #196 merged as `046f61e` on 27.11.2026, review PASS, deployed the same day): sub-issues MKC-36.1 to 36.5 (#176, #177, #178, #180, #183). Built: `mkc.advisor.facts` (`SiteFacts`, `FactsExtraction`, `extract_facts`), `mkc.advisor.questions` (`required_questions`), `mkc.advisor.api` (`POST /api/advisor/facts`, `POST /api/advisor/questions`); the UI `FactsCard` (confirm and edit) and `AdvisorPage` on `/advisor`; decisions 65 and 66. **Spend:** €0.013138 (three live calls on synthetic text to check the schema with the real provider, 27.11.2026 20:49).
 - **MKC-46 done** (lane C; PR #195 merged as `085323a` on 27.11.2026, review PASS, deployed the same day), decision-layer spike: the Jev call path via OpenRouter works (ADR 004 amendment, decisions 68 and 69; sub-issues MKC-46.1 to 46.3, #192–#194). Built: `langchain-typesafe==0.1.0`, `MKC_DECISION_BACKEND` (default `llm`, the fallback stays the default) and `MKC_DECISION_MODEL`, `build_decision_model` (base URL `https://openrouter.ai/api`, path `/api/v1/systemone`, zero-data-retention routing in every body), `mkc.decision` (`DecisionClient`, typed answers, `DecisionError`). Live: `uv run --env-file .env pytest -m live tests/decision/test_jev_live.py -v`: "1 passed in 10.26s" (20:47:56); `~typesafe/jev-latest` resolved to `typesafe/jev-1.14-20261014`. **Spend for the ticket (six live calls, 20:40–20:48):** three printed `usage.cost` 0.000011886, 0.000011886 and 0.000017934 USD; two 404 routing probes and the pytest run printed no cost. Call log: `handoff/lane-c.md`.
-- **Wave 2 done (28.11.2026):** MKC-27 (lane A2, PR #214, `3bacfc5`, decision 74), MKC-22 (lane A, PR #215, `6d3aee9`, decisions 76–78) and MKC-50 (lane D, PR #216, `3636edb`, decisions 79–81) merged and deployed, each after a review PASS; the coordinator's log is MKC-200 (#200). Decision 75 stays reserved for lane A2's MKC-24. **Next: wave 3** is MKC-23 alone (lane A; the only open lane ticket whose dependencies are all done; MKC-54 to MKC-60 are Phase 8 or deferred and have no "Depends on" line). Lane A2 waits on MKC-23 (MKC-24), lane B on MKC-30 (MKC-37), lane C on MKC-26 (MKC-47), lane D on MKC-38 (MKC-51). The review findings of waves 1 and 2 are listed in `HANDOFF.md` under Next steps.
+- **Wave 2 done (28.11.2026):** MKC-27 (lane A2, PR #214, `3bacfc5`, decision 74), MKC-22 (lane A, PR #215, `6d3aee9`, decisions 76–78) and MKC-50 (lane D, PR #216, `3636edb`, decisions 79–81) merged and deployed, each after a review PASS; the coordinator's log is MKC-200 (#200). Decision 75 stays reserved for lane A2's MKC-24. Wave 3 was MKC-23 alone (lane A).
+- **Wave 3 done (28.11.2026):** MKC-23 (lane A, PR #225, `6208e97`, decisions 82–84) merged and deployed after a review PASS; the coordinator's log is MKC-218 (#218). **Next: wave 4** is MKC-25 (lane A, go/no-go vision check) and MKC-24 (lane A2, decision 75); the coordinator assigns their decision blocks from 85. Lane B waits on MKC-30 (MKC-37), lane C on MKC-26 (MKC-47), lane D on MKC-38 (MKC-51). The review findings of waves 1 to 3 are listed in `HANDOFF.md` under Next steps.
 
 ## Key documents
 
@@ -96,7 +97,7 @@ This is the living status document. It is updated whenever a decision is made or
 | README (intro + links for both repos) | `README.md` |
 | Official brief | `AE.CAP_afa.md` |
 
-## Decisions so far (summary; the full log of 81 decision numbers, 67, 70 and 73 not used and 75 reserved for MKC-24, is in design doc section 18)
+## Decisions so far (summary; the full log of 84 decision numbers, 67, 70 and 73 not used and 75 reserved for MKC-24, is in design doc section 18)
 
 - **Idea:** Messkonzept-Copilot. It extracts operator Messkonzept PDFs into structured, LBS-keyed records with human approval, and gives household site advice with citations.
 - **Primary user:** MSB, VNB and energy-IT staff working across grid areas; installers are secondary; plus a public read-only demo.
