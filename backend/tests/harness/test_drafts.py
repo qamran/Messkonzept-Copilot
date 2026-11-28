@@ -15,6 +15,7 @@ from mkc.harness.registry import default_registry
 from mkc.harness.states import ItemState
 from mkc.harness.tools import ToolEnv, ToolRegistry
 from mkc.models.types import ToolCall
+from tests.extraction.drafts import valid_draft
 from tests.harness.conftest import make_run
 from tests.harness.test_loop import call, start
 from tests.harness.test_resume import Crash, CrashingTools, go
@@ -40,19 +41,23 @@ def drafts(engine: Engine) -> list[tuple[str, str, int, dict[str, Any]]]:
 def test_save_draft_twice_creates_one_draft(engine: Engine) -> None:
     run_id, (item_id,) = start(engine)
     registry = default_registry(sessions=sessionmaker(engine))
-    first = save(registry, env_for(run_id, item_id), {"lbs": "9992000000026"})
-    second = save(registry, env_for(run_id, item_id), {"lbs": "9992000000018"})
+    first = save(registry, env_for(run_id, item_id), valid_draft("v1"))
+    second = save(registry, env_for(run_id, item_id), valid_draft("v2"))
     assert first.ok and second.ok
     assert first.data == second.data  # the same draft id
-    assert drafts(engine) == [("sha256:doc", "MK-1", item_id, {"lbs": "9992000000018"})]
+    assert [(*d[:3], d[3]["title"]) for d in drafts(engine)] == [
+        ("sha256:doc", "MK-1", item_id, "v2")
+    ]
 
 
 def test_the_key_comes_from_the_harness_not_the_arguments(engine: Engine) -> None:
     run_id, ids = make_run(engine, "running", "running")
     registry = default_registry(sessions=sessionmaker(engine))
-    spoof = {"document_hash": "sha256:other", "concept_key": "MK-1"}
-    save(registry, env_for(run_id, ids[0], "MK-1"), spoof)
-    save(registry, env_for(run_id, ids[1], "MK-2"), spoof)
+    # Since MKC-23 a key inside the draft is refused (`test_approvals.py`); the operator and
+    # source the model writes are only the body, never the key.
+    spoof = valid_draft() | {"operator": "other", "source": {"document": "sha256:other", "page": 1}}
+    assert save(registry, env_for(run_id, ids[0], "MK-1"), spoof).ok
+    assert save(registry, env_for(run_id, ids[1], "MK-2"), spoof).ok
     assert [(d[0], d[1], d[2]) for d in drafts(engine)] == [
         ("sha256:doc", "MK-1", ids[0]),
         ("sha256:doc", "MK-2", ids[1]),
@@ -66,7 +71,7 @@ def test_record_key_needs_the_item_ids() -> None:
 
 
 def test_without_sessions_save_draft_stays_the_placeholder() -> None:
-    result = save(default_registry(), ToolEnv(1, 2, "sha256:doc", "MK-1"), {})
+    result = save(default_registry(), ToolEnv(1, 2, "sha256:doc", "MK-1"), valid_draft())
     assert result.error is not None and result.error.code == "not_implemented"
 
 
@@ -123,6 +128,6 @@ def test_a_save_from_a_later_run_moves_the_draft_to_its_item(engine: Engine) -> 
     first_run, (first_item,) = make_run(engine, "running")
     second_run, (second_item,) = make_run(engine, "running")  # same document and concept
     registry = default_registry(sessions=sessionmaker(engine))
-    save(registry, env_for(first_run, first_item), {"v": 1})
-    save(registry, env_for(second_run, second_item), {"v": 2})
-    assert [(d[2], d[3]) for d in drafts(engine)] == [(second_item, {"v": 2})]
+    save(registry, env_for(first_run, first_item), valid_draft("v1"))
+    save(registry, env_for(second_run, second_item), valid_draft("v2"))
+    assert [(d[2], d[3]["title"]) for d in drafts(engine)] == [(second_item, "v2")]

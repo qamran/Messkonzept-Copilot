@@ -23,6 +23,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, FiniteFloat, model_validator
 from sqlalchemy.orm import Session, sessionmaker
 
+from mkc.extraction.draft import MesskonzeptDraft
 from mkc.extraction.operations import DocumentOps
 from mkc.harness.baseline import RunMemory, make_memory_save_draft
 from mkc.harness.drafts import make_save_draft
@@ -68,6 +69,10 @@ class DraftArgs(_Args):
     draft: dict[str, Any]
 
 
+class SaveDraftArgs(_Args):
+    draft: MesskonzeptDraft = Field(description="the whole concept; keys come from the harness")
+
+
 class OperatorArgs(_Args):
     operator_id: str = Field(min_length=1)
 
@@ -99,7 +104,7 @@ ITEM_TOOLS: tuple[Tool, ...] = (
          _placeholder("MKC-26"), side_effect=False, deterministic=False),
     Tool("validate_draft", "Check a draft; returns errors and warnings.", DraftArgs,
          _placeholder("MKC-28"), side_effect=False, deterministic=True),
-    Tool("save_draft", "Save this item's draft (idempotent).", DraftArgs,
+    Tool("save_draft", "Save this item's draft (idempotent).", SaveDraftArgs,
          _placeholder("MKC-23"), side_effect=False, deterministic=False),
 )  # fmt: skip
 

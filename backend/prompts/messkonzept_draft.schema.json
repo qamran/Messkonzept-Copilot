@@ -1,0 +1,297 @@
+{
+  "$defs": {
+    "Component": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "G",
+            "B",
+            "WR",
+            "SE",
+            "SV",
+            "sVE",
+            "S"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "attached_to": {
+          "description": "label of the meter the component hangs on",
+          "minLength": 1,
+          "title": "Attached To",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "attached_to"
+      ],
+      "title": "Component",
+      "type": "object"
+    },
+    "Formula": {
+      "additionalProperties": false,
+      "properties": {
+        "expression": {
+          "minLength": 1,
+          "title": "Expression",
+          "type": "string"
+        },
+        "provenance": {
+          "description": "printed by the operator, or derived and marked as such",
+          "enum": [
+            "printed",
+            "derived"
+          ],
+          "title": "Provenance",
+          "type": "string"
+        }
+      },
+      "required": [
+        "expression",
+        "provenance"
+      ],
+      "title": "Formula",
+      "type": "object"
+    },
+    "Lbs": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "description": "13 digits, no spaces",
+          "pattern": "^[0-9]{13}$",
+          "title": "Code",
+          "type": "string"
+        },
+        "condition": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "e.g. 'mit gemessener Erzeugung'; null if none",
+          "title": "Condition"
+        },
+        "provenance": {
+          "description": "stated: printed by the operator; inferred: derived, never shown as stated",
+          "enum": [
+            "stated",
+            "inferred"
+          ],
+          "title": "Provenance",
+          "type": "string"
+        },
+        "rationale": {
+          "minLength": 1,
+          "title": "Rationale",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "provenance",
+        "rationale"
+      ],
+      "title": "Lbs",
+      "type": "object"
+    },
+    "Meter": {
+      "additionalProperties": false,
+      "properties": {
+        "label": {
+          "description": "as printed: Z1, Z2, Z3, Zsv ...",
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "purpose": {
+          "enum": [
+            "Bezug",
+            "Einspeisung",
+            "Zweirichtung",
+            "Erzeugung",
+            "Abgrenzung",
+            "sVE"
+          ],
+          "title": "Purpose",
+          "type": "string"
+        },
+        "directions": {
+          "items": {
+            "enum": [
+              "Bezug",
+              "Einspeisung"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Directions",
+          "type": "array"
+        },
+        "upstream": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "label of the parent meter; null at the grid connection",
+          "title": "Upstream"
+        },
+        "types": {
+          "description": "optional, per power band",
+          "items": {
+            "$ref": "#/$defs/MeterType"
+          },
+          "title": "Types",
+          "type": "array"
+        }
+      },
+      "required": [
+        "label",
+        "purpose",
+        "directions",
+        "upstream"
+      ],
+      "title": "Meter",
+      "type": "object"
+    },
+    "MeterType": {
+      "additionalProperties": false,
+      "description": "The meter type the operator prints for one power band.",
+      "properties": {
+        "band": {
+          "description": "the power band as printed, e.g. '<= 100 kW'",
+          "minLength": 1,
+          "title": "Band",
+          "type": "string"
+        },
+        "type": {
+          "description": "the meter type as printed",
+          "minLength": 1,
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "band",
+        "type"
+      ],
+      "title": "MeterType",
+      "type": "object"
+    },
+    "Source": {
+      "additionalProperties": false,
+      "properties": {
+        "document": {
+          "description": "the document hash",
+          "minLength": 1,
+          "title": "Document",
+          "type": "string"
+        },
+        "page": {
+          "minimum": 1,
+          "title": "Page",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "document",
+        "page"
+      ],
+      "title": "Source",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "One Messkonzept as extracted (section 7), before approval.",
+  "properties": {
+    "operator": {
+      "minLength": 1,
+      "title": "Operator",
+      "type": "string"
+    },
+    "number": {
+      "description": "the concept number as printed, e.g. '3.2'",
+      "minLength": 1,
+      "title": "Number",
+      "type": "string"
+    },
+    "title": {
+      "minLength": 1,
+      "title": "Title",
+      "type": "string"
+    },
+    "applications": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Applications",
+      "type": "array"
+    },
+    "meters": {
+      "items": {
+        "$ref": "#/$defs/Meter"
+      },
+      "minItems": 1,
+      "title": "Meters",
+      "type": "array"
+    },
+    "components": {
+      "items": {
+        "$ref": "#/$defs/Component"
+      },
+      "title": "Components",
+      "type": "array"
+    },
+    "formulas": {
+      "description": "optional",
+      "items": {
+        "$ref": "#/$defs/Formula"
+      },
+      "title": "Formulas",
+      "type": "array"
+    },
+    "lbs": {
+      "items": {
+        "$ref": "#/$defs/Lbs"
+      },
+      "title": "Lbs",
+      "type": "array"
+    },
+    "footnotes": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Footnotes",
+      "type": "array"
+    },
+    "source": {
+      "$ref": "#/$defs/Source"
+    }
+  },
+  "required": [
+    "operator",
+    "number",
+    "title",
+    "applications",
+    "meters",
+    "components",
+    "lbs",
+    "footnotes",
+    "source"
+  ],
+  "title": "MesskonzeptDraft",
+  "type": "object"
+}

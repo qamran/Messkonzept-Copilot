@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session
 
 from mkc.db.models import Item
 from mkc.harness.checkpoint import TurnRecord
+from mkc.harness.drafts import draft_body
 from mkc.harness.limits import RunUsage
 from mkc.harness.states import ItemState, transition
 from mkc.harness.tools import ToolEnv
@@ -83,7 +84,7 @@ def make_memory_save_draft(memory: RunMemory) -> Callable[[BaseModel, ToolEnv], 
     """`save_draft` without a key or a row: every call appends one pending approval."""
 
     def save_draft(args: BaseModel, env: ToolEnv) -> Any:
-        body = getattr(args, "draft")  # noqa: B009  (any args model with a `draft` field)
+        body = draft_body(args)
         memory.approvals.append(
             {
                 "document_hash": env.document_hash,

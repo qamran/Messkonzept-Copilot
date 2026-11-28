@@ -24,6 +24,13 @@ def record_key(env: ToolEnv) -> tuple[str, str]:
     return env.document_hash, env.concept_key
 
 
+def draft_body(args: BaseModel) -> Any:
+    """The JSON body of the args' `draft`: a `MesskonzeptDraft` dumped as JSON (MKC-23), or
+    the value as it is for a test registry's free-form draft."""
+    draft = getattr(args, "draft")  # noqa: B009  (any args model with a `draft` field)
+    return draft.model_dump(mode="json") if isinstance(draft, BaseModel) else draft
+
+
 def make_save_draft(sessions: sessionmaker[Session]) -> Callable[[BaseModel, ToolEnv], Any]:
     """`save_draft` writing through its own short transaction from `sessions`.
 
@@ -33,7 +40,7 @@ def make_save_draft(sessions: sessionmaker[Session]) -> Callable[[BaseModel, Too
 
     def save_draft(args: BaseModel, env: ToolEnv) -> Any:
         document_hash, concept_key = record_key(env)
-        body = getattr(args, "draft")  # noqa: B009  (any args model with a `draft` field)
+        body = draft_body(args)
         row = {
             "document_hash": document_hash,
             "concept_key": concept_key,
