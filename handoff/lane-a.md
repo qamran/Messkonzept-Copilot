@@ -1,13 +1,13 @@
 # Lane A: Extraction
 
-**Last updated:** 28.11.2026, 07:46
+**Last updated:** 28.11.2026, 08:23
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
 - **Tickets, in order:** `MKC-21` → `MKC-22` → `MKC-23` → `MKC-25` → `MKC-26` → `MKC-28` → `MKC-29` → `MKC-30`
 - **Branch and worktree:** `mkc-23-render-drafts` (worktree `mkc-lanes/lane-a`, cut from `main` `502c30a`)
-- **Owns:** `mkc/extraction/`, the item tools in `mkc/harness/registry.py`, `backend/data/operators.yaml`; for MKC-23 also `mkc/harness/runner.py` and the executor's registry wiring (coordinator grant, wave 3)
-- **Decision numbers:** 82–84 (wave 3; 62–64 used by MKC-21, 76–78 by MKC-22)
+- **Owns:** `mkc/extraction/`, the item tools in `mkc/harness/registry.py`, `backend/data/operators.yaml`; for MKC-23 also (coordinator grant, wave 3) `mkc/harness/loop.py`, `drafts.py`, `tools.py`, `baseline.py`, `runner.py`, `states.py`, `mkc/worker/executor.py`, the `approval` table in `mkc/db/models.py`, migration `0014`, one block each in `config.py` and `.env.example`
+- **Decision numbers:** 82–84 (wave 3, all used; 62–64 used by MKC-21, 76–78 by MKC-22)
 
 ## Done
 
@@ -16,49 +16,23 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 
 ## In progress
 
-- `MKC-23` (`#23`, render, draft assembly, `save_draft`): red acceptance tests done and pushed (red commits `5e00ed9` to `7923957`, plus `05c2c43`; the last red test commit is `05c2c43`). The source of truth is the backlog entry (issue #23's body is stale: decision 53 moved the enqueue to the harness). Next: the development agent.
-- Red test files (all new; no existing test is changed): `tests/extraction/drafts.py` (the one valid draft body, every guessed nested name in one place), `test_draft_model.py`, `test_render_region.py`, `test_redirect_hops.py`, `test_mkc22_survivor_pins.py` (pins, green on arrival); `tests/harness/test_approvals.py`, `test_approval_edges.py`, `test_run_documents.py`; `tests/worker/test_executor_documents.py`.
-- Red run at `05c2c43`: the eight new test files: `59 failed, 5 passed in 6.05s`; full suite `uv run pytest -q`: `59 failed, 1169 passed, 2 skipped, 20 deselected, 4 warnings in 111.13s (0:01:51)`, all 59 failures in the new files. Red only on the missing `approval` table (their behaviour holds today): `test_save_draft_does_not_enqueue`, `test_a_save_followed_by_a_broken_call_is_not_enqueued`, `test_a_rowless_draft_saved_item_breaks_no_full_run`. Green on arrival: the two survivor pins, the `:443` hop pin, and `dpi` 0 and -72 (`ge=1` exists). `ruff check .`: "All checks passed!"; `ruff format --check .`: "256 files already formatted".
-- Commits over 200 lines (`git log --shortstat`): `5e00ed9` (173 insertions, 80 deletions: the lane file rewrite and the draft model tests), `b1e5e98` (234 insertions, `test_approvals.py`).
-- The red tests need code outside this lane's "Owns" line, which the coordinator grants: `mkc/harness/loop.py` (the enqueue), `drafts.py`, `tools.py` (`ErrorCode` gains `draft_locked`), `baseline.py`, `mkc/db/models.py` and a migration (`approval`), `config.py` and `.env.example` (`render_max_dpi`).
-
-### Pinned interfaces and assumptions (MKC-23; for the coordinator to confirm)
-
-1. `mkc.extraction.draft.MesskonzeptDraft`: exactly `operator`, `number`, `title`, `applications`, `meters`, `components`, `formulas` (optional, default `[]`), `lbs`, `footnotes`, `source`. Section 7's `status`, `approved_by`, `approved_at` are left out: they belong to the approval, and the model must not set them. `extra="forbid"` at every level.
-2. Nested names (all in `tests/extraction/drafts.py`): meter `label`, `purpose`, `directions` (list), `upstream` (None at the grid connection); component `kind`, `attached_to`; LBS `code`, `condition`, `provenance`, `rationale`; source `document`, `page`. `provenance` is `stated` or `inferred`; meter purposes and component kinds are section 7's closed lists.
-3. The schema export is the file `backend/prompts/messkonzept_draft.schema.json`, equal to `MesskonzeptDraft.model_json_schema()`.
-4. `render_region` is real through `default_registry(documents=DocumentOps(...))`; its result holds `image_ref`, the ref of the image put into `documents.store`; Pillow opens it and its size is bbox × dpi / 72 (±1 px).
-5. DPI cap: setting `render_max_dpi` (`MKC_RENDER_MAX_DPI`), an int, default between 150 and 600, read when the `DocumentOps` is built or at the call (the env test sets it before building).
-6. Bbox off the page or page past the end: `ok` false with any code but `not_implemented`, nothing stored. Argument shapes (`page=True`, `page=1.0`, NaN or inf, `dpi` ≤ 0 or `True`, `x0 > x1`): `invalid_args`.
-7. The approval queue is a table named `approval`; the tests count its rows (one record key per test) and truncate it themselves.
-8. The harness (not `save_draft`) enqueues: a bare `save_draft` leaves the item `running` with no queue row; a run's save ends `pending_approval`, run `awaiting_approval`. A `draft_saved` item with a draft row and no queue row is queued by the next `execute_run`, once. `FaultPlan(kill_during_approval=1)` still fires between `draft_saved` and the enqueue.
-9. The user's ruling: "approved" or "committed" means the state of the item that owns the draft row (`draft.item_id`), set directly in the tests. A later save is refused with the new error code `draft_locked` (an `ErrorCode` value); the saving item fails at once with `draft_locked` in `failure_reason` (one model call). A save while the owner is `pending_approval` replaces the body, keeps one queue row, and the new item ends `pending_approval`.
-10. `save_draft` refuses (no write, `ok` false, any code) an item in `queued`, `draft_saved`, `pending_approval` or `failed`.
-11. Lease lost: with the run leased to another owner, `run_item` with the real `fence` raises `LeaseLost` and no draft row exists. How the save learns of it is the development agent's choice.
-12. Same-turn raise (pre-PR minor): a save followed by a call that escapes leaves the item `failed` with no queue row; the draft row may stay (the `drafts.py` rule: go by the item state).
-13. **Most likely to be overruled.** Baseline: a save ends `pending_approval` in the report (pinned only in `test_a_baseline_save_is_queued_in_memory_only`; `write_report` has no `running -> pending_approval` edge today, and the backlog note says a baseline item "can be `draft_saved`"), with no `draft` and no `approval` row and at least one entry in `RunMemory.approvals`; a row-less `draft_saved` baseline item breaks nothing (its state is not pinned).
-14. `execute_run(..., documents=DocumentOps(...))`; the executor builds its `DocumentOps` on `storage_from_settings(settings)`.
-15. Redirect hops (no new argument): a hop must keep the host and port of the URL `http_get` was given, checked before it is requested; `:443` counts as the default port. If the development agent adds an `allowed_hosts` argument instead, its default must still refuse these hops. Not checked against the two real operator URLs; decision 62 (5) says operators redirect through CDNs, so a live fetch may break if one does.
-
-### Existing tests MKC-23 invalidates (the development agent changes them, with a reason in the PR body)
-
-- Free-dict drafts through the real `save_draft`: `test_drafts.py` (every save), `test_baseline.py` (`saved(n)` with `draft={"n": n}` through the default registry, so also `test_faults.py`), `test_registry.py` (`VALID_ARGS` `save_draft` and `validate_draft` `{"draft": {}}`).
-- Baseline runs that assert `draft_saved` (assumption 13 changes them for sure): `test_baseline.py`, the baseline cases of `test_faults.py`.
-- Full-mode runs that may now end `pending_approval` instead of `draft_saved`, depending on how the enqueue is wired for test registries without `enqueue_approval`: `test_faults.py` (`test_kill_during_approval_keeps_the_draft_in_full`), `test_loop.py`, `test_queue.py`, `test_resume.py`, `test_run_limits.py`, `observability/test_traced_run.py`, `test_cli.py`, `worker/test_executor.py`, `test_executor_mode.py`, `test_outage.py`.
-
-### Not covered by red tests (the development agent's items)
-
-- The live Berlin test that skips on a new edition (PR #215 finding 7, optional).
-- How `fetch_document` passes the allow-list to `http_get` (only `http_get` is pinned).
-- Docs: decisions 82–84, design 8.1 and 8.2, status doc, backlog "As built", `.env.example` for `MKC_RENDER_MAX_DPI`, a migration for `approval` (`down_revision = "0013"`).
+- `MKC-23` (`#23`, render, draft assembly, `save_draft`): built; sub-issues MKC-23.1 to 23.6 (#219 to #224). The source of truth is the backlog entry (issue #23's body is stale: decision 53 moved the enqueue to the harness). The test agent's red tests are `5e00ed9` to `7923957` and `05c2c43`; its red run and the 15 assumptions are in this file at `f973c9d`.
+- Coordinator rulings on the assumptions: 1 to 14 confirmed (13: the baseline queues in memory); 15 changed: every hop must be on the operator's `allowed_hosts`, after a live check found no redirect on either operator URL (decision 84); the user's ruling on a later save is decision 83 (4).
+- Built (decisions 82 to 84): `MesskonzeptDraft` and its schema file; `render_region` (PDFium, cap `MKC_RENDER_MAX_DPI` 300, `ToolRefused` for refusals); table `approval` (migration 0014), the guarded `save_draft` (`running` only, `draft_locked`), the real `enqueue_approval`, the loop's enqueue and crash-window sweep, the fence before a save, the baseline's queue in memory; `execute_run(documents=...)` and the executor's `DocumentOps`; redirect hops on the allow-list.
+- Red tests changed (reasons in the PR body): `test_run_documents.py` `replies()` passes the region's bbox to `extract_text` (the whole page reads the sidebar into the title).
+- Existing tests changed (reasons in the PR body): `test_drafts.py`, `test_registry.py`, `test_baseline.py`, `test_faults.py`, `test_cli.py` (typed drafts, `pending_approval`, the `enqueue_approval` trace), `test_fetch_rules.py` (`_chain` hops on the listed host). The other files the test agent listed (`test_loop.py`, `test_queue.py`, `test_resume.py`, `test_run_limits.py`, `test_traced_run.py`, the worker tests) use test registries without `enqueue_approval` and pass unchanged.
+- My tests, written with the code: `tests/harness/test_approval_queue.py` (9), `tests/extraction/test_hop_allowlist.py` (2).
+- Not done here: MKC-15 finding 5 (no edge `awaiting_approval -> running`; the enqueue does not need it); PR #215 finding 7 (optional live-test skip on a new edition); the `faults.py` docstring still says approvals "come in MKC-23" (outside the grant).
 
 ## Next steps
 
-1. Coordinator: confirm assumptions 1 to 15.
-2. Development agent: sub-issues, then make the red tests green; change the invalidated existing tests with a reason in the PR body.
-3. Test agent: the mutation pass on the development agent's code.
+1. Test agent: the mutation pass on the development agent's code.
+2. Review agent: once `gh pr checks` is green.
+3. Then `MKC-25` (lane A's next ticket).
 
 ## Recent log
+
+- **28.11.2026 08:23** Development agent: docs (MKC-23.6): decisions 82 to 84 in design section 18, decision 62 (5) reworded, sections 7 and 8.3 "Built in MKC-23", backlog "As built" and the success criterion ticked, status doc line, runbook "The allow-list" and "Render and the approval queue (MKC-23)" (`MKC_RENDER_MAX_DPI`); this file's head rewritten to the current state (PR #215 finding 1). Full suite at `2582dbb` (`uv run pytest -q`): `1239 passed, 2 skipped, 20 deselected, 4 warnings in 111.66s (0:01:51)`.
 
 - **28.11.2026 08:18** Development agent: redirect hops held to the allow-list (MKC-23.5, PR #215 finding 8): `http_get(..., allowed_hosts=None)` checks every hop with `is_allowed_url` before requesting it (default: the given URL's host); `fetch_document` and `DocumentOps` default to `http_get` with the operator's `allowed_hosts`. Existing tests changed: `test_fetch_rules.py` `_chain` hops on the listed host instead of `cdnN.example`. My `test_hop_allowlist.py` (2 tests) was written with the code. Lane-file times above corrected from git (the 07:58, 08:06, 08:27 and 08:33 headers were not taken from a clock). `pytest tests/extraction`: `242 passed, 1 skipped, 5 deselected`; live fetch at 08:18:11 (`pytest -m live tests/extraction/test_live_berlin.py tests/extraction/test_live_extract.py`, no model calls): `3 passed in 12.25s`.
 
