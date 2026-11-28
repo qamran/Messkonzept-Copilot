@@ -63,19 +63,19 @@ def test_split_file_is_balanced_per_operator_and_keeps_its_pins() -> None:
 
 
 def test_split_file_is_what_the_split_writes_from_its_own_keys() -> None:
-    """Regenerating from the file's keys and pins gives the file, byte for byte."""
+    """Regenerating from the file's keys and pins gives the file."""
     from mkc.gold.split import dump_split, split_keys
 
     split = _load()
     again = dump_split(split_keys(list(split.assignments), pinned_dev=list(split.pinned_dev)))
-    assert SPLIT_FILE.read_bytes() == again.encode("utf-8")
+    # Universal newlines: a Windows checkout (core.autocrlf) may turn LF into CRLF; git
+    # stores LF, and dump_split itself writes no "\r" (test_gold_split).
+    assert SPLIT_FILE.read_text(encoding="utf-8") == again
 
 
 def test_split_file_holds_keys_only() -> None:
-    raw = SPLIT_FILE.read_bytes()
-    assert b"\r" not in raw
-    assert len(raw) < 8_000, "a split of about 40 keys is small; no PDF content"
-    text = raw.decode("utf-8")
+    text = SPLIT_FILE.read_text(encoding="utf-8")
+    assert len(text) < 8_000, "a split of about 40 keys is small; no PDF content"
     assert "base64" not in text and "data:" not in text
     assert all(len(line) <= 100 for line in text.splitlines())
     split = _load()
