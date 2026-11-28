@@ -1,6 +1,6 @@
 # Lane A2: SachsenNetze and gold
 
-**Last updated:** 28.11.2026, 11:37
+**Last updated:** 28.11.2026, 11:39
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -87,6 +87,7 @@ Coordinator rulings (28.11.2026): 1, 2, 3, 5, 7, 8, 9 and 10 confirmed; 6 is the
 
 ## Recent log
 
+- **28.11.2026 11:39** Development agent: `scripts/pre_pr.sh` at `4860080` (pushed): exit 1, `pre-PR gate FAILED: backend: pytest docs: check scripts`. pytest `1 failed, 1362 passed, 2 skipped, 20 deselected, 6 warnings in 116.82s (0:01:56)`, the failure `tests/test_check_gold.py::test_the_repo_passes`; among the check scripts only `scripts/check_gold.py` prints a problem. Both wait for the user task. Everything else ok; commits over 200 lines: `e41e032` (345), `becb54f` (258), `417a4bd` (317), `c7953e7` (218), `8d55ac2` (345; it also carries the draft command, `#232` scope, under `Refs #233`). Red tests unchanged since `cf4175f` (`git diff cf4175f..HEAD -- backend/tests/test_check_gold.py backend/tests/gold/` shows only the two new files `test_gold_cli_draft.py` and `test_gold_family.py`). Open for the coordinator: `GOLD_SPLIT_FILE` is not in the image (the Dockerfile copies only `operators.yaml` and `corpus_sources.yaml`), which MKC-29 will need. No PR opened.
 - **28.11.2026 11:37** Development agent: `mkc gold draft` skips a verified key before the call (no paid call), prints a failed call as "cost unknown" and goes on (exit 1 at the end, the total always printed); decision 88 and the runbook say so. `tests/gold` `86 passed in 4.79s`; hand mutations of the spend cap, the store-time and the import-time facts check each give `1 failed, 10 passed`.
 - **28.11.2026 11:35** Development agent: own red tests: a verified key gets no paid call (it was drafted, then refused at store), a failed call is reported with "cost unknown" and the batch goes on, plus tests for `--max-eur`, the facts-only refusal in `store_gold_draft` and in import: `2 failed, 9 passed in 2.91s` (the 2 are the first two; the other three already pass and are checked by hand mutation next).
 - **28.11.2026 11:33** Development agent: `scripts/pre_pr.sh` at `8803e88` (pushed): exit 1, `pre-PR gate FAILED: backend: pytest docs: check scripts`. pytest `1 failed, 1358 passed, 2 skipped, 20 deselected, 6 warnings in 116.77s (0:01:56)`, the one failure `tests/test_check_gold.py::test_the_repo_passes`; check scripts: only `scripts/check_gold.py` fails (the batch line is missing). Both wait for the user task. ruff, format, mypy, markdownlint, deploy script tests and the commit check ok; commits over 200 lines to disclose: `e41e032` (345), `becb54f` (258), `417a4bd` (317), `c7953e7` (218), `8d55ac2` (345). No PR opened.
