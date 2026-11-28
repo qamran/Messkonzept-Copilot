@@ -1,4 +1,4 @@
-﻿# HANDOFF
+# HANDOFF
 
 **Last updated:** 28.11.2026, 07:49
 
