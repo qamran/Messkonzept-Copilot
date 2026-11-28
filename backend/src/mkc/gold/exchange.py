@@ -19,7 +19,7 @@ item) and writes nothing when one fails. The file never sets `verified_by` or `d
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from pydantic import ValidationError
 from sqlalchemy import select
@@ -83,7 +83,8 @@ def export_items(
     if blind:
         if not keys:
             raise GoldFileError(["a blind export needs the keys to label (--key)"])
-        return {"items": [_blind(_blind_row(session, key, split_file)) for key in sorted(set(keys))]}
+        rows = [_blind_row(session, key, split_file) for key in sorted(set(keys))]
+        return {"items": [_blind(row) for row in rows]}
     query = select(GoldItem).where(GoldItem.kind == KIND, GoldItem.blind.is_(False))
     if keys:
         query = query.where(GoldItem.key.in_(set(keys)))
@@ -141,7 +142,7 @@ def import_items(session: Session, document: Any, *, verified_by: str) -> Import
         if row is None:
             problems.append(f"{key}: no {'blind' if blind else 'drafted'} item to verify")
             continue
-        planned.append((row, payload))
+        planned.append((row, cast(dict[str, Any], payload)))
     if problems:
         raise GoldFileError(problems)
     for row, payload in planned:

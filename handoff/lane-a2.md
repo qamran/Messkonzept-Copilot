@@ -1,6 +1,6 @@
 # Lane A2: SachsenNetze and gold
 
-**Last updated:** 28.11.2026, 11:26
+**Last updated:** 28.11.2026, 11:29
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -79,6 +79,7 @@ Coordinator rulings (28.11.2026): 1, 2, 3, 5, 7, 8, 9 and 10 confirmed; 6 is the
 
 ## Recent log
 
+- **28.11.2026 11:29** Development agent: own tests `tests/gold/test_gold_cli_draft.py` (draft on a synthetic PDF with a fake model: side, source from the segmenter, image sent; pinned keys skipped; unknown key refused; blind export without a draft takes the split file; an unfilled blind import keeps a label; an import without an item stores nothing; a verified draft is not redrafted): `7 passed`. Written after the code, so checked by hand mutations instead (no pin filter, no source override, unfilled blind not skipped): each `1 failed, 6 passed`. ruff, format and mypy clean; `tests/gold tests/db tests/test_cli.py` `123 passed in 20.94s`.
 - **28.11.2026 11:26** Development agent: `mkc/gold/exchange.py` (`export_items`, `import_items`; a blind item takes its split from the drafted item, else from the split file) and `mkc gold draft|export|import` (draft: fetch into memory, segment, region text and a 150 dpi render, `--max-eur` cap, pinned keys skipped unless `--include-pinned`): `tests/gold tests/test_cli.py` `90 passed in 6.62s`.
 - **28.11.2026 11:24** Development agent: live fetch and segment in memory (no model call, no file written): Berlin 26 distinct hints (`1, 1.1, 1.2, 2, 2.1, 2.2, 3, 3.2, 3.3, 4, 4.1, 4.2, 4.4, 5, 5.1, 5.2, 6, 6.1, 6.2, 6.3, 7, 7.1, 8, 11, 11.1, 12`), SachsenNetze 11; all 5 pins are among them. `mkc gold split` (mounted at the end of `mkc/cli.py`) wrote `backend/data/gold_split.yaml`: 37 keys, Berlin 13 dev / 13 test, SachsenNetze 6 / 5. Split, split file and CLI tests `1 failed, 42 passed in 2.01s` (only `gold draft` is left).
 - **28.11.2026 11:24** Development agent: `mkc/gold/draft.py` (`ensure_independent` refuses the same model or family, `draft_concept` through `chat_structured` with the region text wrapped as data in the user message), `mkc/gold/store.py` (`store_gold_draft`; a verified item raises `VerifiedItem`), `mkc/gold/facts.py` (the facts-only rule, also at store time): draft, family and table tests `20 passed in 1.10s`. The coordinator sent the 5 pinned dev keys (Berlin `12`, `3`, `11`, `3.3`, `4.2`).
