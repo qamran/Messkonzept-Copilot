@@ -154,7 +154,7 @@ def test_a_verified_draft_is_not_redrafted(
 ) -> None:
     from mkc.db.models import GoldItem
 
-    _, split = fake
+    recorder, split = fake
     with Session(gold_engine) as session, session.begin():
         session.add(GoldItem(kind="concept", key="stromnetz-berlin:4.1", split="test",
                              blind=False, payload=draft_payload(title="checked"),
@@ -162,6 +162,68 @@ def test_a_verified_draft_is_not_redrafted(
     result = runner.invoke(app, ["gold", "draft", "--operator", "stromnetz-berlin",
                                  "--key", "4.1", "--split-file", str(split)])  # fmt: skip
     assert result.exit_code == 0, result.output
-    assert "not stored" in result.output
+    assert "stromnetz-berlin:4.1: verified by qamran, skipped" in result.output
+    assert recorder.model.seen == [], "no paid call for a verified item"
     [row] = _rows(gold_engine)
     assert row.payload["title"] == "checked"
+
+
+def test_draft_stops_at_max_eur(gold_engine: Engine, fake: tuple[Recorder, Path]) -> None:
+    recorder, split = fake
+    args = ["gold", "draft", "--operator", "stromnetz-berlin", "--key", "4.1", "--key", "5",
+            "--include-pinned", "--no-image", "--split-file", str(split), "--max-eur", "0.0001"]
+    result = runner.invoke(app, args)  # fmt: skip
+    assert result.exit_code == 1, result.output
+    assert "--max-eur" in result.output
+    assert len(recorder.model.seen) == 1  # the first call costs about 0.00027 EUR (models.yaml)
+
+
+def test_a_failed_call_is_reported_and_the_batch_goes_on(
+    gold_engine: Engine, fake: tuple[Recorder, Path]
+) -> None:
+    from tests.gold.test_gold_draft import reply
+
+    recorder, split = fake
+    bad = draft_payload()
+    del bad["meters"]
+    recorder.model.responses = [reply(bad), reply(draft_payload())]
+    args = ["gold", "draft", "--operator", "stromnetz-berlin", "--key", "4.1", "--key", "5",
+            "--include-pinned", "--no-image", "--split-file", str(split)]
+    result = runner.invoke(app, args)  # fmt: skip
+    assert result.exit_code == 1, result.output
+    assert "stromnetz-berlin:4.1: failed" in result.output
+    assert "cost unknown" in result.output
+    assert "total:" in result.output
+    assert [r.key for r in _rows(gold_engine)] == ["stromnetz-berlin:5"]
+
+
+def test_store_refuses_a_payload_that_is_not_facts_only(gold_engine: Engine) -> None:
+    from mkc.gold.draft import GoldDraft
+    from mkc.gold.facts import FactsOnlyError
+    from mkc.gold.store import store_gold_draft
+
+    draft = GoldDraft(key="stromnetz-berlin:5", payload=draft_payload(footnotes=["x" * 2_001]),
+                      drafted_by="openrouter:y/gold", cost_eur=0.0)  # fmt: skip
+    with pytest.raises(FactsOnlyError, match="stromnetz-berlin:5"):
+        with Session(gold_engine) as session, session.begin():
+            store_gold_draft(session, draft, split="dev")
+    assert _rows(gold_engine) == []
+
+
+def test_import_refuses_a_payload_that_is_not_facts_only(
+    gold_engine: Engine, tmp_path: Path
+) -> None:
+    from mkc.db.models import GoldItem
+
+    with Session(gold_engine) as session, session.begin():
+        session.add(GoldItem(kind="concept", key="stromnetz-berlin:5", split="dev", blind=False,
+                             payload=draft_payload(), drafted_by="openrouter:y/gold"))  # fmt: skip
+    item = {"key": "stromnetz-berlin:5", "blind": False,
+            "payload": draft_payload(footnotes=["data:image/png;base64,AAAA"])}  # fmt: skip
+    file = tmp_path / "gold.json"
+    file.write_text(json.dumps({"items": [item]}), encoding="utf-8")
+    result = runner.invoke(app, ["gold", "import", str(file), "--verified-by", "qamran"])
+    assert result.exit_code == 2
+    assert "stromnetz-berlin:5" in result.output and "image" in result.output
+    [row] = _rows(gold_engine)
+    assert row.verified_by is None
