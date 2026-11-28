@@ -44,6 +44,7 @@ All in `backend/tests/gold/` plus `backend/tests/test_check_gold.py`. Each test 
   `- **Berlin gold batch 1:** <N> concepts verified, <H> h of the user's time`
   (N at least 1; H above 0 with a dot as decimal mark; more text may follow). Red until the user has verified the batch.
 - Red run (28.11.2026, at `0ac90c2`): new files `65 failed, 1 passed, 16 errors in 5.19s`; the one pass was a false green (an unknown `gold` command also exits 2), fixed: the unknown-pin test now needs the key in the output, and that file then gave `4 failed in 1.37s`. Full non-live suite: `66 failed, 1262 passed, 2 skipped, 20 deselected, 6 warnings, 16 errors in 118.46s`; the baseline before the tests was `1262 passed, 2 skipped, 20 deselected, 6 warnings in 123.52s`. Reasons: `ModuleNotFoundError` for `mkc.gold` and `check_gold`, `UndefinedTable` for `gold_item`, no `gold` command.
+- Red run at the pushed head `34f9efe` (28.11.2026): new files `66 failed, 16 errors in 6.53s`; full non-live suite `66 failed, 1262 passed, 2 skipped, 20 deselected, 6 warnings, 16 errors in 120.25s`.
 - Commits over 200 lines (to disclose in the PR): `e41e032` (345), `becb54f` (258), `417a4bd` (317); each is one group of test files.
 
 ### Assumptions (for the coordinator to confirm)
