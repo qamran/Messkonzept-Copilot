@@ -1,12 +1,12 @@
 # Lane A: Extraction
 
-**Last updated:** 28.11.2026, 11:05
+**Last updated:** 28.11.2026, 11:09
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
 - **Tickets, in order:** `MKC-21` → `MKC-22` → `MKC-23` → `MKC-25` → `MKC-26` → `MKC-28` → `MKC-29` → `MKC-30`
 - **Branch and worktree:** `mkc-25-vision-check` (worktree `mkc-lanes/lane-a`, cut from `main` `47e110a`)
-- **Owns:** `mkc/extraction/`, the item tools in `mkc/harness/registry.py`, `backend/data/operators.yaml`; for MKC-25 also (coordinator grant, wave 4) `backend/data/go_no_go/`, `scripts/check_go_no_go.py` (written by the test agent), the MKC-25 section of the status doc and, if the decision is Berlin only, one line in design section 15; for the `draft_locked` sub-issue `mkc/harness/drafts.py`, `loop.py` if needed, and a migration `0015_*` (`down_revision = "0014"`) only if a snapshot column is needed
+- **Owns:** `mkc/extraction/`, the item tools in `mkc/harness/registry.py`, `backend/data/operators.yaml`; for MKC-25 (coordinator grant, wave 4) for the `draft_locked` sub-issue `mkc/harness/drafts.py`, `loop.py` if needed, and a migration `0015_*` (`down_revision = "0014"`) only if a snapshot column is needed; proposed, not yet granted (assumption 13): `backend/data/go_no_go/`, `scripts/check_go_no_go.py` (written by the test agent), the MKC-25 section of the status doc and, if the decision is Berlin only, one line in design section 15
 - **Decision numbers:** 85–87 (wave 4; 82–84 used by MKC-23, 76–78 by MKC-22, 62–64 by MKC-21)
 - **Budget (MKC-25):** live vision calls €1.00 in total, retries included, public PDFs only; every call logged here with its printed cost. Spent so far: €0.00.
 
@@ -18,7 +18,7 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 
 ## In progress
 
-- `MKC-25` (`#25`, go/no-go vision check): `In progress`. The test agent's red tests are `304a81c` to `097de14`; no development work yet. The coordinator's rulings 1 to 8 are in the brief; what the tests pin is listed below.
+- `MKC-25` (`#25`, go/no-go vision check): `In progress`. The test agent's red tests are `304a81c` to `942bf3a`; no development work yet. The coordinator's rulings 1 to 8 are in the brief; what the tests pin is listed below.
 
 ### Red tests (MKC-25; test agent, 28.11.2026)
 
@@ -29,8 +29,8 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
   - `results_table(rows) -> str`: header `| concept | meters correct | upstream correct | components correct |`, cells `yes` / `no`.
   - `python -m mkc.extraction.vision_check --help` exits 0 and mentions the truth sheet.
   - The sheet `backend/data/go_no_go/truth.yaml`: only the top key `concepts`, 5 distinct entries, operator `stromnetz-berlin`, `concept` a quoted string, `page` an int, only the keys above, every string at most 40 characters, the file under 8,000 bytes.
-- `backend/tests/test_check_go_no_go.py` (30 tests) and `scripts/check_go_no_go.py` (`097de14`): the status doc section `## Go/no-go vision check (MKC-25)` with the table above (5 rows, the sheet's concepts, `yes` or `no`) and one line `**Decision:** go (the user, dd.MM.yyyy)` or `**Decision:** Berlin only (the user, dd.MM.yyyy)`; for Berlin only, a line in design section 15 naming `MKC-25` and `Berlin only`; for go, no such line. A `**Recommendation:**` line beside it is allowed. The script passes 28 tests on synthetic docs; `test_the_repo_passes` and the table-agreement test are red.
-- `backend/tests/harness/test_draft_locked.py` (9 tests, `304a81c`): the PR #225 finding 1 probe (A pending, B saves `v2` and fails, A approved or committed, C's save must be `draft_locked`), the variant where the decided item owns neither the draft row nor the queue row, and the probe through the loop (C fails with `draft_locked`): 6 red. Three guards are green now and must stay green: a failed saver does not lock while A waits; an approved item of another concept or another document does not lock.
+- `backend/tests/test_check_go_no_go.py` (32 tests, on synthetic docs; only the repo tests read the real files) and `scripts/check_go_no_go.py` (`097de14`, `942bf3a`): the status doc section `## Go/no-go vision check (MKC-25)` with the table above (5 rows, the sheet's concepts, `yes` or `no`) and one line `**Decision:** go (the user, dd.MM.yyyy)` or `**Decision:** Berlin only (the user, dd.MM.yyyy)`; for Berlin only, a line in design section 15 naming `MKC-25` and `Berlin only`; for go, no such line. A `**Recommendation:**` line beside it is allowed. The script reads the sheet's `concept:` values by regex (stdlib only); two tests pin that it reads them as YAML does. Red: `test_the_repo_passes`, the table-agreement test and the repo-sheet test; the other 29 pass.
+- `backend/tests/harness/test_draft_locked.py` (9 tests, `304a81c`): the PR #225 finding 1 probe (A pending, B saves `v2` (a direct `save_draft` call) and is set `failed`, the draft row then B's and the queue row still A's (both asserted), A approved or committed, C's save must be `draft_locked`), the variant where the decided item owns neither the draft row nor the queue row, and the probe through the loop (C fails with `draft_locked`): 6 red. Three guards are green now and must stay green: a failed saver does not lock while A waits; an approved item of another concept or another document does not lock.
 - **CI consequence:** CI's `docs` job runs every `scripts/check_*.py`, so `check_go_no_go.py` is wired in by its name (no change to `ci.yml` or `pre_pr.sh`; `check_pre_pr.py` stays green). The `docs` job, the backend's `test_the_repo_passes` and so `scripts/pre_pr.sh` stay red on this branch until the user's results and decision are in.
 
 ### Assumptions (for the coordinator to confirm)
@@ -42,20 +42,23 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 5. `check_concepts` refuses the whole sheet before any call when one entry is unfilled, a concept is not found by `segment_berlin`, or its page differs from the sheet's.
 6. An unreadable reply (prose, wrong shape, empty, a meter without a label) either raises ValueError or gives three `no`; it never gives a `yes`.
 7. Replay: the tests record into a temporary store with a fake model and replay with no provider; recordings hold replies only (no `base64` in the files). Whether real recordings are kept is the development agent's call.
-8. The sheet's `concept` is a quoted string (so `4.4` stays `4.4`); its strings are facts of at most 40 characters; no text blocks, no images.
+8. The sheet is block-style YAML (one `concept:` line per entry, which the check script reads by regex); its `concept` is a quoted string (so `4.4` stays `4.4`); its strings are facts of at most 40 characters; no text blocks, no images.
 9. Status doc pins: section `## Go/no-go vision check (MKC-25)`, the column names above, cells exactly `yes` or `no`, one decision line attributed `(the user, dd.MM.yyyy)`.
 10. Berlin only needs a new line in design section 15 naming `MKC-25` and `Berlin only`; the existing "narrows to Berlin only" line does not count. A go must not have such a line.
 11. `draft_locked`: once any item of the key (document hash and concept key) is `approved` or `committed`, or the queue row's item is, a save is refused. "The approved body stays" is asserted as the body just before the refused save (`v2` in the probe, the body in the row when A was approved). Whether MKC-29 keeps a snapshot of the body at approval time is the coordinator's call (it may need migration `0015`).
 12. The CLI is not tested beyond `--help`: fetching the PDF and writing the table are live work under the €1.00 budget.
+13. Grants: the brief granted lane A `drafts.py`, `loop.py` and `0015` for the sub-issue. The sheet folder `backend/data/go_no_go/`, the status doc's MKC-25 section and the section 15 line (Berlin only) are proposed here, and `scripts/check_go_no_go.py` was written by the test agent on ruling 5; the coordinator confirms.
 
 ## Next steps
 
-1. Coordinator: confirm or change assumptions 1 to 12.
+1. Coordinator: confirm or change assumptions 1 to 13.
 2. Development agent: sub-issues; the blank truth sheet and the 5 proposed concepts with a reason each (in this file), for the coordinator to confirm before the sheet goes to the user; the module; the `draft_locked` fix.
 3. After the user has filled in the sheet: the live run (€1.00), the result table, a recommendation, and the user's decision through the coordinator.
 4. Test agent: the mutation pass once the development agent's code is in.
 
 ## Recent log
+
+- **28.11.2026 11:09** Test agent: `942bf3a` (11:09): the check-script tests now build synthetic docs (copies of the real docs would break once the real MKC-25 section lands); two tests pin that the script reads the sheet's concepts as YAML does. Fresh runs at `942bf3a`: `ruff check .` "All checks passed!", `ruff format --check .` "267 files already formatted"; the three new files `39 failed, 32 passed in 3.83s`; full suite (`uv run pytest -q`) `39 failed, 1294 passed, 2 skipped, 20 deselected, 6 warnings in 117.87s (0:01:57)`, the 39 being exactly the new red tests (6 `draft_locked`, 30 vision check, 3 check script). The 11:05 time of the entry below was not taken from a clock: its commit `9d1e953` is 11:04:11.
 
 - **28.11.2026 11:05** Test agent: MKC-25 red tests `304a81c`, `64d0eb2`, `097de14` (10:57 to 11:00). Red run of the three new files: `38 failed, 31 passed in 6.38s`. Full suite (`uv run pytest -q`): `38 failed, 1293 passed, 2 skipped, 20 deselected, 6 warnings in 127.46s (0:02:07)`; the 38 are exactly the new red tests (6 `draft_locked`, 30 vision check, 2 check script). `python scripts/check_go_no_go.py`: exit 1 (sheet missing, section missing); every other `scripts/check_*.py` exits 0. Commits over 200 lines: `64d0eb2` (421), `097de14` (367), test files only. No model calls, no fetches.
 
