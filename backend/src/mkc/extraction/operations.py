@@ -16,7 +16,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session, sessionmaker
 
 from mkc.config import get_settings
-from mkc.extraction.fetch import Getter, document_by_hash, fetch_document, http_get
+from mkc.extraction.fetch import Getter, document_by_hash, fetch_document
 from mkc.extraction.operators import OperatorConfig
 from mkc.extraction.render import RegionOutsidePage, render_region
 from mkc.extraction.segment import segment_document
@@ -39,13 +39,14 @@ class DocumentOps:
         sessions: sessionmaker[Session],
         store: BlobStore,
         *,
-        get: Getter = http_get,
+        get: Getter | None = None,
         operators: dict[str, OperatorConfig] | None = None,
         render_max_dpi: int | None = None,
     ) -> None:
         self.sessions = sessions
         self.store = store
         self.get = get
+        """None: `http_get`, every redirect hop held to the operator's `allowed_hosts`."""
         self.operators = operators
         self.render_max_dpi = render_max_dpi
         """None: the setting `render_max_dpi` (`MKC_RENDER_MAX_DPI`), read at each render."""

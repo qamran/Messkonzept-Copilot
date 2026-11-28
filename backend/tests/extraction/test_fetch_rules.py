@@ -14,6 +14,7 @@ from sqlalchemy import Engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from tests.extraction.conftest import (
+    HOST_OK,
     OPERATOR_ID,
     URL_OK,
     FakeGet,
@@ -136,14 +137,16 @@ def test_the_edition_keeps_the_final_url_after_redirects(
 
 
 def _chain(hops: int) -> tuple[httpx.MockTransport, list[httpx.Request]]:
-    """`hops` redirects, each to a new host (a CDN off the allow-list), then the PDF."""
+    """`hops` redirects, each to a new path on the listed host, then the PDF. (Until MKC-23
+    each hop went to a new host, a CDN off the allow-list; such a hop is now refused before
+    it is requested, `test_redirect_hops.py`.)"""
     seen: list[httpx.Request] = []
 
     def handle(request: httpx.Request) -> httpx.Response:
         seen.append(request)
         n = len(seen)
         if n <= hops:
-            return httpx.Response(302, headers={"location": f"https://cdn{n}.example/x.pdf"})
+            return httpx.Response(302, headers={"location": f"https://{HOST_OK}/hop{n}.pdf"})
         return httpx.Response(200, content=b"%PDF-data")
 
     return httpx.MockTransport(handle), seen
@@ -154,7 +157,7 @@ def test_http_get_follows_at_most_five_redirects() -> None:
 
     assert MAX_REDIRECTS == 5
     transport, seen = _chain(5)
-    assert http_get(URL_OK, transport=transport).url == "https://cdn5.example/x.pdf"
+    assert http_get(URL_OK, transport=transport).url == f"https://{HOST_OK}/hop5.pdf"
     assert len(seen) == 6
     transport, seen = _chain(6)
     with pytest.raises(DisallowedUrl, match="more than 5 redirects"):
@@ -163,8 +166,8 @@ def test_http_get_follows_at_most_five_redirects() -> None:
 
 
 def test_redirect_hops_get_a_plain_get_with_no_body_or_credentials() -> None:
-    # Known limit (decision 62): hops off the allow-list are requested; only the final URL is
-    # checked. They must learn nothing beyond the URL: no body, no auth, no cookies.
+    # Hops stay on the allow-list since MKC-23 (decision 62 (5)); they still learn nothing
+    # beyond the URL: no body, no auth, no cookies.
     from mkc.extraction.fetch import http_get
 
     transport, seen = _chain(2)
