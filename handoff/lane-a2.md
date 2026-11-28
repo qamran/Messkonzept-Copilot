@@ -1,6 +1,6 @@
 # Lane A2: SachsenNetze and gold
 
-**Last updated:** 28.11.2026, 11:30
+**Last updated:** 28.11.2026, 11:33
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -87,6 +87,7 @@ Coordinator rulings (28.11.2026): 1, 2, 3, 5, 7, 8, 9 and 10 confirmed; 6 is the
 
 ## Recent log
 
+- **28.11.2026 11:33** Development agent: `scripts/pre_pr.sh` at `8803e88` (pushed): exit 1, `pre-PR gate FAILED: backend: pytest docs: check scripts`. pytest `1 failed, 1358 passed, 2 skipped, 20 deselected, 6 warnings in 116.77s (0:01:56)`, the one failure `tests/test_check_gold.py::test_the_repo_passes`; check scripts: only `scripts/check_gold.py` fails (the batch line is missing). Both wait for the user task. ruff, format, mypy, markdownlint, deploy script tests and the commit check ok; commits over 200 lines to disclose: `e41e032` (345), `becb54f` (258), `417a4bd` (317), `c7953e7` (218), `8d55ac2` (345). No PR opened.
 - **28.11.2026 11:30** Development agent: docs: decisions 75 (split), 88 (independence by model family), 89 (gold items, blind mode, facts only) in design section 18, design 11.1 says "another model family"; status doc section renamed `## Lane A2: SachsenNetze (MKC-27) and gold tooling (MKC-24)` with an MKC-24 part (no batch line yet); backlog MKC-24 "As built"; runbook section "Gold data (MKC-24)" at the end. Batch 1 plan above. No ADR change (ADR 003 already keeps gold data in Postgres with a JSON export).
 - **28.11.2026 11:29** Development agent: `scripts/check_gold.py` (the pinned line in the `## Lane A2 ... MKC-24` section, N >= 1, H > 0): `tests/test_check_gold.py` `1 failed, 14 passed in 0.55s`; the one failure is `test_the_repo_passes`, red until the user has verified batch 1 (expected).
 - **28.11.2026 11:29** Development agent: own tests `tests/gold/test_gold_cli_draft.py` (draft on a synthetic PDF with a fake model: side, source from the segmenter, image sent; pinned keys skipped; unknown key refused; blind export without a draft takes the split file; an unfilled blind import keeps a label; an import without an item stores nothing; a verified draft is not redrafted): `7 passed`. Written after the code, so checked by hand mutations instead (no pin filter, no source override, unfilled blind not skipped): each `1 failed, 6 passed`. ruff, format and mypy clean; `tests/gold tests/db tests/test_cli.py` `123 passed in 20.94s`.
