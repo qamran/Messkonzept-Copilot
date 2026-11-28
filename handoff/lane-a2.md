@@ -1,6 +1,6 @@
 # Lane A2: SachsenNetze and gold
 
-**Last updated:** 28.11.2026, 11:22
+**Last updated:** 28.11.2026, 11:23
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -79,8 +79,9 @@ Coordinator rulings (28.11.2026): 1, 2, 3, 5, 7, 8, 9 and 10 confirmed; 6 is the
 
 ## Recent log
 
+- **28.11.2026 11:23** Development agent: own red test `tests/gold/test_gold_family.py` for ruling 4 (the same model family as `extract_vision` is refused; family = the vendor prefix before `/`, a direct provider counts as its vendor): `8 failed in 0.25s` (`mkc.gold.draft` missing).
 - **28.11.2026 11:22** Development agent: table `gold_item` (block `MKC-24` at the end of `mkc/db/models.py`) and migration `0015` (`down_revision` `0014`): unique on (kind, key, blind), `split` dev or test, a blind label has no drafter. `tests/db tests/gold/test_gold_table.py`: `3 failed, 28 passed in 17.24s` (the 3 need `mkc.gold.draft` and `store`).
-- **28.11.2026 11:24** Development agent: sub-issues `#231` to `#234` created and linked; `mkc/gold/split.py` (SHA-256 rank per operator, `ceil(n/2)` to dev, pins plus the best-ranked unpinned keys): `tests/gold/test_gold_split.py` `34 passed in 0.56s`.
+- **28.11.2026 11:22** Development agent: sub-issues `#231` to `#234` created and linked; `mkc/gold/split.py` (SHA-256 rank per operator, `ceil(n/2)` to dev, pins plus the best-ranked unpinned keys): `tests/gold/test_gold_split.py` `34 passed in 0.56s`.
 
 - **28.11.2026 11:07** Test agent: MKC-24 red tests committed (`e41e032`, `becb54f`, `417a4bd`, `0ac90c2`, `cf4175f`): split, split file, draft role, table, export and import with blind mode, and the user-task check. New files: `65 failed, 1 passed, 16 errors` (the pass was a false green, fixed); full non-live suite: `66 failed, 1262 passed, 2 skipped, 20 deselected, 6 warnings, 16 errors in 118.46s`.
 - **27.11.2026 23:59** PR #214 merged as `3bacfc5`: MKC-27 done.
