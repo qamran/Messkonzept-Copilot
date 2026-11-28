@@ -1,6 +1,6 @@
 # Lane A: Extraction
 
-**Last updated:** 28.11.2026, 07:35
+**Last updated:** 28.11.2026, 07:39
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -16,15 +16,49 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 
 ## In progress
 
-- `MKC-23` (`#23`, render, draft assembly, `save_draft`): the test agent is writing the red acceptance tests on `mkc-23-render-drafts`. The source of truth is the backlog entry (issue #23's body is stale: decision 53 moved the enqueue to the harness).
-- Red test files (all new; no existing test is changed): `tests/extraction/drafts.py` (the one valid draft body), `test_draft_model.py`, `test_render_region.py`, `test_redirect_hops.py`, `test_mkc22_survivor_pins.py` (pins, green on arrival); `tests/harness/test_approvals.py`, `test_approval_edges.py`, `test_run_documents.py`; `tests/worker/test_executor_documents.py`.
+- `MKC-23` (`#23`, render, draft assembly, `save_draft`): red acceptance tests done and pushed (red commits `5e00ed9` to `7923957`; the last red commit is `7923957`). The source of truth is the backlog entry (issue #23's body is stale: decision 53 moved the enqueue to the harness). Next: the development agent.
+- Red test files (all new; no existing test is changed): `tests/extraction/drafts.py` (the one valid draft body, every guessed nested name in one place), `test_draft_model.py`, `test_render_region.py`, `test_redirect_hops.py`, `test_mkc22_survivor_pins.py` (pins, green on arrival); `tests/harness/test_approvals.py`, `test_approval_edges.py`, `test_run_documents.py`; `tests/worker/test_executor_documents.py`.
+- Red run at `7923957`: the nine files: `58 failed, 5 passed in 6.14s`; full suite `uv run pytest -q`: `58 failed, 1169 passed, 2 skipped, 20 deselected, 4 warnings in 129.81s (0:02:09)`, all 58 failures in the new files. Green on arrival: the two survivor pins, the `:443` hop pin, and `dpi` 0 and -72 (`ge=1` exists). `ruff check .`: "All checks passed!"; `ruff format --check .`: "256 files already formatted".
+- Commits over 200 lines: `b1e5e98` (`test_approvals.py`, 244 lines).
+
+### Pinned interfaces and assumptions (MKC-23; for the coordinator to confirm)
+
+1. `mkc.extraction.draft.MesskonzeptDraft`: exactly `operator`, `number`, `title`, `applications`, `meters`, `components`, `formulas` (optional, default `[]`), `lbs`, `footnotes`, `source`. Section 7's `status`, `approved_by`, `approved_at` are left out: they belong to the approval, and the model must not set them. `extra="forbid"` at every level.
+2. Nested names (all in `tests/extraction/drafts.py`): meter `label`, `purpose`, `directions` (list), `upstream` (None at the grid connection); component `kind`, `attached_to`; LBS `code`, `condition`, `provenance`, `rationale`; source `document`, `page`. `provenance` is `stated` or `inferred`; meter purposes and component kinds are section 7's closed lists.
+3. The schema export is the file `backend/prompts/messkonzept_draft.schema.json`, equal to `MesskonzeptDraft.model_json_schema()`.
+4. `render_region` is real through `default_registry(documents=DocumentOps(...))`; its result holds `image_ref`, the ref of the image put into `documents.store`; Pillow opens it and its size is bbox × dpi / 72 (±1 px).
+5. DPI cap: setting `render_max_dpi` (`MKC_RENDER_MAX_DPI`), an int, default between 150 and 600, read when the `DocumentOps` is built or at the call (the env test sets it before building).
+6. Bbox off the page or page past the end: `ok` false with any code but `not_implemented`, nothing stored. Argument shapes (`page=True`, `page=1.0`, NaN or inf, `dpi` ≤ 0 or `True`, `x0 > x1`): `invalid_args`.
+7. The approval queue is a table named `approval`; the tests count its rows (one record key per test) and truncate it themselves.
+8. The harness (not `save_draft`) enqueues: a bare `save_draft` leaves the item `running` with no queue row; a run's save ends `pending_approval`, run `awaiting_approval`. A `draft_saved` item with a draft row and no queue row is queued by the next `execute_run`, once. `FaultPlan(kill_during_approval=1)` still fires between `draft_saved` and the enqueue.
+9. The user's ruling: "approved" or "committed" means the state of the item that owns the draft row (`draft.item_id`), set directly in the tests. A later save is refused with the new error code `draft_locked` (an `ErrorCode` value); the saving item fails at once with `draft_locked` in `failure_reason` (one model call). A save while the owner is `pending_approval` replaces the body, keeps one queue row, and the new item ends `pending_approval`.
+10. `save_draft` refuses (no write, `ok` false, any code) an item in `queued`, `draft_saved`, `pending_approval` or `failed`.
+11. Lease lost: with the run leased to another owner, `run_item` with the real `fence` raises `LeaseLost` and no draft row exists. How the save learns of it is the development agent's choice.
+12. Same-turn raise (pre-PR minor): a save followed by a call that escapes leaves the item `failed` with no queue row; the draft row may stay (the `drafts.py` rule: go by the item state).
+13. Baseline: a save ends `pending_approval` in the report, with no `draft` and no `approval` row and at least one entry in `RunMemory.approvals`; a row-less `draft_saved` baseline item breaks nothing (its state is not pinned).
+14. `execute_run(..., documents=DocumentOps(...))`; the executor builds its `DocumentOps` on `storage_from_settings(settings)`.
+15. Redirect hops (no new argument): a hop must keep the host and port of the URL `http_get` was given, checked before it is requested; `:443` counts as the default port. If the development agent adds an `allowed_hosts` argument instead, its default must still refuse these hops.
+
+### Existing tests MKC-23 invalidates (the development agent changes them, with a reason in the PR body)
+
+- Free-dict drafts through the real `save_draft`: `test_drafts.py` (every save), `test_baseline.py` (`saved(n)` with `draft={"n": n}` through the default registry, so also `test_faults.py`), `test_registry.py` (`VALID_ARGS` `save_draft` and `validate_draft` `{"draft": {}}`).
+- Full-mode runs that may now end `pending_approval` instead of `draft_saved`, depending on how the enqueue is wired for test registries without `enqueue_approval`: `test_baseline.py`, `test_faults.py` (`test_kill_during_approval_keeps_the_draft_in_full`), `test_loop.py`, `test_queue.py`, `test_resume.py`, `test_run_limits.py`, `observability/test_traced_run.py`, `test_cli.py`, `worker/test_executor.py`, `test_executor_mode.py`, `test_outage.py`.
+
+### Not covered by red tests (the development agent's items)
+
+- The live Berlin test that skips on a new edition (PR #215 finding 7, optional).
+- How `fetch_document` passes the allow-list to `http_get` (only `http_get` is pinned).
+- Docs: decisions 82–84, design 8.1 and 8.2, status doc, backlog "As built", `.env.example` for `MKC_RENDER_MAX_DPI`, a migration for `approval` (`down_revision = "0013"`).
 
 ## Next steps
 
-1. Test agent: finish and push the red tests; the coordinator confirms the assumptions below.
-2. Development agent: sub-issues, then make the red tests green; update the existing tests that MKC-23 invalidates (listed below) with a reason in the PR body.
+1. Coordinator: confirm assumptions 1 to 15.
+2. Development agent: sub-issues, then make the red tests green; change the invalidated existing tests with a reason in the PR body.
+3. Test agent: the mutation pass on the development agent's code.
 
 ## Recent log
+
+- **28.11.2026 07:39** Test agent: MKC-23 red tests committed (`5e00ed9` to `7923957`, 07:36). Nine new files: `58 failed, 5 passed in 6.14s`; full suite `58 failed, 1169 passed, 2 skipped, 20 deselected, 4 warnings in 129.81s (0:02:09)`, all 58 failures in the new files. Assumptions 1 to 15 above.
 
 - **28.11.2026 00:37** Development agent: `bash scripts/pre_pr.sh` at `ec8fead`: exit 0, "pre-PR gate: all steps passed"; pytest `1080 passed, 2 skipped, 19 deselected, 4 warnings in 97.88s (0:01:37)`. PR #215 opened (createdAt 2026-11-27T23:37:01Z, 00:37:01 CET), head `ec8fead`, assigned to `qamran`; #22 and #208 to #213 moved to `Testing`. This commit changes only this file.
 
