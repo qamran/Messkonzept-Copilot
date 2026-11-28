@@ -78,6 +78,20 @@ def test_a_baseline_save_is_queued_in_memory_only(engine: Engine) -> None:
     assert queue_entries(engine) == 0
 
 
+def test_a_rowless_draft_saved_item_breaks_no_full_run(engine: Engine) -> None:
+    """The path the crash-window enqueue walks (`draft_saved` without a queue row), for an
+    item whose draft was in memory: no error, nothing queued. Its state is not pinned."""
+    run_id, (item_id,) = make(engine, 1, mode="full")
+    with Session(engine) as session, session.begin():
+        session.execute(text("update item set state = 'draft_saved' where id = :id"),
+                        {"id": item_id})  # fmt: skip
+    model = FakeChatModel(responses=[SAVE])
+    go(engine, run_id, model)
+    assert model.seen == []
+    assert drafts(engine) == 0
+    assert queue_entries(engine) == 0
+
+
 def test_a_rowless_draft_saved_baseline_item_breaks_nothing(engine: Engine) -> None:
     run_id, (done, _todo) = make(engine, 2, mode="baseline")
     with Session(engine) as session, session.begin():
