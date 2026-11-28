@@ -1,6 +1,6 @@
 # Lane A: Extraction
 
-**Last updated:** 28.11.2026, 09:28
+**Last updated:** 28.11.2026, 09:31
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -49,7 +49,9 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 
 ## Recent log
 
-- **28.11.2026 09:28** Test agent: mutation pass on `76c6240`: 72 tried, 63 killed, 9 survived (first run 46 killed, 26 survived; 23 new tests in `4d100c9`, `6bc7aba`, `aa034e2` killed 17 of them). The 9 survivors are equivalent or near-equivalent (section "Mutation pass (MKC-23)").
+- **28.11.2026 09:31** Test agent: `bash scripts/pre_pr.sh` at `900883b`: exit 0, "pre-PR gate: all steps passed"; pytest `1262 passed, 2 skipped, 20 deselected, 6 warnings in 109.13s (0:01:49)`. Pushed `76c6240..900883b`. This entry's commit changes only this file.
+
+- **28.11.2026 09:26** Test agent: mutation pass on `76c6240`: 72 tried, 63 killed, 9 survived (first run 46 killed, 26 survived; 23 new tests in `4d100c9`, `6bc7aba`, `aa034e2` killed 17 of them). The 9 survivors are equivalent or near-equivalent (section "Mutation pass (MKC-23)").
 
 - **28.11.2026 08:39** Development agent: `bash scripts/pre_pr.sh` at `2bea0d8`: exit 0, "pre-PR gate: all steps passed"; pytest `1239 passed, 2 skipped, 20 deselected, 4 warnings in 115.16s (0:01:55)`; commits over 200 lines `5e00ed9` (253), `b1e5e98` (234), `ffd2601` (475), `4ac7548` (311). Every `Refs:` line reads `qamran/`. PR #225 opened (createdAt 2026-11-28T07:38:12Z, 08:38:12 CET), head `2bea0d8`, assigned to `qamran`; #23 and #219 to #224 moved to `Testing`. This commit changes only this file.
 
