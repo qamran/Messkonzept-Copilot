@@ -1,12 +1,12 @@
 # Lane A: Extraction
 
-**Last updated:** 28.11.2026, 11:18
+**Last updated:** 28.11.2026, 11:20
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
 - **Tickets, in order:** `MKC-21` → `MKC-22` → `MKC-23` → `MKC-25` → `MKC-26` → `MKC-28` → `MKC-29` → `MKC-30`
 - **Branch and worktree:** `mkc-25-vision-check` (worktree `mkc-lanes/lane-a`, cut from `main` `47e110a`)
-- **Owns:** `mkc/extraction/`, the item tools in `mkc/harness/registry.py`, `backend/data/operators.yaml`; for MKC-25 (coordinator grant, wave 4) for the `draft_locked` sub-issue `mkc/harness/drafts.py`, `loop.py` if needed, and a migration `0015_*` (`down_revision = "0014"`) only if a snapshot column is needed; proposed, not yet granted (assumption 13): `backend/data/go_no_go/`, `scripts/check_go_no_go.py` (written by the test agent), the MKC-25 section of the status doc and, if the decision is Berlin only, one line in design section 15
+- **Owns:** `mkc/extraction/`, the item tools in `mkc/harness/registry.py`, `backend/data/operators.yaml`; for MKC-25 (coordinator grants, wave 4): `mkc/extraction/vision_check.py`, `mkc/harness/drafts.py`, `mkc/harness/loop.py`, `backend/data/go_no_go/`, the status doc section `## Go/no-go vision check (MKC-25)`, the backlog's MKC-25 entry, decisions 85–87 and, only if the user decides Berlin only, one line in design section 15. No migration in this ticket (ruling 11)
 - **Decision numbers:** 85–87 (wave 4; 82–84 used by MKC-23, 76–78 by MKC-22, 62–64 by MKC-21)
 - **Budget (MKC-25):** live vision calls €1.00 in total, retries included, public PDFs only; every call logged here with its printed cost. Spent so far: €0.00.
 
@@ -18,7 +18,7 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 
 ## In progress
 
-- `MKC-25` (`#25`, go/no-go vision check): `In progress`. The test agent's red tests are `304a81c` to `942bf3a`; no development work yet. The coordinator's rulings 1 to 8 are in the brief; what the tests pin is listed below.
+- `MKC-25` (`#25`, go/no-go vision check): `In progress`; sub-issues MKC-25.1 (`#228`, `draft_locked`), MKC-25.2 (`#229`, the module), MKC-25.3 (`#230`, sheet and docs). The test agent's red tests are `304a81c` to `942bf3a` (unchanged). Done: the `draft_locked` fix, the module and CLI, the blank sheet, the docs that can be written now. Waiting: the user fills in the sheet; then the live run (EUR 1.00, the coordinator's go), the table, a recommendation and the user's decision.
 
 ### Red tests (MKC-25; test agent, 28.11.2026)
 
@@ -33,7 +33,7 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 - `backend/tests/harness/test_draft_locked.py` (9 tests, `304a81c`): the PR #225 finding 1 probe (A pending, B saves `v2` (a direct `save_draft` call) and is set `failed`, the draft row then B's and the queue row still A's (both asserted), A approved or committed, C's save must be `draft_locked`), the variant where the decided item owns neither the draft row nor the queue row, and the probe through the loop (C fails with `draft_locked`): 6 red. Three guards are green now and must stay green: a failed saver does not lock while A waits; an approved item of another concept or another document does not lock.
 - **CI consequence:** CI's `docs` job runs every `scripts/check_*.py`, so `check_go_no_go.py` is wired in by its name (no change to `ci.yml` or `pre_pr.sh`; `check_pre_pr.py` stays green). The `docs` job, the backend's `test_the_repo_passes` and so `scripts/pre_pr.sh` stay red on this branch until the user's results and decision are in.
 
-### Assumptions (for the coordinator to confirm)
+### Assumptions (the coordinator's rulings, 28.11.2026: 1 to 10 and 12 confirmed; 11 confirmed with no snapshot and no migration, MKC-29 decides; 13 granted)
 
 1. The module is `mkc.extraction.vision_check`, with the five names above; the rest is the development agent's.
 2. Comparison sets: meters = labels; upstream = (label, upstream) pairs, a root meter's upstream `null`; components = (kind, attached_to) pairs. Both sides strip and case-fold; duplicates collapse. Other draft fields in the read (`purpose`, `directions`, `types`) are ignored.
@@ -49,14 +49,35 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 12. The CLI is not tested beyond `--help`: fetching the PDF and writing the table are live work under the €1.00 budget.
 13. Grants: the brief granted lane A `drafts.py`, `loop.py` and `0015` for the sub-issue. The sheet folder `backend/data/go_no_go/`, the status doc's MKC-25 section and the section 15 line (Berlin only) are proposed here, and `scripts/check_go_no_go.py` was written by the test agent on ruling 5; the coordinator confirms.
 
+### For the coordinator (MKC-25)
+
+**Proposed concepts** (Berlin, "Messkonzepte" September 2026, sha256 `4e12c90f…29a18`). The reasons name the diagram type and why it tests vision, never the meters or components, so the user's truth stays blind:
+
+1. **12, page 33**, "Verbrauch mit einer Messlokation (Standard)": the simple single-meter case; vision must get the plain case exactly right.
+2. **3, page 14**, "Überschusseinspeisung mit Erzeugungsmessung": the standard PV (generation) concept, the most common household case after plain supply.
+3. **11, page 31**, "Steuerbare Verbrauchseinrichtung nach § 14a EnWG mit separater Messung": heat pump or § 14a; a separately metered branch with a subscripted meter label and control devices.
+4. **3.3, page 16**, "Überschusseinspeisung mit Erzeugungsmessung und mit Speicher (separate Wechselrichter)": storage; a cascade with a dashed control line and two inverters to tell apart.
+5. **4.2, page 19**, "Überschusseinspeisung mit Erzeugungsmessungen, Abgrenzungsmessung und mit Speicher (separate Wechselrichter)": the hard diagram, the page with the most drawn objects of the catalogue (292 lines, rects and curves), a deep cascade with parallel branches.
+
+**Labelling rules** (in the sheet's header comment, the vision prompt and decision 86): labels as printed without inner spaces (`Z 1` -> `Z1`, a lone `Z` -> `Z`, `Z` with subscript `SV` -> `Zsv`); `upstream` and `attached_to` = the nearest meter on the path to the grid, `null` if none; component kinds from `ComponentKind` in `mkc/extraction/draft.py` (G, B, WR, SE, SV, sVE, S); consumer arrows and the ownership boundary are not components.
+
+**Questions and notes:**
+
+- `compare` only strips and case-folds (ruling 4). A label written `Z 1` on one side and `Z1` on the other is a `no`. Both the sheet and the prompt say "no inner spaces"; should `compare` also drop inner whitespace? Not changed without your ruling.
+- `mkc/harness/tools.py` (the `draft_locked` comment: "the key's draft is approved or committed") and the docstring of `Approval` in `mkc/db/models.py` are outside the grants and left as they are; both still read true but less precise than decision 85.
+- The status doc's heading "the full log of 84 decision numbers" and the "Decision numbers per lane" table are the coordinator's to update for 85–87.
+- The live run: `uv run python -m mkc.extraction.vision_check` (default sheet, fetches Berlin, 200 dpi). With `MKC_MODEL_MODE=record` and `MKC_MODEL_REPLAY_DIR` set outside the repo, a crash after some calls does not pay twice on a rerun.
+
 ## Next steps
 
-1. Coordinator: confirm or change assumptions 1 to 13.
-2. Development agent: sub-issues; the blank truth sheet and the 5 proposed concepts with a reason each (in this file), for the coordinator to confirm before the sheet goes to the user; the module; the `draft_locked` fix.
-3. After the user has filled in the sheet: the live run (€1.00), the result table, a recommendation, and the user's decision through the coordinator.
-4. Test agent: the mutation pass once the development agent's code is in.
+1. Coordinator: confirm the 5 concepts and the labelling rules ("For the coordinator"), then give the sheet to the user.
+2. The user fills in `backend/data/go_no_go/truth.yaml`.
+3. Development agent, on the coordinator's go: the live run (EUR 1.00), the result table, a recommendation, the user's decision through the coordinator; then the gate and the PR.
+4. Test agent: the mutation pass on `draft_locked` and `vision_check`.
 
 ## Recent log
+
+- **28.11.2026 11:20** Development agent: the blank truth sheet `backend/data/go_no_go/truth.yaml` (MKC-25.3): concepts 12 (p. 33), 3 (p. 14), 11 (p. 31), 3.3 (p. 16), 4.2 (p. 19), `meters: null`, `components: null`, the labelling rules in its header comment; the proposal with a reason each is under "For the coordinator (MKC-25)". `pytest tests/extraction/test_vision_check.py tests/test_check_go_no_go.py`: `1 failed, 61 passed in 3.58s`, the 1 being `test_check_go_no_go.py::test_the_repo_passes` (no status section yet). Lane head rewritten to the rulings and grants.
 
 - **28.11.2026 11:18** Development agent: `mkc.extraction.vision_check` (MKC-25.2): `load_truth`, `require_filled`, `compare` (decision 86), `parse_reply`, `check_concepts` (every entry checked, found and on its page before the first call; one `vision` call per concept, role `extract_vision`; system and user text are constants, the image the only document input; an unreadable reply is three `no`), `results_table`, and the CLI (`--truth`, `--pdf`, `--dpi`, default 200; fetches Berlin with the operator allow-list; prints each call's cost and the read). `pytest tests/extraction/test_vision_check.py`: `2 failed, 28 passed in 3.75s`, the 2 being the sheet tests (no sheet yet). `mypy`: "Success: no issues found in 78 source files". No model calls.
 

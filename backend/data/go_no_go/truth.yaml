@@ -1,0 +1,39 @@
+# Go/no-go vision check (MKC-25, decision 87): the user's truth, filled in from the Berlin
+# PDF ("Messkonzepte", September 2026) BEFORE any vision call. Facts and page numbers only.
+#
+# How to fill in an entry (the same rules the vision prompt states):
+# - meters: one {label, upstream} per meter box. label as printed without inner spaces
+#   (Z 1 -> Z1, Z 2a -> Z2a, a lone Z -> Z, Z with subscript SV -> Zsv). upstream: the label
+#   of the nearest meter on the path to the grid (Verteilungsnetz); null if none.
+# - components: one {kind, attached_to} per drawn device that is not a meter. kind is one of
+#   G, B, WR, SE, SV, sVE, S (generator, battery, inverter, control unit, controllable
+#   consumer, sensor). attached_to: the nearest meter on the path to the grid.
+#   Consumer arrows and the ownership boundary are not components.
+# - A concept with no components gets `components: []`; `null` means "not filled in yet".
+# - Case, spaces round a value and order do not matter; each item is counted once.
+concepts:
+  - operator: stromnetz-berlin
+    concept: "12"
+    page: 33
+    meters: null
+    components: null
+  - operator: stromnetz-berlin
+    concept: "3"
+    page: 14
+    meters: null
+    components: null
+  - operator: stromnetz-berlin
+    concept: "11"
+    page: 31
+    meters: null
+    components: null
+  - operator: stromnetz-berlin
+    concept: "3.3"
+    page: 16
+    meters: null
+    components: null
+  - operator: stromnetz-berlin
+    concept: "4.2"
+    page: 19
+    meters: null
+    components: null
