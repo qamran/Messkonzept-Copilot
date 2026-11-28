@@ -491,9 +491,10 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
   - `test_render_cache_hit`
   - `test_saved_draft_is_enqueued_for_approval_once` (by the harness, not by `save_draft`)
 - **Success criteria:**
-  - [ ] `MesskonzeptDraft` JSON schema exported for the vision prompt (MKC-26)
+  - [x] `MesskonzeptDraft` JSON schema exported for the vision prompt (MKC-26)
 - **Note (decision 56):** the draft key (document hash, concept key) spans runs, so a new run of the same document overwrites a draft that may still await approval. Decide here what a save does once the draft is enqueued or approved.
 - **Note (PR #167 finding 7, decision 60):** a baseline item can be `draft_saved` with no `draft` row (its draft was in memory); approvals must not assume a row.
+- **As built (lane A, 28.11.2026):** sub-issues MKC-23.1 to 23.6 (#219–#224). `mkc.extraction.draft.MesskonzeptDraft` and its schema file `backend/prompts/messkonzept_draft.schema.json`; `save_draft` takes it. `render_region` (`mkc.extraction.render`, PDFium) through `DocumentOps`, the PNG in the document store, cap `MKC_RENDER_MAX_DPI` (300). Table `approval` (migration 0014); the harness runs `enqueue_approval` after `draft_saved` and moves the item to `pending_approval`, and a run first queues the drafts a crash left unqueued; the user's ruling on a later save (`draft_locked` once approved or committed); `save_draft` only while its item is `running` and its run's lease holds (MKC-17 finding 2); the baseline queues in memory. `execute_run(documents=...)` and the executor give real runs the document tools (PR #215 finding 6). Every redirect hop on the operator's allow-list (PR #215 finding 8). Decisions 82 to 84. Not done here: MKC-15 finding 5 (no edge `awaiting_approval -> running`; the enqueue does not need it) and PR #215 finding 7 (optional).
 
 ### MKC-24: Gold tooling
 

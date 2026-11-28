@@ -3,29 +3,37 @@
 Item tools are the only tools the model sees. Run-level operations are harness code; they
 are registered here only so they get the same validation and tracing.
 
-The argument models and functions are placeholders. The owning tickets replace them:
-`render_region`, `save_draft`, `enqueue_approval` (MKC-23); `read_diagram` (MKC-26);
-`validate_draft` (MKC-28); `commit_record` (MKC-29). Until then every placeholder returns the
-structured error `not_implemented`; none fakes success. `fetch_document` and
-`segment_document` (MKC-21) and the item tools `extract_text` and `extract_tables` (MKC-22)
-are built: they are real when `default_registry` gets a `DocumentOps`, and stay placeholders
-without one. The item tools read the PDF by the item's document hash; the model never names
-a document.
+The functions are placeholders until a factory makes them real; the owning tickets replace
+the rest: `read_diagram` (MKC-26), `validate_draft` (MKC-28), `commit_record` (MKC-29). A
+placeholder returns the structured error `not_implemented`; none fakes success.
+`fetch_document`, `segment_document` (MKC-21), `extract_text`, `extract_tables` (MKC-22) and
+`render_region` (MKC-23) are real when `default_registry` gets a `DocumentOps`; `save_draft`
+and `enqueue_approval` (MKC-23) when it gets `sessions` (or the baseline's memory). The item
+tools read the PDF by the item's document hash; the model never names a document.
 
 `save_draft` writes only its own item's draft, idempotently by (document hash, concept
 number), so it has no side effect (decision 53). Harness code runs `enqueue_approval` on its
-result; the model never queues anything itself.
+result (`mkc.harness.loop`); the model never queues anything itself.
 """
 
 from dataclasses import replace
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, FiniteFloat, model_validator
+from pydantic import (
+    BaseModel,
+    BeforeValidator,
+    ConfigDict,
+    Field,
+    FiniteFloat,
+    StrictInt,
+    model_validator,
+)
 from sqlalchemy.orm import Session, sessionmaker
 
+from mkc.extraction.draft import MesskonzeptDraft
 from mkc.extraction.operations import DocumentOps
-from mkc.harness.baseline import RunMemory, make_memory_save_draft
-from mkc.harness.drafts import make_save_draft
+from mkc.harness.baseline import RunMemory, make_memory_enqueue, make_memory_save_draft
+from mkc.harness.drafts import make_enqueue_approval, make_save_draft
 from mkc.harness.tools import Tool, ToolEnv, ToolRegistry, ToolTracer
 
 
@@ -33,20 +41,32 @@ class _Args(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+def _not_bool(value: Any) -> Any:
+    if isinstance(value, bool):
+        raise ValueError("a number, not a boolean")
+    return value
+
+
+# Strict shapes (MKC-14 finding 10): a page is an int, never `True` or `1.0`; a coordinate is
+# a finite number, never a boolean, NaN or inf.
+Page = Annotated[StrictInt, Field(ge=1, description="1-based page number")]
+Coord = Annotated[FiniteFloat, BeforeValidator(_not_bool)]
+Bbox = tuple[Coord, Coord, Coord, Coord]
+BBOX_DOC = "x0, top, x1, bottom in PDF points from the top left, as in the item's task"
+
+
+def _check_order(bbox: Bbox | None) -> None:
+    if bbox is not None and not (bbox[0] < bbox[2] and bbox[1] < bbox[3]):
+        raise ValueError("bbox needs x0 < x1 and top < bottom")
+
+
 class TextArgs(_Args):
-    page: int = Field(ge=1, description="1-based page number")
-    bbox: tuple[FiniteFloat, FiniteFloat, FiniteFloat, FiniteFloat] | None = Field(
-        default=None,
-        description="x0, top, x1, bottom in PDF points from the top left, as in the item's"
-        " task; omitted means the whole page",
-    )
+    page: Page
+    bbox: Bbox | None = Field(default=None, description=f"{BBOX_DOC}; omitted: the whole page")
 
     @model_validator(mode="after")
     def _ordered(self) -> "TextArgs":
-        if self.bbox is not None and not (
-            self.bbox[0] < self.bbox[2] and self.bbox[1] < self.bbox[3]
-        ):
-            raise ValueError("bbox needs x0 < x1 and top < bottom")
+        _check_order(self.bbox)
         return self
 
 
@@ -55,9 +75,14 @@ class TablesArgs(_Args):
 
 
 class RenderArgs(_Args):
-    page: int = Field(ge=1)
-    bbox: tuple[float, float, float, float] = Field(description="x0, y0, x1, y1 in PDF points")
-    dpi: int = Field(ge=1)
+    page: Page
+    bbox: Bbox = Field(description=f"{BBOX_DOC}; inside the page")
+    dpi: StrictInt = Field(ge=1, description="dots per inch, at most the configured cap")
+
+    @model_validator(mode="after")
+    def _ordered(self) -> "RenderArgs":
+        _check_order(self.bbox)
+        return self
 
 
 class ImageArgs(_Args):
@@ -66,6 +91,10 @@ class ImageArgs(_Args):
 
 class DraftArgs(_Args):
     draft: dict[str, Any]
+
+
+class SaveDraftArgs(_Args):
+    draft: MesskonzeptDraft = Field(description="the whole concept; keys come from the harness")
 
 
 class OperatorArgs(_Args):
@@ -99,7 +128,7 @@ ITEM_TOOLS: tuple[Tool, ...] = (
          _placeholder("MKC-26"), side_effect=False, deterministic=False),
     Tool("validate_draft", "Check a draft; returns errors and warnings.", DraftArgs,
          _placeholder("MKC-28"), side_effect=False, deterministic=True),
-    Tool("save_draft", "Save this item's draft (idempotent).", DraftArgs,
+    Tool("save_draft", "Save this item's draft (idempotent).", SaveDraftArgs,
          _placeholder("MKC-23"), side_effect=False, deterministic=False),
 )  # fmt: skip
 
@@ -128,23 +157,23 @@ def default_registry(
     instead, with no key (MKC-20, decision 60); the tool and its spec stay the same. With
     `documents`, `fetch_document` and `segment_document` are the real run-level operations
     (MKC-21, decision 64), and `extract_text` and `extract_tables` the real item tools
-    (MKC-22)."""
-    item = ITEM_TOOLS
-    save = None
+    (MKC-22), and `render_region` (MKC-23). `enqueue_approval` follows `save_draft`: the
+    `approval` table with `sessions`, the memory with `approvals` (MKC-23, decision 83)."""
+    real: dict[str, Any] = {}
     if approvals is not None:
-        save = make_memory_save_draft(approvals)
+        real |= {"save_draft": make_memory_save_draft(approvals),
+                 "enqueue_approval": make_memory_enqueue(approvals)}  # fmt: skip
     elif sessions is not None:
-        save = make_save_draft(sessions)
-    if save is not None:
-        item = tuple(replace(t, fn=save) if t.name == "save_draft" else t for t in ITEM_TOOLS)
-    run = RUN_OPERATIONS
+        real |= {"save_draft": make_save_draft(sessions),
+                 "enqueue_approval": make_enqueue_approval(sessions)}  # fmt: skip
     if documents is not None:
-        real = {
+        real |= {
             "fetch_document": documents.fetch,
             "segment_document": documents.segment,
             "extract_text": documents.extract_text,
             "extract_tables": documents.extract_tables,
+            "render_region": documents.render_region,
         }
-        item = tuple(replace(t, fn=real[t.name]) if t.name in real else t for t in item)
-        run = tuple(replace(t, fn=real[t.name]) if t.name in real else t for t in run)
+    item = tuple(replace(t, fn=real[t.name]) if t.name in real else t for t in ITEM_TOOLS)
+    run = tuple(replace(t, fn=real[t.name]) if t.name in real else t for t in RUN_OPERATIONS)
     return ToolRegistry(item=item, run=run, tracers=tracers)

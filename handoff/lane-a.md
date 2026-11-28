@@ -1,101 +1,81 @@
 # Lane A: Extraction
 
-**Last updated:** 28.11.2026, 00:37
+**Last updated:** 28.11.2026, 09:31
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
 - **Tickets, in order:** `MKC-21` → `MKC-22` → `MKC-23` → `MKC-25` → `MKC-26` → `MKC-28` → `MKC-29` → `MKC-30`
-- **Branch and worktree:** `mkc-22-text-tables`
-- **Owns:** `mkc/extraction/`, the item tools in `mkc/harness/registry.py`, `backend/data/operators.yaml`
-- **Decision numbers:** 76–78 (wave 2; 62–64 are used by MKC-21)
+- **Branch and worktree:** `mkc-23-render-drafts` (worktree `mkc-lanes/lane-a`, cut from `main` `502c30a`)
+- **Owns:** `mkc/extraction/`, the item tools in `mkc/harness/registry.py`, `backend/data/operators.yaml`; for MKC-23 also (coordinator grant, wave 3) `mkc/harness/loop.py`, `drafts.py`, `tools.py`, `baseline.py`, `runner.py`, `states.py`, `mkc/worker/executor.py`, the `approval` table in `mkc/db/models.py`, migration `0014`, one block each in `config.py` and `.env.example`
+- **Decision numbers:** 82–84 (wave 3, all used; 62–64 used by MKC-21, 76–78 by MKC-22)
 
 ## Done
 
 - `MKC-21` (`#21`): merged with PR #197 (merge commit `2a841a2`). Its pinned interfaces, assumptions and mutation pass are in this file at `e40115b`.
+- `MKC-22` (`#22`): merged with PR #215 (merge commit `6d3aee9`). Its pinned interfaces, assumptions and mutation pass (15 survivors) are in this file at `502c30a`.
 
 ## In progress
 
-- `MKC-22` (`#22`, `Testing`, assigned to `qamran`; PR #215): built by the development agent against the test agent's red tests (red commits `60c1f2e` to `c72296d`; `git diff c72296d -- backend/tests` shows only added files, none of the red files changed). Code and docs are done; the mutation pass is done (15 survivors, all accepted by the coordinator as equivalent or near-equivalent). The coordinator merged `main` (MKC-27) as `5d013a5` and removed leftover conflict markers in `21d2b07`. Next: the PR.
-- Built: `mkc/extraction/text.py`, `tables.py`, `naive.py`, `cleantext.py`; the item tools in `registry.py` (`TextArgs`) and `DocumentOps.extract_text` / `extract_tables`; fetch hardening in `fetch.py`; `is_valid_code` (`mkc/reference/lbs.py`) and `ToolRegistry.execute` (`mkc/harness/tools.py`). Decisions 76 (text fields), 77 (tables, baseline), 78 (fetch hardening) in design section 18; decision 62 (5) notes the hop rules; status doc, backlog "As built" and runbook "The allow-list" updated. No new dependency, no migration, no `config.py` change.
-- The development agent's own tests (added files, for the PR body): `test_text_rules.py`, `test_table_rules.py`, `test_naive_rules.py`, `test_extract_args.py`, `test_fetch_limits.py`.
-- Coordinator's answers (27.11.2026): assumptions 1, 3, 5 and 6 confirmed; 2 decided by the development agent (decision 76 (2): kept as printed); 4 checked by the live run (passed); 7 goes to MKC-23 (wiring `DocumentOps` through `runner.py` and the executor).
-- Red run at `c72296d`: `uv run pytest tests/extraction -q`: `32 failed, 81 passed, 1 skipped, 4 deselected in 6.31s`; full suite `uv run pytest -q`: `43 failed, 947 passed, 2 skipped, 18 deselected, 4 warnings in 105.80s (0:01:45)`, all 43 failures this ticket's red tests. `ruff check .`: "All checks passed!"; `ruff format --check .`: "217 files already formatted".
-- Commits over 200 lines (for the PR body): `60c1f2e` (347 insertions, 84 deletions: the synthetic documents and the lane file rewrite), `b989630` (211 insertions) and `fcd70e0` (239 lines: `text.py` and `cleantext.py` in one commit).
-- Commits without a body (pushed, not rewritten): `96675e0`, `334a483`.
-- Sub-issues (all `Testing`, assigned to `qamran`, linked to #22): #208 `MKC-22.1` text fields, #209 `MKC-22.2` table rows and the naive baseline, #210 `MKC-22.3` the cached item tools, #211 `MKC-22.4` fetch hardening (PR #197 findings 1 to 4 and 7), #212 `MKC-22.5` reference and tool-registry hardening, #213 `MKC-22.6` docs and the live check.
+- `MKC-23` (`#23`, render, draft assembly, `save_draft`): PR #225 open (head `2bea0d8` before this commit), #23 and the sub-issues in `Testing`; sub-issues MKC-23.1 to 23.6 (#219 to #224). The source of truth is the backlog entry (issue #23's body is stale: decision 53 moved the enqueue to the harness). The test agent's red tests are `5e00ed9` to `7923957` and `05c2c43`; its red run and the 15 assumptions are in this file at `f973c9d`.
+- Coordinator rulings on the assumptions: 1 to 14 confirmed (13: the baseline queues in memory); 15 changed: every hop must be on the operator's `allowed_hosts`, after a live check found no redirect on either operator URL (decision 84); the user's ruling on a later save is decision 83 (4).
+- Built (decisions 82 to 84): `MesskonzeptDraft` and its schema file; `render_region` (PDFium, cap `MKC_RENDER_MAX_DPI` 300, `ToolRefused` for refusals); table `approval` (migration 0014), the guarded `save_draft` (`running` only, `draft_locked`), the real `enqueue_approval`, the loop's enqueue and crash-window sweep, the fence before a save, the baseline's queue in memory; `execute_run(documents=...)` and the executor's `DocumentOps`; redirect hops on the allow-list.
+- Red tests changed (reasons in the PR body): `test_run_documents.py` `replies()` passes the region's bbox to `extract_text` (the whole page reads the sidebar into the title).
+- Existing tests changed (reasons in the PR body): `test_drafts.py`, `test_registry.py`, `test_baseline.py`, `test_faults.py`, `test_cli.py` (typed drafts, `pending_approval`, the `enqueue_approval` trace), `test_fetch_rules.py` (`_chain` hops on the listed host). The other files the test agent listed (`test_loop.py`, `test_queue.py`, `test_resume.py`, `test_run_limits.py`, `test_traced_run.py`, the worker tests) use test registries without `enqueue_approval` and pass unchanged.
+- My tests, written with the code: `tests/harness/test_approval_queue.py` (9), `tests/extraction/test_hop_allowlist.py` (2).
+- Not done here: MKC-15 finding 5 (no edge `awaiting_approval -> running`; the enqueue does not need it); PR #215 finding 7 (optional live-test skip on a new edition); the `faults.py` docstring still says approvals "come in MKC-23" (outside the grant).
 
-### Pinned interfaces (MKC-22; the tests import these)
+### Mutation pass (MKC-23; test agent, 28.11.2026, head `76c6240`)
 
-- `mkc/extraction/text.py`:
-  - `extract_text(pdf: bytes, region: ConceptRegion) -> TextFields`. Only words inside `region.bbox` count (`(x0, top, x1, bottom)`, top-left origin, as `segment_document` gives it).
-  - `TextFields` (frozen Pydantic): `title: str` (heading without its number; a wrapped title joined with one space), `applications: list[str]` (the `Anwendung:` bullets without the bullet sign; `LBS` bullets are not applications), `footnotes: list[str]` (one per `*n)`, starting with the marker; continuation lines joined with one space), `stated_lbs: list[StatedLbs]`.
-  - `StatedLbs` (frozen Pydantic): `code: str` (13 digits, spaces removed), `condition: str | None` (the text in brackets after the code).
-- `mkc/extraction/tables.py`:
-  - `extract_tables(pdf: bytes, kind: Literal["meter_tech", "lbs"]) -> list[Row]`.
-  - `Row` (frozen Pydantic): `kind`, `page: int` (1-based), `concepts: list[str]` (as printed, in order; `[]` for `nicht visualisiert`), `code: str | None` (`lbs`: 13 digits; `meter_tech`: None), `label: str` (`lbs`: the Bezeichnung; `meter_tech`: the table's heading, for example `Erzeugungsmessung (Z2)`), `cells: list[str]` (`meter_tech`: one per power band; `lbs`: `[]`).
-  - Wrapped cell text is joined with one space; header rows are not rows; a table over a page break is one list in page order; other ruled tables and unruled lines give nothing; a document without the table gives `[]`.
-- `mkc/extraction/naive.py` (the E1 baseline, pure Python, no system binary):
-  - `naive_text(pdf: bytes) -> str`: pdftotext-style, every page's text in reading order, pages separated by `"\f"` (one fewer than the pages).
-  - `naive_tables(pdf: bytes, kind) -> list[Row]`: the same row shape, read line by line from `naive_text`, no cell grid. It must get the wrapped row of `9992000000133` wrong on the synthetic table.
-- `mkc/harness/registry.py`: `default_registry(documents=DocumentOps(sessions, store))` makes `extract_text` and `extract_tables` real (without `documents` they stay placeholders). They read the PDF from `documents.store` at `blob:sha256:<env.document_hash>`. Arguments: `extract_text` takes `page` (>= 1) and an optional `bbox` (4 numbers; omitted means the whole page), so `{"page": 1}` stays valid; `extract_tables` takes `kind`. Results are plain JSON: `TextFields.model_dump(mode="json")` and a list of `Row.model_dump(mode="json")`. A page past the end gives `tool_failed`. No result holds a NUL character.
-- `mkc/extraction/fetch.py` (fetch hardening): `MAX_DOWNLOAD_BYTES = 50 * 1024 * 1024`; `DownloadTooLarge(ValueError)`; `http_get(url, *, transport=None, max_bytes=MAX_DOWNLOAD_BYTES)` streams the body and stops at the limit (also without `content-length`); a redirect target with userinfo raises `DisallowedUrl` before it is requested; no cookie jar across hops; `is_allowed_url` refuses a port other than the default (`:443` or none) and a malformed port, returning False.
-- `mkc/reference/lbs.py`: `is_valid_code` returns False for non-ASCII digits (`²`, full-width, Arabic-Indic).
-- `mkc/harness/tools.py`: `ToolRegistry.execute` returns `invalid_args` when an argument validator raises `TypeError`, `AttributeError` or `KeyError` (with or without a cache), and `tool_failed` when a tool's exception has a failing `__str__` (the message names the exception type).
-- Test helpers: `tests/extraction/synthetic.py` (the synthetic documents and expected values), `layout_pdf(..., nul_for=...)`, `ruled_table`, `Text`, `Box` in `conftest.py`, `MemoryStore.gets`.
-
-### Assumptions (for the coordinator to confirm)
-
-1. `extract_text` and `extract_tables` take the PDF bytes; the item tools read them from the blob store by the item's document hash, so the model never names a document.
-2. `stated_lbs` holds only codes printed in an `LBS` bullet. What happens to a printed code that fails the check digit (drop it or keep it with a flag) is left to the development agent as a decision (76–78); no test pins it.
-3. The meter-tech `label` is the table's heading as printed. The real Z1 heading wraps with a hyphen (`Abgren-` / `zungsmessung (Z3)`); only `(Z2)` in the Z2 label is pinned live.
-4. The live expected codes are pinned, not `None`: read by hand on 27.11.2026 from the September 2026 edition (sha256 `4e12c90f…29a18`), table rows (pages 6 and 7) and concept pages 14, 20 and 32 agree. On a new edition the live test skips with the new hash.
-5. The image test (`test_image_operators.py`) is a pin, not a red test, and has never run: it runs only when `MKC_TEST_IMAGE` names a built image and is skipped otherwise (also in CI's `backend` job). The only local `mkc-backend:smoke` image dates from 26.11.2026, before MKC-21, so it was not tried. Wiring it into CI's `image` job is the coordinator's call.
-6. `extract_text` without `bbox` reads the whole page, sidebar included. The model is expected to pass the item's `bbox` from its task.
-7. Production wiring: the worker's runs build the registry in `mkc/harness/runner.py` (`execute_run`: `default_registry(tool_tracers, sessions=..., approvals=...)`), with no `documents`, so the two tools stay placeholders in a real run until `runner.py` and the executor pass a `DocumentOps`. No red test pins this (it is outside lane A's package); the coordinator decides whether MKC-22 wires it.
-
-### Not covered by red tests (the development agent's items)
-
-- The E1 comparison itself (MKC-31 onward); MKC-22 only keeps the baseline.
-- Hyphenated line ends in titles and labels, and the real `∆t 15` subscripts in meter cells: only the synthetic forms are pinned.
-- A printed code with a wrong check digit, and conditions over two lines.
-- Adding the tools to the item prompt or task (the model learns `page` and `bbox` from the item's task, MKC-21 decision 64 (5)).
-- Wiring `MKC_TEST_IMAGE` into CI (coordinator).
-- Passing `documents` from `execute_run` (`mkc/harness/runner.py`) and the worker executor, so real runs get the real tools (assumption 7).
-- The `uv lock` and `pyproject.toml` stay unchanged unless the development agent adds a dependency (pdfplumber is already there).
-
-### Mutation pass (MKC-22; test agent, 28.11.2026, head `f0bf9e8`)
-
-- Method: one hand-written mutant at a time (exact string replacement, CRLF-aware, checked as applied and restored byte for byte), `__pycache__` cleared, then `uv run pytest tests/extraction tests/harness/test_tools.py tests/harness/test_tools_hardening.py tests/harness/test_registry.py tests/reference -q -x`, non-live. No mutant was committed; no production code changed.
-- Unmodified base run: `196 passed, 1 skipped, 4 deselected in 6.21s`.
-- First run: 119 mutants tried, 65 killed, 54 survived, 0 not applied.
-- New acceptance tests (commits `3696aa4`, `989c8cf`, `f50c927`, `140a3fd`, `a49faf2`; 35 tests) were green on the real code and then killed 39 of the 54 survivors (re-run of the 54: 39 killed, 15 survived). With them: **119 tried, 104 killed, 15 survived**. Base run with the new tests: `231 passed, 1 skipped, 4 deselected in 6.51s`.
-- Killed by the new tests: text.py pitch, indent, title stops at `Anwendung:` and at another type size, only the list after `Anwendung:`, the 14th digit, NaN bbox and page past the end as `ValueError`; tables.py `nicht visualisiert` in any case, empty tokens, `all` vs `any`, `2a`, years, the exact `Code der LBS` header, a missing header, 12-digit codes, non-concept rows after the first, an empty grid row, the in-cell hyphen join, `Messkonzept` in a meter table's first column, `nicht visualisiert` in a meter table; cleantext.py white space, the capital after a hyphen, `sowie`, `ß`; naive.py lookbehind, `nicht visualisiert`, text before a code, the label, one meter cell, NUL in `naive_text`; `page` ge=1; the `content-length` check and the default `max_bytes`; the LBS code length and `check_digit`'s ASCII rule.
-- Survivors (15), file:line, what the mutant changed (NE = near-equivalent):
-  1. `extraction/text.py:172` footnote continuation does not stop at the next `*n)` line. NE: the joined text is split again at the marker (`_MARKER_INSIDE`).
-  2. `extraction/text.py:150` bullet continuation does not stop at the next bullet. NE: a bullet at the same x fails the indent rule anyway; only a nested, indented bullet would differ.
-  3. `extraction/text.py:184` `_follows` with `0 <=` instead of `0 <`. NE: pdfplumber puts words at one top into one line.
-  4. `extraction/text.py:202` the "bbox does not overlap the page" check off. NE: pdfplumber's `crop` refuses such a bbox itself (`test_a_bbox_off_the_page_is_tool_failed` still passes, with another message).
-  5. `extraction/text.py:97` lines with empty text kept. NE: only a line of control characters is empty after `clean`.
-  6. `extraction/text.py:191` the line text not cleaned. NE: every field goes through `clean` or `join_lines` later; only a control character before a bullet sign or `LBS` would differ.
-  7. `extraction/text.py:189` a line's size is the smallest char size, not the largest. NE: synthetic lines have one size each.
-  8. `extraction/text.py:42` `^` dropped from `_LBS`. Equivalent: `re.match` anchors at the start anyway.
-  9. `extraction/cleantext.py:15` `_SPLIT_WORD` without the lowercase letter before the hyphen (`-$`). NE: differs only for a digit or capital before the hyphen with a lowercase line after (`Z2-` / `zähler`).
-  10. `extraction/tables.py:111` code spaces removed with `replace(" ", "")` instead of `\s`. Equivalent: `cell_text` has already joined the lines with single spaces.
-  11. `extraction/tables.py:114` the label is the last cell, not the cell right of the code. Equivalent for the three-column Berlin LBS table.
-  12. `extraction/tables.py:122` `kVA` looked for in the first column too. NE: a first column never says `kVA`.
-  13. `extraction/naive.py:42` a heading line also read as a row. NE: only a heading that starts with a concept number would become a row.
-  14. `extraction/operations.py:87` the `document_hash is None` check off. NE: `execute` refuses an item call without a document hash before any tool runs.
-  15. `extraction/operations.py:80` `model_dump()` instead of `model_dump(mode="json")`. Equivalent for these models (strings, lists, None only).
-- Not mutated: `segment.py` (MKC-21), the live tests.
+- Method: one hand-written mutant at a time on the production diff `05c2c43..76c6240` (exact string replacement, CRLF-aware, checked as applied once and restored byte for byte; `__pycache__` removed, `PYTHONDONTWRITEBYTECODE=1`), then `uv run pytest tests/harness tests/extraction tests/worker/test_executor_documents.py tests/test_config.py -q -x`, non-live. No mutant was committed; no production code changed. Migration 0014 was not mutated (the test database is already at head; `test_0014_creates_approval_and_downgrades` covers it).
+- Unmodified base run: `584 passed, 1 skipped, 5 deselected in 29.79s`.
+- First run: 72 mutants tried, 46 killed, 26 survived, 0 not applied. (V6 first showed "killed" by an `ERROR` in the unrelated `test_item_limits.py`; run alone it survived, so it counts as a survivor.)
+- New tests (`4d100c9` `test_render_rules.py`, `6bc7aba` `test_draft_rules.py`, `aa034e2` `test_approval_rules.py`; 23 tests, green on the real code) killed 17 of the 26 (re-run of the 26: 17 killed, 9 survived). With them: **72 tried, 63 killed, 9 survived**.
+- Killed by the new tests: D9 (approval row not moved to the newest item), L8 (sweep without the run filter), L10 and L11 (the sweep's two fences), L12 and L15 (a failed enqueue still moved the state, durable and baseline), B2 (first save of the turn queued), B5 (`memory-0`), V1, O3, O5 (refusals as `tool_failed`), V2 (negative top), V6 (crop top and bottom swapped: same size, wrong strip), V8 (BMP instead of PNG), O2 (`render_max_dpi` argument ignored), O4 (wrong `width`), G1 (boolean coordinate), M1 (NUL). M2 to M11 were killed only by the schema snapshot test; `test_draft_rules.py` now also kills M3 to M6 by behaviour.
+- Survivors (9), file:line, the mutant, why (E equivalent, NE near-equivalent):
+  1. D4 `harness/drafts.py:81` no `FOR UPDATE` on the saving item. NE: a race with a concurrent state change; one worker per run, and the fence before a save covers a lost lease.
+  2. D5 `harness/drafts.py:88` no `FOR UPDATE OF draft`. NE: the same race with a concurrent approval; needs two sessions at once to show.
+  3. D10 `harness/drafts.py:47` `model_dump()` without `mode="json"`. E: the draft holds only strings, ints, None and lists.
+  4. L7 `harness/loop.py:339` sweep after every item, not only after `draft_saved`. E: the sweep is idempotent; only extra queries.
+  5. L9 `harness/loop.py:362` `outerjoin` instead of `join`. NE: a row-less item is offered `draft_id "None"`, refused, and stays `draft_saved` (only a warning line differs).
+  6. L13 `harness/loop.py:374` no `rollback` after a failed enqueue. NE: the open transaction (run row lock) ends at the next commit.
+  7. L14 `harness/loop.py:394` no `draft_id is None` guard in the baseline enqueue. E: `None` fails `DraftIdArgs`, the result is not ok, the item stays `draft_saved`.
+  8. L17 `harness/loop.py:366` no commit after the sweep's select. NE: the read transaction stays open until the first fence commit.
+  9. F4 `extraction/fetch.py:148` `(host,)` also for a URL without a host. NE: such a URL fails `is_allowed_url` before any request anyway.
 
 ## Next steps
 
-1. Review agent (Fable) on PR #215 once `gh pr checks` is green; the development agent fixes any findings.
-2. MKC-23 (lane A's next ticket): pass `documents=DocumentOps(...)` from `execute_run` (`mkc/harness/runner.py`) and the worker executor, so real runs get the real `extract_text` and `extract_tables` (the coordinator grants `runner.py` then); tell the model `page` and `bbox` in the item's task or prompt.
-3. MKC-28: `validate_draft` must flag a stated code that fails the check digit or is not in the Codeliste (extraction keeps it as printed, decision 76 (2)).
-4. Coordinator: `MKC_TEST_IMAGE` in CI's `image` job, so `test_image_operators.py` runs (decision 78 (6)).
+1. Review agent: once `gh pr checks` is green (the mutation pass is done: 72 tried, 63 killed, 9 survived, all equivalent or near-equivalent).
+3. Then `MKC-25` (lane A's next ticket).
 
 ## Recent log
+
+- **28.11.2026 09:31** Test agent: `bash scripts/pre_pr.sh` at `900883b`: exit 0, "pre-PR gate: all steps passed"; pytest `1262 passed, 2 skipped, 20 deselected, 6 warnings in 109.13s (0:01:49)`. Pushed `76c6240..900883b`. This entry's commit changes only this file.
+
+- **28.11.2026 09:26** Test agent: mutation pass on `76c6240`: 72 tried, 63 killed, 9 survived (first run 46 killed, 26 survived; 23 new tests in `4d100c9`, `6bc7aba`, `aa034e2` killed 17 of them). The 9 survivors are equivalent or near-equivalent (section "Mutation pass (MKC-23)").
+
+- **28.11.2026 08:39** Development agent: `bash scripts/pre_pr.sh` at `2bea0d8`: exit 0, "pre-PR gate: all steps passed"; pytest `1239 passed, 2 skipped, 20 deselected, 4 warnings in 115.16s (0:01:55)`; commits over 200 lines `5e00ed9` (253), `b1e5e98` (234), `ffd2601` (475), `4ac7548` (311). Every `Refs:` line reads `qamran/`. PR #225 opened (createdAt 2026-11-28T07:38:12Z, 08:38:12 CET), head `2bea0d8`, assigned to `qamran`; #23 and #219 to #224 moved to `Testing`. This commit changes only this file.
+
+- **28.11.2026 08:35** Development agent: `bash scripts/pre_pr.sh` at `8ed6eda` failed on `check_handoff.py` (and its test): this file's "Last updated" line had lost its comma (`28.11.2026 08:32`); pytest in that run `1 failed, 1238 passed, 2 skipped, 20 deselected, 4 warnings in 114.26s (0:01:54)`, the 1 being `test_check_handoff.py::test_the_repo_passes`. Fixed.
+
+- **28.11.2026 08:32** Development agent: `bash scripts/pre_pr.sh` at `dcfb1f5`: exit 0, "pre-PR gate: all steps passed"; pytest `1239 passed, 2 skipped, 20 deselected, 4 warnings in 112.63s (0:01:52)`; commits over 200 lines `5e00ed9` (253), `b1e5e98` (234), `ffd2601` (475), `4ac7548` (311). Then: `test_cli.py` `test_inspect_lists_items_and_log` also asserts the `enqueue_approval` row in `run_log` (decision 83 says it is traced); `fetch.py`'s module docstring names the hop rule. My tests against mutants: the owner check in `enqueue_approval` removed: `test_approval_queue.py` `1 failed, 8 passed`; `isascii` removed there: `1 failed, 8 passed`; `fetch_document` without `allowed_hosts`: `test_hop_allowlist.py` `1 failed, 1 passed`. `git diff 05c2c43 --stat` over the nine red test files: only `test_run_documents.py` (4 insertions, 2 deletions). The scratch copies of both operator PDFs and the rendered region are deleted.
+
+- **28.11.2026 08:27** Development agent: the first `bash scripts/pre_pr.sh` at `b8369ed` failed only on mypy (`render.py`: `pypdfium2` has no `py.typed`); every other step passed. The import is marked `# type: ignore[import-untyped]` in `render.py` (no change to the shared `pyproject.toml`); `uv run mypy`: "Success: no issues found in 77 source files".
+
+- **28.11.2026 08:23** Development agent: docs (MKC-23.6): decisions 82 to 84 in design section 18, decision 62 (5) reworded, sections 7 and 8.3 "Built in MKC-23", backlog "As built" and the success criterion ticked, status doc line, runbook "The allow-list" and "Render and the approval queue (MKC-23)" (`MKC_RENDER_MAX_DPI`); this file's head rewritten to the current state (PR #215 finding 1). Full suite at `2582dbb` (`uv run pytest -q`): `1239 passed, 2 skipped, 20 deselected, 4 warnings in 111.66s (0:01:51)`.
+
+- **28.11.2026 08:18** Development agent: redirect hops held to the allow-list (MKC-23.5, PR #215 finding 8): `http_get(..., allowed_hosts=None)` checks every hop with `is_allowed_url` before requesting it (default: the given URL's host); `fetch_document` and `DocumentOps` default to `http_get` with the operator's `allowed_hosts`. Existing tests changed: `test_fetch_rules.py` `_chain` hops on the listed host instead of `cdnN.example`. My `test_hop_allowlist.py` (2 tests) was written with the code. Lane-file times above corrected from git (the 07:58, 08:06, 08:27 and 08:33 headers were not taken from a clock). `pytest tests/extraction`: `242 passed, 1 skipped, 5 deselected`; live fetch at 08:18:11 (`pytest -m live tests/extraction/test_live_berlin.py tests/extraction/test_live_extract.py`, no model calls): `3 passed in 12.25s`.
+
+- **28.11.2026 08:16** Development agent (commit `b503163`): real runs get the real document tools (MKC-23.4, PR #215 finding 6): `execute_run(..., documents=...)` passes a `DocumentOps` to the default registry; the executor builds one on `storage_from_settings(settings)`, else the local cache `backend/.cache/blobs` (as `mkc run start` does), so `--inline` runs get it too. Red test changed: `test_run_documents.py` `replies()` passes the region's bbox to `extract_text` (reason in the PR body). `pytest tests/harness/test_run_documents.py tests/worker/test_executor_documents.py`: `2 passed`.
+
+- **28.11.2026 08:13** Development agent (commits `2883c55` to `7a0b96d`): the approval queue (MKC-23.3): table `approval` (`2883c55`, migration `0014`), `save_draft` guards, `draft_locked` and the real `enqueue_approval` (`4ac7548`), and the loop: a turn with a `save_draft` call is fenced first (MKC-17 finding 2); a `draft_locked` save fails the item as `tool_error: draft_locked`; after an item ends `draft_saved` the harness runs `enqueue_approval` and moves it to `pending_approval` (after `faults.item_ended`), and every full run first queues the `draft_saved` items a crash left unqueued; the baseline queues in memory and its report walks `running -> draft_saved -> pending_approval`. `pytest tests/harness tests/worker tests/test_cli.py tests/observability tests/db`: `2 failed, 420 passed, 1 skipped` (the 2 are MKC-23.4). Existing tests changed (states `pending_approval`, the `enqueue_approval` trace): `test_baseline.py`, `test_faults.py`, `test_cli.py`. My `test_approval_queue.py` (9 tests) was written with the code.
+
+- **28.11.2026 08:04** Development agent (commit `9a736ad`): `render_region` (`mkc/extraction/render.py`, PDFium) is real through `DocumentOps`; the PNG goes into the store, the result holds `image_ref`, `width`, `height`; page, bbox and the cap `render_max_dpi` (`MKC_RENDER_MAX_DPI`, default 300) are checked before anything is drawn (`ToolRefused("invalid_args")`); `page` and `dpi` are `StrictInt`, bbox coordinates refuse booleans (MKC-14 finding 10, also for `extract_text`). `pytest tests/extraction tests/harness/test_registry.py tests/harness/test_tools.py tests/harness/test_tools_hardening.py tests/test_config.py`: `3 failed, 310 passed, 1 skipped, 5 deselected` (the 3 are the redirect hops, MKC-23.5). Fetch disclosed: both operator PDFs with `curl` at 08:04 into a scratch folder outside the repo (Berlin `4e12c90f…29a18`, SachsenNetze `7200b472…0bec`): no page rotation, pdfium and pdfplumber agree on the page sizes, and Berlin page 14's region renders as concept 3.
+
+- **28.11.2026 08:01** Development agent: `MesskonzeptDraft` and the schema export (`ffd2601`); sub-issues MKC-23.1 to 23.6 created at 07:56 (#219 to #224, GitHub `createdAt`), linked to #23, on the board `In progress`. Live redirect check at 07:49: both operator URLs answer 200 `application/pdf` with no redirect, so every hop is held to the allow-list (coordinator ruling on assumption 15).
+
+- **28.11.2026 07:44** Test agent: red test `05c2c43` (a row-less `draft_saved` item in a full run, PR #167 finding 7). Red run at `05c2c43`: eight new test files `59 failed, 5 passed in 6.05s`; full suite `59 failed, 1169 passed, 2 skipped, 20 deselected, 4 warnings in 111.13s (0:01:51)`. Commit sizes corrected from `git log --shortstat`.
+
+- **28.11.2026 07:40** Test agent: MKC-23 red tests committed (`5e00ed9` to `7923957`, 07:36) and the lane file (`11425dc`). Assumptions 1 to 15 above.
 
 - **28.11.2026 00:37** Development agent: `bash scripts/pre_pr.sh` at `ec8fead`: exit 0, "pre-PR gate: all steps passed"; pytest `1080 passed, 2 skipped, 19 deselected, 4 warnings in 97.88s (0:01:37)`. PR #215 opened (createdAt 2026-11-27T23:37:01Z, 00:37:01 CET), head `ec8fead`, assigned to `qamran`; #22 and #208 to #213 moved to `Testing`. This commit changes only this file.
 

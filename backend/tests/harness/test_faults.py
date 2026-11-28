@@ -45,7 +45,7 @@ def test_rate_limit_is_retried(engine: Engine, mode: str) -> None:
     faulty(engine, run_id, model, FaultPlan(rate_limit_at=1), waits=waits)
     assert waits == [2.0]  # one backoff (MKC-18 default base)
     assert len(model.seen) == 1  # the injected 429 never reached the model
-    assert states(engine, run_id) == ("awaiting_approval", ["draft_saved"])
+    assert states(engine, run_id) == ("awaiting_approval", ["pending_approval"])
 
 
 @pytest.mark.parametrize("mode", ["full", "baseline"])  # criterion 1 on the fault paths
@@ -72,7 +72,7 @@ def test_malformed_reply_gets_the_reprompt(engine: Engine, mode: str) -> None:
     if mode == "full":  # baseline keeps no turn rows
         first = turns(engine, item_id)[0]
         assert first.assistant["tool_calls"] == [] and first.cost_eur == 0
-    assert states(engine, run_id) == ("awaiting_approval", ["draft_saved"])
+    assert states(engine, run_id) == ("awaiting_approval", ["pending_approval"])
 
 
 def test_kill_at_turn_resumes_in_full(engine: Engine) -> None:
@@ -100,7 +100,7 @@ def test_kill_at_turn_restarts_baseline_from_zero(engine: Engine) -> None:
     again = FakeChatModel(responses=[READ, saved(1)])
     faulty(engine, run_id, again, FaultPlan())  # a new process, no fault
     assert len(again.seen) == 2  # turn 1 was redone
-    assert states(engine, run_id) == ("awaiting_approval", ["draft_saved"])
+    assert states(engine, run_id) == ("awaiting_approval", ["pending_approval"])
 
 
 def test_kill_during_approval_keeps_the_draft_in_full(engine: Engine) -> None:
@@ -114,7 +114,8 @@ def test_kill_during_approval_keeps_the_draft_in_full(engine: Engine) -> None:
     faulty(engine, run_id, again, FaultPlan())
     assert len(again.seen) == 1  # item 1 was not redone
     assert drafts(engine) == 2
-    assert states(engine, run_id) == ("awaiting_approval", ["draft_saved", "draft_saved"])
+    # item 1 is queued by the next run (MKC-23)
+    assert states(engine, run_id) == ("awaiting_approval", ["pending_approval"] * 2)
 
 
 def test_kill_during_approval_loses_the_draft_in_baseline(engine: Engine) -> None:
