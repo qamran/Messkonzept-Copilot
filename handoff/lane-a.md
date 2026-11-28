@@ -1,6 +1,6 @@
 # Lane A: Extraction
 
-**Last updated:** 28.11.2026, 08:35
+**Last updated:** 28.11.2026, 08:39
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -16,7 +16,7 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 
 ## In progress
 
-- `MKC-23` (`#23`, render, draft assembly, `save_draft`): built; sub-issues MKC-23.1 to 23.6 (#219 to #224). The source of truth is the backlog entry (issue #23's body is stale: decision 53 moved the enqueue to the harness). The test agent's red tests are `5e00ed9` to `7923957` and `05c2c43`; its red run and the 15 assumptions are in this file at `f973c9d`.
+- `MKC-23` (`#23`, render, draft assembly, `save_draft`): PR #225 open (head `2bea0d8` before this commit), #23 and the sub-issues in `Testing`; sub-issues MKC-23.1 to 23.6 (#219 to #224). The source of truth is the backlog entry (issue #23's body is stale: decision 53 moved the enqueue to the harness). The test agent's red tests are `5e00ed9` to `7923957` and `05c2c43`; its red run and the 15 assumptions are in this file at `f973c9d`.
 - Coordinator rulings on the assumptions: 1 to 14 confirmed (13: the baseline queues in memory); 15 changed: every hop must be on the operator's `allowed_hosts`, after a live check found no redirect on either operator URL (decision 84); the user's ruling on a later save is decision 83 (4).
 - Built (decisions 82 to 84): `MesskonzeptDraft` and its schema file; `render_region` (PDFium, cap `MKC_RENDER_MAX_DPI` 300, `ToolRefused` for refusals); table `approval` (migration 0014), the guarded `save_draft` (`running` only, `draft_locked`), the real `enqueue_approval`, the loop's enqueue and crash-window sweep, the fence before a save, the baseline's queue in memory; `execute_run(documents=...)` and the executor's `DocumentOps`; redirect hops on the allow-list.
 - Red tests changed (reasons in the PR body): `test_run_documents.py` `replies()` passes the region's bbox to `extract_text` (the whole page reads the sidebar into the title).
@@ -31,6 +31,8 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 3. Then `MKC-25` (lane A's next ticket).
 
 ## Recent log
+
+- **28.11.2026 08:39** Development agent: `bash scripts/pre_pr.sh` at `2bea0d8`: exit 0, "pre-PR gate: all steps passed"; pytest `1239 passed, 2 skipped, 20 deselected, 4 warnings in 115.16s (0:01:55)`; commits over 200 lines `5e00ed9` (253), `b1e5e98` (234), `ffd2601` (475), `4ac7548` (311). Every `Refs:` line reads `qamran/`. PR #225 opened (createdAt 2026-11-28T07:38:12Z, 08:38:12 CET), head `2bea0d8`, assigned to `qamran`; #23 and #219 to #224 moved to `Testing`. This commit changes only this file.
 
 - **28.11.2026 08:35** Development agent: `bash scripts/pre_pr.sh` at `8ed6eda` failed on `check_handoff.py` (and its test): this file's "Last updated" line had lost its comma (`28.11.2026 08:32`); pytest in that run `1 failed, 1238 passed, 2 skipped, 20 deselected, 4 warnings in 114.26s (0:01:54)`, the 1 being `test_check_handoff.py::test_the_repo_passes`. Fixed.
 
