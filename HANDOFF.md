@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 28.11.2026, 01:52
+**Last updated:** 28.11.2026, 07:05
 
 This file is how agents resume work after a session restart.
 
@@ -61,13 +61,17 @@ From MKC-168 (decision 61), tickets run in parallel lanes. Each lane keeps its o
 
 | Lane | Tickets | File | State |
 |---|---|---|---|
-| A. Extraction | MKC-21 → 22 → 23 → 25 → 26 → 28 → 29 → 30 | `handoff/lane-a.md` | MKC-22 done (PR #215, `6d3aee9`); next MKC-23 (gets `runner.py` to wire `DocumentOps`) |
+| A. Extraction | MKC-21 → 22 → 23 → 25 → 26 → 28 → 29 → 30 | `handoff/lane-a.md` | MKC-22 done (PR #215, `6d3aee9`); MKC-23 in progress (wave 3) |
 | A2. SachsenNetze and gold | MKC-27 (after MKC-21) → 24 (after MKC-23) | `handoff/lane-a2.md` | MKC-27 done (PR #214, `3bacfc5`); paused: MKC-24 waits on MKC-23 |
 | B. Advisor | MKC-36 → (37 after MKC-30) → 38 | `handoff/lane-b.md` | MKC-36 done (PR #196, `046f61e`); paused: MKC-37 waits on MKC-30 |
 | C. Decision layer | MKC-46 → (47 after MKC-36, MKC-26) → (48 after MKC-31) | `handoff/lane-c.md` | MKC-46 done (PR #195, `085323a`); next MKC-47 waits on MKC-36 and MKC-26 |
 | D. RAG | MKC-49 → 50 → (51 after MKC-38) | `handoff/lane-d.md` | MKC-50 done (PR #216, `3636edb`); paused: MKC-51 waits on MKC-38 |
 
-Wave 2 worktrees (outside the repo folder, cut from `origin/main` `d7fad1e`): `<lanes>/lane-a` on `mkc-22-text-tables`, `lane-a2` on `mkc-27-sachsen-segment`, `lane-d` on `mkc-50-hybrid-retriever`, where `<lanes>` is the folder `mkc-lanes` next to the repo folder. Each has a copy of the gitignored `backend/.env`. (Wave 1's four worktrees were removed at 23:01.)
+Wave 3 worktree (outside the repo folder, cut from `origin/main` `502c30a`): `<lanes>/lane-a` on `mkc-23-render-drafts`, where `<lanes>` is the folder `mkc-lanes` next to the repo folder; it has a copy of the gitignored `backend/.env`. (Wave 2's three worktrees were removed at 01:31:45 on 28.11.2026.)
+
+Wave 3 grants beyond AGENTS.md (in the lane A brief): lane A may change `mkc/harness/runner.py` and `mkc/worker/executor.py` (pass `documents` to `default_registry`), `mkc/harness/drafts.py`, `mkc/harness/states.py` (only if an edge is needed), `mkc/harness/registry.py` (`enqueue_approval`, `render_region`), append one block to `config.py` and `.env.example` (DPI cap), add a table at the end of `mkc/db/models.py`, and new migrations from `0014` with `down_revision = "0013"` (`main`'s head). Renderer: `pypdfium2` and `pillow` are already in `uv.lock` (via `pdfplumber`); a new dependency goes to the coordinator first. Live use: public PDFs only, no model calls. Decision block 82–84.
+
+Coordinator ruling for MKC-23 (the user, 28.11.2026; decision 56 note): a save for a key whose draft is still pending approval replaces the body and keeps one queue entry; once the draft is approved or committed, the save is refused with a structured error (`draft_locked`), the approved record stays and the item fails with that reason.
 
 Wave 2 grants beyond AGENTS.md (in each lane brief): lane A2 may change exactly two spots of lane A's package, the `sachsennetze` line in `SEGMENTERS` (`segment.py`) with its import and the `sachsennetze` entry in `operators.yaml`; A2 keeps its fixtures out of `tests/extraction/conftest.py`. Lane A takes the MKC-21 review findings as a fetch-hardening sub-issue of MKC-22, and may fix `is_valid_code` on `²` (MKC-12 finding 11) and `execute` raising on argument validators (MKC-14 finding 2); its naive baseline is pure Python (a system `pdftotext` comes to the coordinator first). Lane D takes the MKC-49 review findings as a sub-issue of MKC-50, owns `EmbeddingClient` (tracer hooks), may only append in `mkc/observability/`, and may add one `COPY data/corpus_sources.yaml` line to the Dockerfile. New migrations use `down_revision = "0013"`. Live use: lanes A and A2 fetch public PDFs only, no model calls; lane D up to €0.50 for live query embeddings. Deferred: `mkc-load-lbs` in the deploy (MKC-12 finding 1, a hardening ticket), the saved-draft minor (MKC-23).
 
@@ -77,10 +81,11 @@ New tables go at the end of `mkc/db/models.py` in a block commented with the tic
 
 ## In progress
 
-- **MKC-200** (#200), Wave 2 coordinator log: done (PR #217, merged as `502c30a`, deployed). This closeout branch `mkc-200-wave-2-closeout` holds the post-merge log; wave 3's coordinator PR carries it to `main`.
+- **Wave 3 (28.11.2026):** MKC-23 (lane A) in progress; coordinator log MKC-218 (#218) on `mkc-218-wave-3-coordinator`, cut from the closeout branch `mkc-200-wave-2-closeout` (`6cbd700`), so its PR carries the wave 2 post-merge log to `main`.
+- **MKC-200** (#200), Wave 2 coordinator log: done (PR #217, merged as `502c30a`, deployed).
 - **Wave 2 done (28.11.2026):** MKC-27 (PR #214, `3bacfc5`), MKC-22 (PR #215, `6d3aee9`), MKC-50 (PR #216, `3636edb`), each review PASS, merged and deployed (log below). Every lane: red acceptance tests by the test agent, the development agent, a mutation pass (A2 72/63/9, A 119/104/15, D 108/104/4 tried/killed/survived; all survivors accepted as near-equivalent), `pre_pr.sh`, PR, review after green checks. The three wave 2 worktrees are removed after this PR's gate.
 - **Coordinator rulings in wave 2:** MKC-27: the SachsenNetze half `13 / Nr. (tbd)` is a placeholder, not an item (11 items, decision 74). MKC-50: latency reaches the trace through an additive `retrieval` record kind; the sources file has `MKC_CORPUS_SOURCES_FILE`; any corpus cache inside the repo is refused; the extra reference ranking (a `§ <n>` in the query) is accepted. MKC-22: wiring `DocumentOps` into `runner.py` goes to MKC-23.
-- **Next: wave 3 = MKC-23** (lane A, decision block 82–84), the only open lane ticket whose dependencies are all done (MKC-54 to MKC-60 are Phase 8 or deferred, with no "Depends on" line); lane A gets `mkc/harness/runner.py` (and the executor) to pass `documents` to `default_registry`. All other lanes pause: A2 (MKC-24) on MKC-23, B (MKC-37) on MKC-30, C (MKC-47) on MKC-26, D (MKC-51) on MKC-38. Open wave 3's coordinator issue and cut its branch from this closeout branch. Recommended: start wave 3 in a fresh session.
+- **Wave 3 = MKC-23** (lane A, decision block 82–84; started 07:05, see the first bullet), the only open lane ticket whose dependencies are all done (MKC-54 to MKC-60 are Phase 8 or deferred, with no "Depends on" line); lane A gets `mkc/harness/runner.py` (and the executor) to pass `documents` to `default_registry`. All other lanes pause: A2 (MKC-24) on MKC-23, B (MKC-37) on MKC-30, C (MKC-47) on MKC-26, D (MKC-51) on MKC-38. Open wave 3's coordinator issue and cut its branch from this closeout branch. Recommended: start wave 3 in a fresh session.
 - **Wave 1 done (27.11.2026):** MKC-46 (PR #195, `085323a`), MKC-36 (PR #196, `046f61e`), MKC-21 (PR #197, `2a841a2`), MKC-49 (PR #198, `6681d48`), each review PASS, merged and deployed; MKC-175 (PR #199, `d7fad1e`).
 - Process rules after the MKC-20 FAIL round: run CI's exact commands (now `bash scripts/pre_pr.sh`) before any claim; copy numbers from output; times from `date`, git or GitHub; start the review only after `gh pr checks` is green.
 
@@ -236,6 +241,8 @@ New tables go at the end of `mkc/db/models.py` in a block commented with the tic
 - **The user's PC:** it went down without a clean shutdown on 23.11 and 26.11.2026 (cause not found; graphics-driver hang reports on both days; a memory test is not done yet). Commit and push often. Two files exist only on the PC: the VM's admin SSH key and `backend/.env` (runbook "Only on the PC"); the user was advised to copy them into a password manager.
 
 ## Recent log
+
+- **28.11.2026 07:05** Wave 3 started: MKC-218 (#218, created 07:02:57, `In progress` 07:03:21) and its branch; #23 assigned to `qamran` and `In progress` (07:03:25); worktree `lane-a` on `mkc-23-render-drafts` from `502c30a` (07:03:32); Compose db up (07:04:52, `date`). The user ruled the MKC-23 re-save rule (under Lanes).
 
 - **28.11.2026 01:52** PR #217 (MKC-200) re-review PASS (Fable, comment 01:46:52; it re-checked `4935a1f`; 3 non-blocking findings: (1) item 0's process line named `a331961` (MKC-175) among "MKC-200 commits", (2) a missing full stop in the 23:32 entry, both fixed here; (3) the 01:40 entry's "CI green 01:34:24" is the coordinator's `date` after `gh pr checks --watch` returned, the `ci` run's last update was 01:34:10), merged as `502c30a` (01:46:55); #200 closed by the merge (01:46:57), `Done` (01:47:18). `main` pushed to `turing` (01:47:22); `origin/main` = `turing/main` = `502c30a`. `cd` run 46089722141: `image` 01:47:01 to 01:50:07; `backend` approved at 01:50:31, ran 01:50:33 to 01:51:18; `frontend` approved at 01:51:26, ran 01:51:28 to 01:52:11; run exit 0. Checked: `/api/version` commit `502c30a...`, `/health` 200 (01:52:15). **Wave 2 closed.** Docker Desktop stopped and WSL shut down after this entry.
 
