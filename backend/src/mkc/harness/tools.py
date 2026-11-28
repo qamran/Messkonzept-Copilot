@@ -36,6 +36,7 @@ ErrorCode = Literal[
     "not_implemented",
     "tool_failed",
     "timeout",
+    "draft_locked",  # MKC-23: the key's draft is approved or committed (decision 83)
 ]
 REFUSALS: frozenset[ErrorCode] = frozenset({"unknown_tool", "tool_not_allowed"})
 """Error codes that count as refusals in the trace: the call was never allowed."""
@@ -49,6 +50,7 @@ class ToolRefused(Exception):
     def __init__(self, code: ErrorCode, message: str) -> None:
         super().__init__(message)
         self.code: ErrorCode = code
+
 
 _MAX_MESSAGE = 1000
 

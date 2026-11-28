@@ -4,7 +4,10 @@ With `durable_queue` off, `process_run` serves the items in `RunMemory.todo`, ke
 and end states here, and writes the end states once, when the run ends (`write_report`). A
 crash or SIGTERM before that writes nothing, so the next attempt restarts from zero. With
 `durable_approvals` off, `save_draft` appends to `approvals` with no key: a second save adds
-a second entry, and every entry dies with the process (decision 60).
+a second entry, and every entry dies with the process (decision 60). The harness's
+`enqueue_approval` then marks the item's last entry queued and its end `pending_approval`, so
+the report walks `running -> draft_saved -> pending_approval` (MKC-23, decision 83); no
+`draft` or `approval` row is written.
 """
 
 import time
@@ -22,7 +25,7 @@ from mkc.harness.checkpoint import TurnRecord
 from mkc.harness.drafts import draft_body
 from mkc.harness.limits import RunUsage
 from mkc.harness.states import ItemState, transition
-from mkc.harness.tools import ToolEnv
+from mkc.harness.tools import ToolEnv, ToolRefused
 
 _OPEN = (ItemState.QUEUED.value, ItemState.RUNNING.value)
 
@@ -74,6 +77,8 @@ class RunMemory:
             current = ItemState(item.state)
             if current is ItemState.QUEUED:
                 current = transition(current, ItemState.RUNNING)
+            if current is ItemState.RUNNING and state is ItemState.PENDING_APPROVAL:
+                current = transition(current, ItemState.DRAFT_SAVED)  # saved, then queued
             item.state = transition(current, state).value
             item.failure_reason = reason
         self.ends.clear()
@@ -93,6 +98,35 @@ def make_memory_save_draft(memory: RunMemory) -> Callable[[BaseModel, ToolEnv], 
                 "body": body,
             }
         )
-        return {"draft_id": f"memory-{len(memory.approvals)}"}
+        return {"draft_id": f"{MEMORY_PREFIX}{len(memory.approvals)}"}
 
     return save_draft
+
+
+MEMORY_PREFIX = "memory-"
+"""In-memory draft ids are `memory-<n>`, `n` the 1-based place in `RunMemory.approvals`."""
+
+
+def memory_draft_id(memory: RunMemory, item_id: int) -> str | None:
+    """The id of the item's last in-memory save, or None if it saved nothing here."""
+    places = [n for n, a in enumerate(memory.approvals, start=1) if a["item_id"] == item_id]
+    return f"{MEMORY_PREFIX}{places[-1]}" if places else None
+
+
+def make_memory_enqueue(memory: RunMemory) -> Callable[[BaseModel, ToolEnv], Any]:
+    """`enqueue_approval` with durable approvals off: mark the entry queued, in memory only."""
+
+    def enqueue_approval(args: BaseModel, env: ToolEnv) -> Any:
+        draft_id = str(args.model_dump()["draft_id"])
+        place = draft_id.removeprefix(MEMORY_PREFIX)
+        if not (place.isascii() and place.isdigit()) or not 1 <= int(place) <= len(
+            memory.approvals
+        ):
+            raise ToolRefused("invalid_args", f"no in-memory draft {draft_id!r}")
+        entry = memory.approvals[int(place) - 1]
+        if entry["item_id"] != env.item_id:
+            raise ToolRefused("invalid_args", f"{draft_id} is not item {env.item_id}'s draft")
+        entry["queued"] = True
+        return {"approval_id": draft_id}
+
+    return enqueue_approval
