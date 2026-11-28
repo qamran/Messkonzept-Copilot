@@ -1,6 +1,6 @@
 # Lane A: Extraction
 
-**Last updated:** 28.11.2026, 11:09
+**Last updated:** 28.11.2026, 11:16
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -57,6 +57,8 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 4. Test agent: the mutation pass once the development agent's code is in.
 
 ## Recent log
+
+- **28.11.2026 11:16** Development agent: sub-issues MKC-25.1 to 25.3 created at 11:14 (#228 to #230, GitHub `createdAt` 10:14:35Z to 10:14:42Z), linked to #25, on the board `In progress`, assigned to `qamran`. `draft_locked` for the whole key (MKC-25.1): `_check_writable` locks the key's draft row and refuses when any item of the key, or the item its `approval` row points at, is `approved` or `committed`; `loop.py` unchanged. `pytest tests/harness`: `330 passed in 25.50s` (red before: `test_draft_locked.py` `6 failed, 3 passed in 2.91s`). Fetch disclosed: the Berlin PDF once with `curl` at 11:12 (sha256 `4e12c90f…29a18`) into the session scratchpad outside the repo, to read the concept list and look at five diagrams (rendered there at 70 dpi); deleted at 11:12. No model calls.
 
 - **28.11.2026 11:09** Test agent: `942bf3a` (11:09): the check-script tests now build synthetic docs (copies of the real docs would break once the real MKC-25 section lands); two tests pin that the script reads the sheet's concepts as YAML does. Fresh runs at `942bf3a`: `ruff check .` "All checks passed!", `ruff format --check .` "267 files already formatted"; the three new files `39 failed, 32 passed in 3.83s`; full suite (`uv run pytest -q`) `39 failed, 1294 passed, 2 skipped, 20 deselected, 6 warnings in 117.87s (0:01:57)`, the 39 being exactly the new red tests (6 `draft_locked`, 30 vision check, 3 check script). The 11:05 time of the entry below was not taken from a clock: its commit `9d1e953` is 11:04:11.
 

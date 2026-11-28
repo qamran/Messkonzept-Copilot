@@ -5,8 +5,9 @@ harness's `ToolEnv`, never from the model's arguments. It writes only when its i
 `running`, and follows the user's ruling on a later save (decision 83):
 
 - the key's draft still waits for approval (or has none): the body is replaced, one row;
-- the item that owns the draft is `approved` or `committed`: refused with `draft_locked`,
-  nothing written, and the loop fails the saving item.
+- any item of the key (or the item its queue row points at) is `approved` or `committed`:
+  refused with `draft_locked`, nothing written, and the loop fails the saving item
+  (decision 85; the body that stays is the body at the time of the refused save).
 
 `enqueue_approval` is the run-level operation the harness runs on a saved draft (decision
 53); it upserts the draft's one `approval` row. `commit_record` (MKC-29/30) uses the same
@@ -26,7 +27,7 @@ from mkc.harness.states import ItemState
 from mkc.harness.tools import ToolEnv, ToolRefused
 
 LOCKED = frozenset({ItemState.APPROVED.value, ItemState.COMMITTED.value})
-"""States of the owning item in which a draft can no longer be replaced."""
+"""States of any item of the key in which its draft can no longer be replaced."""
 
 
 class ItemNotRunning(RuntimeError):
@@ -81,17 +82,26 @@ def _check_writable(session: Session, env: ToolEnv, document_hash: str, concept_
     state = session.scalar(select(Item.state).where(Item.id == env.item_id).with_for_update())
     if state != ItemState.RUNNING.value:
         raise ItemNotRunning(f"item {env.item_id} is {state}, not running: nothing saved")
-    owner = session.execute(
-        select(Draft.id, Item.id, Item.state)
-        .join(Item, Item.id == Draft.item_id)
+    draft_id = session.scalar(
+        select(Draft.id)
         .where(Draft.document_hash == document_hash, Draft.concept_key == concept_key)
-        .with_for_update(of=Draft)
+        .with_for_update()
+    )
+    # Decision 85: any decided item of the key locks it, not only the draft's last saver
+    # (a failed later saver can own the row while an older item's approval stands). Only the
+    # draft row is locked; the items are read, so two savers of one key can't deadlock.
+    same_key = (Item.document_hash == document_hash) & (Item.concept_key == concept_key)
+    queued = select(Approval.item_id).where(Approval.draft_id == draft_id)
+    decided = session.execute(
+        select(Item.id, Item.state)
+        .where(Item.state.in_(LOCKED), same_key | Item.id.in_(queued))
+        .order_by(Item.id)
     ).first()
-    if owner is not None and owner[2] in LOCKED:
+    if decided is not None:
         raise ToolRefused(
             "draft_locked",
-            f"the draft for concept {concept_key} is {owner[2]} (item {owner[1]}); it can't be"
-            " replaced",
+            f"the draft for concept {concept_key} is {decided[1]} (item {decided[0]}); it can't"
+            " be replaced",
         )
 
 
