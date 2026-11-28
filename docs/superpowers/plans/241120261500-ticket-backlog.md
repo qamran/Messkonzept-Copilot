@@ -510,6 +510,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
 - **Success criteria:**
   - [ ] Split file committed (keys only, no PDF content)
   - [ ] **User task:** the first Berlin gold batch verified; hours logged in the status doc
+- **As built (decisions 75, 88, 89):** `mkc/gold/` with `split_keys` (SHA-256 rank per operator, `ceil(n/2)` to dev, pinned dev keys), `draft_concept` and `ensure_independent` (refuses `extract_vision`'s model and model family), `store_gold_draft`, `export_items` and `import_items`; table `gold_item` (migration 0015; one drafted item and at most one blind label per key); CLI `mkc gold split|draft|export|import`; `backend/data/gold_split.yaml` (37 keys; lane A's 5 MKC-25 concepts pinned to dev); `scripts/check_gold.py` for the user task. The review UI's blind mode (MKC-29) can reuse `export_items(blind=True)`.
 
 ### MKC-25: Go/no-go vision check
 

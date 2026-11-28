@@ -1,6 +1,6 @@
 # Lane A2: SachsenNetze and gold
 
-**Last updated:** 28.11.2026, 11:29
+**Last updated:** 28.11.2026, 11:30
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -18,7 +18,15 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 
 - `MKC-24` (`#24`): the test agent's red acceptance tests are committed (last red commit `cf4175f`, see "Red tests (MKC-24)"). The development agent builds against them.
   - Sub-issues (all `In progress`, assigned to `qamran`, on the board, linked to `#24`): `MKC-24.1` split (`#231`), `MKC-24.2` table and drafts (`#232`), `MKC-24.3` export, import and blind mode (`#233`), `MKC-24.4` docs and the user-task check (`#234`).
-  - Held back: `backend/data/gold_split.yaml` is committed only once the coordinator sends lane A's 5 pinned Berlin keys (MKC-25). No live `gold_draft` call before the coordinator resumes the lane after the split.
+  - Split file committed with the coordinator's 5 pins (Berlin `3`, `3.3`, `4.2`, `11`, `12`). No live `gold_draft` call before the coordinator resumes the lane.
+
+### Batch plan: Berlin gold batch 1 (waits for the coordinator's go)
+
+- **Concepts (8):** the Berlin dev keys that are not pinned: `stromnetz-berlin:1.2`, `2.1`, `3.2`, `4`, `5`, `6`, `7`, `11.1` (exactly 13 dev minus the 5 pins). The 5 pinned keys get the user's from-scratch labels in MKC-25 (as blind items: `mkc gold export --blind --key ...`).
+- **Model:** the `gold_draft` role, `openrouter:anthropic/claude-haiku-5.5` (another family than `google/gemini-3.8-flash`). OpenRouter's model listing (28.11.2026) gives its input modalities as `text, image, file`, so each call sends the region's text **and** the region rendered at 150 dpi: the meter topology is in the drawing.
+- **Command:** `uv run mkc gold draft --operator stromnetz-berlin --side dev --max-eur 1.50` (pins skipped by default), against the local Compose database. Each printed line (key, model, cost) goes into the log below.
+- **Cost estimate:** `$0.10` / `$0.50` per million tokens; a concept is a few thousand tokens in and about 1,500 out, so the batch is well under €0.05 of the €1.50 budget.
+- **Then:** `uv run mkc gold export --out <scratch>/gold-batch-1.json` (outside the repo, never committed) for the user to verify; `mkc gold import ... --verified-by qamran`; the user logs the batch line in the status doc.
 
 ### Red tests (MKC-24)
 
@@ -32,7 +40,7 @@ All in `backend/tests/gold/` plus `backend/tests/test_check_gold.py`. Each test 
   - per operator `|dev - test| <= 1`; pinned keys in dev; the same bytes for any input order and under `PYTHONHASHSEED` 0, 1 and 12345; pins that agree with the split change nothing; `ValueError` for an unknown pin, for more pins than `ceil(n/2)` of an operator, and for a key without `:`
 - `test_gold_split_file.py`: `GOLD_SPLIT_FILE` is `backend/data/gold_split.yaml`; both operators of `operators.yaml`; SachsenNetze exactly `2-1, 2-1a, 2-2, 2-2a, 2-3, 2-3a, 2-3b, 2-5a, 3-1, 3-2, 3-5` (no `13`); 26 Berlin keys; balanced; pins in dev; equals `dump_split(split_keys(its keys, its pins))` (read with universal newlines); keys only (under 8,000 characters, lines up to 100, no `base64` or `data:`).
 - `test_gold_draft.py` (named test `test_gold_draft_uses_gold_draft_role_model_not_extraction_model`), module `mkc.gold.draft`:
-  - `ensure_independent(config: ModelsConfig)`: `ModelConfigError` when `gold_draft` has the same provider and model as `extract_vision`; the repo's `models.yaml` passes
+  - `ensure_independent(config: ModelsConfig)`: `ModelConfigError` when `gold_draft` has the same provider and model as `extract_vision`; the repo's `models.yaml` passes; since ruling 4 also when both are the same model family (the development agent's own test `test_gold_family.py`, decision 88)
   - `draft_concept(client, config, *, key, text, images=()) -> GoldDraft` (`.key`; `.payload` valid as `MesskonzeptDraft`; `.drafted_by` is `ModelReply.model_id`, for example `openrouter:anthropic/claude-haiku-5.5`)
   - through a real `ModelClient` with a recording factory: every trace has role `gold_draft`; only the gold model is built; a refused config makes no call; a reply that is not a `MesskonzeptDraft` raises `ModelError` or `ValueError`; the PDF text is in a user message, not the system prompt. The client method (`chat`, `vision`, `chat_structured`) is not pinned.
 - `test_gold_table.py`: `mkc.db.models.GoldItem` on table `gold_item` with `kind, key, split, payload, drafted_by, verified_by, blind` (`blind` not null; `payload`, `drafted_by`, `verified_by` nullable); a `split` other than `dev` or `test` raises `IntegrityError`; `mkc.gold.store.store_gold_draft(session, draft, *, split)` writes kind `concept`, blind false and `drafted_by`; a second draft of the key replaces an unverified payload; a verified item is never overwritten.
@@ -72,13 +80,14 @@ Coordinator rulings (28.11.2026): 1, 2, 3, 5, 7, 8, 9 and 10 confirmed; 6 is the
 
 ## Next steps
 
-1. Development agent: sub-issues for `#24`, then build `mkc/gold/`, the table, migration `0015`, the CLI, `scripts/check_gold.py` and `backend/data/gold_split.yaml` against the red tests.
-2. Coordinator: answer assumptions 1 and 2.
-3. User: verify the first Berlin gold batch and log the hours (the pinned line).
-4. Test agent: mutation pass once the development agent is done.
+1. Coordinator: the go for the live batch 1 (see "Batch plan"); the development agent then drafts and exports it.
+2. User: verify the first Berlin gold batch and log the hours (the pinned line); then the PR can open.
+3. Test agent: mutation pass on the development agent's code.
+4. Development agent: open the PR once `scripts/pre_pr.sh` exits 0.
 
 ## Recent log
 
+- **28.11.2026 11:30** Development agent: docs: decisions 75 (split), 88 (independence by model family), 89 (gold items, blind mode, facts only) in design section 18, design 11.1 says "another model family"; status doc section renamed `## Lane A2: SachsenNetze (MKC-27) and gold tooling (MKC-24)` with an MKC-24 part (no batch line yet); backlog MKC-24 "As built"; runbook section "Gold data (MKC-24)" at the end. Batch 1 plan above. No ADR change (ADR 003 already keeps gold data in Postgres with a JSON export).
 - **28.11.2026 11:29** Development agent: `scripts/check_gold.py` (the pinned line in the `## Lane A2 ... MKC-24` section, N >= 1, H > 0): `tests/test_check_gold.py` `1 failed, 14 passed in 0.55s`; the one failure is `test_the_repo_passes`, red until the user has verified batch 1 (expected).
 - **28.11.2026 11:29** Development agent: own tests `tests/gold/test_gold_cli_draft.py` (draft on a synthetic PDF with a fake model: side, source from the segmenter, image sent; pinned keys skipped; unknown key refused; blind export without a draft takes the split file; an unfilled blind import keeps a label; an import without an item stores nothing; a verified draft is not redrafted): `7 passed`. Written after the code, so checked by hand mutations instead (no pin filter, no source override, unfilled blind not skipped): each `1 failed, 6 passed`. ruff, format and mypy clean; `tests/gold tests/db tests/test_cli.py` `123 passed in 20.94s`.
 - **28.11.2026 11:26** Development agent: `mkc/gold/exchange.py` (`export_items`, `import_items`; a blind item takes its split from the drafted item, else from the split file) and `mkc gold draft|export|import` (draft: fetch into memory, segment, region text and a 150 dpi render, `--max-eur` cap, pinned keys skipped unless `--include-pinned`): `tests/gold tests/test_cli.py` `90 passed in 6.62s`.

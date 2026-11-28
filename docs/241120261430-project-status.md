@@ -219,10 +219,20 @@ User choices:
   - MKC-49 review findings: https-only tests, the `§` heading rule, any cache inside the repo refused, the image ships `corpus_sources.yaml` and `MKC_CORPUS_SOURCES_FILE` (decision 81)
 - **LLM spend (MKC-50):** two live runs of `tests/rag/test_retriever_live.py` (EnWG § 14a and the synthetic law loaded, two query embeddings): run 2 cost EUR 0.0000178 (1,949 tokens); run 1's cost was not printed (the same texts). Logged in `handoff/lane-d.md`.
 
-## Lane A2: SachsenNetze segmentation (MKC-27)
+## Lane A2: SachsenNetze (MKC-27) and gold tooling (MKC-24)
 
 - **State (28.11.2026):** done: PR #214 merged as `3bacfc5` after a review PASS and deployed. The test agent's mutation pass killed 63 of 72 applied mutants; the coordinator accepted the 9 survivors (near-equivalent or not pinned on purpose). Sub-issues MKC-27.1 and 27.2 (`#201`, `#202`).
 - **Built:** `mkc/extraction/sachsen.py` (`segment_sachsen`), registered as `SEGMENTERS["sachsennetze"]`, so `mkc run start --operator sachsennetze` queues one item per concept.
 - **Split method (decision 74):** half page, with the reasons in the plan `docs/superpowers/plans/271120262318-mkc-27-sachsen-segmentation.md`.
 - **Catalogue:** "Standard-Messkonzepte in Niederspannung", 09/2025, 9 landscape pages; 12 halves, of which the placeholder `13 / Nr. (tbd)` is not an item. The live run gives 11 regions on pages 3 to 8.
 - **LLM spend (MKC-27):** none (no model call; one public PDF fetch for the study and the live test).
+
+### MKC-24: gold tooling
+
+- **State (28.11.2026):** in progress on `mkc-24-gold-tooling`. Built and tested; the PR waits for the user task (the first Berlin gold batch). Sub-issues MKC-24.1 to 24.4 (`#231` to `#234`).
+- **Built:** `mkc/gold/` (split, draft, store, facts-only rule, export and import), table `gold_item` (migration 0015), `mkc gold split|draft|export|import`, `scripts/check_gold.py`.
+- **Split (decision 75):** `backend/data/gold_split.yaml`, 37 keys from one live segmentation: Berlin 13 dev / 13 test, SachsenNetze 6 dev / 5 test. Lane A's 5 MKC-25 concepts (Berlin `3`, `3.3`, `4.2`, `11`, `12`) are pinned to dev.
+- **Independence (decision 88):** `gold_draft` may share neither the model nor the model family of `extract_vision`; the repo uses `anthropic/claude-haiku-5.5` against `google/gemini-3.8-flash`.
+- **Blind mode and provenance (decision 89):** one drafted item and at most one blind label per key; a blind export holds no draft and no drafter; import is all or nothing and sets `verified_by` from `--verified-by`.
+- **User task:** verify the first Berlin gold batch (8 Berlin dev concepts, not the 5 pinned ones) and log it here as `- **Berlin gold batch 1:** <N> concepts verified, <H> h of the user's time`; `scripts/check_gold.py` stays red until then.
+- **LLM spend (MKC-24):** none so far (budget €1.50, public PDFs only; one in-memory fetch and segmentation of both catalogues for the split keys, no model call).
