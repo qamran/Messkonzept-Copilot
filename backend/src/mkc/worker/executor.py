@@ -38,11 +38,13 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 
 from mkc.config import Settings
+from mkc.extraction.operations import DocumentOps
+from mkc.extraction.storage import LOCAL_CACHE_DIR
 from mkc.harness.faults import FaultInjector
 from mkc.harness.limits import Limits, StopReason, run_usage, stop_run
 from mkc.harness.loop import SETUP_ERRORS
 from mkc.harness.runner import execute_run
-from mkc.harness.storage import storage_from_settings
+from mkc.harness.storage import FileBlobStore, storage_from_settings
 from mkc.harness.tools import ToolRegistry
 from mkc.models.client import ModelClient
 from mkc.observability.trace import Tracer
@@ -92,6 +94,10 @@ class Executor:
         self.faults = faults  # only the CLI and tests pass one (MKC-20, decision 60)
         # Large turn results: Supabase Storage when configured, else the `blob` table (MKC-21)
         self.blobs = storage_from_settings(settings)
+        # The item tools read the run's PDF from the same store, or from the local cache the
+        # CLI fetches into when Storage is not configured (MKC-23, PR #215 finding 6)
+        store = self.blobs if self.blobs is not None else FileBlobStore(LOCAL_CACHE_DIR)
+        self.documents = DocumentOps(sessions, store)
         self.owner = owner or default_owner()
         self._sessions = sessions
         self._client_factory = client_factory
@@ -200,6 +206,7 @@ class Executor:
                     client=client,
                     registry=self._registry,
                     tool_tracers=self._tool_hooks,
+                    documents=self.documents,
                     faults=self.faults,
                     limits=Limits.from_settings(settings),
                     inline_max_bytes=settings.turn_inline_max_bytes,

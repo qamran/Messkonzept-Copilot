@@ -335,3 +335,21 @@ class Chunk(Base):
     tsv: Mapped[Any] = mapped_column(
         TSVECTOR, Computed("to_tsvector('german'::regconfig, text)", persisted=True)
     )
+
+
+# --- MKC-23: the approval queue (lane A, decision 83) -------------------------------------
+
+
+class Approval(Base):
+    """A saved draft queued for human approval (MKC-23.3): one row per draft, written by the
+    harness's `enqueue_approval`, never by `save_draft` (decision 53). A later save of the
+    same key while it waits keeps this row and points it at the newest item. The decision
+    columns come with the review queue (MKC-29)."""
+
+    __tablename__ = "approval"
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
+    draft_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("draft.id"), unique=True)
+    item_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("item.id"))
+    created_at: Mapped[datetime] = _created()
+    updated_at: Mapped[datetime] = _updated()

@@ -99,7 +99,7 @@ def test_start_inline_runs_it(engine: Engine, items: Path, model: FakeChatModel)
     result = mkc("run", "start", "--items", str(items), "--inline")
     assert result.exit_code == 0, result.output
     assert "awaiting_approval" in result.output
-    assert states(engine, 1) == ("awaiting_approval", ["draft_saved", "draft_saved"])
+    assert states(engine, 1) == ("awaiting_approval", ["pending_approval", "pending_approval"])
     assert run_row(engine, 1).lease_owner is None
 
 
@@ -115,7 +115,7 @@ def test_start_inline_with_a_kill_exits_137_and_resume_finishes(
     model.responses, model.i = [saved(2)], 0
     result = mkc("run", "resume", "1", "--inline")
     assert result.exit_code == 0, result.output
-    assert states(engine, 1) == ("awaiting_approval", ["draft_saved", "draft_saved"])
+    assert states(engine, 1) == ("awaiting_approval", ["pending_approval", "pending_approval"])
 
 
 def test_unknown_plan_is_refused(engine: Engine, items: Path) -> None:
@@ -190,7 +190,7 @@ def test_status_shows_state_items_usage(engine: Engine, items: Path, model: Fake
     _done_inline(items, model)
     result = mkc("run", "status", "1")
     assert result.exit_code == 0, result.output
-    for text in ("run 1: awaiting_approval (mode full)", "draft_saved 2", "steps 3",
+    for text in ("run 1: awaiting_approval (mode full)", "pending_approval 2", "steps 3",
                  "cost 0.0009 EUR", "lease: free"):  # fmt: skip
         assert text in result.output
 
@@ -201,6 +201,7 @@ def test_inspect_lists_items_and_log(engine: Engine, items: Path, model: FakeCha
     assert result.exit_code == 0, result.output
     assert "MK-1" in result.output and "MK-2" in result.output
     assert "save_draft" in result.output  # from run_log
+    assert "tool enqueue_approval item 1 step None: ok" in result.output  # MKC-23: traced
     detail = mkc("run", "inspect", "1", "--item", "1")
     assert "turn 1: extract_text failed" in detail.output  # the placeholder tool
     assert "turn 2: save_draft ok" in detail.output

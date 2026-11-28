@@ -36,9 +36,21 @@ ErrorCode = Literal[
     "not_implemented",
     "tool_failed",
     "timeout",
+    "draft_locked",  # MKC-23: the key's draft is approved or committed (decision 83)
 ]
 REFUSALS: frozenset[ErrorCode] = frozenset({"unknown_tool", "tool_not_allowed"})
 """Error codes that count as refusals in the trace: the call was never allowed."""
+
+
+class ToolRefused(Exception):
+    """Raised inside a tool to refuse the call with a given error code (MKC-23): `execute`
+    returns it as that code, not as `tool_failed`. Used for checks a validator can't make
+    (a bbox against the page, the DPI cap, a draft that is already approved)."""
+
+    def __init__(self, code: ErrorCode, message: str) -> None:
+        super().__init__(message)
+        self.code: ErrorCode = code
+
 
 _MAX_MESSAGE = 1000
 
@@ -235,6 +247,8 @@ class ToolRegistry:
             return _fail("invalid_args", f"the arguments broke a validator: {_text(error)}")
         try:
             return ToolResult(ok=True, data=tool.fn(args, env))
+        except ToolRefused as error:
+            return _fail(error.code, _message(error))
         except NotImplementedError as error:
             built = f"tool {call.name!r} is not built yet: {_message(error)}"
             return _fail("not_implemented", built)

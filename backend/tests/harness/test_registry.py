@@ -7,6 +7,7 @@ import pytest
 from mkc.harness.registry import ITEM_TOOLS, RUN_OPERATIONS, default_registry
 from mkc.harness.tools import ToolEnv
 from mkc.models.types import ToolCall
+from tests.extraction.drafts import valid_draft
 
 ITEM = {
     "extract_text",
@@ -25,7 +26,7 @@ VALID_ARGS: dict[str, dict[str, Any]] = {
     "render_region": {"page": 1, "bbox": [0, 0, 100, 100], "dpi": 150},
     "read_diagram": {"image_ref": "img-1"},
     "validate_draft": {"draft": {}},
-    "save_draft": {"draft": {}},
+    "save_draft": {"draft": valid_draft()},  # a MesskonzeptDraft since MKC-23
     "fetch_document": {"operator_id": "stromnetz-berlin"},
     "segment_document": {"document_hash": "abc"},
     "enqueue_approval": {"draft_id": "d-1"},

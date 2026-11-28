@@ -12,6 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
 from mkc.db.models import Run
+from mkc.extraction.operations import DocumentOps
 from mkc.harness.baseline import RunMemory
 from mkc.harness.limits import Limits
 from mkc.harness.loop import ItemOutcome, process_run
@@ -38,9 +39,13 @@ def execute_run(
     limits: Limits,
     registry: ToolRegistry | None = None,
     tool_tracers: tuple[ToolTracer, ...] = (),
+    documents: DocumentOps | None = None,
     **loop_kw: Any,
 ) -> RunResult:
-    """`process_run` in the run's mode. `loop_kw` goes to `process_run` as it is."""
+    """`process_run` in the run's mode. `loop_kw` goes to `process_run` as it is. With
+    `documents`, the default registry's document tools are real (`extract_text`,
+    `extract_tables`, `render_region`; MKC-23, PR #215 finding 6); a passed `registry` is
+    used as it is."""
     mode = HarnessMode(session.scalars(select(Run.mode).where(Run.id == run_id)).one())
     session.commit()
     switches = SWITCHES[mode]
@@ -50,7 +55,9 @@ def execute_run(
         session.commit()
     if registry is None:
         approvals = None if switches.durable_approvals else memory
-        registry = default_registry(tool_tracers, sessions=sessions, approvals=approvals)
+        registry = default_registry(
+            tool_tracers, sessions=sessions, approvals=approvals, documents=documents
+        )
     outcomes = process_run(
         run_id,
         session=session,

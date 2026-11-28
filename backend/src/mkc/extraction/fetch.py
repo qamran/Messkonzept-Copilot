@@ -1,7 +1,8 @@
 """Run-level `fetch_document` (feature 27, MKC-21.2, decisions 62 and 63).
 
 Order, so nothing is written for a refused document: the configured URL must be allow-listed
-(else no request), the final URL after redirects must be too, the bytes must parse as a PDF;
+(else no request), every redirect hop must be too before it is requested (MKC-23, decision
+84), and so must the final URL; the bytes must parse as a PDF;
 only then do the bytes go to the `BlobStore` (Supabase Storage in production) and the edition
 row to Postgres. The PDF never touches local disk or the Postgres `blob` table.
 
@@ -100,12 +101,15 @@ def http_get(
     *,
     transport: httpx.BaseTransport | None = None,
     max_bytes: int = MAX_DOWNLOAD_BYTES,
+    allowed_hosts: tuple[str, ...] | None = None,
 ) -> FetchResponse:
-    """GET `url`, following at most five redirects, each to an https URL without userinfo
-    (refused before it is requested). The caller checks the final URL against its
-    allow-list. No cookie is kept between hops. The body is read as a stream and refused
-    with `DownloadTooLarge` once it passes `max_bytes`, whatever `content-length` says.
-    Raises on an HTTP error status."""
+    """GET `url`, following at most five redirects. Every hop must pass `is_allowed_url`
+    against `allowed_hosts` (https, no userinfo, the default port, a listed host), checked
+    before it is requested; without `allowed_hosts`, only the host of `url` is listed
+    (MKC-23, decision 62 (5)). The caller still checks the final URL. No cookie is kept
+    between hops. The body is read as a stream and refused with `DownloadTooLarge` once it
+    passes `max_bytes`, whatever `content-length` says. Raises on an HTTP error status."""
+    hosts = allowed_hosts if allowed_hosts is not None else _own_host(url)
     with httpx.Client(
         transport=transport,
         timeout=TIMEOUT_SECONDS,
@@ -126,12 +130,22 @@ def http_get(
                 raise DisallowedUrl(f"redirect from {current} to a non-https URL")
             if _has_userinfo(target):
                 raise DisallowedUrl(f"redirect from {current} to a URL with userinfo")
+            if not is_allowed_url(target, hosts):
+                raise DisallowedUrl(f"redirect from {current} to {target}, off the allow-list")
             current = target
     raise DisallowedUrl(f"more than {MAX_REDIRECTS} redirects from {url}")
 
 
 def _has_userinfo(url: str) -> bool:
     return "@" in urlsplit(url).netloc
+
+
+def _own_host(url: str) -> tuple[str, ...]:
+    try:
+        host = urlsplit(url).hostname
+    except ValueError:
+        return ()
+    return (host,) if host else ()
 
 
 def _read(response: httpx.Response, max_bytes: int) -> bytes:
@@ -165,17 +179,18 @@ def fetch_document(
     *,
     sessions: sessionmaker[Session],
     store: BlobStore,
-    get: Getter = http_get,
+    get: Getter | None = None,
     operators: dict[str, OperatorConfig] | None = None,
 ) -> SourceDocument:
-    """Fetch the operator's catalogue, cache it in `store` and record its edition."""
+    """Fetch the operator's catalogue, cache it in `store` and record its edition. Without
+    `get`, `http_get` holds every redirect hop to the operator's `allowed_hosts`."""
     ops = load_operators() if operators is None else operators
     if operator_id not in ops:
         raise UnknownOperator(operator_id)
     op = ops[operator_id]
     if not is_allowed_url(op.url, op.allowed_hosts):
         raise DisallowedUrl(f"{op.url} is not on the allow-list of {operator_id}")
-    response = get(op.url)
+    response = http_get(op.url, allowed_hosts=op.allowed_hosts) if get is None else get(op.url)
     if not is_allowed_url(response.url, op.allowed_hosts):
         raise DisallowedUrl(f"{op.url} ended at {response.url}, off the allow-list")
     pages = page_count(response.content)
