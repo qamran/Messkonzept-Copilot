@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 28.11.2026, 07:49
+**Last updated:** 28.11.2026, 10:04
 
 This file is how agents resume work after a session restart.
 
@@ -23,7 +23,7 @@ This file is how agents resume work after a session restart.
 - **Remotes:**
   - `origin` = qamran/Messkonzept-Copilot (home, public)
   - `turing` = TuringCollegeSubmissions/qshahz-AE.CAP.AFA.1.1 (code-only mirror, no issues; ADR 005 option (c), decision 35)
-  - Both at `502c30a` (merge of PR #217).
+  - Both at `6208e97` (merge of PR #225).
 - **`main` is protected:** PRs only, enforced for admins. Required checks: the `ci` jobs `backend`, `frontend`, `gitleaks`, `dependency-scan` and `docs` (since 25.11.2026 09:50, MKC-6.5) `image` (since 13:52, MKC-8) and `kind` (since 15:42, MKC-9); the branch must be up to date with `main`. `publish` is not required (skipped on PRs).
 - **Agent rules:** `AGENTS.md` (CLAUDE.md imports it). The development agent continues without asking and stops only for genuine decisions (decision 36).
 - **Done:**
@@ -61,8 +61,8 @@ From MKC-168 (decision 61), tickets run in parallel lanes. Each lane keeps its o
 
 | Lane | Tickets | File | State |
 |---|---|---|---|
-| A. Extraction | MKC-21 → 22 → 23 → 25 → 26 → 28 → 29 → 30 | `handoff/lane-a.md` | MKC-22 done (PR #215, `6d3aee9`); MKC-23 in progress (wave 3) |
-| A2. SachsenNetze and gold | MKC-27 (after MKC-21) → 24 (after MKC-23) | `handoff/lane-a2.md` | MKC-27 done (PR #214, `3bacfc5`); paused: MKC-24 waits on MKC-23 |
+| A. Extraction | MKC-21 → 22 → 23 → 25 → 26 → 28 → 29 → 30 | `handoff/lane-a.md` | MKC-23 done (PR #225, `6208e97`); next MKC-25 (go/no-go vision check; live model calls need the coordinator's go) |
+| A2. SachsenNetze and gold | MKC-27 (after MKC-21) → 24 (after MKC-23) | `handoff/lane-a2.md` | MKC-27 done (PR #214, `3bacfc5`); MKC-24 ready (MKC-23 done) |
 | B. Advisor | MKC-36 → (37 after MKC-30) → 38 | `handoff/lane-b.md` | MKC-36 done (PR #196, `046f61e`); paused: MKC-37 waits on MKC-30 |
 | C. Decision layer | MKC-46 → (47 after MKC-36, MKC-26) → (48 after MKC-31) | `handoff/lane-c.md` | MKC-46 done (PR #195, `085323a`); next MKC-47 waits on MKC-36 and MKC-26 |
 | D. RAG | MKC-49 → 50 → (51 after MKC-38) | `handoff/lane-d.md` | MKC-50 done (PR #216, `3636edb`); paused: MKC-51 waits on MKC-38 |
@@ -81,7 +81,7 @@ New tables go at the end of `mkc/db/models.py` in a block commented with the tic
 
 ## In progress
 
-- **Wave 3 (28.11.2026):** MKC-23 (lane A) in progress; coordinator log MKC-218 (#218) on `mkc-218-wave-3-coordinator`, cut from the closeout branch `mkc-200-wave-2-closeout` (`6cbd700`), so its PR carries the wave 2 post-merge log to `main`.
+- **Wave 3 done (28.11.2026):** MKC-23 (lane A, PR #225, `6208e97`, decisions 82–84), review PASS, merged and deployed (log 10:04). **Next: wave 4** = MKC-25 (lane A; live vision calls need a budget from the coordinator) and MKC-24 (lane A2, decision 75 reserved); before that, MKC-218's PR. Recommended: start wave 4 in a fresh session. Coordinator log MKC-218 (#218) on `mkc-218-wave-3-coordinator`, cut from the closeout branch `mkc-200-wave-2-closeout` (`6cbd700`), so its PR carries the wave 2 post-merge log to `main`.
 - **MKC-200** (#200), Wave 2 coordinator log: done (PR #217, merged as `502c30a`, deployed).
 - **Wave 2 done (28.11.2026):** MKC-27 (PR #214, `3bacfc5`), MKC-22 (PR #215, `6d3aee9`), MKC-50 (PR #216, `3636edb`), each review PASS, merged and deployed (log below). Every lane: red acceptance tests by the test agent, the development agent, a mutation pass (A2 72/63/9, A 119/104/15, D 108/104/4 tried/killed/survived; all survivors accepted as near-equivalent), `pre_pr.sh`, PR, review after green checks. The three wave 2 worktrees are removed after this PR's gate.
 - **Coordinator rulings in wave 2:** MKC-27: the SachsenNetze half `13 / Nr. (tbd)` is a placeholder, not an item (11 items, decision 74). MKC-50: latency reaches the trace through an additive `retrieval` record kind; the sources file has `MKC_CORPUS_SOURCES_FILE`; any corpus cache inside the repo is refused; the extra reference ranking (a `§ <n>` in the query) is accepted. MKC-22: wiring `DocumentOps` into `runner.py` goes to MKC-23.
@@ -91,7 +91,15 @@ New tables go at the end of `mkc/db/models.py` in a block commented with the tic
 
 ## Next steps
 
-0. Wave 2 review findings (all non-blocking), for the tickets named:
+0. Wave 3 review findings (PR #225, MKC-23; comment 28.11.2026 09:45:22; all non-blocking), for the tickets named:
+   - **Must fix before MKC-29 can approve anything (lane A, MKC-25 or a small fix ticket):** `draft_locked` reads the state of `draft.item_id` (the last saver), not the queued or approved item: a save by an item that then fails moves `draft.item_id` while the `approval` row still names the older item, so after that older item is approved a third save still replaces the body (reviewer's probe: A pending, B saves `v2` and fails, A approved, C's save is `ok`, body `v3`) (finding 1). This breaks the user's re-save rule; no new decision is needed. Fix: lock on any `approved` or `committed` item of the key (or on the `approval` row's item), and snapshot the approved body.
+   - **MKC-29:** a two-session test for the save-versus-decision race (survivors D4, D5 `FOR UPDATE`) (2); an item whose draft row a later item of another run took over stays `draft_saved` if it crashed before its enqueue (8); after a later save the older item stays `pending_approval` with no draft of its own, and a rejected draft saved again keeps its old queue row (decision 83 (7)).
+   - **MKC-26:** `backend/Dockerfile` does not copy `backend/prompts/` (`SCHEMA_FILE` = `parents[3] / "prompts"`); ship the schema in the image or load it another way (5).
+   - **Lane A hardening:** `render_max_dpi` allows up to 1200 (an A4 page at 1200 dpi is about 139 megapixels); a lower bound or a pixel cap (7). `StopReason.DRAFT_LOCKED` instead of `tool_error: draft_locked` if `limits.py` is granted later.
+   - **Lane A file and PR body:** lane-a "Last updated" and the newest entry say 09:31, `1e7b352` is 09:29:43; "In progress" still names head `2bea0d8`; "Next steps" numbered 1, 3 (3); the PR body's gate output is from `2bea0d8` (1239 passed), the head's gate is only in the lane file (4); #219 to #224 were closed by the coordinator (9).
+   - **Coordinator:** stale lines outside lane A's grant: the `faults.py` docstring ("approvals come in MKC-23"), the red test docstring in `test_redirect_hops.py` ("same host"), the status doc header ("81 decision numbers").
+   - **Flaky test (lane D, MKC-51; or the coordinator):** `tests/rag/test_retrieval_trace.py:159` asserts `'14a' not in repr(vars(row))`, and the SQLAlchemy state's memory address can contain `14a` (failed on `main` in `ci` run 46127290111 at `6208e97`: `0x7f014a424950`). Compare the row's data columns only.
+   Wave 2 review findings (all non-blocking), for the tickets named:
    - **Coordinator (CI):** set `MKC_TEST_IMAGE` in CI's `image` job so `test_image_operators.py` runs (PR #215 finding 5) and add the same check for `/app/data/corpus_sources.yaml` (PR #216 finding 7).
    - **MKC-23 (lane A):** real runs get `not_implemented` from `extract_text`/`extract_tables` until `execute_run` passes `documents` (PR #215 finding 6); the Berlin live test skips on a new edition, a skip is no pass (7); survivors 9 (`Z2-` / `zähler`) and 11 (an LBS table with a fourth column) unpinned (3, 4); intermediate redirect hops still reach any https host and port (8, decision 62 (5)); lane-a "In progress" and two log times stale (23:39 vs 23:33, 23:51 vs 23:52) (1).
    - **MKC-24 (lane A2):** the SachsenNetze placeholder rule matches only the 09/2025 wording `Nr. (tbd)` (PR #214 finding 5); `LINE_TOLERANCE` defined in both `segment.py` and `sachsen.py` (6); two lane-a2 log times a minute early (1).
@@ -241,6 +249,8 @@ New tables go at the end of `mkc/db/models.py` in a block commented with the tic
 - **The user's PC:** it went down without a clean shutdown on 23.11 and 26.11.2026 (cause not found; graphics-driver hang reports on both days; a memory test is not done yet). Commit and push often. Two files exist only on the PC: the VM's admin SSH key and `backend/.env` (runbook "Only on the PC"); the user was advised to copy them into a password manager.
 
 ## Recent log
+
+- **28.11.2026 10:04** PR #225 (MKC-23, lane A; opened 08:38:12) review PASS (Fable, comment 09:45:22; 9 non-blocking findings, under Next steps item 0; finding 1, the `draft_locked` gap, must be fixed before MKC-29), merged as `6208e97` (09:45:25). #23 closed by the merge (09:45:27); #219 to #224 closed by the coordinator (from 09:46:14); #23 and the sub-issues `Done`. `main` pushed to `turing` (09:47:21); `origin/main` = `turing/main` = `6208e97`. The `ci` run on `main` (46127290111) failed in `backend` on a flaky lane D test (`test_retrieval_trace.py:159`, a memory address containing `14a`; 1 failed, 1262 passed), so `publish` was skipped; rerun of the failed jobs: `backend` 09:58:51 to 10:00:24, `publish` 10:00:26 to 10:01:02, all green. `cd` run 46127290136 (migration 0013 -> 0014 by the hook Job): `image` 09:45:31 to 10:01:15 (it waited for the rerun's image); `backend` approved at 10:01:47, ran 10:01:49 to 10:02:44; `frontend` approved at 10:02:55, ran 10:02:56 to 10:03:28; run exit 0. Checked: `/api/version` commit `6208e97...`, `/health` 200 (10:03:33). Mutation pass (test agent): 72 tried, 63 killed, 9 survived, all accepted as equivalent or near-equivalent (the reviewer agreed). **Wave 3 done.**
 
 - **28.11.2026 07:49** MKC-23 red tests done by lane A's test agent: red commits `5e00ed9` to `05c2c43` (last red `05c2c43`, 07:44); red run at `05c2c43`, as the test agent reported it: new files `59 failed, 5 passed`, full suite `59 failed, 1169 passed, 2 skipped, 20 deselected`. Coordinator rulings on its 15 assumptions (`handoff/lane-a.md`): 1 to 14 confirmed (13: a baseline save ends `pending_approval` in memory only, design section 9); 15 changed: decision 62 (5) lets intermediate redirect hops reach off-list hosts, so the rule becomes "every hop https, default port, host on the operator's `allowed_hosts`", enforced only if a live fetch of both operator URLs shows no off-list hop. Development agent started; grants as under Lanes, plus `loop.py`, `tools.py` (`ErrorCode.draft_locked`), `baseline.py` and migration `0014_approval.py`.
 
