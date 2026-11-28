@@ -22,7 +22,6 @@ The concept numbers below are synthetic; the real five are only in the sheet.
 """
 
 import importlib
-import shutil
 import sys
 from pathlib import Path
 from types import ModuleType
@@ -68,13 +67,37 @@ def good_rows() -> list[list[str]]:
     return [[c, "yes", "yes" if i % 2 else "no", "yes"] for i, c in enumerate(CONCEPTS)]
 
 
+STATUS_TEXT = """# Project status: Messkonzept-Copilot
+
+## Where we are
+
+- **MKC-23 done.**
+
+## Key documents
+
+- The design doc.
+"""
+
+DESIGN_TEXT = """# Design
+
+## 15. Build order
+
+- **Phase 2 ends with a go/no-go check:** vision reading on 5 Berlin concepts must work, or the
+  scope narrows to Berlin only.
+
+## 16. Risks
+
+- Some risk.
+"""
+
+
 @pytest.fixture
 def root(tmp_path: Path) -> Path:
-    for path in (STATUS, DESIGN):
+    """Synthetic docs, so these tests hold whatever the real docs record later (only
+    `test_the_repo_passes` reads the real files)."""
+    for path, text in ((STATUS, STATUS_TEXT), (DESIGN, DESIGN_TEXT), (SHEET, sheet_text(CONCEPTS))):
         (tmp_path / path).parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy(ROOT / path, tmp_path / path)
-    (tmp_path / SHEET).parent.mkdir(parents=True, exist_ok=True)
-    (tmp_path / SHEET).write_text(sheet_text(CONCEPTS), encoding="utf-8")
+        (tmp_path / path).write_text(text, encoding="utf-8")
     return tmp_path
 
 
@@ -112,7 +135,7 @@ def test_berlin_only_with_section_15_passes(root: Path) -> None:
     assert problems(root) == []
 
 
-def test_the_real_docs_alone_fail(root: Path) -> None:
+def test_docs_without_the_section_fail(root: Path) -> None:
     assert problems(root)
 
 
@@ -238,3 +261,19 @@ def test_the_modules_table_passes_the_check(root: Path) -> None:
     ]
     write_section(root, results_table(rows) + "\n" + GO)
     assert problems(root) == []
+
+
+def yaml_concepts(path: Path) -> list[str]:
+    import yaml
+
+    return [str(e["concept"]) for e in yaml.safe_load(path.read_text(encoding="utf-8"))["concepts"]]
+
+
+def test_the_script_reads_a_sheets_concepts_as_yaml_does(root: Path) -> None:
+    assert script().sheet_concepts(root) == yaml_concepts(root / SHEET) == CONCEPTS
+
+
+def test_the_script_reads_the_repo_sheet_as_yaml_does() -> None:
+    """The script reads `concept:` lines by regex (stdlib only): the sheet is block style."""
+    assert (ROOT / SHEET).is_file(), "the blank truth sheet comes first"
+    assert script().sheet_concepts(ROOT) == yaml_concepts(ROOT / SHEET)
