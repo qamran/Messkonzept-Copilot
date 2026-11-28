@@ -62,7 +62,7 @@ This is the living status document. It is updated whenever a decision is made or
   - API host `92-6-240-17.sslip.io`
   - Vercel project `messkonzept-copilot`; GitHub environment `production` with `VERCEL_TOKEN`
 - **Wave 1 done (27.11.2026):** MKC-46 (PR #195, `085323a`), MKC-36 (PR #196, `046f61e`), MKC-21 (PR #197, `2a841a2`) and MKC-49 (PR #198, `6681d48`) merged and deployed; the coordinator's log is MKC-175 (#175). MKC-168 (parallel lanes, decision 61) is done (PR #174).
-- **MKC-22 built, before review** (lane A, branch `mkc-22-text-tables`, sub-issues MKC-22.1 to 22.6, #208–#213). Built: `extract_text` (title, applications, footnotes, stated LBS codes kept as printed) and `extract_tables` (rows from the ruled cell grid) as cached item tools through `DocumentOps`; the naive baseline `mkc.extraction.naive` for E1; fetch hardening (download limit 50 MiB, no cookies across hops, no userinfo in a redirect, default port only); `is_valid_code` and `ToolRegistry.execute` hardening; decisions 76–78. **Live runs (27.11.2026):** `uv run pytest -m live tests/extraction/test_live_extract.py`: `2 passed in 8.51s` at 23:45, and `2 passed in 9.08s` at 23:57 after the fetch hardening (the Berlin LBS table and the codes stated on the pages of concepts 3, 4.4 and 11.1 agree; the Z2 row of concept 3). No model calls, so no model spend.
+- **MKC-22 done** (PR #215 merged as `6d3aee9` on 28.11.2026, review PASS, deployed the same day) (lane A, branch `mkc-22-text-tables`, sub-issues MKC-22.1 to 22.6, #208–#213). Built: `extract_text` (title, applications, footnotes, stated LBS codes kept as printed) and `extract_tables` (rows from the ruled cell grid) as cached item tools through `DocumentOps`; the naive baseline `mkc.extraction.naive` for E1; fetch hardening (download limit 50 MiB, no cookies across hops, no userinfo in a redirect, default port only); `is_valid_code` and `ToolRegistry.execute` hardening; decisions 76–78. **Live runs (27.11.2026):** `uv run pytest -m live tests/extraction/test_live_extract.py`: `2 passed in 8.51s` at 23:45, and `2 passed in 9.08s` at 23:57 after the fetch hardening (the Berlin LBS table and the codes stated on the pages of concepts 3, 4.4 and 11.1 agree; the Z2 row of concept 3). No model calls, so no model spend.
 - **MKC-21 done** (PR #197 merged as `2a841a2` on 27.11.2026, review PASS, deployed the same day) (lane A, branch `mkc-21-fetch-segment`, sub-issues MKC-21.1 to 21.5, #187–#191). Built: migration 0012 (`operator`, `source_document`), `backend/data/operators.yaml` (in the image through `MKC_OPERATORS_FILE`), `mkc.extraction` (`fetch_document`, `segment_document` for Berlin, `DocumentOps`), `mkc.harness.storage` (Supabase Storage over S3, large turn results there when configured), `mkc run start --operator`; decisions 62–64; ADR 003 amendment; runbook section "Fetch and segment". **Live runs (27.11.2026):** 20:50 and 20:51 the Berlin catalogue (September 2026, sha256 `4e12c90f…29a18`) gave 26 concept regions, checked by hand against its contents; 20:53–20:54 the same PDF went into `mkc-storage` and back. No model calls, so no model spend. **Open for the deploy:** the five `MKC_STORAGE_*` values go into `mkc-secrets` (runbook "Fetch and segment").
 - **MKC-20 done** (PR #167 merged as `4dc0302` on 27.11.2026, review PASS after one FAIL round on red CI, deployed the same day). Built: `mkc.harness.mode` (`MKC_HARNESS_MODE`, migration 0011 `run.mode`), baseline as the same loop with five switches off (`RunMemory`, `execute_run`), `mkc.harness.faults` and `backend/data/e4_faults.yaml`, the CLI `mkc run start|resume|status|inspect` (Typer 0.29.3) with the resume edge `stopped -> running`, and the PR #161 tracing findings 1 to 3; runbook section "Baseline, faults and the CLI"; decision 60. No model spend.
 - **MKC-19 done** (PR #161 merged as `21f5eb8` on 27.11.2026, review PASS, deployed the same day; production has the Langfuse keys). Built: migration 0010 (`run.trace_id`, table `run_log`), `mkc.observability` (`Tracer`, `LangfuseSink`, the demo run), the worker sends every run to the tracer; runbook section "Tracing"; decision 59; finding 18#1 fixed. **Real run in Langfuse (27.11.2026, 15:55):** local run 1, trace [`768b021193b64891963f3b0c9fd74ea2`](https://cloud.langfuse.com/project/cmwumgc8c03ohad0g3b3holvp/traces/768b021193b64891963f3b0c9fd74ea2) (private project, so the evidence is the demo's read-back: Langfuse holds 3 generations and 3 tool observations, the same as `run_log`, none with input or output). **Spend for the ticket:** €0.003364 (three live calls). Langfuse setup: runbook "Set up Langfuse".
@@ -75,7 +75,7 @@ This is the living status document. It is updated whenever a decision is made or
 - **Live contract tests (MKC-13.6), 26.11.2026 15:58–16:00:** `cd backend && uv run --env-file .env pytest -m live tests/models/test_contract_live.py -v -s`: **12 passed**. Tool-call round-trip, structured output and vision (not a criterion; a 64×64 red PNG) for OpenRouter (`google/gemini-3.5-flash-lite`, zero-data-retention routing), Gemini (`gemini-3.5-flash-lite`, free tier), Anthropic (`claude-haiku-5-5`) and the Meta API (`muse-spark-1.3` on `api.meta.ai/v1`). The first runs (15:39–15:46) had no Meta key; Meta said "white" for a 16×16 image and "red" at 64×64, so the test image is 64 px. **Spend for the ticket:** under €0.02 by the price table (all runs plus two Meta probe calls; Anthropic prices are an OpenRouter stand-in, Gemini counted as free tier).
 - **MKC-36 done** (lane B; PR #196 merged as `046f61e` on 27.11.2026, review PASS, deployed the same day): sub-issues MKC-36.1 to 36.5 (#176, #177, #178, #180, #183). Built: `mkc.advisor.facts` (`SiteFacts`, `FactsExtraction`, `extract_facts`), `mkc.advisor.questions` (`required_questions`), `mkc.advisor.api` (`POST /api/advisor/facts`, `POST /api/advisor/questions`); the UI `FactsCard` (confirm and edit) and `AdvisorPage` on `/advisor`; decisions 65 and 66. **Spend:** €0.013138 (three live calls on synthetic text to check the schema with the real provider, 27.11.2026 20:49).
 - **MKC-46 done** (lane C; PR #195 merged as `085323a` on 27.11.2026, review PASS, deployed the same day), decision-layer spike: the Jev call path via OpenRouter works (ADR 004 amendment, decisions 68 and 69; sub-issues MKC-46.1 to 46.3, #192–#194). Built: `langchain-typesafe==0.1.0`, `MKC_DECISION_BACKEND` (default `llm`, the fallback stays the default) and `MKC_DECISION_MODEL`, `build_decision_model` (base URL `https://openrouter.ai/api`, path `/api/v1/systemone`, zero-data-retention routing in every body), `mkc.decision` (`DecisionClient`, typed answers, `DecisionError`). Live: `uv run --env-file .env pytest -m live tests/decision/test_jev_live.py -v`: "1 passed in 10.26s" (20:47:56); `~typesafe/jev-latest` resolved to `typesafe/jev-1.14-20261014`. **Spend for the ticket (six live calls, 20:40–20:48):** three printed `usage.cost` 0.000011886, 0.000011886 and 0.000017934 USD; two 404 routing probes and the pytest run printed no cost. Call log: `handoff/lane-c.md`.
-- **Wave 2 (started 27.11.2026):** MKC-22 (lane A, decisions 76–78), MKC-27 (lane A2, 74–75), MKC-50 (lane D, 79–81); the coordinator's log is MKC-200 (#200). Lane B pauses until MKC-30 (MKC-37), lane C until MKC-26 (MKC-47). The review findings of wave 1 are listed in `HANDOFF.md` under Next steps.
+- **Wave 2 done (28.11.2026):** MKC-27 (lane A2, PR #214, `3bacfc5`, decision 74), MKC-22 (lane A, PR #215, `6d3aee9`, decisions 76–78) and MKC-50 (lane D, PR #216, `3636edb`, decisions 79–81) merged and deployed, each after a review PASS; the coordinator's log is MKC-200 (#200). Decision 75 stays reserved for lane A2's MKC-24. **Next: wave 3** is MKC-23 alone (lane A; the only open ticket whose dependencies are all done). Lane A2 waits on MKC-23 (MKC-24), lane B on MKC-30 (MKC-37), lane C on MKC-26 (MKC-47), lane D on MKC-38 (MKC-51). The review findings of waves 1 and 2 are listed in `HANDOFF.md` under Next steps.
 
 ## Key documents
 
@@ -95,7 +95,7 @@ This is the living status document. It is updated whenever a decision is made or
 | README (intro + links for both repos) | `README.md` |
 | Official brief | `AE.CAP_afa.md` |
 
-## Decisions so far (summary; the full log of 73 decision numbers, 67, 70 and 73 not used, is in design doc section 18)
+## Decisions so far (summary; the full log of 81 decision numbers, 67, 70 and 73 not used and 75 reserved for MKC-24, is in design doc section 18)
 
 - **Idea:** Messkonzept-Copilot. It extracts operator Messkonzept PDFs into structured, LBS-keyed records with human approval, and gives household site advice with citations.
 - **Primary user:** MSB, VNB and energy-IT staff working across grid areas; installers are secondary; plus a public read-only demo.
@@ -134,7 +134,7 @@ This is the living status document. It is updated whenever a decision is made or
 
 ## Decision numbers per lane
 
-Parallel lanes write the design doc's decision log at the same time, so each lane uses only its block (decision 61). Unused numbers are marked "not used" at the wave's end (wave 1: 67, 70 and 73).
+Parallel lanes write the design doc's decision log at the same time, so each lane uses only its block (decision 61). Unused numbers are marked "not used" at the wave's end (wave 1: 67, 70 and 73; wave 2: none, 75 stays reserved for lane A2's MKC-24).
 
 | Numbers | Owner | Wave |
 |---|---|---|
@@ -146,7 +146,8 @@ Parallel lanes write the design doc's decision log at the same time, so each lan
 | 74–75 | lane A2, SachsenNetze and gold (MKC-27, MKC-24) | 2 |
 | 76–78 | lane A, extraction (MKC-22 and on) | 2 |
 | 79–81 | lane D, RAG (MKC-50 and on) | 2 |
-| 82– | later waves: the coordinator assigns blocks when a wave starts | 3 |
+| 82–84 | lane A, extraction (MKC-23 and on) | 3 |
+| 85– | later waves: the coordinator assigns blocks when a wave starts | 4 |
 
 ## Open items
 
@@ -210,7 +211,7 @@ User choices:
 - **Chunk size (decision 72):** one chunk per law Absatz, never split; other texts by numbered sections, split at blank lines over 4,000 characters.
 - **Not yet:** PDF sources (the two BNetzA decisions, Anlage 1 and the operator catalogue): `pdfplumber` is on `main` since MKC-21, but the corpus fetcher does not read PDFs yet (a later lane D ticket); the two laws load today.
 - **LLM spend (MKC-49):** about €0.0005 in total: embedding probes and the live test (under €0.00001 together) and one live load of EnWG § 14a and the MsbG into a throwaway database (51,934 tokens, €0.000475). Each call is logged in `handoff/lane-d.md`.
-- **MKC-50 (27.11.2026):** built on `mkc-50-hybrid-retriever`; sub-issues MKC-50.1 to 50.5 (`#203`–`#207`).
+- **MKC-50 (28.11.2026):** done: PR #216 merged as `3636edb` after a review PASS and deployed; sub-issues MKC-50.1 to 50.5 (`#203`–`#207`).
   - `mkc.rag.retriever`: `retrieve(query, k)` with reciprocal rank fusion of a German full-text ranking (terms ORed), a cosine vector ranking and a reference ranking for a named `§`; `RetrievedChunk.as_prompt_data()` marks retrieved text as untrusted data (decision 79)
   - latency per query: `RetrievalTrace`; with a run scope a `run_log` row of kind `retrieval` and a Langfuse `retriever` observation, otherwise a log line (decision 80); `EmbeddingClient` trace hooks (`EmbedTrace`)
   - MKC-49 review findings: https-only tests, the `§` heading rule, any cache inside the repo refused, the image ships `corpus_sources.yaml` and `MKC_CORPUS_SOURCES_FILE` (decision 81)
@@ -218,7 +219,7 @@ User choices:
 
 ## Lane A2: SachsenNetze segmentation (MKC-27)
 
-- **State (27.11.2026):** built on `mkc-27-sachsen-segment`; the test agent's mutation pass killed 63 of 72 applied mutants; the coordinator accepted the 9 survivors (near-equivalent or not pinned on purpose); PR #214 is open, the ticket is in `Testing`. Sub-issues MKC-27.1 and 27.2 (`#201`, `#202`).
+- **State (28.11.2026):** done: PR #214 merged as `3bacfc5` after a review PASS and deployed. The test agent's mutation pass killed 63 of 72 applied mutants; the coordinator accepted the 9 survivors (near-equivalent or not pinned on purpose); PR #214 is open, the ticket is in `Testing`. Sub-issues MKC-27.1 and 27.2 (`#201`, `#202`).
 - **Built:** `mkc/extraction/sachsen.py` (`segment_sachsen`), registered as `SEGMENTERS["sachsennetze"]`, so `mkc run start --operator sachsennetze` queues one item per concept.
 - **Split method (decision 74):** half page, with the reasons in the plan `docs/superpowers/plans/271120262318-mkc-27-sachsen-segmentation.md`.
 - **Catalogue:** "Standard-Messkonzepte in Niederspannung", 09/2025, 9 landscape pages; 12 halves, of which the placeholder `13 / Nr. (tbd)` is not an item. The live run gives 11 regions on pages 3 to 8.

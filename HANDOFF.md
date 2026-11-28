@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 28.11.2026, 01:04
+**Last updated:** 28.11.2026, 01:28
 
 This file is how agents resume work after a session restart.
 
@@ -23,7 +23,7 @@ This file is how agents resume work after a session restart.
 - **Remotes:**
   - `origin` = qamran/Messkonzept-Copilot (home, public)
   - `turing` = TuringCollegeSubmissions/qshahz-AE.CAP.AFA.1.1 (code-only mirror, no issues; ADR 005 option (c), decision 35)
-  - Both at `6d3aee9` (merge of PR #215).
+  - Both at `3636edb` (merge of PR #216).
 - **`main` is protected:** PRs only, enforced for admins. Required checks: the `ci` jobs `backend`, `frontend`, `gitleaks`, `dependency-scan` and `docs` (since 25.11.2026 09:50, MKC-6.5) `image` (since 13:52, MKC-8) and `kind` (since 15:42, MKC-9); the branch must be up to date with `main`. `publish` is not required (skipped on PRs).
 - **Agent rules:** `AGENTS.md` (CLAUDE.md imports it). The development agent continues without asking and stops only for genuine decisions (decision 36).
 - **Done:**
@@ -65,7 +65,7 @@ From MKC-168 (decision 61), tickets run in parallel lanes. Each lane keeps its o
 | A2. SachsenNetze and gold | MKC-27 (after MKC-21) → 24 (after MKC-23) | `handoff/lane-a2.md` | MKC-27 done (PR #214, `3bacfc5`); paused: MKC-24 waits on MKC-23 |
 | B. Advisor | MKC-36 → (37 after MKC-30) → 38 | `handoff/lane-b.md` | MKC-36 done (PR #196, `046f61e`); paused: MKC-37 waits on MKC-30 |
 | C. Decision layer | MKC-46 → (47 after MKC-36, MKC-26) → (48 after MKC-31) | `handoff/lane-c.md` | MKC-46 done (PR #195, `085323a`); next MKC-47 waits on MKC-36 and MKC-26 |
-| D. RAG | MKC-49 → 50 → (51 after MKC-38) | `handoff/lane-d.md` | MKC-49 done (PR #198, `6681d48`); MKC-50 in progress (wave 2, decisions 79–81) |
+| D. RAG | MKC-49 → 50 → (51 after MKC-38) | `handoff/lane-d.md` | MKC-50 done (PR #216, `3636edb`); paused: MKC-51 waits on MKC-38 |
 
 Wave 2 worktrees (outside the repo folder, cut from `origin/main` `d7fad1e`): `<lanes>/lane-a` on `mkc-22-text-tables`, `lane-a2` on `mkc-27-sachsen-segment`, `lane-d` on `mkc-50-hybrid-retriever`, where `<lanes>` is the folder `mkc-lanes` next to the repo folder. Each has a copy of the gitignored `backend/.env`. (Wave 1's four worktrees were removed at 23:01.)
 
@@ -78,14 +78,21 @@ New tables go at the end of `mkc/db/models.py` in a block commented with the tic
 ## In progress
 
 - **MKC-200** (#200, created 23:04:52 per GitHub), Wave 2 coordinator log: `In progress` (23:05:19), branch `mkc-200-wave-2-coordinator`, cut from `mkc-175-wave-1-closeout` (it carries the wave 1 closeout log). Its PR opens between lane merges.
-- **Wave 2 started (27.11.2026):** #22 (MKC-22, lane A), #27 (MKC-27, lane A2), #50 (MKC-50, lane D) `In progress` and assigned to `qamran` (23:05:23 to 23:05:33). Worktrees and branches above, pushed. Docker Desktop and the Compose db started (23:06:46). Red baselines (the last red-test commit per lane, for the review's diff check): lane A `c72296d` (`tests/extraction`: 32 failed, 81 passed, 1 skipped, 4 deselected), lane A2 `cc4dc26` (`-k sachsen`: 9 failed, 2 passed), lane D `50bcd89` (`tests/rag`: 38 failed, 87 passed, 1 deselected), as the test agents reported them from pytest. All three development agents started. Lane A2's code is done (`5b7b8b9`, gate exit 0); its mutation pass is running.
-- **Coordinator rulings in wave 2:** MKC-27: the SachsenNetze half `13 / Nr. (tbd)` is a placeholder, not an item (11 items, decision 74); lane A2 may change the operator id in lane A's `test_segment_rules.py` and the `NoSegmenter` docstring. MKC-50: latency reaches the trace through a new additive `retrieval` record kind (a `run_log` row and a Langfuse span inside a run; a log line outside one); the sources file gets a setting like `MKC_OPERATORS_FILE`; any corpus cache inside the repo is refused. MKC-22: wiring `DocumentOps` into `runner.py` goes to MKC-23 (lane A gets `runner.py` then); running the image test (`MKC_TEST_IMAGE`) in CI's `image` job is the coordinator's, open.
+- **Wave 2 done (28.11.2026):** MKC-27 (PR #214, `3bacfc5`), MKC-22 (PR #215, `6d3aee9`), MKC-50 (PR #216, `3636edb`), each review PASS, merged and deployed (log below). Every lane: red acceptance tests by the test agent, the development agent, a mutation pass (A2 72/63/9, A 119/104/15, D 108/104/4 tried/killed/survived; all survivors accepted as near-equivalent), `pre_pr.sh`, PR, review after green checks. The three wave 2 worktrees are removed after this PR's gate.
+- **Coordinator rulings in wave 2:** MKC-27: the SachsenNetze half `13 / Nr. (tbd)` is a placeholder, not an item (11 items, decision 74). MKC-50: latency reaches the trace through an additive `retrieval` record kind; the sources file has `MKC_CORPUS_SOURCES_FILE`; any corpus cache inside the repo is refused; the extra reference ranking (a `§ <n>` in the query) is accepted. MKC-22: wiring `DocumentOps` into `runner.py` goes to MKC-23.
+- **Next: wave 3 = MKC-23** (lane A, decision block 82–84), the only open ticket whose dependencies are all done; lane A gets `mkc/harness/runner.py` (and the executor) to pass `documents` to `default_registry`. All other lanes pause: A2 (MKC-24) on MKC-23, B (MKC-37) on MKC-30, C (MKC-47) on MKC-26, D (MKC-51) on MKC-38. Open wave 3's coordinator issue and cut its branch from `main` after this PR merges. Recommended: start wave 3 in a fresh session.
 - **Wave 1 done (27.11.2026):** MKC-46 (PR #195, `085323a`), MKC-36 (PR #196, `046f61e`), MKC-21 (PR #197, `2a841a2`), MKC-49 (PR #198, `6681d48`), each review PASS, merged and deployed; MKC-175 (PR #199, `d7fad1e`).
 - Process rules after the MKC-20 FAIL round: run CI's exact commands (now `bash scripts/pre_pr.sh`) before any claim; copy numbers from output; times from `date`, git or GitHub; start the review only after `gh pr checks` is green.
 
 ## Next steps
 
-0. Wave 1 review findings (all non-blocking), for the tickets named:
+0. Wave 2 review findings (all non-blocking), for the tickets named:
+   - **Coordinator (CI):** set `MKC_TEST_IMAGE` in CI's `image` job so `test_image_operators.py` runs (PR #215 finding 5) and add the same check for `/app/data/corpus_sources.yaml` (PR #216 finding 7).
+   - **MKC-23 (lane A):** real runs get `not_implemented` from `extract_text`/`extract_tables` until `execute_run` passes `documents` (PR #215 finding 6); the Berlin live test skips on a new edition, a skip is no pass (7); survivors 9 (`Z2-` / `zähler`) and 11 (an LBS table with a fourth column) unpinned (3, 4); intermediate redirect hops still reach any https host and port (8, decision 62 (5)); lane-a "In progress" and three log times stale (1).
+   - **MKC-24 (lane A2):** the SachsenNetze placeholder rule matches only the 09/2025 wording `Nr. (tbd)` (PR #214 finding 5); `LINE_TOLERANCE` defined in both `segment.py` and `sachsen.py` (6); two lane-a2 log times a minute early (1).
+   - **MKC-51 (lane D):** the reference ranking knows no law name, so `§ 3 Abs. 1` ranks that paragraph of every loaded law (PR #216 finding 1); `§ 14A` and the second number of `§§ 14a, 14b` are missed (2); `EmbedTrace.error` carries the provider's message, apply the "message withheld" rule before it reaches `run_log` or Langfuse (3); embedding spend inside a run is not in the run trace; lane-d does not log the second merge of `main` (5).
+   - Process: `96675e0`, `334a483` (MKC-22) have no body; in the coordinator's lane merge commits `5d013a5`, `21d2b07` the `Refs:` line is not parsed as a git trailer; the coordinator's first conflict resolution on lane A committed markers (`5d013a5`, fixed in `21d2b07`): resolve with a CRLF-aware tool and grep for markers before committing.
+   Wave 1 review findings (all non-blocking), for the tickets named:
    - **Production setup before use:** the five `MKC_STORAGE_*` values into `mkc-secrets` before the first `mkc run start --operator` in production (MKC-21 finding 6); keep the API pod's model mode off until the advisor route has cost tracing and a per-user limit (MKC-36 finding 1).
    - **MKC-21 → lane A (MKC-22 or a hardening ticket):** redirect hops can get `authorization: Basic` from userinfo in a `Location` and cookies set by a hop (fix decision 62's wording, or refuse userinfo in redirect targets and drop the cookie jar); pin the `@` check (survivor 1); the port is not part of the allow-list match; no download size limit in `http_get`; the Dockerfile test reads text only (call `load_operators()` in the image smoke); lane-a "In progress" stale.
    - **MKC-36 → lane B (MKC-37):** a provider 400/403 becomes a 500 and its text reaches the log; the role `facts` is not pinned; the card cannot edit every asked fact; the questions take no answer; no nav link to `/advisor`; lane-b log time 20:40 matches neither git nor GitHub.
@@ -229,6 +236,8 @@ New tables go at the end of `mkc/db/models.py` in a block commented with the tic
 - **The user's PC:** it went down without a clean shutdown on 23.11 and 26.11.2026 (cause not found; graphics-driver hang reports on both days; a memory test is not done yet). Commit and push often. Two files exist only on the PC: the VM's admin SSH key and `backend/.env` (runbook "Only on the PC"); the user was advised to copy them into a password manager.
 
 ## Recent log
+
+- **28.11.2026 01:28** PR #216 (MKC-50, lane D) review PASS (Fable, comment 01:21:05; it re-checked the coordinator's merges `c9a2b58` and `0ee458a`; 7 non-blocking findings, under Next steps item 0), merged as `3636edb` (01:21:08). #203 to #207 closed by the coordinator; #50 and the sub-issues `Done` (01:22:10). `main` pushed to `turing` (01:22:14); `origin/main` = `turing/main` = `3636edb`. `cd` run 46087419681: `image` 01:21:14 to 01:25:52; `backend` approved at 01:26:06, ran 01:26:07 to 01:27:05; `frontend` approved at 01:27:22, ran 01:27:25 to 01:28:00; run exit 0. Checked: `/api/version` commit `3636edb...`, `/health` 200 (01:28:08). **Wave 2 done.** Closeout: status doc (wave 2 done, 81 decision numbers, 75 reserved for MKC-24, block 82–84 for lane A in wave 3), HANDOFF lanes, In progress and the wave 2 findings.
 
 - **28.11.2026 01:04** PR #215 (MKC-22, lane A) review PASS (Fable, comment 00:57:19; it re-checked the coordinator's merge `5d013a5` and marker fix `21d2b07`; 10 non-blocking findings: (1) lane-a "In progress" still says "Next: the PR", the sub-issues' log time 23:39 vs GitHub 23:33, the docs entry 23:51 vs `89b750d` 23:52; (2) status doc still "MKC-22 built, before review" (coordinator, wave end); (3) survivor 11: no LBS table with a fourth column tested; (4) survivor 9: `Z2-` / `zähler` unpinned; (5) `test_image_operators.py` has never run, `MKC_TEST_IMAGE` in CI's `image` job is the coordinator's; (6) real runs get `not_implemented` from both tools until MKC-23 passes `documents` in `execute_run`; (7) the live test skips on a new Berlin edition, a skip is no pass; (8) intermediate redirect hops still go to any https host and port (decision 62 (5)); (9) `96675e0` and `334a483` have no body; (10) in `5d013a5` and `21d2b07` the `Refs:` line is not parsed as a git trailer), merged as `6d3aee9` (00:57:22). #208 to #213 closed by the coordinator; #22 and the sub-issues `Done` (00:58:34). `main` pushed to `turing` (00:58:38); `origin/main` = `turing/main` = `6d3aee9`. `cd` run 46085287348: `image` 00:57:28 to 01:01:36; `backend` approved at 01:01:49, ran 01:01:51 to 01:02:49; `frontend` approved at 01:03:05, ran 01:03:07 to 01:03:43; run exit 0. Checked: `/api/version` commit `6d3aee9...`, `/health` 200 (01:03:50). PR #216 (MKC-50, opened 00:47:26) updated from `main` by the coordinator (`0ee458a`, 00:59:09; conflict in the decision log, 76 to 78 kept before 79 to 81; earlier `c9a2b58` merged MKC-27 with conflicts in the status doc and the decision log); `pre_pr.sh` at `0ee458a` exit 0 (1164 passed, 2 skipped, 20 deselected); pushed 01:01:31; its reviewer re-checks the merge.
 
