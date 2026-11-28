@@ -1,6 +1,6 @@
 # Lane A: Extraction
 
-**Last updated:** 28.11.2026, 08:23
+**Last updated:** 28.11.2026 08:32
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -31,6 +31,8 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 3. Then `MKC-25` (lane A's next ticket).
 
 ## Recent log
+
+- **28.11.2026 08:32** Development agent: `bash scripts/pre_pr.sh` at `dcfb1f5`: exit 0, "pre-PR gate: all steps passed"; pytest `1239 passed, 2 skipped, 20 deselected, 4 warnings in 112.63s (0:01:52)`; commits over 200 lines `5e00ed9` (253), `b1e5e98` (234), `ffd2601` (475), `4ac7548` (311). Then: `test_cli.py` `test_inspect_lists_items_and_log` also asserts the `enqueue_approval` row in `run_log` (decision 83 says it is traced); `fetch.py`'s module docstring names the hop rule. My tests against mutants: the owner check in `enqueue_approval` removed: `test_approval_queue.py` `1 failed, 8 passed`; `isascii` removed there: `1 failed, 8 passed`; `fetch_document` without `allowed_hosts`: `test_hop_allowlist.py` `1 failed, 1 passed`. `git diff 05c2c43 --stat` over the nine red test files: only `test_run_documents.py` (4 insertions, 2 deletions). The scratch copies of both operator PDFs and the rendered region are deleted.
 
 - **28.11.2026 08:27** Development agent: the first `bash scripts/pre_pr.sh` at `b8369ed` failed only on mypy (`render.py`: `pypdfium2` has no `py.typed`); every other step passed. The import is marked `# type: ignore[import-untyped]` in `render.py` (no change to the shared `pyproject.toml`); `uv run mypy`: "Success: no issues found in 77 source files".
 

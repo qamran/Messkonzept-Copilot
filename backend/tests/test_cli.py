@@ -201,6 +201,7 @@ def test_inspect_lists_items_and_log(engine: Engine, items: Path, model: FakeCha
     assert result.exit_code == 0, result.output
     assert "MK-1" in result.output and "MK-2" in result.output
     assert "save_draft" in result.output  # from run_log
+    assert "tool enqueue_approval item 1 step None: ok" in result.output  # MKC-23: traced
     detail = mkc("run", "inspect", "1", "--item", "1")
     assert "turn 1: extract_text failed" in detail.output  # the placeholder tool
     assert "turn 2: save_draft ok" in detail.output

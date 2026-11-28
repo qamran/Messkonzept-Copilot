@@ -1,7 +1,8 @@
 """Run-level `fetch_document` (feature 27, MKC-21.2, decisions 62 and 63).
 
 Order, so nothing is written for a refused document: the configured URL must be allow-listed
-(else no request), the final URL after redirects must be too, the bytes must parse as a PDF;
+(else no request), every redirect hop must be too before it is requested (MKC-23, decision
+84), and so must the final URL; the bytes must parse as a PDF;
 only then do the bytes go to the `BlobStore` (Supabase Storage in production) and the edition
 row to Postgres. The PDF never touches local disk or the Postgres `blob` table.
 
