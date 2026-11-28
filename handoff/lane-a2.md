@@ -1,86 +1,81 @@
 # Lane A2: SachsenNetze and gold
 
-**Last updated:** 27.11.2026, 23:45
+**Last updated:** 28.11.2026, 11:07
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
-- **Tickets, in order:** `MKC-27` → `MKC-24` (MKC-24 waits on lane A's MKC-23)
-- **Branch and worktree:** `mkc-27-sachsen-segment`
-- **Owns:** `mkc/extraction/sachsen*.py`, its tests and fixtures, the gold tooling. Lane A changes allowed by the coordinator for this wave: the `sachsennetze` line (and its import) in `SEGMENTERS` in `segment.py`, and the `sachsennetze` entry in `backend/data/operators.yaml`.
-- **Decision numbers:** 74–75
+- **Tickets, in order:** `MKC-27` (done) → `MKC-24` (wave 4)
+- **Branch and worktree:** `mkc-24-gold-tooling` (worktree `mkc-lanes/lane-a2`, cut from `main` `47e110a`)
+- **Owns:** `mkc/extraction/sachsen*.py`, its tests and fixtures, and the gold tooling. Grants for MKC-24 (coordinator, wave 4): the new package `mkc/gold/`; the `gold_item` table appended at the end of `mkc/db/models.py` in a block commented `MKC-24`; the `gold` sub-app appended in `mkc/cli.py`; migration `0015_gold_item.py` with `down_revision = "0014"` (lane A may also add a `0015`; the coordinator re-chains the second PR); one append block each in `config.py` and `.env.example` if needed; `scripts/check_gold.py`; `backend/data/gold_split.yaml`. Lane A2 changes no lane A file (`mkc/extraction/draft.py` is imported read-only).
+- **Decision numbers:** 75 and 88–89
+- **Spend:** live `gold_draft` calls: €1.50 for MKC-24, public PDFs only, each call logged below with its printed cost. The test agent makes no live calls.
+
+## Done
+
+- `MKC-27` (`#27`): merged with PR #214, `3bacfc5` (27.11.2026 23:59), after a review PASS; decision 74.
 
 ## In progress
 
-- `MKC-27` (`#27`): the test agent's red acceptance tests are written (see "Red tests" below). Built and mutation-tested: sub-issues `MKC-27.1` (`#201`, segmenter and dispatch) and `MKC-27.2` (`#202`, plan doc, docs and live check). The coordinator accepted the 9 mutation survivors (near-equivalent or not pinned on purpose; listed in the PR body). PR #214 open (created 27.11.2026 23:45, head `9e6641e` at creation); `#27`, `#201` and `#202` are in `Testing`.
-- Coordinator answers (27.11.2026): assumption 1, 11 regions, the `13 / Nr. (tbd)` half is not an item; assumption 3, the coordinator grants the one-line change in lane A's `test_segment_rules.py` (`"sachsennetze"` → `"unknown-operator"`) and the `NoSegmenter` docstring in `segment.py`.
+- `MKC-24` (`#24`): the test agent's red acceptance tests are committed (last red commit `cf4175f`, see "Red tests (MKC-24)"). Next: the development agent builds against them.
 
-### Real SachsenNetze layout (studied 27.11.2026, one fetch, no model call)
+### Red tests (MKC-24)
 
-- `Standard-Messkonzepte.pdf`: HTTP 200, `application/pdf`, 469403 bytes. "Standard-Messkonzepte in Niederspannung", 09/2025, 9 pages, all landscape 960 x 540 pt. The URL and host in `operators.yaml` are correct.
-- Page 1 cover, page 2 introduction (no concept), pages 3 to 8 two-up, page 9 legend.
-- Each half opens with `Messkonzept <number>:` on its first line (glyph top about 28 to 30 pt): left half at x = 11 pt, right half at x = 499 pt. Title on the line below. Frames: left 4 to 474, divider 474 to 491, right 491 to 956; they end at y about 421 to 487. The footer (`<page> | Standard-Messkonzepte ...`) sits at y about 509 pt, outside the frames.
-- Numbers in order: p3 `2-1` | `2-1a`; p4 `2-2` | `2-2a`; p5 `2-3` | `2-3a`; p6 `2-3b` | `2-5a`; p7 `3-1` | `3-2`; p8 `3-5` | `13`.
-- That is 12 halves, but page 8 right (`Messkonzept 13:`, title `Nr. (tbd)`, no figure) is a placeholder. 11 numbered concepts match the design (11) and the ticket. The red tests treat the placeholder as not a concept.
-- Numbers are not Berlin-style: `2-1a` has a dash, so lane A's `NUMBER` pattern does not match them.
+All in `backend/tests/gold/` plus `backend/tests/test_check_gold.py`. Each test imports `mkc.gold` inside the test, so a missing module fails one test, not the collection.
 
-### Pinned interfaces (MKC-27)
-
-- `mkc/extraction/sachsen.py`: `segment_sachsen(pdf: bytes) -> list[ConceptRegion]`, with `ConceptRegion` from `mkc.extraction.segment` (lane A's pinned type).
-- `SEGMENTERS["sachsennetze"] is segment_sachsen` (import it in `segment.py`; no other change to that file except the item below).
-- Order: pages ascending, left half before right half.
-- `number_hint`: the number without the colon (`"2-1"`, `"2-1a"`).
-- `bbox` `(x0, top, x1, bottom)` in PDF points, origin top left (the Berlin convention): left region `x1 <= width/2`, right region `x0 >= width/2`; each starts at its heading (top 20 to 35 pt), reaches the last body line (bottom >= 440), and stays above the footer (bottom < 509).
-- No region for: cover, contents, legend, a half whose heading is not on the first line of the half (a body line that cites `Messkonzept 2-1:` is not a heading), and a placeholder half (title `Nr. (tbd)`, no figure).
-- The split method (detected layout or half page) is the development agent's choice. The tests accept both: the synthetic halves are exactly at x = 11 and x = 499 on a 960 pt page.
-- Plan doc: `docs/superpowers/plans/<ddMMyyyyHHmm>-mkc-27-sachsen-segmentation.md`, one file, naming the method (`detected layout` or `half page`) and a reason (`because` or `reason`). Pinned by `test_sachsen_plan.py`; the quality of the reason stays a review item.
-
-### Red tests (MKC-27)
-
-- `backend/tests/extraction/sachsen_pdf.py`: fixtures (`sachsen_pages`, `half`, `make_landscape_pdf`).
-- `backend/tests/extraction/test_sachsen.py`, `test_sachsen_plan.py`: acceptance tests. `test_live_sachsen.py`: live (11 concepts, hints and pages as studied), deselected by default.
+- `conftest.py`: `draft_payload(**overrides)` (a valid `MesskonzeptDraft`; every draft-only value holds `SENTINEL`, the LBS code is `SENTINEL_LBS`), fixture `gold_engine` (migrated test DB, `gold_item` truncated).
+- `test_gold_split.py` (named test `test_split_is_deterministic_and_balanced_per_operator`), module `mkc.gold.split`:
+  - `concept_key(operator_id, number_hint)` gives `"<operator id>:<number hint>"`
+  - `split_keys(keys, *, pinned_dev=()) -> GoldSplit` with `.assignments` (key to `dev` or `test`) and `.pinned_dev` (sorted tuple)
+  - `dump_split(split) -> str` (the file text; no `\r`, one final newline), `load_split(path) -> GoldSplit`
+  - per operator `|dev - test| <= 1`; pinned keys in dev; the same bytes for any input order and under `PYTHONHASHSEED` 0, 1 and 12345; pins that agree with the split change nothing; `ValueError` for an unknown pin, for more pins than `ceil(n/2)` of an operator, and for a key without `:`
+- `test_gold_split_file.py`: `GOLD_SPLIT_FILE` is `backend/data/gold_split.yaml`; both operators of `operators.yaml`; SachsenNetze exactly `2-1, 2-1a, 2-2, 2-2a, 2-3, 2-3a, 2-3b, 2-5a, 3-1, 3-2, 3-5` (no `13`); 26 Berlin keys; balanced; pins in dev; equals `dump_split(split_keys(its keys, its pins))` (read with universal newlines); keys only (under 8,000 characters, lines up to 100, no `base64` or `data:`).
+- `test_gold_draft.py` (named test `test_gold_draft_uses_gold_draft_role_model_not_extraction_model`), module `mkc.gold.draft`:
+  - `ensure_independent(config: ModelsConfig)`: `ModelConfigError` when `gold_draft` has the same provider and model as `extract_vision`; the repo's `models.yaml` passes
+  - `draft_concept(client, config, *, key, text, images=()) -> GoldDraft` (`.key`; `.payload` valid as `MesskonzeptDraft`; `.drafted_by` is `ModelReply.model_id`, for example `openrouter:anthropic/claude-haiku-5.5`)
+  - through a real `ModelClient` with a recording factory: every trace has role `gold_draft`; only the gold model is built; a refused config makes no call; a reply that is not a `MesskonzeptDraft` raises `ModelError` or `ValueError`; the PDF text is in a user message, not the system prompt. The client method (`chat`, `vision`, `chat_structured`) is not pinned.
+- `test_gold_table.py`: `mkc.db.models.GoldItem` on table `gold_item` with `kind, key, split, payload, drafted_by, verified_by, blind` (`blind` not null; `payload`, `drafted_by`, `verified_by` nullable); a `split` other than `dev` or `test` raises `IntegrityError`; `mkc.gold.store.store_gold_draft(session, draft, *, split)` writes kind `concept`, blind false and `drafted_by`; a second draft of the key replaces an unverified payload; a verified item is never overwritten.
+- `test_gold_exchange.py` (named test `test_blind_mode_hides_draft_payload`), the CLI and `mkc.gold.exchange.export_items(session, *, blind=False, keys=None) -> dict`:
+  - `mkc gold export --out FILE`: JSON `{"items": [...]}`, each item with `kind`, `key`, `split`, `blind`, `payload`, `drafted_by`
+  - `mkc gold export --out FILE --blind --key K`: no draft value in the raw bytes (no `SENTINEL`, no LBS code, no model name); the item has `blind: true` and no payload or drafter; a blind item of `K` (`blind = true`, no drafter, no payload) exists next to the drafted one, which stays as it was
+  - `mkc gold import FILE --verified-by NAME` (required): a filled-in blind label sets `verified_by` and `drafted_by` stays empty; an unfilled blind item is not verified; export, edit, import sets `verified_by` and keeps `drafted_by`; a re-import changes nothing; a payload that is not a `MesskonzeptDraft` exits 2, names its key and imports nothing
+  - data rule: an export whose payload holds a data-URI image, a 1,200-character base64 run or a text block over 5,000 characters exits non-zero, names the key and writes none of it; a normal footnote of about 300 characters exports
+- `test_gold_cli.py`: `mkc gold --help` lists `split`, `draft`, `export`, `import`; `mkc gold split --keys FILE [--pin-dev KEY ...] --out PATH` writes exactly `dump_split(...)` as bytes (LF also on Windows); twice gives the same bytes; an unknown pin exits 2, names the key and writes nothing; `mkc gold draft --help` exits 0.
+- `test_check_gold.py`: `scripts/check_gold.py` with `problems(root) -> list[str]`, exit 1 on problems. The pinned line, in the status doc section whose heading starts with `## Lane A2` and names `MKC-24`:
+  `- **Berlin gold batch 1:** <N> concepts verified, <H> h of the user's time`
+  (N at least 1; H above 0 with a dot as decimal mark; more text may follow). Red until the user has verified the batch.
+- Red run (28.11.2026, at `0ac90c2`): new files `65 failed, 1 passed, 16 errors in 5.19s`; the one pass was a false green (an unknown `gold` command also exits 2), fixed: the unknown-pin test now needs the key in the output, and that file then gave `4 failed in 1.37s`. Full non-live suite: `66 failed, 1262 passed, 2 skipped, 20 deselected, 6 warnings, 16 errors in 118.46s`; the baseline before the tests was `1262 passed, 2 skipped, 20 deselected, 6 warnings in 123.52s`. Reasons: `ModuleNotFoundError` for `mkc.gold` and `check_gold`, `UndefinedTable` for `gold_item`, no `gold` command.
+- Commits over 200 lines (to disclose in the PR): `e41e032` (345), `becb54f` (258), `417a4bd` (317); each is one group of test files.
 
 ### Assumptions (for the coordinator to confirm)
 
-1. (Confirmed by the coordinator: 11.) The ticket's "11 items" means the 11 numbered concepts; the placeholder `13 / Nr. (tbd)` is not an item. If the coordinator wants 12 regions (placeholder included), two tests and the live test change.
-2. `number_hint` is without the colon.
-3. (Granted by the coordinator; done in `18662d9`.) A lane A test breaks when `SEGMENTERS` gains `sachsennetze`: `test_segment_document_refuses_an_operator_without_a_segmenter` in `tests/extraction/test_segment_rules.py` uses `operator_id="sachsennetze"` as the operator without a segmenter. It must move to another id (for example `"unknown-operator"`). That file is lane A's: the coordinator grants the one-line change, or lane A makes it.
-4. The Berlin-style `ConceptRegion.bbox` convention (top-left origin) applies.
+1. **The user-task check blocks CI.** CI's docs job runs every `scripts/check_*.py`, and `test_check_gold.py::test_the_repo_passes` is in the backend suite, so the PR cannot go green until the user has verified the first Berlin batch and the line is in the status doc. The user can do the batch locally on the branch. If the PR should merge first, the coordinator decides how.
+2. **Two items per key for blind labels.** A blind label is a second `gold_item` of the same key (`blind = true`, no drafter) next to the drafted one, so agreement between blind labels and verified drafts can be reported (design 11.1). Uniqueness is then per (kind, key, blind), not per (kind, key). The tests pin the behaviour, not the constraint.
+3. Pins: a pinned key that is not among the keys, or more pins than `ceil(n/2)` for one operator, is a `ValueError` (CLI exit 2).
+4. Independence: only the same provider and model as `extract_vision` is refused. The repo maps both roles to `openrouter` with models of different families; design 11.1 says "another provider". The tests accept the same route with another model.
+5. `verified_by` comes from `--verified-by`, never from the file.
+6. Not pinned: an import of a key that has no item; who picks the blind keys (the user, with `--key`); where a blind item takes its split from (the drafted item or the split file); the exact limits for "long text" and a base64 run (the tests stay far from any limit).
+7. `drafted_by` is `ModelReply.model_id` (`provider:model`).
+8. The split file also lists the pinned keys, so it can be written again from itself. Its YAML layout is free as long as `load_split` reads what `dump_split` writes.
+9. Berlin's 26 keys need one live fetch and segment of the public PDF (no model call); the number hints are not in the repo.
+10. `mkc gold draft`'s options, and how it gets a region's text or image (fetch, segment, text, render), are not pinned; the role, the provenance and the store are.
 
 ### Not covered by red tests
 
-- Which split method is chosen (by design, see above) and the quality of its reason in the plan doc.
-- A catalogue whose halves are not at the page middle (not in the real PDF).
-- The `operators.yaml` comment about "not checked yet" (the URL is correct: it is for the development agent to update the comment).
-- Mutation pass: done, see "Mutation pass" below.
-- Development agent's own tests: `tests/extraction/test_sachsen_layout.py` (the real page furniture, the heading form, the placeholder by title, any page width).
-
-### Mutation pass (test agent, 27.11.2026, head `5b7b8b9`)
-
-- Method: one hand-written mutant at a time (exact string replacement, checked as applied), `__pycache__` cleared, then `pytest tests/extraction -q -x` (non-live), file restored after each. No mutant was committed. Base run: `89 passed, 3 deselected`.
-- Result: 73 mutants listed, 72 applied (one string did not match and was dropped), 47 killed, 25 survived.
-- New acceptance tests in `test_sachsen_rules.py` (fixture items `Line`, `Curve`, `Image` added to `sachsen_pdf.py`) kill 16 of the 25 survivors. Final: 72 applied, 63 killed, 9 survived. With them: `107 passed, 3 deselected`.
-- Killed by the new tests: heading words 2 pt off the line (`LINE_TOLERANCE` 0), a heading word alone on its line (`len(lines[0]) < 1`), `2.1:` as a number, `NUMBER.match` instead of `fullmatch`, a placeholder as the only second line (`len(lines) > 2`), `PLACEHOLDER.search`, `nr\.` without the optional dot, a frame at 21 pt above the heading (`top - 40`, `0 <=`), `<= footer` on words, a divider crossing the middle (`x0 - 30`), rounding to 0 decimals, lines, curves and images dropped from the graphics, and a half boundary at `width - 1`.
-- Already killed (first run): footer band 0.95, 0.80, 1.0 and 0.90, wrong heading word, heading check removed, `len(lines[0]) < 3`, `if not lines` removed, number regex without the dash part, without the letter, without the colon, `group(0)`, title taken from the last line, placeholder never matched, no `IGNORECASE`, `nr(tbd`, first-line top taken from the last line, footer bound dropped for graphics, x1 `+ 30`, `and` to `or`, either half edge dropped, `_inside` dropped for words and graphics, halves swapped, cut at a third, one half only, page numbers from 0 or reversed, `None` regions kept, line sort without top or by x, words in a line sorted by `-x0`, each bbox min/max flipped, content words only or graphics only, rects dropped, footer taken from the width, and both dispatch mutants in `segment.py` (to Berlin, or removed) plus Berlin pointed at `segment_sachsen`.
-- Survivors (9):
-  1. `sachsen.py:34` `FOOTER_BAND` 0.92 (496.8 pt instead of 491.4 pt): near-equivalent. The real page has nothing between 486 pt (frame bottoms) and 498 pt (logo); only an object in that gap would differ.
-  2. `sachsen.py:37` number part `\d{1,3}` instead of `\d{1,2}`: a three-digit concept number is not in the real catalogue; not pinned on purpose.
-  3. `sachsen.py:37` letter suffix `[a-z]*` instead of `[a-z]?`: `2-1ab:` is not in the real catalogue; not pinned on purpose.
-  4. `sachsen.py:87` graphics lower bound `top + LINE_TOLERANCE`: near-equivalent. Only a graphic that starts within 3 pt of the heading's top differs.
-  5. `sachsen.py:87` graphics lower bound `top` instead of `top - LINE_TOLERANCE`: same.
-  6. `sachsen.py:87` `< footer` as `<= footer` on graphics: equivalent unless a graphic starts at exactly 491.4 pt.
-  7. `sachsen.py:55` `x0 > x0` instead of `>=` (half edge): equivalent unless a graphic starts at exactly the half's edge and is the leftmost content; the heading is always further left.
-  8. `sachsen.py:55` `x1 < x1` instead of `<=`: equivalent unless a graphic ends at exactly the half's edge and is the rightmost content.
-  9. `sachsen.py:62` line grouping compares with the last word of the line instead of the first: equivalent for the two-word headings in the catalogue; it differs only when a line drifts by more than 3 pt over several words.
-- Not mutated: `PLACEHOLDER` allowing other titles, the exact `Nr. (tbd)` wording of other editions (not in the PDF), and the `from __future__` and type-only import lines.
+- The prompt's wording and how the PDF text is wrapped as data (only "in a user message").
+- The `0015` revision id (the coordinator may re-chain it); `test_backup_runs_migration.py` already compares the ORM with the migrations.
+- The decision log entries (75, 88–89), the ADR and the status doc text beyond the pinned line: review items.
 
 ## Next steps
 
-1. Coordinator: review agent on PR #214 once `gh pr checks` is green.
-2. Development agent: fix the findings if the verdict is FAIL.
-3. MKC-24 waits on lane A's MKC-23.
+1. Development agent: sub-issues for `#24`, then build `mkc/gold/`, the table, migration `0015`, the CLI, `scripts/check_gold.py` and `backend/data/gold_split.yaml` against the red tests.
+2. Coordinator: answer assumptions 1 and 2.
+3. User: verify the first Berlin gold batch and log the hours (the pinned line).
+4. Test agent: mutation pass once the development agent is done.
 
 ## Recent log
 
+- **28.11.2026 11:07** Test agent: MKC-24 red tests committed (`e41e032`, `becb54f`, `417a4bd`, `0ac90c2`, `cf4175f`): split, split file, draft role, table, export and import with blind mode, and the user-task check. New files: `65 failed, 1 passed, 16 errors` (the pass was a false green, fixed); full non-live suite: `66 failed, 1262 passed, 2 skipped, 20 deselected, 6 warnings, 16 errors in 118.46s`.
+- **27.11.2026 23:59** PR #214 merged as `3bacfc5`: MKC-27 done.
 - **27.11.2026 23:45** Development agent: `scripts/pre_pr.sh` at `9e6641e` exit 0 (`972 passed, 1 skipped, 17 deselected, 4 warnings in 100.86s`); PR #214 opened (createdAt `2026-11-27T22:45:05Z`, 23:45 CET), assigned to `qamran`; `#27`, `#201`, `#202` set to `Testing`.
 - **27.11.2026 23:42** Development agent: coordinator ruling: the 9 survivors are accepted, no code change. Preparing the PR.
 - **27.11.2026 23:40** Test agent: mutation pass on head `5b7b8b9`: 72 mutants applied, 47 killed, 25 survived; new tests `test_sachsen_rules.py` kill 16 more (63 killed, 9 survived, all near-equivalent or not pinned on purpose); `107 passed, 3 deselected`.
