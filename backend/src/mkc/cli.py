@@ -314,3 +314,8 @@ def _ok(entry: dict[str, Any]) -> bool:
 from mkc.rag.cli import corpus_app  # noqa: E402  (kept with its mount for parallel lanes)
 
 app.add_typer(corpus_app, name="corpus")
+
+# --- MKC-24: `mkc gold` (lane A2) ---------------------------------------------------------
+from mkc.gold.cli import gold_app  # noqa: E402  (kept with its mount for parallel lanes)
+
+app.add_typer(gold_app, name="gold")

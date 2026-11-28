@@ -1,0 +1,47 @@
+# Gold dev/test split (MKC-24, design 11.1, decision 75). Keys only.
+# Written by `mkc gold split`; do not edit by hand. Tune on dev, report on test.
+pinned_dev:
+- stromnetz-berlin:3
+- stromnetz-berlin:3.3
+- stromnetz-berlin:4.2
+- stromnetz-berlin:11
+- stromnetz-berlin:12
+dev:
+- sachsennetze:2-2
+- sachsennetze:2-2a
+- sachsennetze:2-3
+- sachsennetze:2-3a
+- sachsennetze:2-5a
+- sachsennetze:3-1
+- stromnetz-berlin:1.2
+- stromnetz-berlin:2.1
+- stromnetz-berlin:3
+- stromnetz-berlin:3.2
+- stromnetz-berlin:3.3
+- stromnetz-berlin:4
+- stromnetz-berlin:4.2
+- stromnetz-berlin:5
+- stromnetz-berlin:6
+- stromnetz-berlin:7
+- stromnetz-berlin:11
+- stromnetz-berlin:11.1
+- stromnetz-berlin:12
+test:
+- sachsennetze:2-1
+- sachsennetze:2-1a
+- sachsennetze:2-3b
+- sachsennetze:3-2
+- sachsennetze:3-5
+- stromnetz-berlin:1
+- stromnetz-berlin:1.1
+- stromnetz-berlin:2
+- stromnetz-berlin:2.2
+- stromnetz-berlin:4.1
+- stromnetz-berlin:4.4
+- stromnetz-berlin:5.1
+- stromnetz-berlin:5.2
+- stromnetz-berlin:6.1
+- stromnetz-berlin:6.2
+- stromnetz-berlin:6.3
+- stromnetz-berlin:7.1
+- stromnetz-berlin:8
