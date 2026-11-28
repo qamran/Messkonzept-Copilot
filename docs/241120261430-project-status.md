@@ -226,3 +226,15 @@ User choices:
 - **Split method (decision 74):** half page, with the reasons in the plan `docs/superpowers/plans/271120262318-mkc-27-sachsen-segmentation.md`.
 - **Catalogue:** "Standard-Messkonzepte in Niederspannung", 09/2025, 9 landscape pages; 12 halves, of which the placeholder `13 / Nr. (tbd)` is not an item. The live run gives 11 regions on pages 3 to 8.
 - **LLM spend (MKC-27):** none (no model call; one public PDF fetch for the study and the live test).
+
+## Go/no-go vision check (MKC-25)
+
+- **State (28.11.2026):** in progress (lane A, branch `mkc-25-vision-check`, sub-issues MKC-25.1 to 25.3, `#228`–`#230`). Results pending the user's truth sheet.
+- **Method (decisions 86 and 87):**
+  - 5 Berlin concepts with a spread of diagram types: 12 (page 33), 3 (page 14), 11 (page 31), 3.3 (page 16), 4.2 (page 19); the reasons are in `handoff/lane-a.md`
+  - the user fills in `backend/data/go_no_go/truth.yaml` (meters with their upstream meter, components with the meter they hang on) from the PDF **before** any vision call; the module refuses an unfilled sheet
+  - `python -m mkc.extraction.vision_check` renders each concept's region and makes one vision call per concept (role `extract_vision`); the image is the only input from the PDF
+  - per concept three verdicts, each a set equality after strip and case-fold: meters correct (the labels), upstream correct (the label and upstream pairs), components correct (the kind and meter pairs)
+  - lane A recommends go or Berlin only from the table; the user decides
+- **Also in MKC-25 (decision 85):** `draft_locked` holds for the whole record key (PR #225 finding 1).
+- **LLM spend (MKC-25):** none yet; the live run has a budget of EUR 1.00, logged per call in `handoff/lane-a.md`.

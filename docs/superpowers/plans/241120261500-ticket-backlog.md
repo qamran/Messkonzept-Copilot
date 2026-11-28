@@ -520,6 +520,7 @@ The criteria "CI green; review agent verdict pass" and "every commit references 
 - **Success criteria:**
   - [ ] Result table (concept, meters correct, upstream correct, components correct) in the status doc
   - [ ] Decision recorded: **go**, or **Berlin only**; the design doc and status doc updated if Berlin only
+- **As built (lane A, 28.11.2026, in progress):** sub-issues MKC-25.1 to 25.3 (#228–#230). `draft_locked` for the whole record key (PR #225 finding 1, decision 85). `mkc.extraction.vision_check` (`load_truth`, `compare`, `check_concepts`, `results_table`, a CLI): one vision call per concept, the comparison of decision 86. The blank truth sheet `backend/data/go_no_go/truth.yaml` with concepts 12, 3, 11, 3.3 and 4.2; the procedure (user truth first, lane recommends, user decides) is decision 87. The live run and the decision wait for the user's sheet.
 
 ---
 
