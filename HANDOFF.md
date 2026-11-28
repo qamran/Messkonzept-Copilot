@@ -1,6 +1,6 @@
-# HANDOFF
+﻿# HANDOFF
 
-**Last updated:** 28.11.2026, 07:05
+**Last updated:** 28.11.2026, 07:49
 
 This file is how agents resume work after a session restart.
 
@@ -241,6 +241,8 @@ New tables go at the end of `mkc/db/models.py` in a block commented with the tic
 - **The user's PC:** it went down without a clean shutdown on 23.11 and 26.11.2026 (cause not found; graphics-driver hang reports on both days; a memory test is not done yet). Commit and push often. Two files exist only on the PC: the VM's admin SSH key and `backend/.env` (runbook "Only on the PC"); the user was advised to copy them into a password manager.
 
 ## Recent log
+
+- **28.11.2026 07:49** MKC-23 red tests done by lane A's test agent: red commits `5e00ed9` to `05c2c43` (last red `05c2c43`, 07:44); red run at `05c2c43`, as the test agent reported it: new files `59 failed, 5 passed`, full suite `59 failed, 1169 passed, 2 skipped, 20 deselected`. Coordinator rulings on its 15 assumptions (`handoff/lane-a.md`): 1 to 14 confirmed (13: a baseline save ends `pending_approval` in memory only, design section 9); 15 changed: decision 62 (5) lets intermediate redirect hops reach off-list hosts, so the rule becomes "every hop https, default port, host on the operator's `allowed_hosts`", enforced only if a live fetch of both operator URLs shows no off-list hop. Development agent started; grants as under Lanes, plus `loop.py`, `tools.py` (`ErrorCode.draft_locked`), `baseline.py` and migration `0014_approval.py`.
 
 - **28.11.2026 07:05** Wave 3 started: MKC-218 (#218, created 07:02:57, `In progress` 07:03:21) and its branch; #23 assigned to `qamran` and `In progress` (07:03:25); worktree `lane-a` on `mkc-23-render-drafts` from `502c30a` (07:03:32); Compose db up (07:04:52, `date`). The user ruled the MKC-23 re-save rule (under Lanes).
 
