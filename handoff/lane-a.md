@@ -1,53 +1,63 @@
 # Lane A: Extraction
 
-**Last updated:** 28.11.2026, 09:31
+**Last updated:** 28.11.2026, 11:05
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
 - **Tickets, in order:** `MKC-21` → `MKC-22` → `MKC-23` → `MKC-25` → `MKC-26` → `MKC-28` → `MKC-29` → `MKC-30`
-- **Branch and worktree:** `mkc-23-render-drafts` (worktree `mkc-lanes/lane-a`, cut from `main` `502c30a`)
-- **Owns:** `mkc/extraction/`, the item tools in `mkc/harness/registry.py`, `backend/data/operators.yaml`; for MKC-23 also (coordinator grant, wave 3) `mkc/harness/loop.py`, `drafts.py`, `tools.py`, `baseline.py`, `runner.py`, `states.py`, `mkc/worker/executor.py`, the `approval` table in `mkc/db/models.py`, migration `0014`, one block each in `config.py` and `.env.example`
-- **Decision numbers:** 82–84 (wave 3, all used; 62–64 used by MKC-21, 76–78 by MKC-22)
+- **Branch and worktree:** `mkc-25-vision-check` (worktree `mkc-lanes/lane-a`, cut from `main` `47e110a`)
+- **Owns:** `mkc/extraction/`, the item tools in `mkc/harness/registry.py`, `backend/data/operators.yaml`; for MKC-25 also (coordinator grant, wave 4) `backend/data/go_no_go/`, `scripts/check_go_no_go.py` (written by the test agent), the MKC-25 section of the status doc and, if the decision is Berlin only, one line in design section 15; for the `draft_locked` sub-issue `mkc/harness/drafts.py`, `loop.py` if needed, and a migration `0015_*` (`down_revision = "0014"`) only if a snapshot column is needed
+- **Decision numbers:** 85–87 (wave 4; 82–84 used by MKC-23, 76–78 by MKC-22, 62–64 by MKC-21)
+- **Budget (MKC-25):** live vision calls €1.00 in total, retries included, public PDFs only; every call logged here with its printed cost. Spent so far: €0.00.
 
 ## Done
 
 - `MKC-21` (`#21`): merged with PR #197 (merge commit `2a841a2`). Its pinned interfaces, assumptions and mutation pass are in this file at `e40115b`.
 - `MKC-22` (`#22`): merged with PR #215 (merge commit `6d3aee9`). Its pinned interfaces, assumptions and mutation pass (15 survivors) are in this file at `502c30a`.
+- `MKC-23` (`#23`): merged with PR #225 (merge commit `6208e97`). Its as-built notes, assumptions and mutation pass (9 survivors) are in this file at `47e110a`.
 
 ## In progress
 
-- `MKC-23` (`#23`, render, draft assembly, `save_draft`): PR #225 open (head `2bea0d8` before this commit), #23 and the sub-issues in `Testing`; sub-issues MKC-23.1 to 23.6 (#219 to #224). The source of truth is the backlog entry (issue #23's body is stale: decision 53 moved the enqueue to the harness). The test agent's red tests are `5e00ed9` to `7923957` and `05c2c43`; its red run and the 15 assumptions are in this file at `f973c9d`.
-- Coordinator rulings on the assumptions: 1 to 14 confirmed (13: the baseline queues in memory); 15 changed: every hop must be on the operator's `allowed_hosts`, after a live check found no redirect on either operator URL (decision 84); the user's ruling on a later save is decision 83 (4).
-- Built (decisions 82 to 84): `MesskonzeptDraft` and its schema file; `render_region` (PDFium, cap `MKC_RENDER_MAX_DPI` 300, `ToolRefused` for refusals); table `approval` (migration 0014), the guarded `save_draft` (`running` only, `draft_locked`), the real `enqueue_approval`, the loop's enqueue and crash-window sweep, the fence before a save, the baseline's queue in memory; `execute_run(documents=...)` and the executor's `DocumentOps`; redirect hops on the allow-list.
-- Red tests changed (reasons in the PR body): `test_run_documents.py` `replies()` passes the region's bbox to `extract_text` (the whole page reads the sidebar into the title).
-- Existing tests changed (reasons in the PR body): `test_drafts.py`, `test_registry.py`, `test_baseline.py`, `test_faults.py`, `test_cli.py` (typed drafts, `pending_approval`, the `enqueue_approval` trace), `test_fetch_rules.py` (`_chain` hops on the listed host). The other files the test agent listed (`test_loop.py`, `test_queue.py`, `test_resume.py`, `test_run_limits.py`, `test_traced_run.py`, the worker tests) use test registries without `enqueue_approval` and pass unchanged.
-- My tests, written with the code: `tests/harness/test_approval_queue.py` (9), `tests/extraction/test_hop_allowlist.py` (2).
-- Not done here: MKC-15 finding 5 (no edge `awaiting_approval -> running`; the enqueue does not need it); PR #215 finding 7 (optional live-test skip on a new edition); the `faults.py` docstring still says approvals "come in MKC-23" (outside the grant).
+- `MKC-25` (`#25`, go/no-go vision check): `In progress`. The test agent's red tests are `304a81c` to `097de14`; no development work yet. The coordinator's rulings 1 to 8 are in the brief; what the tests pin is listed below.
 
-### Mutation pass (MKC-23; test agent, 28.11.2026, head `76c6240`)
+### Red tests (MKC-25; test agent, 28.11.2026)
 
-- Method: one hand-written mutant at a time on the production diff `05c2c43..76c6240` (exact string replacement, CRLF-aware, checked as applied once and restored byte for byte; `__pycache__` removed, `PYTHONDONTWRITEBYTECODE=1`), then `uv run pytest tests/harness tests/extraction tests/worker/test_executor_documents.py tests/test_config.py -q -x`, non-live. No mutant was committed; no production code changed. Migration 0014 was not mutated (the test database is already at head; `test_0014_creates_approval_and_downgrades` covers it).
-- Unmodified base run: `584 passed, 1 skipped, 5 deselected in 29.79s`.
-- First run: 72 mutants tried, 46 killed, 26 survived, 0 not applied. (V6 first showed "killed" by an `ERROR` in the unrelated `test_item_limits.py`; run alone it survived, so it counts as a survivor.)
-- New tests (`4d100c9` `test_render_rules.py`, `6bc7aba` `test_draft_rules.py`, `aa034e2` `test_approval_rules.py`; 23 tests, green on the real code) killed 17 of the 26 (re-run of the 26: 17 killed, 9 survived). With them: **72 tried, 63 killed, 9 survived**.
-- Killed by the new tests: D9 (approval row not moved to the newest item), L8 (sweep without the run filter), L10 and L11 (the sweep's two fences), L12 and L15 (a failed enqueue still moved the state, durable and baseline), B2 (first save of the turn queued), B5 (`memory-0`), V1, O3, O5 (refusals as `tool_failed`), V2 (negative top), V6 (crop top and bottom swapped: same size, wrong strip), V8 (BMP instead of PNG), O2 (`render_max_dpi` argument ignored), O4 (wrong `width`), G1 (boolean coordinate), M1 (NUL). M2 to M11 were killed only by the schema snapshot test; `test_draft_rules.py` now also kills M3 to M6 by behaviour.
-- Survivors (9), file:line, the mutant, why (E equivalent, NE near-equivalent):
-  1. D4 `harness/drafts.py:81` no `FOR UPDATE` on the saving item. NE: a race with a concurrent state change; one worker per run, and the fence before a save covers a lost lease.
-  2. D5 `harness/drafts.py:88` no `FOR UPDATE OF draft`. NE: the same race with a concurrent approval; needs two sessions at once to show.
-  3. D10 `harness/drafts.py:47` `model_dump()` without `mode="json"`. E: the draft holds only strings, ints, None and lists.
-  4. L7 `harness/loop.py:339` sweep after every item, not only after `draft_saved`. E: the sweep is idempotent; only extra queries.
-  5. L9 `harness/loop.py:362` `outerjoin` instead of `join`. NE: a row-less item is offered `draft_id "None"`, refused, and stays `draft_saved` (only a warning line differs).
-  6. L13 `harness/loop.py:374` no `rollback` after a failed enqueue. NE: the open transaction (run row lock) ends at the next commit.
-  7. L14 `harness/loop.py:394` no `draft_id is None` guard in the baseline enqueue. E: `None` fails `DraftIdArgs`, the result is not ok, the item stays `draft_saved`.
-  8. L17 `harness/loop.py:366` no commit after the sweep's select. NE: the read transaction stays open until the first fence commit.
-  9. F4 `extraction/fetch.py:148` `(host,)` also for a URL without a host. NE: such a URL fails `is_allowed_url` before any request anyway.
+- `backend/tests/extraction/test_vision_check.py` (30 tests, `64d0eb2`) pins `mkc.extraction.vision_check`:
+  - `load_truth(path) -> list[dict]`: YAML, top key `concepts:`, entries `{operator, concept, page, meters, components}`; `meters` a list of `{label, upstream}`, `components` a list of `{kind, attached_to}`; `null` means not filled in.
+  - `compare(truth_entry, read) -> verdict` with bool attributes `meters`, `upstream`, `components`; ValueError for an unfilled entry.
+  - `check_concepts(client, pdf, truth, *, dpi) -> list[(concept, verdict)]` in truth order: Berlin segmenter, `render_region`, one `ModelClient.vision` call per concept (role `extract_vision`); ValueError and no call on an unfilled sheet, a concept the segmenter does not find, or a page that disagrees with it.
+  - `results_table(rows) -> str`: header `| concept | meters correct | upstream correct | components correct |`, cells `yes` / `no`.
+  - `python -m mkc.extraction.vision_check --help` exits 0 and mentions the truth sheet.
+  - The sheet `backend/data/go_no_go/truth.yaml`: only the top key `concepts`, 5 distinct entries, operator `stromnetz-berlin`, `concept` a quoted string, `page` an int, only the keys above, every string at most 40 characters, the file under 8,000 bytes.
+- `backend/tests/test_check_go_no_go.py` (30 tests) and `scripts/check_go_no_go.py` (`097de14`): the status doc section `## Go/no-go vision check (MKC-25)` with the table above (5 rows, the sheet's concepts, `yes` or `no`) and one line `**Decision:** go (the user, dd.MM.yyyy)` or `**Decision:** Berlin only (the user, dd.MM.yyyy)`; for Berlin only, a line in design section 15 naming `MKC-25` and `Berlin only`; for go, no such line. A `**Recommendation:**` line beside it is allowed. The script passes 28 tests on synthetic docs; `test_the_repo_passes` and the table-agreement test are red.
+- `backend/tests/harness/test_draft_locked.py` (9 tests, `304a81c`): the PR #225 finding 1 probe (A pending, B saves `v2` and fails, A approved or committed, C's save must be `draft_locked`), the variant where the decided item owns neither the draft row nor the queue row, and the probe through the loop (C fails with `draft_locked`): 6 red. Three guards are green now and must stay green: a failed saver does not lock while A waits; an approved item of another concept or another document does not lock.
+- **CI consequence:** CI's `docs` job runs every `scripts/check_*.py`, so `check_go_no_go.py` is wired in by its name (no change to `ci.yml` or `pre_pr.sh`; `check_pre_pr.py` stays green). The `docs` job, the backend's `test_the_repo_passes` and so `scripts/pre_pr.sh` stay red on this branch until the user's results and decision are in.
+
+### Assumptions (for the coordinator to confirm)
+
+1. The module is `mkc.extraction.vision_check`, with the five names above; the rest is the development agent's.
+2. Comparison sets: meters = labels; upstream = (label, upstream) pairs, a root meter's upstream `null`; components = (kind, attached_to) pairs. Both sides strip and case-fold; duplicates collapse. Other draft fields in the read (`purpose`, `directions`, `types`) are ignored.
+3. A missing meter also makes upstream wrong (its pair is missing); the tests assert only `meters` there.
+4. Unfilled truth: `meters` null or empty, `components` null, or a field missing. `components: []` is a filled answer (a single-meter concept has none).
+5. `check_concepts` refuses the whole sheet before any call when one entry is unfilled, a concept is not found by `segment_berlin`, or its page differs from the sheet's.
+6. An unreadable reply (prose, wrong shape, empty, a meter without a label) either raises ValueError or gives three `no`; it never gives a `yes`.
+7. Replay: the tests record into a temporary store with a fake model and replay with no provider; recordings hold replies only (no `base64` in the files). Whether real recordings are kept is the development agent's call.
+8. The sheet's `concept` is a quoted string (so `4.4` stays `4.4`); its strings are facts of at most 40 characters; no text blocks, no images.
+9. Status doc pins: section `## Go/no-go vision check (MKC-25)`, the column names above, cells exactly `yes` or `no`, one decision line attributed `(the user, dd.MM.yyyy)`.
+10. Berlin only needs a new line in design section 15 naming `MKC-25` and `Berlin only`; the existing "narrows to Berlin only" line does not count. A go must not have such a line.
+11. `draft_locked`: once any item of the key (document hash and concept key) is `approved` or `committed`, or the queue row's item is, a save is refused. "The approved body stays" is asserted as the body just before the refused save (`v2` in the probe, the body in the row when A was approved). Whether MKC-29 keeps a snapshot of the body at approval time is the coordinator's call (it may need migration `0015`).
+12. The CLI is not tested beyond `--help`: fetching the PDF and writing the table are live work under the €1.00 budget.
 
 ## Next steps
 
-1. Review agent: once `gh pr checks` is green (the mutation pass is done: 72 tried, 63 killed, 9 survived, all equivalent or near-equivalent).
-3. Then `MKC-25` (lane A's next ticket).
+1. Coordinator: confirm or change assumptions 1 to 12.
+2. Development agent: sub-issues; the blank truth sheet and the 5 proposed concepts with a reason each (in this file), for the coordinator to confirm before the sheet goes to the user; the module; the `draft_locked` fix.
+3. After the user has filled in the sheet: the live run (€1.00), the result table, a recommendation, and the user's decision through the coordinator.
+4. Test agent: the mutation pass once the development agent's code is in.
 
 ## Recent log
+
+- **28.11.2026 11:05** Test agent: MKC-25 red tests `304a81c`, `64d0eb2`, `097de14` (10:57 to 11:00). Red run of the three new files: `38 failed, 31 passed in 6.38s`. Full suite (`uv run pytest -q`): `38 failed, 1293 passed, 2 skipped, 20 deselected, 6 warnings in 127.46s (0:02:07)`; the 38 are exactly the new red tests (6 `draft_locked`, 30 vision check, 2 check script). `python scripts/check_go_no_go.py`: exit 1 (sheet missing, section missing); every other `scripts/check_*.py` exits 0. Commits over 200 lines: `64d0eb2` (421), `097de14` (367), test files only. No model calls, no fetches.
 
 - **28.11.2026 09:31** Test agent: `bash scripts/pre_pr.sh` at `900883b`: exit 0, "pre-PR gate: all steps passed"; pytest `1262 passed, 2 skipped, 20 deselected, 6 warnings in 109.13s (0:01:49)`. Pushed `76c6240..900883b`. This entry's commit changes only this file.
 
