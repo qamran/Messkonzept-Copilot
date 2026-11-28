@@ -19,9 +19,11 @@ from typing import Annotated, Any, Literal
 import pdfplumber
 import typer
 import yaml
+from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
 from mkc.config import Settings, get_settings
+from mkc.db.models import GoldItem
 from mkc.db.session import get_engine
 from mkc.extraction.fetch import http_get
 from mkc.extraction.operators import load_operators
@@ -149,7 +151,7 @@ def draft(
     """Draft concepts of --operator with the gold_draft role and store them, unverified.
 
     Give --key (repeatable) or --side. Pinned dev keys (labelled from scratch, MKC-25) are
-    skipped unless --include-pinned; a verified item is never redrafted."""
+    skipped unless --include-pinned; a verified key is skipped before any call."""
     if (key is None) == (side is None):
         raise _fail("give exactly one of --key and --side", 2)
     if operator not in SEGMENTERS:
@@ -171,17 +173,27 @@ def draft(
         raise _fail(f"not in the catalogue {digest[:12]}: {', '.join(missing)}", 2)
     client = make_client(settings)
     sessions = _sessions()
-    total = 0.0
+    verified = _verified(sessions, wanted)
+    total, failed = 0.0, 0
     for k in wanted:
+        if k in verified:
+            typer.echo(f"{k}: verified by {verified[k]}, skipped (no call)")
+            continue
         if total >= max_eur:
+            typer.echo(f"total: {total:.6f} EUR")
             raise _fail(f"stopped: spend {total:.6f} EUR reached --max-eur {max_eur}", 1)
         region = regions[k]
         images: tuple[Image, ...] = ()
         if image:
             png = render_region(pdf, region.page, region.bbox, dpi).png
             images = (Image(media_type="image/png", data=png),)
-        made = draft_concept(client, config, key=k, text=region_text(pdf, region),
-                             images=images, document=digest, page=region.page)  # fmt: skip
+        try:
+            made = draft_concept(client, config, key=k, text=region_text(pdf, region),
+                                 images=images, document=digest, page=region.page)  # fmt: skip
+        except (ModelError, ValueError) as error:  # the provider may still have charged
+            failed += 1
+            typer.echo(f"{k}: failed, cost unknown: {type(error).__name__}: {error}"[:500])
+            continue
         total += made.cost_eur
         made.payload["source"] = {"document": digest, "page": region.page}  # harness facts
         try:
@@ -191,7 +203,23 @@ def draft(
         except (VerifiedItem, FactsOnlyError) as error:
             note = f"not stored: {error}"
         typer.echo(f"{k}: {made.drafted_by}, {made.cost_eur:.6f} EUR, {note}")
-    typer.echo(f"total: {total:.6f} EUR for {len(wanted)} drafts")
+    typer.echo(f"total: {total:.6f} EUR for {len(wanted)} keys, {failed} failed calls")
+    if failed:
+        raise typer.Exit(1)
+
+
+def _verified(sessions: sessionmaker[Session], keys: list[str]) -> dict[str, str]:
+    """The keys whose drafted item is verified, with who verified it."""
+    with sessions() as session:
+        rows = session.execute(
+            select(GoldItem.key, GoldItem.verified_by).where(
+                GoldItem.kind == "concept",
+                GoldItem.blind.is_(False),
+                GoldItem.key.in_(keys),
+                GoldItem.verified_by.is_not(None),
+            )
+        ).all()
+    return {key: str(by) for key, by in rows}
 
 
 # --- export and import -------------------------------------------------------------------

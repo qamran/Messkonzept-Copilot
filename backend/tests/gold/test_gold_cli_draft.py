@@ -170,8 +170,22 @@ def test_a_verified_draft_is_not_redrafted(
 
 def test_draft_stops_at_max_eur(gold_engine: Engine, fake: tuple[Recorder, Path]) -> None:
     recorder, split = fake
-    args = ["gold", "draft", "--operator", "stromnetz-berlin", "--key", "4.1", "--key", "5",
-            "--include-pinned", "--no-image", "--split-file", str(split), "--max-eur", "0.0001"]
+    args = [
+        "gold",
+        "draft",
+        "--operator",
+        "stromnetz-berlin",
+        "--key",
+        "4.1",
+        "--key",
+        "5",
+        "--include-pinned",
+        "--no-image",
+        "--split-file",
+        str(split),
+        "--max-eur",
+        "0.0001",
+    ]
     result = runner.invoke(app, args)  # fmt: skip
     assert result.exit_code == 1, result.output
     assert "--max-eur" in result.output
@@ -187,8 +201,20 @@ def test_a_failed_call_is_reported_and_the_batch_goes_on(
     bad = draft_payload()
     del bad["meters"]
     recorder.model.responses = [reply(bad), reply(draft_payload())]
-    args = ["gold", "draft", "--operator", "stromnetz-berlin", "--key", "4.1", "--key", "5",
-            "--include-pinned", "--no-image", "--split-file", str(split)]
+    args = [
+        "gold",
+        "draft",
+        "--operator",
+        "stromnetz-berlin",
+        "--key",
+        "4.1",
+        "--key",
+        "5",
+        "--include-pinned",
+        "--no-image",
+        "--split-file",
+        str(split),
+    ]
     result = runner.invoke(app, args)  # fmt: skip
     assert result.exit_code == 1, result.output
     assert "stromnetz-berlin:4.1: failed" in result.output
@@ -204,9 +230,12 @@ def test_store_refuses_a_payload_that_is_not_facts_only(gold_engine: Engine) -> 
 
     draft = GoldDraft(key="stromnetz-berlin:5", payload=draft_payload(footnotes=["x" * 2_001]),
                       drafted_by="openrouter:y/gold", cost_eur=0.0)  # fmt: skip
-    with pytest.raises(FactsOnlyError, match="stromnetz-berlin:5"):
-        with Session(gold_engine) as session, session.begin():
-            store_gold_draft(session, draft, split="dev")
+    with (
+        pytest.raises(FactsOnlyError, match="stromnetz-berlin:5"),
+        Session(gold_engine) as session,
+        session.begin(),
+    ):
+        store_gold_draft(session, draft, split="dev")
     assert _rows(gold_engine) == []
 
 
