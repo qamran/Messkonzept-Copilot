@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 28.11.2026, 10:22
+**Last updated:** 28.11.2026, 10:35
 
 This file is how agents resume work after a session restart.
 
@@ -23,7 +23,7 @@ This file is how agents resume work after a session restart.
 - **Remotes:**
   - `origin` = qamran/Messkonzept-Copilot (home, public)
   - `turing` = TuringCollegeSubmissions/qshahz-AE.CAP.AFA.1.1 (code-only mirror, no issues; ADR 005 option (c), decision 35)
-  - Both at `6208e97` (merge of PR #225).
+  - Both at `47e110a` (merge of PR #226).
 - **`main` is protected:** PRs only, enforced for admins. Required checks: the `ci` jobs `backend`, `frontend`, `gitleaks`, `dependency-scan` and `docs` (since 25.11.2026 09:50, MKC-6.5) `image` (since 13:52, MKC-8) and `kind` (since 15:42, MKC-9); the branch must be up to date with `main`. `publish` is not required (skipped on PRs).
 - **Agent rules:** `AGENTS.md` (CLAUDE.md imports it). The development agent continues without asking and stops only for genuine decisions (decision 36).
 - **Done:**
@@ -81,7 +81,8 @@ New tables go at the end of `mkc/db/models.py` in a block commented with the tic
 
 ## In progress
 
-- **Wave 3 done (28.11.2026):** MKC-23 (lane A, PR #225, `6208e97`, decisions 82–84), review PASS, merged and deployed (log 10:04). **Next: wave 4** = MKC-25 (lane A; live vision calls need a budget from the coordinator) and MKC-24 (lane A2, decision 75 reserved); before that, MKC-218's PR #226 (review FAIL at 10:21:02, fixed; re-review next). Recommended: start wave 4 in a fresh session. Coordinator log MKC-218 (#218) on `mkc-218-wave-3-coordinator`, cut from the closeout branch `mkc-200-wave-2-closeout` (`6cbd700`), so its PR carries the wave 2 post-merge log to `main`.
+- **Wave 3 done (28.11.2026):** MKC-23 (lane A, PR #225, `6208e97`, decisions 82–84), review PASS, merged and deployed (log 10:04). **Next: wave 4** = MKC-25 (lane A; live vision calls need a budget from the coordinator) and MKC-24 (lane A2, decision 75 reserved). Recommended: start wave 4 in a fresh session. Open wave 4's coordinator issue and cut its branch from this closeout branch `mkc-218-wave-3-closeout` (it holds the post-merge log of PR #226), give each lane its decision block from 85, and set lane A's live-call budget for MKC-25 before its agents start.
+- **MKC-218** (#218), Wave 3 coordinator log: done (PR #226, merged as `47e110a`, deployed).
 - **MKC-200** (#200), Wave 2 coordinator log: done (PR #217, merged as `502c30a`, deployed).
 - **Wave 2 done (28.11.2026):** MKC-27 (PR #214, `3bacfc5`), MKC-22 (PR #215, `6d3aee9`), MKC-50 (PR #216, `3636edb`), each review PASS, merged and deployed (log below). Every lane: red acceptance tests by the test agent, the development agent, a mutation pass (A2 72/63/9, A 119/104/15, D 108/104/4 tried/killed/survived; all survivors accepted as near-equivalent), `pre_pr.sh`, PR, review after green checks. The three wave 2 worktrees are removed after this PR's gate.
 - **Coordinator rulings in wave 2:** MKC-27: the SachsenNetze half `13 / Nr. (tbd)` is a placeholder, not an item (11 items, decision 74). MKC-50: latency reaches the trace through an additive `retrieval` record kind; the sources file has `MKC_CORPUS_SOURCES_FILE`; any corpus cache inside the repo is refused; the extra reference ranking (a `§ <n>` in the query) is accepted. MKC-22: wiring `DocumentOps` into `runner.py` goes to MKC-23.
@@ -249,6 +250,8 @@ New tables go at the end of `mkc/db/models.py` in a block commented with the tic
 - **The user's PC:** it went down without a clean shutdown on 23.11 and 26.11.2026 (cause not found; graphics-driver hang reports on both days; a memory test is not done yet). Commit and push often. Two files exist only on the PC: the VM's admin SSH key and `backend/.env` (runbook "Only on the PC"); the user was advised to copy them into a password manager.
 
 ## Recent log
+
+- **28.11.2026 10:35** PR #226 (MKC-218) re-review PASS (Fable, comment 10:29:26; it checked `56db9a3` against the FAIL findings; 3 non-blocking findings: (1) the PR body's first criterion names the entries "07:05, 07:49 and 10:04", they are 07:05, 07:48, 10:04 and 10:22; (2) `6cbd700` (MKC-200) has no body, like `96675e0` and `334a483`; (3) the "Wave 3 done" bullet still said "re-review next", fixed here), merged as `47e110a` (10:29:29); #218 closed by the merge (10:29:31), `Done`. `main` pushed to `turing` (10:30:10); `origin/main` = `turing/main` = `47e110a`. `ci` run 46130709143 on `main` green. `cd` run 46130709300: `image` 10:29:35 to 10:33:11; `backend` approved (`date` 10:33:34), ran 10:33:36 to 10:34:16; `frontend` approved (`date` 10:34:30), ran 10:34:31 to 10:35:14; run exit 0. Checked: `/api/version` commit `47e110a...`, `/health` 200 (10:35:20). **Wave 3 closed.** Docker Desktop stopped and WSL shut down after this entry.
 
 - **28.11.2026 10:22** PR #226 (MKC-218; opened 10:10:39) review FAIL (Fable, comment 10:21:02; reviewed `a10d09c`). Blocking: (1) the status doc's lane A line still said "MKC-23 in review" next to "merged and deployed". Non-blocking: (2) PR #225 finding 6 was missing from item 0; (3) item 0 had lines from the development agent's report under the review's heading; (4) item 0 still listed the "81 decision numbers" header as open; (5) three board/assignment times a few seconds off GitHub's timeline; (6) "approved at 10:01:47" is not a GitHub value; (7) the 07:49 entry was later than its commit (07:48:32); (8) stale pointers (the old "Wave 3 = MKC-23" bullet, the worktree line, "MKC-218's PR" without a number); (9) `6cbd700` has no body (not rewritten); (10) the PR body's gate output needs a refresh. All fixed here except 9; the migration claim of the 10:04 entry is dropped (not in the job log). #218 back to `In progress` (10:21:39, `date`).
 
