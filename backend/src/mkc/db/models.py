@@ -353,3 +353,31 @@ class Approval(Base):
     item_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("item.id"))
     created_at: Mapped[datetime] = _created()
     updated_at: Mapped[datetime] = _updated()
+
+
+# --- MKC-24: gold items (lane A2, decisions 75, 88, 89) -----------------------------------
+
+
+class GoldItem(Base):
+    """One gold item with its provenance (MKC-24.2, design 11.1): who drafted it, who verified
+    it, blind or not. A key has at most one drafted item (`blind` false) and one blind label
+    (`blind` true, never a drafter) of each kind, so blind labels can be compared with the
+    verified drafts (decision 89). `split` is the key's side in `gold_split.yaml`."""
+
+    __tablename__ = "gold_item"
+    __table_args__ = (
+        UniqueConstraint("kind", "key", "blind", name="uq_gold_item_kind_key_blind"),
+        CheckConstraint("split IN ('dev', 'test')", name="ck_gold_item_split"),
+        CheckConstraint("NOT blind OR drafted_by IS NULL", name="ck_gold_item_blind_no_drafter"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
+    kind: Mapped[str] = mapped_column(String(32))  # `concept` now; scenarios come with E3
+    key: Mapped[str] = mapped_column(Text)
+    split: Mapped[str] = mapped_column(String(8))
+    payload: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    drafted_by: Mapped[str | None] = mapped_column(Text, nullable=True)
+    verified_by: Mapped[str | None] = mapped_column(Text, nullable=True)
+    blind: Mapped[bool] = mapped_column(Boolean)
+    created_at: Mapped[datetime] = _created()
+    updated_at: Mapped[datetime] = _updated()
