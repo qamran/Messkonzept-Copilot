@@ -1,6 +1,6 @@
 # Lane A: Extraction
 
-**Last updated:** 28.11.2026, 07:39
+**Last updated:** 28.11.2026, 07:46
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -16,10 +16,11 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 
 ## In progress
 
-- `MKC-23` (`#23`, render, draft assembly, `save_draft`): red acceptance tests done and pushed (red commits `5e00ed9` to `7923957`; the last red commit is `7923957`). The source of truth is the backlog entry (issue #23's body is stale: decision 53 moved the enqueue to the harness). Next: the development agent.
+- `MKC-23` (`#23`, render, draft assembly, `save_draft`): red acceptance tests done and pushed (red commits `5e00ed9` to `7923957`, plus `05c2c43`; the last red test commit is `05c2c43`). The source of truth is the backlog entry (issue #23's body is stale: decision 53 moved the enqueue to the harness). Next: the development agent.
 - Red test files (all new; no existing test is changed): `tests/extraction/drafts.py` (the one valid draft body, every guessed nested name in one place), `test_draft_model.py`, `test_render_region.py`, `test_redirect_hops.py`, `test_mkc22_survivor_pins.py` (pins, green on arrival); `tests/harness/test_approvals.py`, `test_approval_edges.py`, `test_run_documents.py`; `tests/worker/test_executor_documents.py`.
-- Red run at `7923957`: the nine files: `58 failed, 5 passed in 6.14s`; full suite `uv run pytest -q`: `58 failed, 1169 passed, 2 skipped, 20 deselected, 4 warnings in 129.81s (0:02:09)`, all 58 failures in the new files. Green on arrival: the two survivor pins, the `:443` hop pin, and `dpi` 0 and -72 (`ge=1` exists). `ruff check .`: "All checks passed!"; `ruff format --check .`: "256 files already formatted".
-- Commits over 200 lines: `b1e5e98` (`test_approvals.py`, 244 lines).
+- Red run at `05c2c43`: the eight new test files: `59 failed, 5 passed in 6.05s`; full suite `uv run pytest -q`: `59 failed, 1169 passed, 2 skipped, 20 deselected, 4 warnings in 111.13s (0:01:51)`, all 59 failures in the new files. Red only on the missing `approval` table (their behaviour holds today): `test_save_draft_does_not_enqueue`, `test_a_save_followed_by_a_broken_call_is_not_enqueued`, `test_a_rowless_draft_saved_item_breaks_no_full_run`. Green on arrival: the two survivor pins, the `:443` hop pin, and `dpi` 0 and -72 (`ge=1` exists). `ruff check .`: "All checks passed!"; `ruff format --check .`: "256 files already formatted".
+- Commits over 200 lines (`git log --shortstat`): `5e00ed9` (173 insertions, 80 deletions: the lane file rewrite and the draft model tests), `b1e5e98` (234 insertions, `test_approvals.py`).
+- The red tests need code outside this lane's "Owns" line, which the coordinator grants: `mkc/harness/loop.py` (the enqueue), `drafts.py`, `tools.py` (`ErrorCode` gains `draft_locked`), `baseline.py`, `mkc/db/models.py` and a migration (`approval`), `config.py` and `.env.example` (`render_max_dpi`).
 
 ### Pinned interfaces and assumptions (MKC-23; for the coordinator to confirm)
 
@@ -35,14 +36,15 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 10. `save_draft` refuses (no write, `ok` false, any code) an item in `queued`, `draft_saved`, `pending_approval` or `failed`.
 11. Lease lost: with the run leased to another owner, `run_item` with the real `fence` raises `LeaseLost` and no draft row exists. How the save learns of it is the development agent's choice.
 12. Same-turn raise (pre-PR minor): a save followed by a call that escapes leaves the item `failed` with no queue row; the draft row may stay (the `drafts.py` rule: go by the item state).
-13. Baseline: a save ends `pending_approval` in the report, with no `draft` and no `approval` row and at least one entry in `RunMemory.approvals`; a row-less `draft_saved` baseline item breaks nothing (its state is not pinned).
+13. **Most likely to be overruled.** Baseline: a save ends `pending_approval` in the report (pinned only in `test_a_baseline_save_is_queued_in_memory_only`; `write_report` has no `running -> pending_approval` edge today, and the backlog note says a baseline item "can be `draft_saved`"), with no `draft` and no `approval` row and at least one entry in `RunMemory.approvals`; a row-less `draft_saved` baseline item breaks nothing (its state is not pinned).
 14. `execute_run(..., documents=DocumentOps(...))`; the executor builds its `DocumentOps` on `storage_from_settings(settings)`.
-15. Redirect hops (no new argument): a hop must keep the host and port of the URL `http_get` was given, checked before it is requested; `:443` counts as the default port. If the development agent adds an `allowed_hosts` argument instead, its default must still refuse these hops.
+15. Redirect hops (no new argument): a hop must keep the host and port of the URL `http_get` was given, checked before it is requested; `:443` counts as the default port. If the development agent adds an `allowed_hosts` argument instead, its default must still refuse these hops. Not checked against the two real operator URLs; decision 62 (5) says operators redirect through CDNs, so a live fetch may break if one does.
 
 ### Existing tests MKC-23 invalidates (the development agent changes them, with a reason in the PR body)
 
 - Free-dict drafts through the real `save_draft`: `test_drafts.py` (every save), `test_baseline.py` (`saved(n)` with `draft={"n": n}` through the default registry, so also `test_faults.py`), `test_registry.py` (`VALID_ARGS` `save_draft` and `validate_draft` `{"draft": {}}`).
-- Full-mode runs that may now end `pending_approval` instead of `draft_saved`, depending on how the enqueue is wired for test registries without `enqueue_approval`: `test_baseline.py`, `test_faults.py` (`test_kill_during_approval_keeps_the_draft_in_full`), `test_loop.py`, `test_queue.py`, `test_resume.py`, `test_run_limits.py`, `observability/test_traced_run.py`, `test_cli.py`, `worker/test_executor.py`, `test_executor_mode.py`, `test_outage.py`.
+- Baseline runs that assert `draft_saved` (assumption 13 changes them for sure): `test_baseline.py`, the baseline cases of `test_faults.py`.
+- Full-mode runs that may now end `pending_approval` instead of `draft_saved`, depending on how the enqueue is wired for test registries without `enqueue_approval`: `test_faults.py` (`test_kill_during_approval_keeps_the_draft_in_full`), `test_loop.py`, `test_queue.py`, `test_resume.py`, `test_run_limits.py`, `observability/test_traced_run.py`, `test_cli.py`, `worker/test_executor.py`, `test_executor_mode.py`, `test_outage.py`.
 
 ### Not covered by red tests (the development agent's items)
 
@@ -58,7 +60,9 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 
 ## Recent log
 
-- **28.11.2026 07:39** Test agent: MKC-23 red tests committed (`5e00ed9` to `7923957`, 07:36). Nine new files: `58 failed, 5 passed in 6.14s`; full suite `58 failed, 1169 passed, 2 skipped, 20 deselected, 4 warnings in 129.81s (0:02:09)`, all 58 failures in the new files. Assumptions 1 to 15 above.
+- **28.11.2026 07:44** Test agent: red test `05c2c43` (a row-less `draft_saved` item in a full run, PR #167 finding 7). Red run at `05c2c43`: eight new test files `59 failed, 5 passed in 6.05s`; full suite `59 failed, 1169 passed, 2 skipped, 20 deselected, 4 warnings in 111.13s (0:01:51)`. Commit sizes corrected from `git log --shortstat`.
+
+- **28.11.2026 07:40** Test agent: MKC-23 red tests committed (`5e00ed9` to `7923957`, 07:36) and the lane file (`11425dc`). Assumptions 1 to 15 above.
 
 - **28.11.2026 00:37** Development agent: `bash scripts/pre_pr.sh` at `ec8fead`: exit 0, "pre-PR gate: all steps passed"; pytest `1080 passed, 2 skipped, 19 deselected, 4 warnings in 97.88s (0:01:37)`. PR #215 opened (createdAt 2026-11-27T23:37:01Z, 00:37:01 CET), head `ec8fead`, assigned to `qamran`; #22 and #208 to #213 moved to `Testing`. This commit changes only this file.
 
