@@ -2,7 +2,9 @@
 
 Inside one item, the model drives the item tools until a `save_draft` call succeeds or the
 item fails. `process_run` runs the queue: a failed item, or a draft that waits for approval,
-never stops the next item (extraction never waits for approvals).
+never stops the next item (extraction never waits for approvals). After an item ends
+`draft_saved`, the harness runs `enqueue_approval` and moves it to `pending_approval`
+(MKC-23, decision 83); a run first queues the saved drafts a crash left unqueued.
 
 - One step is one model call. Each step writes one `turn` row and commits.
 - The step that ends the item writes its turn row and the state change in one commit.
@@ -17,6 +19,7 @@ never stops the next item (extraction never waits for approvals).
   the worker lost its lease.
 """
 
+import logging
 import time
 from collections import Counter
 from collections.abc import Callable, Sequence
@@ -29,8 +32,8 @@ from sqlalchemy import func, select, update
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 
-from mkc.db.models import Item, Turn
-from mkc.harness.baseline import RunMemory
+from mkc.db.models import Draft, Item, Turn
+from mkc.harness.baseline import RunMemory, memory_draft_id
 from mkc.harness.blobs import BlobStore, DbBlobStore
 from mkc.harness.cache import ToolCache
 from mkc.harness.checkpoint import (
@@ -78,6 +81,12 @@ recording, a refused key: `ModelAuthError` is a `ModelConfigError`). They stop t
 `setup_error` (MKC-18, decision 58); the item keeps its place, so the run never reads `done`."""
 
 SAVE_TOOL = "save_draft"
+ENQUEUE_TOOL = "enqueue_approval"
+DRAFT_LOCKED = "draft_locked"
+"""The error code of a save whose key is approved or committed; it fails the item at once,
+stored as `tool_error: draft_locked` (MKC-23, decision 83)."""
+
+log = logging.getLogger(__name__)
 
 FULL = SWITCHES[HarnessMode.FULL]
 
@@ -210,6 +219,9 @@ def run_item(
                 return ItemOutcome(item_id, ItemState.RUNNING, INTERRUPTED, step, cost)
             messages += [assistant, Message(role="user", content=REPROMPT)]
             continue
+        if any(call.name == SAVE_TOOL for call in calls):
+            fence(session)  # a worker that lost its lease writes no draft (MKC-17 finding 2)
+            session.commit()  # no lock on the run row while the tools run
         try:
             results, saved = _run_calls(registry, calls, replace(env, step=step), cache, faults)
         except _ToolErrorEscaped as escaped:
@@ -220,6 +232,9 @@ def run_item(
         turn = _turn(item_id, step, assistant, results, step_cost)
         if saved:
             return ctx.finish(turn, ItemState.DRAFT_SAVED, None, step, cost)
+        if any(_code(r) == DRAFT_LOCKED for r in results if r["name"] == SAVE_TOOL):
+            # the key's draft is approved or committed: no retry can save (decision 83)
+            return ctx.fail(turn, StopReason.TOOL_ERROR, step, cost, DRAFT_LOCKED)
         failures.update(r["name"] for r in results if not r["result"]["ok"])
         over = [name for name, n in failures.items() if n > limits.max_retries_tool]
         if over:
@@ -285,12 +300,16 @@ def process_run(
             outcomes.append(run_item(item_id, **loop_kw))
             if faults is not None:
                 faults.item_ended(outcomes[-1])
+            if outcomes[-1].state is ItemState.DRAFT_SAVED and memory is not None:
+                _enqueue_in_memory(session, registry, queue, memory, run_id, item_id)
             if outcomes[-1].state is ItemState.RUNNING:
                 return outcomes
         return outcomes
     start_clock(session, run_id)
     fence(session)
     session.commit()
+    if switches.durable_approvals:
+        _enqueue_saved(session, registry, run_id, fence)  # drafts a crash left unqueued
     while True:
         if should_stop():
             return outcomes
@@ -316,12 +335,78 @@ def process_run(
             continue
         outcomes.append(run_item(item_id, **loop_kw))
         if faults is not None:
-            faults.item_ended(outcomes[-1])
+            faults.item_ended(outcomes[-1])  # `kill_during_approval`: before the enqueue
+        if outcomes[-1].state is ItemState.DRAFT_SAVED and switches.durable_approvals:
+            _enqueue_saved(session, registry, run_id, fence)
         if outcomes[-1].state is ItemState.RUNNING:
             return outcomes
     settle_run(session, run_id)
     session.commit()
     return outcomes
+
+
+def _enqueue_saved(
+    session: Session, registry: ToolRegistry, run_id: int, fence: Callable[[Session], None]
+) -> None:
+    """Queue every `draft_saved` item of the run that owns a draft row (decision 83).
+
+    The harness runs the run-level operation `enqueue_approval` (decision 53), then moves
+    the item `draft_saved -> pending_approval`. The run row stays locked (`fence`) from before
+    the operation writes until the state commits, so a worker that lost its lease queues
+    nothing. A crash between the two leaves the item `draft_saved`; the next call queues it
+    again, and the operation's upsert keeps one row. An item without its own draft row (a
+    baseline save kept in memory, PR #167 finding 7), or a registry without the operation,
+    leaves the item `draft_saved`."""
+    rows = session.execute(
+        select(Item.id, Item.document_hash, Item.concept_key, Draft.id)
+        .join(Draft, Draft.item_id == Item.id)
+        .where(Item.run_id == run_id, Item.state == ItemState.DRAFT_SAVED.value)
+        .order_by(Item.id)
+    ).all()
+    session.commit()
+    for item_id, document_hash, concept_key, draft_id in rows:
+        fence(session)
+        env = ToolEnv(run_id, item_id, document_hash, concept_key)
+        call = ToolCall(id=f"enqueue-{item_id}", name=ENQUEUE_TOOL,
+                        args={"draft_id": str(draft_id)})  # fmt: skip
+        result = registry.execute(call, "run", env)
+        if not result.ok:
+            session.rollback()
+            log.warning("item %s stays draft_saved: enqueue_approval: %s", item_id, result.error)
+            continue
+        item = session.get_one(Item, item_id)
+        item.state = transition(ItemState(item.state), ItemState.PENDING_APPROVAL).value
+        fence(session)
+        session.commit()
+
+
+def _enqueue_in_memory(
+    session: Session,
+    registry: ToolRegistry,
+    queue: RunMemory,
+    memory: RunMemory,
+    run_id: int,
+    item_id: int,
+) -> None:
+    """The baseline's enqueue (durable approvals off): the same operation on the item's last
+    in-memory save, and the item's end becomes `pending_approval` in memory (decision 83)."""
+    draft_id = memory_draft_id(memory, item_id)
+    if draft_id is None:
+        return
+    item = session.get_one(Item, item_id)
+    env = ToolEnv(run_id, item_id, item.document_hash, item.concept_key)
+    session.commit()
+    call = ToolCall(id=f"enqueue-{item_id}", name=ENQUEUE_TOOL, args={"draft_id": draft_id})
+    result = registry.execute(call, "run", env)
+    if result.ok:
+        queue.end(item_id, ItemState.PENDING_APPROVAL, None)
+    else:
+        log.warning("item %s stays draft_saved: enqueue_approval: %s", item_id, result.error)
+
+
+def _code(result: dict[str, Any]) -> str | None:
+    error = result["result"].get("error")
+    return None if error is None else error.get("code")
 
 
 def _memory_queue(switches: Switches, memory: RunMemory | None) -> RunMemory | None:

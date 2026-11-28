@@ -81,7 +81,8 @@ def test_baseline_crash_restarts_from_zero(engine: Engine) -> None:
     result = go(engine, run_id, again)
     assert len(again.seen) == 2  # item 1 was extracted again
     assert [o.state for o in result.outcomes] == ["draft_saved", "draft_saved"]
-    assert states(engine, run_id) == ("awaiting_approval", ["draft_saved", "draft_saved"])
+    # queued in memory (MKC-23)
+    assert states(engine, run_id) == ("awaiting_approval", ["pending_approval"] * 2)
 
 
 def test_baseline_holds_approvals_in_memory_only(engine: Engine) -> None:
@@ -129,7 +130,7 @@ def test_baseline_report_has_the_ended_items(engine: Engine) -> None:
     run_id, _ = make(engine, 2)
     model = FakeChatModel(responses=[saved(1), READ, READ])
     go(engine, run_id, model, limits=Limits(max_steps_item=6, max_steps_run=3))
-    assert states(engine, run_id) == ("stopped", ["draft_saved", "queued"])
+    assert states(engine, run_id) == ("stopped", ["pending_approval", "queued"])
 
 
 def test_baseline_sends_the_same_requests_as_full(engine: Engine) -> None:
@@ -174,7 +175,8 @@ def test_execute_run_builds_the_registry_with_the_tool_hooks(engine: Engine) -> 
     for mode in ("full", "baseline"):
         run_id, _ = make(engine, 1, mode=mode)
         go(engine, run_id, FakeChatModel(responses=[saved(1)]), tool_tracers=(seen.append,))
-    assert [(t.tool, t.ok) for t in seen] == [("save_draft", True), ("save_draft", True)]
+    pair = [("save_draft", True), ("enqueue_approval", True)]  # the harness queues (MKC-23)
+    assert [(t.tool, t.ok) for t in seen] == pair + pair
 
 
 class _AfterFirstItem(FaultInjector):
@@ -206,14 +208,15 @@ def test_baseline_takes_running_items_too(engine: Engine) -> None:
         session.execute(update(Run).where(Run.id == run_id).values(mode="baseline"))
     result = go(engine, run_id, FakeChatModel(responses=[saved(1), saved(2)]))
     assert [o.state for o in result.outcomes] == ["draft_saved", "draft_saved"]
-    assert states(engine, run_id) == ("awaiting_approval", ["draft_saved", "draft_saved"])
+    assert states(engine, run_id) == ("awaiting_approval", ["pending_approval", "pending_approval"])
 
 
 def test_execute_run_differs_by_mode_only_in_the_switches(
     engine: Engine, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Criterion 1 at the seam: what `execute_run` hands `process_run` for a full and a
-    baseline run differs only in `switches`, `memory` and the `save_draft` function."""
+    baseline run differs only in `switches`, `memory` and the `save_draft` and
+    `enqueue_approval` functions (the queue in memory, MKC-23)."""
     seen: dict[str, dict[str, Any]] = {}
 
     def capture(run_id: int, **kw: Any) -> list[Any]:
@@ -236,4 +239,6 @@ def test_execute_run_differs_by_mode_only_in_the_switches(
     assert [t.to_spec() for t in tools[0]] == [t.to_spec() for t in tools[1]]
     changed = {a.name for a, b in zip(*tools, strict=True) if a != b}
     assert changed == {"save_draft"}
-    assert full["registry"].for_context("run") == baseline["registry"].for_context("run")
+    runs = [r.for_context("run") for r in (full["registry"], baseline["registry"])]
+    assert [t.to_spec() for t in runs[0]] == [t.to_spec() for t in runs[1]]
+    assert {a.name for a, b in zip(*runs, strict=True) if a != b} == {"enqueue_approval"}
