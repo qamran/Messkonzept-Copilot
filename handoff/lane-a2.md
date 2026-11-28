@@ -1,6 +1,6 @@
 # Lane A2: SachsenNetze and gold
 
-**Last updated:** 28.11.2026, 11:23
+**Last updated:** 28.11.2026, 11:24
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -79,6 +79,7 @@ Coordinator rulings (28.11.2026): 1, 2, 3, 5, 7, 8, 9 and 10 confirmed; 6 is the
 
 ## Recent log
 
+- **28.11.2026 11:24** Development agent: `mkc/gold/draft.py` (`ensure_independent` refuses the same model or family, `draft_concept` through `chat_structured` with the region text wrapped as data in the user message), `mkc/gold/store.py` (`store_gold_draft`; a verified item raises `VerifiedItem`), `mkc/gold/facts.py` (the facts-only rule, also at store time): draft, family and table tests `20 passed in 1.10s`. The coordinator sent the 5 pinned dev keys (Berlin `12`, `3`, `11`, `3.3`, `4.2`).
 - **28.11.2026 11:23** Development agent: own red test `tests/gold/test_gold_family.py` for ruling 4 (the same model family as `extract_vision` is refused; family = the vendor prefix before `/`, a direct provider counts as its vendor): `8 failed in 0.25s` (`mkc.gold.draft` missing).
 - **28.11.2026 11:22** Development agent: table `gold_item` (block `MKC-24` at the end of `mkc/db/models.py`) and migration `0015` (`down_revision` `0014`): unique on (kind, key, blind), `split` dev or test, a blind label has no drafter. `tests/db tests/gold/test_gold_table.py`: `3 failed, 28 passed in 17.24s` (the 3 need `mkc.gold.draft` and `store`).
 - **28.11.2026 11:22** Development agent: sub-issues `#231` to `#234` created and linked; `mkc/gold/split.py` (SHA-256 rank per operator, `ceil(n/2)` to dev, pins plus the best-ranked unpinned keys): `tests/gold/test_gold_split.py` `34 passed in 0.56s`.
