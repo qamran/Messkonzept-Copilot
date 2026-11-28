@@ -1,6 +1,6 @@
 # Lane A: Extraction
 
-**Last updated:** 28.11.2026, 11:20
+**Last updated:** 28.11.2026, 11:23
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -76,6 +76,8 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 4. Test agent: the mutation pass on `draft_locked` and `vision_check`.
 
 ## Recent log
+
+- **28.11.2026 11:23** Development agent: `bash scripts/pre_pr.sh` at `5dacac2` (ended 11:23): exit 1, "pre-PR gate FAILED: backend: pytest docs: check scripts", as expected until the user's results and decision are in. pytest `1 failed, 1332 passed, 2 skipped, 20 deselected, 6 warnings in 124.93s (0:02:04)`, the 1 being `tests/test_check_go_no_go.py::test_the_repo_passes`; check scripts: only `check_go_no_go.py` fails ("status doc: missing the result table header ..." and "needs one '**Decision:**' line, has 0"); `uv sync --locked`, ruff check, ruff format, mypy, markdownlint ("Summary: 0 error(s)"), the deploy script tests and the commit check ok. Commits over 200 lines: `64d0eb2` (421), `097de14` (367), `951e40f` (281). Every `Refs:` line reads `qamran/`. This commit changes only this file.
 
 - **28.11.2026 11:20** Development agent: docs (MKC-25.3): decisions 85 (`draft_locked` for the whole key, no snapshot, MKC-29 decides), 86 (the comparison) and 87 (the procedure) in design section 18; status doc section `## Go/no-go vision check (MKC-25)` with the method and "results pending the user's truth sheet" (no table, no decision yet); the backlog's MKC-25 "As built" note.
 
