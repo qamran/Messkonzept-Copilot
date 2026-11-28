@@ -1,6 +1,6 @@
 # Lane A: Extraction
 
-**Last updated:** 28.11.2026, 08:39
+**Last updated:** 28.11.2026, 09:28
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -24,13 +24,32 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 - My tests, written with the code: `tests/harness/test_approval_queue.py` (9), `tests/extraction/test_hop_allowlist.py` (2).
 - Not done here: MKC-15 finding 5 (no edge `awaiting_approval -> running`; the enqueue does not need it); PR #215 finding 7 (optional live-test skip on a new edition); the `faults.py` docstring still says approvals "come in MKC-23" (outside the grant).
 
+### Mutation pass (MKC-23; test agent, 28.11.2026, head `76c6240`)
+
+- Method: one hand-written mutant at a time on the production diff `05c2c43..76c6240` (exact string replacement, CRLF-aware, checked as applied once and restored byte for byte; `__pycache__` removed, `PYTHONDONTWRITEBYTECODE=1`), then `uv run pytest tests/harness tests/extraction tests/worker/test_executor_documents.py tests/test_config.py -q -x`, non-live. No mutant was committed; no production code changed. Migration 0014 was not mutated (the test database is already at head; `test_0014_creates_approval_and_downgrades` covers it).
+- Unmodified base run: `584 passed, 1 skipped, 5 deselected in 29.79s`.
+- First run: 72 mutants tried, 46 killed, 26 survived, 0 not applied. (V6 first showed "killed" by an `ERROR` in the unrelated `test_item_limits.py`; run alone it survived, so it counts as a survivor.)
+- New tests (`4d100c9` `test_render_rules.py`, `6bc7aba` `test_draft_rules.py`, `aa034e2` `test_approval_rules.py`; 23 tests, green on the real code) killed 17 of the 26 (re-run of the 26: 17 killed, 9 survived). With them: **72 tried, 63 killed, 9 survived**.
+- Killed by the new tests: D9 (approval row not moved to the newest item), L8 (sweep without the run filter), L10 and L11 (the sweep's two fences), L12 and L15 (a failed enqueue still moved the state, durable and baseline), B2 (first save of the turn queued), B5 (`memory-0`), V1, O3, O5 (refusals as `tool_failed`), V2 (negative top), V6 (crop top and bottom swapped: same size, wrong strip), V8 (BMP instead of PNG), O2 (`render_max_dpi` argument ignored), O4 (wrong `width`), G1 (boolean coordinate), M1 (NUL). M2 to M11 were killed only by the schema snapshot test; `test_draft_rules.py` now also kills M3 to M6 by behaviour.
+- Survivors (9), file:line, the mutant, why (E equivalent, NE near-equivalent):
+  1. D4 `harness/drafts.py:81` no `FOR UPDATE` on the saving item. NE: a race with a concurrent state change; one worker per run, and the fence before a save covers a lost lease.
+  2. D5 `harness/drafts.py:88` no `FOR UPDATE OF draft`. NE: the same race with a concurrent approval; needs two sessions at once to show.
+  3. D10 `harness/drafts.py:47` `model_dump()` without `mode="json"`. E: the draft holds only strings, ints, None and lists.
+  4. L7 `harness/loop.py:339` sweep after every item, not only after `draft_saved`. E: the sweep is idempotent; only extra queries.
+  5. L9 `harness/loop.py:362` `outerjoin` instead of `join`. NE: a row-less item is offered `draft_id "None"`, refused, and stays `draft_saved` (only a warning line differs).
+  6. L13 `harness/loop.py:374` no `rollback` after a failed enqueue. NE: the open transaction (run row lock) ends at the next commit.
+  7. L14 `harness/loop.py:394` no `draft_id is None` guard in the baseline enqueue. E: `None` fails `DraftIdArgs`, the result is not ok, the item stays `draft_saved`.
+  8. L17 `harness/loop.py:366` no commit after the sweep's select. NE: the read transaction stays open until the first fence commit.
+  9. F4 `extraction/fetch.py:148` `(host,)` also for a URL without a host. NE: such a URL fails `is_allowed_url` before any request anyway.
+
 ## Next steps
 
-1. Test agent: the mutation pass on the development agent's code.
-2. Review agent: once `gh pr checks` is green.
+1. Review agent: once `gh pr checks` is green (the mutation pass is done: 72 tried, 63 killed, 9 survived, all equivalent or near-equivalent).
 3. Then `MKC-25` (lane A's next ticket).
 
 ## Recent log
+
+- **28.11.2026 09:28** Test agent: mutation pass on `76c6240`: 72 tried, 63 killed, 9 survived (first run 46 killed, 26 survived; 23 new tests in `4d100c9`, `6bc7aba`, `aa034e2` killed 17 of them). The 9 survivors are equivalent or near-equivalent (section "Mutation pass (MKC-23)").
 
 - **28.11.2026 08:39** Development agent: `bash scripts/pre_pr.sh` at `2bea0d8`: exit 0, "pre-PR gate: all steps passed"; pytest `1239 passed, 2 skipped, 20 deselected, 4 warnings in 115.16s (0:01:55)`; commits over 200 lines `5e00ed9` (253), `b1e5e98` (234), `ffd2601` (475), `4ac7548` (311). Every `Refs:` line reads `qamran/`. PR #225 opened (createdAt 2026-11-28T07:38:12Z, 08:38:12 CET), head `2bea0d8`, assigned to `qamran`; #23 and #219 to #224 moved to `Testing`. This commit changes only this file.
 
