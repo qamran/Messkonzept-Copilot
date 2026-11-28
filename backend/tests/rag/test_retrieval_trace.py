@@ -156,7 +156,10 @@ def test_a_retrieval_in_a_run_is_one_run_log_row_and_one_sink_record(
     ((record, sent_to),) = sink.sent
     assert sent_to == trace_id
     assert (record.kind, record.latency_ms, record.detail) == ("retrieval", row.latency_ms, counts)
-    assert "14a" not in repr(record) and "14a" not in repr(row.__dict__)
+    # Data columns only: SQLAlchemy's `_sa_instance_state` repr holds a memory address, which
+    # can contain "14a" (failed on `main` in ci run 46127290111: 0x7f014a424950).
+    columns = {k: v for k, v in vars(row).items() if not k.startswith("_")}
+    assert "14a" not in repr(record) and "14a" not in repr(columns)
 
 
 def test_a_retrieval_outside_a_run_writes_no_row_and_calls_no_sink(
