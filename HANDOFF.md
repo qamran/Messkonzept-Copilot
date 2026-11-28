@@ -1,6 +1,6 @@
 # HANDOFF
 
-**Last updated:** 28.11.2026, 10:35
+**Last updated:** 28.11.2026, 10:53
 
 This file is how agents resume work after a session restart.
 
@@ -61,13 +61,15 @@ From MKC-168 (decision 61), tickets run in parallel lanes. Each lane keeps its o
 
 | Lane | Tickets | File | State |
 |---|---|---|---|
-| A. Extraction | MKC-21 → 22 → 23 → 25 → 26 → 28 → 29 → 30 | `handoff/lane-a.md` | MKC-23 done (PR #225, `6208e97`); next MKC-25 (go/no-go vision check; live model calls need the coordinator's go) |
-| A2. SachsenNetze and gold | MKC-27 (after MKC-21) → 24 (after MKC-23) | `handoff/lane-a2.md` | MKC-27 done (PR #214, `3bacfc5`); MKC-24 ready (MKC-23 done) |
+| A. Extraction | MKC-21 → 22 → 23 → 25 → 26 → 28 → 29 → 30 | `handoff/lane-a.md` | wave 4: MKC-25 (go/no-go vision check) on `mkc-25-vision-check`, red tests first; MKC-23 done (PR #225, `6208e97`) |
+| A2. SachsenNetze and gold | MKC-27 (after MKC-21) → 24 (after MKC-23) | `handoff/lane-a2.md` | wave 4: MKC-24 (gold tooling) on `mkc-24-gold-tooling`, red tests first; MKC-27 done (PR #214, `3bacfc5`) |
 | B. Advisor | MKC-36 → (37 after MKC-30) → 38 | `handoff/lane-b.md` | MKC-36 done (PR #196, `046f61e`); paused: MKC-37 waits on MKC-30 |
 | C. Decision layer | MKC-46 → (47 after MKC-36, MKC-26) → (48 after MKC-31) | `handoff/lane-c.md` | MKC-46 done (PR #195, `085323a`); next MKC-47 waits on MKC-36 and MKC-26 |
 | D. RAG | MKC-49 → 50 → (51 after MKC-38) | `handoff/lane-d.md` | MKC-50 done (PR #216, `3636edb`); paused: MKC-51 waits on MKC-38 |
 
-No lane worktree exists now. Wave 3's worktree `<lanes>/lane-a` on `mkc-23-render-drafts` (cut from `502c30a`; `<lanes>` is the folder `mkc-lanes` next to the repo folder) was removed clean and pushed right after the coordinator commit `a10d09c` (10:04:37; the removal itself has no recorded time). Wave 2's three worktrees were removed at 01:31:45 on 28.11.2026.
+Wave 4 worktrees (cut from `origin/main` `47e110a` at 10:50, branches pushed by 10:50:24): `<lanes>/lane-a` on `mkc-25-vision-check` and `<lanes>/lane-a2` on `mkc-24-gold-tooling` (`<lanes>` is the folder `mkc-lanes` next to the repo folder). Wave 3's worktree was removed clean after `a10d09c`; wave 2's three at 01:31:45 on 28.11.2026.
+
+Wave 4 grants beyond AGENTS.md (in the lane briefs): **lane A (MKC-25)** a small vision-check module in `mkc/extraction/` (one `extract_vision` call per concept through `ModelClient.vision`, compared with a truth sheet), the blank truth sheet under `backend/data/` (facts and page references only), `scripts/check_go_no_go.py`, and for the `draft_locked` fix (PR #225 finding 1, a sub-issue) `mkc/harness/drafts.py`, `loop.py` and, only if a snapshot column is needed, migration `0015` with `down_revision = "0014"`. **Lane A2 (MKC-24)** the package `mkc/gold/`, the `gold_item` table at the end of `mkc/db/models.py`, the `gold` sub-app appended in `mkc/cli.py`, migration `0015_gold_item.py` (`down_revision = "0014"`; the coordinator re-chains whichever PR merges second), one append block in `config.py` and `.env.example`, `scripts/check_gold.py`; it imports `MesskonzeptDraft` read-only and changes no lane A file; blind mode is backend-only (the UI comes in MKC-29). Rulings: the user fills MKC-25's truth sheet before any vision call; lane A proposes the 5 Berlin concepts and the coordinator confirms them; those 5 keys are pinned to `dev` in lane A2's split; no go/no-go threshold is in the design, so the lane recommends (default: go if at least 4 of 5 have meters and upstream correct) and the user decides. Live calls: lane A up to €1.00, lane A2 up to €1.50, public PDFs only, logged per call in the lane file. Decision blocks: lane A 85–87, lane A2 75 and 88–89.
 
 Wave 3 grants beyond AGENTS.md (in the lane A brief): lane A may change `mkc/harness/runner.py` and `mkc/worker/executor.py` (pass `documents` to `default_registry`), `mkc/harness/drafts.py`, `mkc/harness/states.py` (only if an edge is needed), `mkc/harness/registry.py` (`enqueue_approval`, `render_region`), append one block to `config.py` and `.env.example` (DPI cap), add a table at the end of `mkc/db/models.py`, and new migrations from `0014` with `down_revision = "0013"` (`main`'s head). Renderer: `pypdfium2` and `pillow` are already in `uv.lock` (via `pdfplumber`); a new dependency goes to the coordinator first. Live use: public PDFs only, no model calls. Decision block 82–84.
 
@@ -81,6 +83,7 @@ New tables go at the end of `mkc/db/models.py` in a block commented with the tic
 
 ## In progress
 
+- **Wave 4 started (28.11.2026):** MKC-227 (#227, coordinator log; branch `mkc-227-wave-4-coordinator` from `mkc-218-wave-3-closeout`); MKC-25 (lane A) and MKC-24 (lane A2) `In progress`, assigned to `qamran`; the test agents write the red acceptance tests. The flaky lane D test (`test_retrieval_trace.py:159`) is fixed on this branch (`f4039d3`, data columns only). Both tickets end in user tasks (the MKC-25 truth sheet and go / Berlin only; the first Berlin gold batch); their reviews start only once that evidence is on the branch.
 - **Wave 3 done (28.11.2026):** MKC-23 (lane A, PR #225, `6208e97`, decisions 82–84), review PASS, merged and deployed (log 10:04). **Next: wave 4** = MKC-25 (lane A; live vision calls need a budget from the coordinator) and MKC-24 (lane A2, decision 75 reserved). Recommended: start wave 4 in a fresh session. Open wave 4's coordinator issue and cut its branch from this closeout branch `mkc-218-wave-3-closeout` (it holds the post-merge log of PR #226), give each lane its decision block from 85, and set lane A's live-call budget for MKC-25 before its agents start.
 - **MKC-218** (#218), Wave 3 coordinator log: done (PR #226, merged as `47e110a`, deployed).
 - **MKC-200** (#200), Wave 2 coordinator log: done (PR #217, merged as `502c30a`, deployed).
@@ -250,6 +253,8 @@ New tables go at the end of `mkc/db/models.py` in a block commented with the tic
 - **The user's PC:** it went down without a clean shutdown on 23.11 and 26.11.2026 (cause not found; graphics-driver hang reports on both days; a memory test is not done yet). Commit and push often. Two files exist only on the PC: the VM's admin SSH key and `backend/.env` (runbook "Only on the PC"); the user was advised to copy them into a password manager.
 
 ## Recent log
+
+- **28.11.2026 10:53** Wave 4 started: MKC-227 (#227) created (`date` 10:49:38), `In progress` with #24 and #25 (both assigned to `qamran`; `date` 10:50:16); branch `mkc-227-wave-4-coordinator` from `62d4138`; worktrees `lane-a` (`mkc-25-vision-check`) and `lane-a2` (`mkc-24-gold-tooling`) from `47e110a`, pushed by 10:50:24; Docker Desktop started, Compose db up (10:51:27). Test agents of both lanes started with the briefs under Lanes. `f4039d3` (10:52:40) fixes the flaky `test_retrieval_trace.py:159` (data columns only; `17 passed`). Status doc: decision blocks 85–87 (A) and 88–89 (A2), live-call budgets.
 
 - **28.11.2026 10:35** PR #226 (MKC-218) re-review PASS (Fable, comment 10:29:26; it checked `56db9a3` against the FAIL findings; 3 non-blocking findings: (1) the PR body's first criterion names the entries "07:05, 07:49 and 10:04", they are 07:05, 07:48, 10:04 and 10:22; (2) `6cbd700` (MKC-200) has no body, like `96675e0` and `334a483`; (3) the "Wave 3 done" bullet still said "re-review next", fixed here), merged as `47e110a` (10:29:29); #218 closed by the merge (10:29:31), `Done`. `main` pushed to `turing` (10:30:10); `origin/main` = `turing/main` = `47e110a`. `ci` run 46130709143 on `main` green. `cd` run 46130709300: `image` 10:29:35 to 10:33:11; `backend` approved (`date` 10:33:34), ran 10:33:36 to 10:34:16; `frontend` approved (`date` 10:34:30), ran 10:34:31 to 10:35:14; run exit 0. Checked: `/api/version` commit `47e110a...`, `/health` 200 (10:35:20). **Wave 3 closed.** Docker Desktop stopped and WSL shut down after this entry.
 

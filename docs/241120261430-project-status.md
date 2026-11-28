@@ -1,6 +1,6 @@
 # Project status: Messkonzept-Copilot
 
-**Last updated:** 28.11.2026, 10:22
+**Last updated:** 28.11.2026, 10:53
 
 This is the living status document. It is updated whenever a decision is made or work is completed. Older brainstorming material lives in `brainstorming internal/` (gitignored and frozen).
 
@@ -78,6 +78,7 @@ This is the living status document. It is updated whenever a decision is made or
 - **MKC-46 done** (lane C; PR #195 merged as `085323a` on 27.11.2026, review PASS, deployed the same day), decision-layer spike: the Jev call path via OpenRouter works (ADR 004 amendment, decisions 68 and 69; sub-issues MKC-46.1 to 46.3, #192–#194). Built: `langchain-typesafe==0.1.0`, `MKC_DECISION_BACKEND` (default `llm`, the fallback stays the default) and `MKC_DECISION_MODEL`, `build_decision_model` (base URL `https://openrouter.ai/api`, path `/api/v1/systemone`, zero-data-retention routing in every body), `mkc.decision` (`DecisionClient`, typed answers, `DecisionError`). Live: `uv run --env-file .env pytest -m live tests/decision/test_jev_live.py -v`: "1 passed in 10.26s" (20:47:56); `~typesafe/jev-latest` resolved to `typesafe/jev-1.14-20261014`. **Spend for the ticket (six live calls, 20:40–20:48):** three printed `usage.cost` 0.000011886, 0.000011886 and 0.000017934 USD; two 404 routing probes and the pytest run printed no cost. Call log: `handoff/lane-c.md`.
 - **Wave 2 done (28.11.2026):** MKC-27 (lane A2, PR #214, `3bacfc5`, decision 74), MKC-22 (lane A, PR #215, `6d3aee9`, decisions 76–78) and MKC-50 (lane D, PR #216, `3636edb`, decisions 79–81) merged and deployed, each after a review PASS; the coordinator's log is MKC-200 (#200). Decision 75 stays reserved for lane A2's MKC-24. Wave 3 was MKC-23 alone (lane A).
 - **Wave 3 done (28.11.2026):** MKC-23 (lane A, PR #225, `6208e97`, decisions 82–84) merged and deployed after a review PASS; the coordinator's log is MKC-218 (#218). **Next: wave 4** is MKC-25 (lane A, go/no-go vision check) and MKC-24 (lane A2, decision 75); the coordinator assigns their decision blocks from 85. Lane B waits on MKC-30 (MKC-37), lane C on MKC-26 (MKC-47), lane D on MKC-38 (MKC-51). The review findings of waves 1 to 3 are listed in `HANDOFF.md` under Next steps.
+- **Wave 4 started (28.11.2026):** MKC-25 (lane A, decisions 85–87) and MKC-24 (lane A2, decisions 75 and 88–89); the coordinator's log is MKC-227 (#227). Live-call budgets: lane A up to €1.00 (MKC-25 vision calls), lane A2 up to €1.50 (MKC-24 `gold_draft` calls); public PDFs only, every call logged in the lane file. Both tickets need the user: MKC-25 a truth sheet for 5 Berlin concepts filled in before any vision call, and the go / Berlin only decision; MKC-24 the first Berlin gold batch verified, hours logged.
 
 ## Key documents
 
@@ -149,7 +150,9 @@ Parallel lanes write the design doc's decision log at the same time, so each lan
 | 76–78 | lane A, extraction (MKC-22 and on) | 2 |
 | 79–81 | lane D, RAG (MKC-50 and on) | 2 |
 | 82–84 | lane A, extraction (MKC-23 and on) | 3 |
-| 85– | later waves: the coordinator assigns blocks when a wave starts | 4 |
+| 85–87 | lane A, extraction (MKC-25 and on) | 4 |
+| 88–89 | lane A2, gold (MKC-24, with 75) | 4 |
+| 90– | later waves: the coordinator assigns blocks when a wave starts | 5 |
 
 ## Open items
 
