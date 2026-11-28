@@ -1,6 +1,6 @@
 # Lane A2: SachsenNetze and gold
 
-**Last updated:** 28.11.2026, 11:07
+**Last updated:** 28.11.2026, 11:24
 
 Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (decision 61). Times are local time (CET) from git and GitHub, never estimated.
 
@@ -16,7 +16,9 @@ Only this lane's agents write this file; the coordinator keeps `HANDOFF.md` (dec
 
 ## In progress
 
-- `MKC-24` (`#24`): the test agent's red acceptance tests are committed (last red commit `cf4175f`, see "Red tests (MKC-24)"). Next: the development agent builds against them.
+- `MKC-24` (`#24`): the test agent's red acceptance tests are committed (last red commit `cf4175f`, see "Red tests (MKC-24)"). The development agent builds against them.
+  - Sub-issues (all `In progress`, assigned to `qamran`, on the board, linked to `#24`): `MKC-24.1` split (`#231`), `MKC-24.2` table and drafts (`#232`), `MKC-24.3` export, import and blind mode (`#233`), `MKC-24.4` docs and the user-task check (`#234`).
+  - Held back: `backend/data/gold_split.yaml` is committed only once the coordinator sends lane A's 5 pinned Berlin keys (MKC-25). No live `gold_draft` call before the coordinator resumes the lane after the split.
 
 ### Red tests (MKC-24)
 
@@ -49,6 +51,8 @@ All in `backend/tests/gold/` plus `backend/tests/test_check_gold.py`. Each test 
 
 ### Assumptions (for the coordinator to confirm)
 
+Coordinator rulings (28.11.2026): 1, 2, 3, 5, 7, 8, 9 and 10 confirmed; 6 is the development agent's choice (recorded in decision 89); **4 changed:** `ensure_independent` also refuses the same model **family** as `extract_vision` (the vendor prefix before `/`), so "another provider" in design 11.1 means another model vendor when both go through OpenRouter (decision 88). Also accepted: a verified item is never overwritten, import is all or nothing, the `split` check constraint, the option names, `{"items": [...]}`, `check_gold.py` and `gold_split.yaml` as grants.
+
 1. **The user-task check blocks CI.** CI's docs job runs every `scripts/check_*.py`, and `test_check_gold.py::test_the_repo_passes` is in the backend suite, so the PR cannot go green until the user has verified the first Berlin batch and the line is in the status doc. The user can do the batch locally on the branch. If the PR should merge first, the coordinator decides how.
 2. **Two items per key for blind labels.** A blind label is a second `gold_item` of the same key (`blind = true`, no drafter) next to the drafted one, so agreement between blind labels and verified drafts can be reported (design 11.1). Uniqueness is then per (kind, key, blind), not per (kind, key). The tests pin the behaviour, not the constraint.
 3. Pins: a pinned key that is not among the keys, or more pins than `ceil(n/2)` for one operator, is a `ValueError` (CLI exit 2).
@@ -74,6 +78,8 @@ All in `backend/tests/gold/` plus `backend/tests/test_check_gold.py`. Each test 
 4. Test agent: mutation pass once the development agent is done.
 
 ## Recent log
+
+- **28.11.2026 11:24** Development agent: sub-issues `#231` to `#234` created and linked; `mkc/gold/split.py` (SHA-256 rank per operator, `ceil(n/2)` to dev, pins plus the best-ranked unpinned keys): `tests/gold/test_gold_split.py` `34 passed in 0.56s`.
 
 - **28.11.2026 11:07** Test agent: MKC-24 red tests committed (`e41e032`, `becb54f`, `417a4bd`, `0ac90c2`, `cf4175f`): split, split file, draft role, table, export and import with blind mode, and the user-task check. New files: `65 failed, 1 passed, 16 errors` (the pass was a false green, fixed); full non-live suite: `66 failed, 1262 passed, 2 skipped, 20 deselected, 6 warnings, 16 errors in 118.46s`.
 - **27.11.2026 23:59** PR #214 merged as `3bacfc5`: MKC-27 done.
